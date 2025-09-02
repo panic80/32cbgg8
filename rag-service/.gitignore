@@ -36,6 +36,10 @@ env/
 .env
 .env.local
 .env.*.local
+.keys/
+
+# macOS metadata
+._*
 
 # ChromaDB
 .chroma/

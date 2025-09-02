@@ -31,3 +31,5 @@ cbthis.service
 
 # OS files
 Thumbs.db
+.DS_Store
+._*
