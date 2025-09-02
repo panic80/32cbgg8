@@ -1,0 +1,137 @@
+# Dependencies
+node_modules
+rag-service/venv
+rag-service/.venv
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+.Python
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+# dist (needed for Docker build)
+build
+*.egg-info
+
+# Environment files (security)
+.env
+.env.*
+!.env.example
+!.env.*.template
+
+# Logs
+logs
+*.log
+dev.log
+proxy.log
+server.log
+vite.log
+rag-service/logs
+
+# Development files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Git
+.git
+.gitignore
+
+# Docker (when building)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.travis.yml
+
+# Testing
+coverage
+.coverage
+htmlcov
+.pytest_cache
+.nyc_output
+screenshots
+**/*.test.js
+**/*.spec.js
+**/__tests__
+
+# Temporary files
+*.tmp
+*.temp
+tmp/
+temp/
+*.bak
+*.backup
+
+# Documentation
+*.md
+docs/
+LICENSE
+
+# Scripts (deployment specific)
+scripts/deploy*.sh
+scripts/*-deploy*.sh
+deployment/
+deploy/
+
+# Backup files
+*.backup
+*.bak
+
+# PM2 (not needed in Docker)
+ecosystem.config.cjs
+
+# Python specific
+*.so
+.mypy_cache
+.dmypy.json
+dmypy.json
+.pyre/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Data files (should be volume mounted)
+rag-service/chroma_db
+rag-service/cooccurrence_index
+rag-service/models
+rag-service/bm25_index.pkl
+*.db
+*.sqlite
+*.sqlite3
+
+# Archive files
+*.tar
+*.tar.gz
+*.zip
+*.rar
+
+# Large files
+*.mp4
+*.mov
+*.avi
+*.pdf
+*.doc
+*.docx
+*.ppt
+*.pptx
+
+# Secrets and keys
+*.pem
+*.key
+*.crt
+*.p12
+secrets/
+private/

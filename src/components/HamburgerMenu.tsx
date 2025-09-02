@@ -1,0 +1,317 @@
+import React from 'react';
+import { motion } from 'framer-motion';
+import { 
+  Menu, 
+  X, 
+  Brain, 
+  Zap, 
+  Minimize2, 
+  HelpCircle, 
+  Sun, 
+  Moon, 
+  Plane,
+  Home,
+  FileQuestion,
+  Shield,
+  ChevronRight
+} from 'lucide-react';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
+import { Link } from 'react-router-dom';
+
+interface HamburgerMenuProps {
+  theme: string;
+  toggleTheme: () => void;
+  modelMode: 'fast' | 'smart';
+  setModelMode: (mode: 'fast' | 'smart') => void;
+  shortAnswerMode: boolean;
+  setShortAnswerMode: (value: boolean) => void;
+  onTripPlannerOpen: () => void;
+  onGlossaryOpen: () => void;
+  onHelpOpen: () => void;
+  onWhatsNewOpen?: () => void;
+  onExportMarkdown: () => void;
+  onExportJSON: () => void;
+  onClearConversation: () => void;
+  hasWhatsNew?: boolean;
+}
+
+export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
+  theme,
+  toggleTheme,
+  modelMode,
+  setModelMode,
+  shortAnswerMode,
+  setShortAnswerMode,
+  onTripPlannerOpen,
+  onGlossaryOpen,
+  onHelpOpen,
+  onWhatsNewOpen,
+  onExportMarkdown,
+  onExportJSON,
+  onClearConversation,
+  hasWhatsNew,
+}) => {
+  const [isOpen, setIsOpen] = React.useState(false);
+
+  const menuSections = [
+    {
+      title: 'AI Settings',
+      items: [
+        {
+          type: 'toggle-group',
+          label: 'Model Mode',
+          icon: modelMode === 'smart' ? <Brain className="w-4 h-4" /> : <Zap className="w-4 h-4" />,
+          value: modelMode,
+          options: [
+            { value: 'smart', label: 'Smart', icon: <Brain className="w-3 h-3" /> },
+            { value: 'fast', label: 'Fast', icon: <Zap className="w-3 h-3" /> }
+          ],
+          onChange: (value: string) => setModelMode(value as 'fast' | 'smart')
+        },
+        {
+          type: 'switch',
+          label: 'Short Answers',
+          description: 'Get concise responses',
+          icon: <Minimize2 className="w-4 h-4" />,
+          value: shortAnswerMode,
+          onChange: setShortAnswerMode
+        }
+      ]
+    },
+    {
+      title: 'Tools',
+      items: [
+        {
+          type: 'button',
+          label: 'Travel Planner',
+          icon: <Plane className="w-4 h-4" />,
+          onClick: () => {
+            setIsOpen(false);
+            onTripPlannerOpen();
+          }
+        },
+        {
+          type: 'button',
+          label: "What's New",
+          icon: <Sun className="w-4 h-4" />,
+          onClick: () => {
+            setIsOpen(false);
+            onWhatsNewOpen && onWhatsNewOpen();
+          }
+        },
+        {
+          type: 'button',
+          label: 'Help',
+          icon: <HelpCircle className="w-4 h-4" />,
+          onClick: () => {
+            setIsOpen(false);
+            onHelpOpen();
+          }
+        }
+      ]
+    },
+    {
+      title: 'Conversation',
+      items: [
+        { type: 'button', label: 'Export as Markdown', icon: <FileQuestion className="w-4 h-4" />, onClick: onExportMarkdown },
+        { type: 'button', label: 'Export as JSON', icon: <FileQuestion className="w-4 h-4" />, onClick: onExportJSON },
+        { type: 'button', label: 'Clear conversation', icon: <X className="w-4 h-4" />, onClick: onClearConversation },
+      ]
+    },
+    {
+      title: 'Appearance',
+      items: [
+        {
+          type: 'toggle-group',
+          label: 'Theme',
+          icon: theme === 'dark' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />,
+          value: theme,
+          options: [
+            { value: 'light', label: 'Light', icon: <Sun className="w-3 h-3" /> },
+            { value: 'dark', label: 'Dark', icon: <Moon className="w-3 h-3" /> }
+          ],
+          onChange: (value: string) => {
+            if (value !== theme) toggleTheme();
+          }
+        }
+      ]
+    }
+  ];
+
+  return (
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
+      <SheetTrigger asChild>
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ 
+            type: "spring", 
+            stiffness: 200, 
+            damping: 20,
+            delay: 0.5 
+          }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-11 w-11 rounded-lg border-2 shadow-md hover:shadow-lg transition-all duration-200 bg-[var(--card)] hover:bg-[var(--accent)] hover:border-[var(--accent-foreground)] group relative"
+          >
+            <Menu className="h-6 w-6 transition-transform duration-200 group-hover:scale-110" />
+            {hasWhatsNew && (
+              <span className="absolute -top-0.5 -right-0.5 inline-block h-2.5 w-2.5 rounded-full bg-[var(--primary)] ring-2 ring-background" />
+            )}
+            <span className="sr-only">Open menu</span>
+            {/* Pulse animation for new users */}
+            <motion.div
+              className="absolute inset-0 rounded-lg border-2 border-[var(--accent-foreground)]"
+              initial={{ opacity: 0.6, scale: 1 }}
+              animate={{ 
+                opacity: [0.6, 0, 0.6],
+                scale: [1, 1.15, 1]
+              }}
+              transition={{
+                duration: 2,
+                repeat: 2,
+                repeatType: "loop",
+                ease: "easeInOut"
+              }}
+              style={{ pointerEvents: 'none' }}
+            />
+          </Button>
+        </motion.div>
+      </SheetTrigger>
+      <SheetContent 
+        side="right" 
+        className="w-[300px] sm:w-[350px] p-0 border-l border-[var(--border)]"
+      >
+        <SheetHeader className="px-6 py-4 border-b border-[var(--border)]">
+          <SheetTitle className="text-xl font-bold">Menu</SheetTitle>
+        </SheetHeader>
+        
+        <div
+          className="flex flex-col overflow-y-auto overscroll-contain pb-[max(env(safe-area-inset-bottom),1rem)] h-[calc(100dvh-4rem)]"
+        >
+          {menuSections.map((section, sectionIndex) => (
+            <div key={section.title} className="px-6 py-4">
+              <h3 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-3">
+                {section.title}
+              </h3>
+              <div className="space-y-2">
+                {section.items.map((item, itemIndex) => {
+                  if (item.type === 'toggle-group') {
+                    return (
+                      <div key={itemIndex} className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          {item.icon}
+                          <span>{item.label}</span>
+                        </div>
+                        <div className="flex gap-1 p-1 bg-[var(--background-secondary)] rounded-lg">
+                          {item.options?.map((option) => (
+                            <button
+                              key={option.value}
+                              onClick={() => item.onChange?.(option.value)}
+                              className={cn(
+                                "flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+                                item.value === option.value
+                                  ? theme === 'dark' 
+                                    ? "bg-yellow-500 text-black shadow-sm" 
+                                    : "bg-green-500 text-white shadow-sm"
+                                  : "text-[var(--text-secondary)] hover:text-foreground"
+                              )}
+                            >
+                              {option.icon}
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  }
+                  
+                  if (item.type === 'switch') {
+                    return (
+                      <div key={itemIndex} className="flex items-center justify-between py-2">
+                        <div className="flex items-center gap-3">
+                          {item.icon}
+                          <div>
+                            <div className="text-sm font-medium">{item.label}</div>
+                            {item.description && (
+                              <div className="text-xs text-[var(--text-secondary)]">
+                                {item.description}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <Switch
+                          checked={item.value}
+                          onCheckedChange={item.onChange}
+                        />
+                      </div>
+                    );
+                  }
+                  
+                  if (item.type === 'button') {
+                    return (
+                      <motion.button
+                        key={itemIndex}
+                        onClick={item.onClick}
+                        className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-[var(--background-secondary)] transition-colors text-left"
+                        whileHover={{ x: 2 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        <div className="flex items-center gap-3">
+                          {item.icon}
+                          <span className="text-sm font-medium">{item.label}</span>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-[var(--text-secondary)]" />
+                      </motion.button>
+                    );
+                  }
+                  
+                  if (item.type === 'link') {
+                    return (
+                      <Link
+                        key={itemIndex}
+                        to={item.href || '/'}
+                        onClick={() => setIsOpen(false)}
+                      >
+                        <motion.div
+                          className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-[var(--background-secondary)] transition-colors"
+                          whileHover={{ x: 2 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          <div className="flex items-center gap-3">
+                            {item.icon}
+                            <span className="text-sm font-medium">{item.label}</span>
+                          </div>
+                          <ChevronRight className="w-4 h-4 text-[var(--text-secondary)]" />
+                        </motion.div>
+                      </Link>
+                    );
+                  }
+                  
+                  return null;
+                })}
+              </div>
+              {sectionIndex < menuSections.length - 1 && (
+                <Separator className="mt-4" />
+              )}
+            </div>
+          ))}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+};

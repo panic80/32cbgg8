@@ -1,0 +1,44 @@
+# Core dependencies
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-multipart==0.0.6
+python-dotenv==1.0.0
+websockets==12.0
+
+# LangChain ecosystem - let pip resolve versions
+langchain
+langchain-community
+langchain-openai
+langchain-google-genai
+langchain-anthropic
+langchain-chroma
+langgraph
+
+# Vector store and embeddings
+chromadb
+openai
+google-generativeai
+anthropic
+
+# Document processing
+beautifulsoup4
+pypdf
+markdownify
+python-docx
+openpyxl
+pandas
+tabulate
+unstructured
+
+# Models and utilities
+pydantic
+pydantic-settings
+redis
+aiohttp
+httpx
+python-dateutil
+tenacity
+scikit-learn
+numpy
+sentence-transformers
+nltk

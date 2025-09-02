@@ -1,0 +1,604 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "last_updated": "2025-01-08",
+    "description": "Canadian Forces Travel Instructions Acronyms and Glossary"
+  },
+  "categories": {
+    "military_general": {
+      "name": "Military General",
+      "terms": {
+        "CAF": {
+          "expansion": "Canadian Armed Forces",
+          "description": "The unified armed forces of Canada",
+          "variations": [
+            "C.A.F.",
+            "Canadian Forces",
+            "CF"
+          ]
+        },
+        "CF": {
+          "expansion": "Canadian Forces",
+          "description": "Alternative name for Canadian Armed Forces",
+          "variations": [
+            "C.F."
+          ]
+        },
+        "DND": {
+          "expansion": "Department of National Defence",
+          "description": "The federal department responsible for the Canadian Armed Forces",
+          "variations": [
+            "D.N.D."
+          ]
+        },
+        "CO": {
+          "expansion": "Commanding Officer",
+          "description": "The officer in command of a military unit",
+          "variations": [
+            "C.O."
+          ]
+        },
+        "NCO": {
+          "expansion": "Non-Commissioned Officer",
+          "description": "An enlisted member of the armed forces holding a position of authority",
+          "variations": [
+            "N.C.O."
+          ]
+        },
+        "RSM": {
+          "expansion": "Regimental Sergeant Major",
+          "description": "The senior warrant officer in a regiment",
+          "variations": [
+            "R.S.M."
+          ]
+        },
+        "QM": {
+          "expansion": "Quartermaster",
+          "description": "Officer responsible for supplies and logistics",
+          "variations": [
+            "Q.M."
+          ]
+        }
+      }
+    },
+    "travel_authority": {
+      "name": "Travel Authority",
+      "terms": {
+        "TA": {
+          "expansion": "Travel Authority",
+          "description": "Official authorization for military travel",
+          "variations": [
+            "T.A."
+          ]
+        },
+        "TD": {
+          "expansion": "Temporary Duty",
+          "description": "Short-term assignment away from home unit",
+          "variations": [
+            "T.D.",
+            "TDY"
+          ]
+        },
+        "ITA": {
+          "expansion": "Individual Travel Authority",
+          "description": "Personal travel authorization document",
+          "variations": [
+            "I.T.A."
+          ]
+        },
+        "GTA": {
+          "expansion": "Group Travel Authority",
+          "description": "Travel authorization for multiple personnel",
+          "variations": [
+            "G.T.A."
+          ]
+        },
+        "CTA": {
+          "expansion": "Cost Transfer Agreement",
+          "description": "Agreement for transferring travel costs between units",
+          "variations": [
+            "C.T.A."
+          ]
+        }
+      }
+    },
+    "transportation": {
+      "name": "Transportation",
+      "terms": {
+        "PMV": {
+          "expansion": "Personal Motor Vehicle",
+          "description": "Member's own vehicle used for duty travel",
+          "variations": [
+            "P.M.V.",
+            "POV"
+          ]
+        },
+        "DCV": {
+          "expansion": "Department of National Defence Commercial Vehicle",
+          "description": "Government vehicle for official use",
+          "variations": [
+            "D.C.V."
+          ]
+        },
+        "MSE": {
+          "expansion": "Mobile Support Equipment",
+          "description": "Military vehicles and equipment",
+          "variations": [
+            "M.S.E."
+          ]
+        },
+        "SVC": {
+          "expansion": "Service Vehicle",
+          "description": "Government-owned vehicle for official use",
+          "variations": [
+            "S.V.C."
+          ]
+        }
+      }
+    },
+    "allowances": {
+      "name": "Allowances",
+      "terms": {
+        "SE": {
+          "expansion": "Separation Expense",
+          "description": "Allowance for members separated from dependents",
+          "variations": [
+            "S.E."
+          ]
+        },
+        "FOA": {
+          "expansion": "Foreign Service Allowance",
+          "description": "Additional pay for service outside Canada",
+          "variations": [
+            "F.O.A."
+          ]
+        },
+        "PLD": {
+          "expansion": "Post Living Differential",
+          "description": "Allowance based on cost of living in posting location",
+          "variations": [
+            "P.L.D."
+          ]
+        },
+        "LDA": {
+          "expansion": "Land Duty Allowance",
+          "description": "Allowance for field operations",
+          "variations": [
+            "L.D.A."
+          ]
+        },
+        "AIRCRA": {
+          "expansion": "Aircrew Allowance",
+          "description": "Special allowance for aircrew members",
+          "variations": [
+            "aircrew allowance"
+          ]
+        },
+        "SDA": {
+          "expansion": "Sea Duty Allowance",
+          "description": "Allowance for naval personnel at sea",
+          "variations": [
+            "S.D.A."
+          ]
+        },
+        "CLDA": {
+          "expansion": "Casual Land Duty Allowance",
+          "description": "",
+          "variations": []
+        }
+      }
+    },
+    "administrative": {
+      "name": "Administrative",
+      "terms": {
+        "HG&E": {
+          "expansion": "Household Goods and Effects",
+          "description": "Personal belongings and furniture",
+          "variations": [
+            "HG&E",
+            "HGE"
+          ]
+        },
+        "F&E": {
+          "expansion": "Furniture and Effects",
+          "description": "Household items and personal effects",
+          "variations": [
+            "F and E",
+            "FE"
+          ]
+        },
+        "IRP": {
+          "expansion": "Integrated Relocation Program",
+          "description": "Comprehensive relocation assistance program",
+          "variations": [
+            "I.R.P."
+          ]
+        },
+        "BGRS": {
+          "expansion": "Brookfield Global Relocation Services",
+          "description": "Contractor managing CAF relocations",
+          "variations": [
+            "B.G.R.S."
+          ]
+        },
+        "CFIRP": {
+          "expansion": "Canadian Forces Integrated Relocation Program",
+          "description": "The relocation program for CAF members",
+          "variations": [
+            "CF IRP"
+          ]
+        },
+        "MM": {
+          "expansion": "Member Manual",
+          "description": "Reference manual for members",
+          "variations": [
+            "M.M."
+          ]
+        },
+        "FSA": {
+          "expansion": "Financial Services Administrator",
+          "description": "Personnel responsible for financial administration",
+          "variations": [
+            "F.S.A."
+          ]
+        }
+      }
+    },
+    "accommodation": {
+      "name": "Accommodation",
+      "terms": {
+        "R&Q": {
+          "expansion": "Rations and Quarters",
+          "description": "Meals and accommodation provided by the military",
+          "variations": [
+            "R and Q",
+            "RQ"
+          ]
+        },
+        "CNL": {
+          "expansion": "Commercial Non-Listed",
+          "description": "Commercial accommodation not on preferred list",
+          "variations": [
+            "C.N.L."
+          ]
+        },
+        "SQ": {
+          "expansion": "Single Quarters",
+          "description": "Accommodation for single members",
+          "variations": [
+            "S.Q."
+          ]
+        },
+        "PMQ": {
+          "expansion": "Permanent Married Quarters",
+          "description": "On-base housing for families",
+          "variations": [
+            "P.M.Q."
+          ]
+        },
+        "RHU": {
+          "expansion": "Residential Housing Unit",
+          "description": "Military family housing",
+          "variations": [
+            "R.H.U."
+          ]
+        }
+      }
+    },
+    "locations_bases": {
+      "name": "Locations Bases",
+      "terms": {
+        "NCR": {
+          "expansion": "National Capital Region",
+          "description": "Ottawa-Gatineau area",
+          "variations": [
+            "N.C.R."
+          ]
+        },
+        "CFB": {
+          "expansion": "Canadian Forces Base",
+          "description": "Military installation prefix",
+          "variations": [
+            "C.F.B."
+          ]
+        },
+        "ASU": {
+          "expansion": "Area Support Unit",
+          "description": "Unit providing support services to an area",
+          "variations": [
+            "A.S.U."
+          ]
+        },
+        "CFSU": {
+          "expansion": "Canadian Forces Support Unit",
+          "description": "Unit providing administrative support",
+          "variations": [
+            "C.F.S.U."
+          ]
+        }
+      }
+    },
+    "ranks": {
+      "name": "Ranks",
+      "terms": {
+        "Pte": {
+          "expansion": "Private",
+          "description": "Entry-level rank in the Army",
+          "variations": [
+            "PTE",
+            "Pvt"
+          ]
+        },
+        "Cpl": {
+          "expansion": "Corporal",
+          "description": "Junior non-commissioned officer rank",
+          "variations": [
+            "CPL"
+          ]
+        },
+        "MCpl": {
+          "expansion": "Master Corporal",
+          "description": "Senior corporal rank",
+          "variations": [
+            "MCPL",
+            "M.Cpl"
+          ]
+        },
+        "Sgt": {
+          "expansion": "Sergeant",
+          "description": "Non-commissioned officer rank",
+          "variations": [
+            "SGT"
+          ]
+        },
+        "WO": {
+          "expansion": "Warrant Officer",
+          "description": "Senior non-commissioned rank",
+          "variations": [
+            "W.O."
+          ]
+        },
+        "MWO": {
+          "expansion": "Master Warrant Officer",
+          "description": "Senior warrant officer rank",
+          "variations": [
+            "M.W.O."
+          ]
+        },
+        "CWO": {
+          "expansion": "Chief Warrant Officer",
+          "description": "Highest non-commissioned rank",
+          "variations": [
+            "C.W.O."
+          ]
+        },
+        "2Lt": {
+          "expansion": "Second Lieutenant",
+          "description": "Junior commissioned officer rank",
+          "variations": [
+            "2LT",
+            "2nd Lt"
+          ]
+        },
+        "Lt": {
+          "expansion": "Lieutenant",
+          "description": "Junior officer rank",
+          "variations": [
+            "LT",
+            "Lieut"
+          ]
+        },
+        "Capt": {
+          "expansion": "Captain",
+          "description": "Company-level officer rank",
+          "variations": [
+            "CAPT",
+            "Cpt"
+          ]
+        },
+        "Maj": {
+          "expansion": "Major",
+          "description": "Field officer rank",
+          "variations": [
+            "MAJ"
+          ]
+        },
+        "LCol": {
+          "expansion": "Lieutenant-Colonel",
+          "description": "Senior field officer rank",
+          "variations": [
+            "LCOL",
+            "Lt Col"
+          ]
+        },
+        "Col": {
+          "expansion": "Colonel",
+          "description": "Senior officer rank",
+          "variations": [
+            "COL"
+          ]
+        },
+        "BGen": {
+          "expansion": "Brigadier-General",
+          "description": "One-star general rank",
+          "variations": [
+            "BGEN",
+            "Brig Gen"
+          ]
+        },
+        "MGen": {
+          "expansion": "Major-General",
+          "description": "Two-star general rank",
+          "variations": [
+            "MGEN",
+            "Maj Gen"
+          ]
+        },
+        "LGen": {
+          "expansion": "Lieutenant-General",
+          "description": "Three-star general rank",
+          "variations": [
+            "LGEN",
+            "Lt Gen"
+          ]
+        },
+        "Gen": {
+          "expansion": "General",
+          "description": "Four-star general rank",
+          "variations": [
+            "GEN"
+          ]
+        }
+      }
+    },
+    "financial": {
+      "name": "Financial",
+      "terms": {
+        "CLPA": {
+          "expansion": "Claim for Living and Personal Allowances",
+          "description": "Form for claiming allowances",
+          "variations": [
+            "C.L.P.A."
+          ]
+        },
+        "FAA": {
+          "expansion": "Financial Administration Act",
+          "description": "Federal act governing financial management",
+          "variations": [
+            "F.A.A."
+          ]
+        },
+        "TB": {
+          "expansion": "Treasury Board",
+          "description": "Government body overseeing financial policies",
+          "variations": [
+            "T.B."
+          ]
+        },
+        "NJC": {
+          "expansion": "National Joint Council",
+          "description": "Body setting travel directive policies",
+          "variations": [
+            "N.J.C."
+          ]
+        },
+        "MTEC": {
+          "expansion": "Minor Travel Expense Claim",
+          "description": "Same day travel",
+          "variations": [
+            "M.T.E.C."
+          ]
+        }
+      }
+    },
+    "medical": {
+      "name": "Medical",
+      "terms": {
+        "CF H Svcs": {
+          "expansion": "Canadian Forces Health Services",
+          "description": "Military healthcare organization",
+          "variations": [
+            "CFHS",
+            "CF Health Services"
+          ]
+        },
+        "CDU": {
+          "expansion": "Care Delivery Unit",
+          "description": "Medical treatment facility",
+          "variations": [
+            "C.D.U."
+          ]
+        },
+        "MIR": {
+          "expansion": "Medical Inspection Room",
+          "description": "Base medical facility",
+          "variations": [
+            "M.I.R."
+          ]
+        },
+        "MEL": {
+          "expansion": "Medical Employment Limitation",
+          "description": "Medical restrictions on duties",
+          "variations": [
+            "M.E.L."
+          ]
+        }
+      }
+    },
+    "operations": {
+      "name": "Operations",
+      "terms": {
+        "Op": {
+          "expansion": "Operation",
+          "description": "Military mission or exercise",
+          "variations": [
+            "OP",
+            "Ops"
+          ]
+        },
+        "Ex": {
+          "expansion": "Exercise",
+          "description": "Training operation",
+          "variations": [
+            "EX",
+            "Exc"
+          ]
+        },
+        "ROTO": {
+          "expansion": "Rotation",
+          "description": "Deployment rotation number",
+          "variations": [
+            "Roto"
+          ]
+        },
+        "TAV": {
+          "expansion": "Technical Assistance Visit",
+          "description": "Specialist support visit",
+          "variations": [
+            "T.A.V."
+          ]
+        },
+        "SAV": {
+          "expansion": "Staff Assistance Visit",
+          "description": "Administrative support visit",
+          "variations": [
+            "S.A.V."
+          ]
+        }
+      }
+    },
+    "time_date": {
+      "name": "Time Date",
+      "terms": {
+        "COS": {
+          "expansion": "Change of Strength",
+          "description": "Date member reports to new unit",
+          "variations": [
+            "C.O.S."
+          ]
+        },
+        "RFD": {
+          "expansion": "Report For Duty",
+          "description": "Date to report to new assignment",
+          "variations": [
+            "R.F.D."
+          ]
+        },
+        "ETA": {
+          "expansion": "Estimated Time of Arrival",
+          "description": "Expected arrival time",
+          "variations": [
+            "E.T.A."
+          ]
+        },
+        "ETD": {
+          "expansion": "Estimated Time of Departure",
+          "description": "Expected departure time",
+          "variations": [
+            "E.T.D."
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,909 @@
+<!--[if lt IE 9]><html xmlns="http://www.w3.org/1999/xhtml" lang="en" class="no-js lt-ie9"><![endif]--><!--[if gt IE 8]><!--><html xmlns="http://www.w3.org/1999/xhtml" class="no-js " lang="en">
+<!--<![endif]-->
+<head>
+<meta charset="utf-8"/>
+<title>Financial Administration Manual (FAM) Glossary</title>
+<meta name="keywords" content="fam, financial administration manual, terms, glossary"/>
+<meta name="description" content="Financial Administration Manual (FAM) Glossary"/>
+
+<!-- Web Experience Toolkit (WET) / Boîte à outils de l'expérience Web (BOEW)
+http://wet-boew.github.io/wet-boew/License-en.html / wet-boew.github.io/wet-boew/Licence-fr.html -->
+<link rel="canonical" href="https://cfo-dpf.mil.ca/en/policy-procedure-fam/glossary.page"/>
+<meta name="dcterms.creator" content="Government of Canada, National Defence, Assistant Deputy Minister (Finance and Corporate Services)"/>
+<meta name="dcterms.subject" content="Armed forces" title="gccore"/>
+<meta name="dcterms.description" content="Financial Administration Manual (FAM) Glossary"/>
+<meta name="dcterms.title" content="Financial Administration Manual (FAM) Glossary"/>
+<meta name="dcterms.issued" content="2014-08-22" title="W3CDTF"/>
+<meta name="dcterms.modified" content="2023-03-23" title="W3CDTF"/>
+<meta name="dcterms.language" content="eng" title="ISO639-2"/>
+<meta name="review_date" content="2021-11-29" title="W3CDTF"/>
+<meta name="pageAuthor" content=""/>
+<meta name="viewport" content="width=device-width, initial-scale=1" /> <link rel="shortcut icon" href="/common/build/theme-gcwu-fegc/images/favicon.ico" /> <!--[if gte IE 9 | !IE ]><!--> <link href="/common/dist-gcwu-fegc/theme-gcwu-fegc/assets/favicon.ico" rel="icon" type="image/x-icon"> <link rel="stylesheet" href="/common/dist-gcwu-fegc/theme-gcwu-fegc/css/theme.min.css"> <!--<![endif]--> <!--[if lt IE 9]> <link href="/common/dist-gcwu-fegc/theme-gcwu-fegc/assets/favicon.ico" rel="shortcut icon" /> <link rel="stylesheet" href="/common/dist-gcwu-fegc/theme-gcwu-fegc/css/ie8-theme.min.css" /> <script src="/common/dist-gcwu-fegc/js/jquery/1.11.1/jquery.min.js"></script> <script src="/common/dist-gcwu-fegc/wet-boew/js/ie8-wet-boew.min.js"></script> <![endif]--> <noscript><link rel="stylesheet" href="/common/dist-gcwu-fegc/wet-boew/css/noscript.min.css" /></noscript> <link rel="stylesheet" href="/common/dnd_custom/customGlobal.css" /> <link rel="stylesheet" href="/common/dnd_custom/dnd-intranet.css" /> <link rel="stylesheet" href="/common/dnd_custom/fontawesome/css/font-awesome.min.css" /><script>window.webtrendsAsyncInit=function(){var dcs=new Webtrends.dcs().init({dcsid:"dcshy1qop10000w8ck5s7wita_1s8t",domain:"statssdc.mil.ca",timezone:-5,i18n:true,offsite:true,download:true,downloadtypes:"xls,doc,pdf,txt,csv,zip,docx,xlsx,rar,gzip,jpg,jpeg,gif,png,mov,avi,mpg,mpeg,ppt,pptx,pps,mp3,mp4,flv,xlt",onsitedoms:"cfo-dpf.mil.ca",fpcdom:".cfo-dpf.mil.ca"}).track();};(function(){var s=document.createElement("script"); s.async=true; s.src="/common/webtrends/webtrends.min.js";var s2=document.getElementsByTagName("script")[0]; s2.parentNode.insertBefore(s,s2);}());</script></head>
+<body typeof="WebPage" vocab="http://schema.org/"><ul id="wb-tphp"> <li class="wb-slc"><a class="wb-sl" href="#wb-cont">Skip to main content</a></li> <li class="wb-slc"><a class="wb-sl" href="#wb-info">Skip to "About this site"</a></li> </ul> <span typeof="Organization">
+<meta content="Department_of_National_Defence" property="legalName"/>
+</span><header role="banner">
+<!-- HeaderStart -->
+<div id="wb-bnr">
+<div id="wb-bar">
+<div class="container">
+<div class="row">
+<img src="/common/dnd_custom/images/sig-en.png" alt="National Defence" id="gcwu-sig"/>
+<ul class="list-inline" id="gc-bar">
+<li>
+<a href="https://www.canada.ca/en/department-national-defence.html" rel="external">Canada.ca</a>
+</li> <li>
+<a href="http://intranet.mil.ca/en/index.page" rel="external">Defence Team</a>
+</li> <li>
+<a href="http://intranet.mil.ca/en/organizations/organizations-lists.page" rel="external">Organizations</a>
+</li> <li>
+<a href="http://intranet.canada.ca/index-eng.asp?utm_source=referral&amp;utm_medium=email&amp;utm_term=departmental&amp;utm_campaign=launch" rel="external">GC Intranet</a>
+</li> <li id="wb-lng">
+<h2>Language selection</h2>
+<ul class="list-inline">
+<li>
+<a lang="fr" href="/fr/politque-procedure-maf/glossaire.page">Fran&ccedil;ais</a>
+</li>
+</ul>
+</li>
+</ul>
+<section id="wb-glb-mn" class="wb-mb-links col-xs-12 visible-sm visible-xs">
+<h2>Search and menus</h2>
+<ul class="pnl-btn list-inline text-right">
+<li>
+<a role="button" class="overlay-lnk btn btn-sm btn-default" aria-controls="mb-pnl" title="Search and menus" href="#mb-pnl">
+<span class="glyphicon glyphicon-search">
+<span class="glyphicon glyphicon-th-list">
+<span class="wb-inv">Search and menus</span>
+</span>
+</span>
+</a>
+</li>
+</ul>
+<div id="mb-pnl"></div>
+</section>
+</div>
+</div>
+</div>
+<div class="container">
+<div class="row">
+<div class="col-md-5" id="wb-sttl">
+<a href="/FinCS_Intranet/index.page">
+<span>Assistant Deputy Minister (Finance)</span>
+</a>
+</div>
+<object type="image/svg+xml" aria-label="Symbol of the Government of Canada" tabindex="-1" role="img" data="/common/dist-gcwu-fegc/assets/wmms.svg" id="wmms"></object>
+<section id="wb-srch" class="visible-md visible-lg">
+<h2>Search</h2>
+<form class="form-inline" role="search" method="get" action="https://search.mil.ca/Srch.aspx">
+<div class="form-group">
+<label for="wb-srch-q">Search website</label>
+<input maxlength="150" size="27" value="" type="search" name="UsrQue" class="form-control" id="wb-srch-q" data-role="none"/>
+</div>
+<button class="btn btn-default" id="wb-srch-sub" type="submit" data-role="none">Search</button>
+<input value="eng" type="hidden" name="langs" data-role="none"/>
+<input value="ADM+Fin+CS__SMA+Fin+SM" name="ParamSources" type="hidden"/>
+<input value="Search" name="Action" type="hidden"/>
+</form>
+</section>
+</div>
+</div>
+</div>
+<nav id="wb-sm" class="wb-menu visible-md visible-lg" role="navigation" data-trgt="mb-pnl" typeof="SiteNavigationElement">
+<div class="pnl-strt container visible-md visible-lg nvbar">
+<h2>Topics menu</h2>
+<div class="row">
+<ul role="menubar" class="list-inline menu">
+<li>
+<a href="/FinCS_Intranet/info-by-role.page" class="&#10;          item&#10;        ">By role</a>
+<ul role="menu" class="sm list-unstyled">
+<li>
+<a href="http://cfo-dpf.mil.ca/en/for-adm-fin-personnel.page?">For ADM(Fin) personnel</a>
+</li>
+<li>
+<a href="/FinCS_Intranet/info-by-role/comptroller.page">For comptrollers</a>
+</li>
+<li>
+<a href="http://cfo-dpf.mil.ca/en/info-by-role/financial-officer-clerk.page?">For financial officers and clerks</a>
+</li>
+<li>
+<a href="/FinCS_Intranet/info-by-role/cashier.page">For ACS cashiers</a>
+</li>
+<li class="slflnk">
+<a href="/FinCS_Intranet/info-by-role.page">By role</a>
+</li>
+</ul>
+</li>
+<li>
+<a href="/FinCS_Intranet/travel-hospitality.page" class="&#10;          item&#10;        ">Travel and hospitality</a>
+<ul role="menu" class="sm list-unstyled">
+<li>
+<a href="/FinCS_Intranet/travel-hospitality/travel-claims.page">Travel claims</a>
+</li>
+<li>
+<a href="/FinCS_Intranet/travel-hospitality/before-you-travel.page" title="A TIN is a traveller identification number and a TAN is a travel authorization number.">Before you travel: Approval, TINs and TANs</a>
+</li>
+<li>
+<a href="/FinCS_Intranet/travel-hospitality/hospitality.page">Hospitality, conference and event expenditures</a>
+</li>
+<li>
+<a href="/FinCS_Intranet/travel-hospitality/travel-cards.page">Travel cards</a>
+</li>
+<li>
+<a href="/FinCS_Intranet/travel-hospitality/booking-travel.page">Booking travel</a>
+</li>
+<li>
+<a href="https://www.canada.ca/en/immigration-refugees-citizenship/services/canadian-passports/official-travel.html">Passports and visas</a>
+</li>
+<li class="slflnk">
+<a href="/FinCS_Intranet/travel-hospitality.page">Travel and hospitality</a>
+</li>
+</ul>
+</li>
+<li>
+<a href="http://cfo-dpf.mil.ca/en/financial-policies-publications.page?" class="&#10;          item&#10;        ">Policies and publications</a>
+<ul role="menu" class="sm list-unstyled">
+<li>
+<a href="/FinCS_Intranet/fam.page">Financial Administration Manual (FAM)</a>
+</li>
+<li>
+<a href="http://cfo-dpf.mil.ca/en/systems-tools/cost-factors-manual.page?">Cost Factors Manual</a>
+</li>
+<li>
+<a href="http://cfo-dpf.mil.ca/en/financial-policies-publications/reports.page?">Reports and publications</a>
+</li>
+<li>
+<a href="/FinCS_Intranet/policy-procedure/provision-of-services.page">Provision of services</a>
+</li>
+<li>
+<a href="http://cfo-dpf.mil.ca/en/policy-procedure/fadir.page?">Financial Administration Directives</a>
+</li>
+<li class="slflnk">
+<a href="http://cfo-dpf.mil.ca/en/financial-policies-publications.page?">Policies and publications</a>
+</li>
+</ul>
+</li>
+<li>
+<a href="http://cfo-dpf.mil.ca/en/financial-procedures-processes.page?" class="&#10;          item&#10;        ">Procedures and processes</a>
+<ul role="menu" class="sm list-unstyled">
+<li>
+<a href="http://cfo-dpf.mil.ca/en/financial-procedures-processes/delegation-of-authorities.page?">Delegation of authorities</a>
+</li>
+<li>
+<a href="http://cfo-dpf.mil.ca/en/financial-procedures-processes/assets-inventory-accounting.page?">Assets and inventory accounting</a>
+</li>
+<li>
+<a href="http://cfo-dpf.mil.ca/en/financial-procedures-processes/financial-management-procedures-guides.page?">Financial management procedures and guides</a>
+</li>
+<li>
+<a href="http://cfo-dpf.mil.ca/en/policy-procedure/vendor-management.page?">Vendor management</a>
+</li>
+<li>
+<a href="http://cfo-dpf.mil.ca/en/policy-procedure/capital-assets-and-wip-certification.page?">Certification of Capital Assets and Work-in-Progress</a>
+</li>
+<li class="slflnk">
+<a href="http://cfo-dpf.mil.ca/en/financial-procedures-processes.page?">Procedures and processes</a>
+</li>
+</ul>
+</li>
+<li>
+<a href="http://cfo-dpf.mil.ca/en/financial-systems-tools.page?" class="&#10;          item&#10;        ">Systems and tools</a>
+<ul role="menu" class="sm list-unstyled">
+<li>
+<a href="/FinCS_Intranet/systems-tools/claimsx.page">ClaimsX</a>
+</li>
+<li>
+<a href="https://xrs-stc.forces.mil.ca/currencies-devises/en/">Exchange rates</a>
+</li>
+<li>
+<a href="/FinCS_Intranet/systems-tools/financial-coding.page">Financial coding</a>
+</li>
+<li>
+<a href="http://cfo-dpf.mil.ca/en/policy-procedure/payment-cards.page?">Payment cards</a>
+</li>
+<li>
+<a href="http://cfo-dpf.mil.ca/en/systems-tools/drmis.page?">DRMIS</a>
+</li>
+<li>
+<a href="http://cfo-dpf.mil.ca/en/financial-systems-tools/financial-planning-forecasting.page?">Financial planning and forecasting</a>
+</li>
+<li class="slflnk">
+<a href="http://cfo-dpf.mil.ca/en/financial-systems-tools.page?">Systems and tools</a>
+</li>
+</ul>
+</li>
+<li>
+<a href="http://cfo-dpf.mil.ca/en/for-adm-fin-personnel.page?" class="&#10;          item&#10;        ">ADM(Fin) personnel</a>
+<ul role="menu" class="sm list-unstyled">
+<li>
+<a href="http://cfo-dpf.mil.ca/en/adm-fin/dpc-fin/comptroller.page?">Comptrollership</a>
+</li>
+<li>
+<a href="http://cfo-dpf.mil.ca/en/admfin-staff/requesting-training.page?">Requesting training</a>
+</li>
+<li>
+<a href="http://cfo-dpf.mil.ca/en/admfin-staff/harassment-prevention-and-resolution.page?">Harassment prevention and resolution</a>
+</li>
+<li>
+<a href="http://cfo-dpf.mil.ca/en/admfin-staff/awards-and-recognition.page?">Awards and recognition</a>
+</li>
+<li>
+<a href="http://cfo-dpf.mil.ca/en/admfin-staff/ndwcc-in-adm-fin.page?" title="National Defence Workplace Charitable Campaign">NDWCC</a>
+</li>
+<li>
+<a href="http://cfo-dpf.mil.ca/en/admfin-staff/information-management-information-technology.page?" title="Information management / information technology">IM/IT</a>
+</li>
+<li class="slflnk">
+<a href="http://cfo-dpf.mil.ca/en/for-adm-fin-personnel.page?">ADM(Fin) personnel</a>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+</nav>
+<nav id="wb-bc" role="navigation" property="breadcrumb">
+<h2>You are here:</h2>
+<div class="container">
+<div class="row">
+<ol class="breadcrumb"><li><a href="/FinCS_Intranet/index.page">ADM(Fin) Home</a></li>
+<li>
+<a href="http://cfo-dpf.mil.ca/en/financial-policies-publications.page?">Financial policies and publications</a>
+</li>
+<li>
+<a href="/FinCS_Intranet/fam.page">Financial Administration Manual (FAM)</a>
+</li>
+</ol>
+</div>
+</div>
+</nav>
+<!-- HeaderEnd -->
+</header>
+<main property="mainContentOfPage" role="main" class="container"><div class="ls-cmp-wrap ls-1st" id="w1401697529539"><div>
+<h1 property="name" id="wb-cont">Financial Administration Manual Glossary</h1>
+</div>
+</div>
+<div class="ls-row-clr"></div>
+<div class="ls-row" id="wb-main-row">
+<div class="ls-fxr" id="ls-gen85641726-ls-fxr">
+<div class="ls-cmp-wrap ls-1st" id="w1401697529542"><div class="full">
+<div><p>Quicklinks: <a href="#A">A</a>&nbsp;<a href="#B">B</a>&nbsp;<a href="#C">C</a> <a href="#D">D</a> <a href="#E">E</a> <a href="#F">F</a> <a href="#G">G</a> <a href="#H">H</a> <a href="#I">I</a> <a href="#J">J</a>&nbsp;<a href="#L">L</a> <a href="#M">M</a> <a href="#N">N</a> <a href="#O">O</a> <a href="#P">P</a> <a href="#Q">Q</a>&nbsp;<a href="#R">R</a> <a href="#S">S</a> <a href="#T">T</a>&nbsp;<a href="#U">U</a> <a href="#V">V</a> <a href="#W">W</a></p>
+<p>A<a id="A"></a></p>
+<p><strong>Accountability Framework</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Cadre redditionnel)</span></em></p>
+<p>The assignment of responsibility and accountability for financial matters in accordance with the legislative obligations of the Minister of National Defence. It defines the nature and scope of the Department&rsquo;s responsibilities, the results it expects to achieve, and the monitoring and reporting requirements through which the Department will answer for the authority vested in it. The Planning, Reporting, and Accountability Structure is the federal government&rsquo;s accountability framework.</p>
+<p><strong>Accountable Advances </strong>&nbsp;<em><span class="lang-fr" lang="fr">(Avances &agrave; justifier)</span></em></p>
+<p>Advances made to individuals to fund categories of activities for an indeterminate period. These can either be Standing Advances or Temporary Advances. The former include advances such as petty cash, change funds, and standing advances for travel whereas the latter are primarily temporary advances for individual trips.</p>
+<p><strong>Accounts Payable (Payables)&nbsp; </strong><em><span class="lang-fr" lang="fr">(Comptes cr&eacute;diteurs (Comptes fournisseurs))</span></em></p>
+<p>Amounts owed or payable by the Department for goods or services received as of the accounting date.</p>
+<p><strong>Accounts Receivable (Receivables)&nbsp; </strong><em><span class="lang-fr" lang="fr">(Comptes d&eacute;biteurs (Comptes clients))</span></em></p>
+<p>The billed (but uncollected) and unbilled or accrued financial claims arising from amounts owed to the Department for goods or services.</p>
+<p><strong>Accrual Accounting &nbsp;</strong><em><span class="lang-fr" lang="fr">(Comptabilit&eacute; d&rsquo;exercice)</span></em></p>
+<p>A method of accounting where revenues are recorded in the books of account when they are earned (i.e. when goods or services are provided), and expenses are recorded when they are incurred (i.e. when the goods or services are received), whether or not such transactions have been finalized by the receipt or payment of cash.</p>
+<p><strong>Accrue &nbsp;</strong><em><span class="lang-fr" lang="fr">(Passer en charge)</span></em></p>
+<p>An accounting process used to assign revenues and/or expenses to the periods in which they are earned or consumed, respectively.</p>
+<p><strong>Accrued Liabilities </strong>&nbsp;<em><span class="lang-fr" lang="fr">(Charges &agrave; payer)</span></em></p>
+<p>Liabilities recorded in the books of account resulting from work performed, goods received or services rendered to DND, matched to the relevant accounting period, not with standing whether an invoice has been received or processed or cash paid.</p>
+<p><strong>Accumulated Amortization&nbsp; </strong><em><span class="lang-fr" lang="fr">(Amortissement cumul&eacute;)</span></em></p>
+<p>The total amount of amortization incurred by an asset since its purchase or its being put into use.</p>
+<p><strong>Advance payment</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Paiement anticip&eacute;)</span></em></p>
+<p>A payment made by or on behalf of Her Majesty under the terms of a contract before the completion of the work, delivery of the goods or rendering of the service.</p>
+<p><strong>Allowable limit for Payments&nbsp; </strong><em><span class="lang-fr" lang="fr">(Limite autoris&eacute;e pour paiements)</span></em></p>
+<p>A dollar range used by the Standard Payment System (SPS) to issue a payment. For DND/CF this range is $0.00 to $9,999,999,999.99.</p>
+<p><strong>Allowance for Doubtful Accounts&nbsp; </strong><em><span class="lang-fr" lang="fr">(Provision pour cr&eacute;ances douteuses)</span></em></p>
+<p>A contra asset account with a credit balance used to reduce the carrying amount of gross accounts receivable to net realizable value. The allowance balance represents the estimated total of uncollectible accounts receivable included in the total value of gross accounts receivable.</p>
+<p><strong>Amortization</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Amortissement)</span></em></p>
+<p>A charge resulting from the allocation of costs of capital assets, proportionately over their useful life.</p>
+<p><strong>Appropriation</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Affectation (cr&eacute;dit) (parlementaire))</span></em></p>
+<p>A defined amount of money, voted by an Act of Parliament for which public money can be lawfully spent by a Department for a specific purpose or program. Unless otherwise provided in vote wording, in appropriation acts, or other legislation, appropriations lapse at the end of the fiscal year for which they were granted.</p>
+<p><strong>Asset</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Actif)</span></em></p>
+<p>An economic resource controlled by the Department as a result of past transactions and from which economic benefits may be obtained.</p>
+<p><strong>Audit</strong>&nbsp; <em><span class="lang-fr" lang="fr">(V&eacute;rification)</span></em></p>
+<p>An independent assessment that provides objective information on the management and cost-effectiveness of an entity's activities and operations, its systems and built-in controls, its economical and efficient use of resources, its integrity of information and compliance with laws, regulations, policies, plans, directives, orders and procedures, often with the objective of producing an opinion on that entity's financial statements.</p>
+<p><strong>Audit trail&nbsp; </strong><em><span class="lang-fr" lang="fr">(Piste de v&eacute;rification)</span></em></p>
+<p>Are the elements that allow tracking of a complete process. These include delegation of authorities' matrices, user profiles, data and files required to reconstruct the sequence of events and the transactions processed.</p>
+<p><strong>Autopull</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Extrait automatis&eacute;)</span></em></p>
+<p>An SPS generated interception of a payment that is issued to the same address as a previous payment that was returned because such information was incorrect.</p>
+<p><strong>B<a id="B"></a></strong>&nbsp;</p>
+<p><strong>Bargain Purchase Option&nbsp; </strong><em><span class="lang-fr" lang="fr">(Option d&rsquo;achat &agrave; prix de faveur)</span></em></p>
+<p>In the case of a capital lease, a provision allowing the lessee to purchase the leased property for a price that is sufficiently lower than the expected fair value of the property, at the date the option becomes exercisable.</p>
+<p><strong>Bargain Renewal Option</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Option de renouvellement &agrave; prix de faveur)</span></em></p>
+<p>Provision allowing the lessee, at its option, to renew the lease for a rental that is sufficiently lower than the expected fair rental of the property, at the date the option becomes exercisable. Fair rental means the going rate of equivalent property under similar terms and conditions. The exercise of the option should be reasonably assured at the inception of the lease.</p>
+<p><strong>Barter&nbsp; </strong><em><span class="lang-fr" lang="fr">(Troc)</span></em></p>
+<p>An exchange of goods or intangibles for other goods or intangibles.</p>
+<p><strong>Betterment </strong>&nbsp;<em><span class="lang-fr" lang="fr"> (Am&eacute;lioration)</span></em></p>
+<p>The cost incurred to enhance the service potential of a capital asset through either an increase in the physical output or service capacity, lower operating costs, an extension in the service life, or the improvement quality of output.</p>
+<p><strong>Budgetary</strong> <strong>Appropriation </strong>&nbsp;<em><span class="lang-fr" lang="fr">(Affectation (cr&eacute;dit) budg&eacute;taire)</span></em></p>
+<p>Authority by Parliament to pay money out to the Consolidated Revenue fund where such expenditure affects the surplus or deficit of the Government of Canada.</p>
+<p>C<a id="C"></a>&nbsp;&nbsp;</p>
+<p><strong>Capital</strong> <strong>Assets</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Immobilisations)</span></em></p>
+<p>An item that is purchased, constructed, developed or acquired through donation which meets all of the following criteria: Beneficial ownership and control clearly rests with DND/CF; The asset is used to achieve Departmental objectives; Has a useful life extending beyond one year; and Has an initial cost of at least $30,000. A threshold value lower than $30,000 may apply to certain assets such as fleets of vehicles.</p>
+<p><strong>Capital</strong> <strong>Expenditures</strong>&nbsp; <em><span class="lang-fr" lang="fr">(D&eacute;penses en capital)</span></em></p>
+<p>Expenditures for the acquisition or construction of items such as land, buildings, works, machinery and equipment, which are expected to yield benefits beyond the current accounting period.</p>
+<p><strong>Capital</strong> <strong>Lease</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Contrat de location-acquisition)</span></em></p>
+<p>A capital lease exists when, from the point of view of DND, substantially all of the benefits and risks of ownership of a tangible capital asset with a value greater than $30,000 are transferred from the lessor to DND.</p>
+<p><strong>Card Authorization Number </strong>&nbsp;<span class="lang-fr" lang="fr"><em>(Num&eacute;ro d&rsquo;autorisation de carte)</em> </span></p>
+<p>Refers to the number the vendor will obtain at the time of purchase from the credit card provider authorizing the validity of the card and the purchase.</p>
+<p><strong>Cardholder</strong>&nbsp; <em><span class="lang-fr" lang="fr">(D&eacute;tenteur de carte)</span></em></p>
+<p>Refers to an individual who has been issued a credit card for official government use.</p>
+<p><strong>Carrying</strong> <strong>Value</strong>&nbsp; <em><span class="lang-fr" lang="fr"> (Valeur comptable)</span></em></p>
+<p>The recorded amount of an asset or liability after being reduced for any amount of amortization or impairment in value.</p>
+<p><strong>Cash</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Encaissement)</span></em></p>
+<p>Any medium of exchange that a bank will accept for deposit and immediate credit to the depositor&rsquo;s account, such as coins, paper money, credit card transactions, electronic funds transfer, cheques and money orders in Canadian or foreign funds.</p>
+<p><strong>Cash Authority&nbsp; </strong><em><span class="lang-fr" lang="fr">(Montant autoris&eacute;)</span></em></p>
+<p>The dollar amount up to which DND is authorized by Parliament to make payments chargeable to the current fiscal year budget, for commitments which become due for payment before the end of the fiscal year. This authority is given to a resource manager through budget allocations.</p>
+<p><strong>Central Agencies&nbsp; </strong><em><span class="lang-fr" lang="fr">(Agence centrale)</span></em></p>
+<p>Central agencies are government organizations that provide guidance and direction; help build capacity and learning; foster opportunities for innovation and experimentation; promote sharing and learning; encourage the use of systems for managing results, not just for accountability; promote the longer-term view; and recognize and encourage excellence. Examples include: Treasury Board Secretariat, Receiver General for Canada, Department of Finance.</p>
+<p><strong>Central Departmental Accounting Office (CDAO)</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Bureau central de comptabilit&eacute; minist&eacute;rielle (BCCM))</span></em></p>
+<p>The organization responsible for overseeing and coordinating the Department&rsquo;s financial related programs such as the Payment Card program, managing centralized payable and receivable financial documents and processes, administrating the Standard Payment System and monitoring DND/CF Interdepartmental Settlements. CDAO is also responsible for supporting Regional Departmental Accounting Offices (RDAOs) regarding the above-mentioned area of responsibilities.</p>
+<p><strong>Certification of Contract Performance and Price</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Pouvoir de confirmer l&rsquo;ex&eacute;cution et le prix du march&eacute;)</span></em></p>
+<p>This is the authority delegated by the MND to appropriate officers under Section 34 of the FAA. This delegation allows RC Managers and/or their subordinates to certify that goods have been received, work or services rendered and that the payment requested is according to the arrangements of the contract or is reasonable.</p>
+<p><strong>Classification of Accounts</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Classification des comptes)</span></em></p>
+<p>Provides the framework for identifying, aggregating and reporting financial transactions on a government wide basis.</p>
+<p><strong>Clearance (Clear) </strong>&nbsp;<em><span class="lang-fr" lang="fr"> (Nettoyage (nettoyer))</span></em></p>
+<p>The physical removal of UXOs from an affected site to restore it to the original state that existed at the commencement of its current use, or to a state necessary for its future intended use.</p>
+<p><strong>Client Department Office (CDO)</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Bureau du minist&egrave;re client (BMC))</span></em></p>
+<p>Refers to all the units and organizations that are authorized to raise payment requisitions in the department financial system (FMAS). CDOs are linked to their respective Regional Departmental Accounting Office (RDAO) where the FAA Section 33 signing authority resides.</p>
+<p><strong>Commercial Substance&nbsp; </strong><em><span class="lang-fr" lang="fr">(Teneur commerciale)</span></em></p>
+<p>Describes goods, services or liabilities exchanged in a transaction as not being the same or similar in nature, do not perform the same function, are not used in the same line of business, and/or the pattern and timing of their use is not expected to be the same.</p>
+<p><strong>Commitment&nbsp; </strong><span class="lang-fr" lang="fr"><em>(Engagement)</em> </span></p>
+<p>An obligation to make a payment as a result of an agreement made in good faith with other parties.</p>
+<p><strong>Commitment accounting</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Comptabilit&eacute; d&rsquo;engagement)</span></em></p>
+<p>A process of recording financial commitments at the time agreements are made. It also involves summarizing, reporting, and analyzing the recorded transactions to ensure commitments are not made in excess of a manager's approved budget.</p>
+<p><strong>Commitment Authority&nbsp; </strong><em><span class="lang-fr" lang="fr">(Pouvoir d&rsquo;engager des fonds)</span></em></p>
+<p>Commitment authority is the authority delegated by the DM to incumbents of positions to confirm the availability of funds before a contractual arrangement is entered into, to meet the requirements of Section 32 (1) of the FAA</p>
+<p><strong>Commitment Budget&nbsp; </strong><em><span class="lang-fr" lang="fr">(Budget des engagements)</span></em></p>
+<p>A commitment budget is a budget based on DND&rsquo;s financial framework. It may be affected by hard commitments, accounts payable invoices and/or accounts receivable invoices. There are three commitment budget phases: original budget; budget updates; and current budget.</p>
+<p><strong>Company Code&nbsp; </strong><em><span class="lang-fr" lang="fr">(Code d&rsquo;identit&eacute;)</span></em></p>
+<p>A four-digit identifier in FMAS that represents a Government of Canada accounting entity (department/agency) for which separate financial statements must be produced.</p>
+<p><strong>Comprehensive Integrated Tax Coordination Agreement (CITCA)</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Entente int&eacute;gr&eacute;e globale de coordination fiscale (EIGCF))</span></em></p>
+<p>Refers to a bilateral agreement between the Government of Canada and a participating province or territory, which sets out the provisions for the collection and remittance of Harmonized Sales Tax (HST). The CITCA also details the payment of sales taxes or other similar taxes levied by the provinces or territories.</p>
+<p><strong>Conditionally Repayable Contribution</strong>&nbsp;&nbsp;<em><span class="lang-fr" lang="fr">(Contribution &agrave; remboursement conditionnel)</span></em></p>
+<p>Contributions, all or part of which are repayable if conditions specified in the contribution agreement come into being. These are contingencies that may qualify as contingent recoveries. They are disclosed in the Notes to Financial Statements but not accrued.</p>
+<p><strong>Consistent Basis of Accounting&nbsp; </strong><em><span class="lang-fr" lang="fr">(Permanence)</span></em></p>
+<p>The application of the same accounting principles from one accounting period to the next.</p>
+<p><strong>Consolidated Revenue Fund</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Tr&eacute;sor public)</span></em></p>
+<p>The aggregate of all public moneys that are on deposit in the bank of Canada, chartered banks or other financial institutions at the credit of the Receiver General for Canada.</p>
+<p><strong>Consolidated Specified Purpose Accounts&nbsp; </strong><em><span class="lang-fr" lang="fr">(Comptes &agrave; fins d&eacute;termin&eacute;es consolid&eacute;s)</span></em></p>
+<p>Categories of revenues and expenditures that report transactions of certain accounts where enabling legislation requires it to be earmarked, and the related payments and expenses are charged against such revenues.</p>
+<p><strong>Contaminated Site</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Site contamin&eacute;)</span></em></p>
+<p>A physical location in which substances occur at concentrations: (1) above background levels and pose (or are likely to pose) an immediate or long-term risk to human health or the environment; or (2) exceeding levels specified in applicable policies or regulations.</p>
+<p><strong>Contingency</strong>&nbsp; <em><span class="lang-fr" lang="fr">(&Eacute;ventualit&eacute;)</span></em></p>
+<p>A contingency is an existing condition or a situation involving uncertainty as to possible gain or loss to the Department, that will ultimately be resolved when one or more future events occur or fail to occur.</p>
+<p><strong>Contingent Gains</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Gains &eacute;ventuels)</span></em></p>
+<p>An existing condition or situation involving uncertainty as to possible gain to the Department that will ultimately be resolved when one or more future events occur or fail to occur. Resolution of the uncertainty may confirm the acquisition of an asset or the reduction of a liability.</p>
+<p><strong>Contingent</strong> <strong>Liability</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Passif &eacute;ventuel)</span></em></p>
+<p>An existing condition or situation involving uncertainty as to possible loss to the Department that will ultimately be resolved when one or more future events occur or fail to occur. Resolution of the uncertainty may confirm the loss or impairment of an asset or the incurrence of a liability.</p>
+<p><strong>Contingent Losses&nbsp; </strong><em><span class="lang-fr" lang="fr">(Pertes &eacute;ventuelles)</span></em></p>
+<p>Possible losses that may result when an existing condition or situation involving an uncertainty is resolved.</p>
+<p><strong>Contra Account &nbsp;</strong><em><span class="lang-fr" lang="fr"> (Compte de contrepartie)</span></em></p>
+<p>An account that is offset or deducted from another account. For example &ldquo;accumulated depreciation&rdquo; is a contra account, the balance of which is subtracted from the balance of the associated &ldquo;asset&rdquo; account to show the net undepreciated costs of the asset.</p>
+<p><strong>Contract</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Contrat)</span></em></p>
+<p>A legally binding agreement, written or oral, between a contracting authority and a person or entity to provide goods, perform a service, construct a work, or to lease real property.</p>
+<p><strong>Contracting Authority&nbsp; </strong><em><span class="lang-fr" lang="fr">(Pouvoir de passation des march&eacute;s)</span></em></p>
+<p>Refers to the authority delegated by the MND to persons occupying specific DND/CF positions or fulfilling specific organizational functions to enter into and sign contractual documents on behalf of the Department.</p>
+<p><strong>Contracting Officers/Clerks</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Agents de n&eacute;gociation des march&eacute;s (agents/commis))</span></em></p>
+<p>Contracting Officers/Clerks are the incumbents of positions having restricted "R" authority as indicated in the Contracting Authority columns of the Delegation of Authorities for Financial Administration for DND and the CF (Delegation Matrix). Before entering into contracts, Contracting Officers/Clerks must have written authorization from the incumbent of a position that has been delegated specific contracting authority by the MND in the Delegation Matrix.</p>
+<p><strong>Contribution</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Contribution)</span></em></p>
+<p>A conditional transfer payment to an individual or organization for a specific purpose that is subject to being accounted for and audited pursuant to a contribution agreement.</p>
+<p><strong>Contribution</strong> <strong>Agreements</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Accord concernant une contribution)</span></em></p>
+<p>The official records of initiatives between a donor department and a prospective recipient of a contribution that describe the obligations of each.</p>
+<p><strong>Corporate Card&nbsp; </strong><em><span class="lang-fr" lang="fr">(Carte de cr&eacute;dit minist&eacute;rielle)</span></em></p>
+<p>Refers to a commercial credit card issued in the name of the organization or an asset, in accordance with an agreement between the Government of Canada and a credit card provider.</p>
+<p><strong>Corporate Card Event Register</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Registre de transactions de carte de cr&eacute;dit minist&eacute;rielle)</span></em></p>
+<p>Refers to a register that a cardholder must use to track purchases made with a corporate card when on loan to them.</p>
+<p><strong>Corporate Card Master Control Register&nbsp; </strong><em><span class="lang-fr" lang="fr">(Registre de contr&ocirc;le central des cartes de cr&eacute;dit minist&eacute;rielles)</span></em></p>
+<p>Refers to a register of all corporate cards assigned to a custodian and is used to track corporate cards and their use.</p>
+<p><strong>Corporate Revenue&nbsp; </strong><em><span class="lang-fr" lang="fr">(Revenus corporatifs)</span></em></p>
+<p>Revenue generally received for activities tasked, driven, funded, or negotiated by National Defence Headquarters (NDHQ). Examples are sales of uniforms, gain on currency exchange and tax rebates or commissions.</p>
+<p><strong>Corrective Measures</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Mesures correctives)</span></em></p>
+<p>Are those measures that can be taken to resolve the situation being examined and can include recovery, process changes, controls or policy changes.</p>
+<p><strong>Cost Asset (Historic Cost)</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Co&ucirc;t de l&rsquo;immobilisation &ndash; co&ucirc;t historique)</span></em></p>
+<p>The amount of consideration given up to acquire, construct, develop, or better a capital asset and includes all costs directly attributable to the acquisition, construction, development or betterment of the capital asset including installing it at the location and in the condition necessary for its intended use.</p>
+<p><strong>Cost Centre &nbsp;</strong><em><span class="lang-fr" lang="fr">(Centre de co&ucirc;ts)</span></em></p>
+<p>A permanent cost collector used to identify the organization accountable and responsible for the management of revenues and expenditures.</p>
+<p><strong>Costs</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Co&ucirc;ts)</span></em></p>
+<p>The resources used or consumed to achieve a specific objective.</p>
+<p><strong>Court Awards&nbsp;&nbsp;</strong><em><span class="lang-fr" lang="fr">(Montant adjug&eacute; par la cour)</span></em></p>
+<p>The amount of a judgment or verdict by a court. Monies awarded by a court are to be used for specific purposes.</p>
+<p><strong>Credit card fraud&nbsp; </strong><em><span class="lang-fr" lang="fr">(Fraude par carte de cr&eacute;dit)</span></em></p>
+<p>Is a wide-ranging term for theft and fraud committed using a credit card or any similar payment mechanism as a fraudulent source of funds in a transaction. The purpose may be to obtain goods without paying, or to obtain unauthorized funds from an account.</p>
+<p><strong>Credit Card Provider&nbsp; </strong><em><span class="lang-fr" lang="fr">(&Eacute;metteur de carte de cr&eacute;dit)</span></em></p>
+<p>Refers to a financial institution that has entered into a contract with the Government of Canada to provide departments with credit cards.</p>
+<p><strong>Criminal Act</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Acte criminel)</span></em></p>
+<p>Is any act or omission of a criminal nature which results in a loss of public funds of Her Majesty in right of Canada</p>
+<p><strong>Custodian</strong>&nbsp; <em><span class="lang-fr" lang="fr">(D&eacute;positaire)</span></em></p>
+<p>Refers to an indeterminate Department of National Defence (DND) employee or Canadian Forces (CF) member who has been assigned the custody and safekeeping of public funds, e.g. credit cards or advances.</p>
+<p><strong>Customer Number</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Num&eacute;ro de client)</span></em></p>
+<p>Links customer master data to the Sales and Distribution document. Customer master data is used to identify to whom the goods or services were sold.</p>
+<p>D&nbsp;<a id="D"></a>&nbsp;</p>
+<p><strong>Debt Write-off&nbsp; </strong><em><span class="lang-fr" lang="fr">(Radiation d&rsquo;une dette)</span></em></p>
+<p>The process of deleting uncollectible debts owing to the Crown, but not extinguishing the legal right of the Crown to collect these debts, with a purpose to reduce the costs of maintaining records of accounts receivable that are uncollectible or valueless.</p>
+<p><strong>Defalcation&nbsp; </strong><em><span class="lang-fr" lang="fr">(Abus de confiance)</span></em></p>
+<p>Is a misappropriation of public funds, trust funds or money held in a fiduciary capacity.</p>
+<p><strong>Deferred Charge&nbsp;</strong> <em>(<span class="lang-fr" lang="fr">Charge report&eacute;e)</span></em></p>
+<p>Expenditure made for services that are expected to produce benefits in terms of increased revenues or decreased expenses in future fiscal years.</p>
+<p><strong>Deferred Revenue&nbsp; </strong><em><span class="lang-fr" lang="fr">(Produit comptabilit&eacute; d&rsquo;avance)</span></em></p>
+<p>Cash received in advance from clients for the provision of goods or services. Deferred revenue becomes earned revenue when the goods or services are delivered.</p>
+<p><strong>Departmental Revenue&nbsp; </strong><em><span class="lang-fr" lang="fr">(Revenu du Minist&egrave;re)</span></em></p>
+<p>Revenue collected by the Department from outside (non-Defence) agencies, classified as local and corporate revenues. This type of revenue may be re-spent by the Department. Examples of local revenue include rental of facilities, recoveries for landing fees, recoveries for damages and losses. Examples of corporate revenue include recovery from foreign militaries and rent from married quarters.</p>
+<p><strong>Departmental Travel Account (DTA)&nbsp; </strong><em><span class="lang-fr" lang="fr">(Compte minist&eacute;riel de voyage)</span></em></p>
+<p>A billing account issued by a Billing Service Agent to a Responsibility Centre (RC) manager to pay for authorized official government air and rail transportation tickets of DND or CF personnel.</p>
+<p><strong>Deposit Accounts&nbsp;&nbsp;</strong><em><span class="lang-fr" lang="fr">(Comptes de d&eacute;p&ocirc;t)</span></em></p>
+<p>An account with a supplier that is funded by an accountable advance and from which the supplier deducts the value of material as it is shipped.</p>
+<p><strong>Depreciation&nbsp; </strong><em><span class="lang-fr" lang="fr">(Amortissement)</span></em></p>
+<p>See Amortization.</p>
+<p><strong>Designated Assets</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Actifs d&eacute;sign&eacute;s)</span></em></p>
+<p>Assets that have been formally designated by the Government or the Department to indicate the intention to use these for a specific purpose.</p>
+<p><strong>Direct Costs&nbsp; </strong><em><span class="lang-fr" lang="fr">(Co&ucirc;ts directs)</span></em></p>
+<p>Costs that can be precisely attributed to supplying a good or a service and can be allocated directly to the good or service.</p>
+<p><strong>Direct Expenses</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Frais directs)</span></em></p>
+<p>Refers to expenses that are directly attributable to the performance of the work under a contract or agreement.</p>
+<p><strong>Disbursement&nbsp;</strong> <em><span class="lang-fr" lang="fr">(D&eacute;bours)</span></em></p>
+<p>An outlay of cash, which could be in the form of cheques, warrants, or through electronic transfer of funds.</p>
+<p><strong>Discounted Fair Market Value&nbsp; </strong><em><span class="lang-fr" lang="fr">(Juste valeur marchande actualis&eacute;e)</span></em></p>
+<p>A method of establishing the current fair market value of a capital asset using the Consumer Price Index (CPI).</p>
+<p><strong>Disposal&nbsp; </strong><em><span class="lang-fr" lang="fr">(Ali&eacute;nation)</span></em></p>
+<p>The action whereby an asset is removed from the records of DND. Disposal may occur in two ways: voluntarily by sale, trade-in, or retirement; or involuntarily, as a result of a storm, fire, accident, or misplacement.</p>
+<p><strong>Distribution Account</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Compte de distribution)</span></em></p>
+<p>A detailed record of accountable material required by an organization to carry out its role. The responsibility for care and custody of accountable materiel is assigned to a user known as the Distribution Account (DA) holder.</p>
+<p>E<a id="E"></a>&nbsp;</p>
+<p><strong>Endowments</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Dotations)</span></em></p>
+<p>Funds acquired by donation or bequest subject to the following conditions: (a) A formal agreement exists between the donor and the department responsible for the administration of the endowment fund; (b) The agreement outlines the mechanisms governing the administration of the fund and the terms of interest payments; (c) The agreement specifies that only interest income may be spent for the specified purpose and that capital must be maintained intact.</p>
+<p><strong>Environmental Liabilities&nbsp; </strong><em><span class="lang-fr" lang="fr">(Passif environnemental)</span></em></p>
+<p>Obligations to perform remediation and/or risk-management activities on environmentally contaminated, UXO affected, as well as solid waste landfill sites.</p>
+<p><strong>Ex Gratia payment&nbsp; </strong><em><span class="lang-fr" lang="fr">(Paiement &agrave; titre gracieux)</span></em></p>
+<p>A payment for which no liability is recognized, that is made as an act of benevolence in the public interest (e.g. compensation for personal losses while on duty or in travel status).</p>
+<p><strong>Executory Costs&nbsp; </strong><span class="lang-fr" lang="fr"><em>(Frais accessoires)</em> </span></p>
+<p>Costs related to the operation of the leased property (e.g. insurance, maintenance cost and property taxes).</p>
+<p><strong>Expenditure Initiation Authority</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Pouvoir d&rsquo;engager des d&eacute;penses)</span></em></p>
+<p>Expenditure initiation authority is the ability to make decisions to obtain goods or services that will result in the eventual expenditure of public funds, such as the decision to hire staff, to order goods and services or to authorize travel for program purposes. The objective of this authority is to give the RC manager the prime responsibility for initiating expenditures charged to their budgets.</p>
+<p><strong>Expenditures&nbsp; </strong><em><span class="lang-fr" lang="fr">(D&eacute;penses)</span></em></p>
+<p>Payments for goods and services acquired in an accounting period, and other payments such as transfer payments.</p>
+<p><strong>Expenses</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Charges)</span></em></p>
+<p>Cost of resources consumed in and identifiable with the operations of the accounting period.</p>
+<p><strong>External Restrictions&nbsp; </strong><em><span class="lang-fr" lang="fr">(Affectation d&rsquo;origine externe)</span></em></p>
+<p>Stipulations imposed by an agreement with an external party, or through legislation of another government, which specify the purpose or purposes for which resources are to be used.</p>
+<p><strong>Extraordinary Item</strong>&nbsp; <em><span class="lang-fr" lang="fr">(&Eacute;l&eacute;ments extraordinaires)</span></em></p>
+<p>An item that results from transactions or events that have all of the following characteristics: It is not expected to occur frequently over several years; It does not typify the normal business activities of the entity; and It does not depend primarily on decisions or determinations by management.</p>
+<p>F<a id="F"></a>&nbsp;</p>
+<p><strong>Fair market value&nbsp; </strong><em><span class="lang-fr" lang="fr">(Juste valeur marchande)</span></em></p>
+<p>Is an estimate of the property's value, immediately before its loss, that would have been received if it was sold in a competitive situation, taking into consideration the conditions of the market and the attributes of the property (e.g., age, condition, etc.).</p>
+<p><strong>Financial Administration Act (FAA)&nbsp; </strong><em><span class="lang-fr" lang="fr">(Loi sur la gestion des finances publiques (LGFP))</span></em></p>
+<p>Refers to the Act for the financial administration of the Government of Canada, the establishment and maintenance of the accounts of Canada and the control of Crown Corporations.</p>
+<p><strong>Financial Administration Act (FAA) Section 32&nbsp; </strong><em><span class="lang-fr" lang="fr">(Loi sur la gestion des finances publiques (LGFP), article 32)</span></em></p>
+<p>Requires an RC Manager to ensure that no contract or other arrangement for a payment shall be entered into unless there is a sufficient unencumbered balance available out of the appropriation for a particular fiscal year and that procedures are in place to record commitments.</p>
+<p><strong>Financial Administration Act (FAA) Section 33</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Loi sur la gestion des finances publiques (LGFP), article 33)</span></em></p>
+<p>Ensures that the payment is supported by the appropriate documents and has FAA Section 34 certification. It also ensures that the payment is a lawful charge to the Department&rsquo;s appropriation and will not result in over-expenditure or reduce the departmental balance in the appropriation so that it would not be sufficient to meet future commitments.</p>
+<p><strong>Financial Administration Act (FAA) Section 34&nbsp; </strong><em><span class="lang-fr" lang="fr">(Loi sur la gestion des finances publiques (LGFP), article 34) </span></em></p>
+<p>Ensures that prior to making a payment the individual certifies that the work has been performed, the goods supplied or the service rendered and that the price charged is in accordance with the contract.</p>
+<p><strong>Financial Coding Elements&nbsp; </strong><em><span class="lang-fr" lang="fr">(&Eacute;l&eacute;ments de codage financier)</span></em></p>
+<p>Provide the framework for DND&rsquo;s classification of accounts. They are used to identify, record, aggregate and report financial transactions within the Financial and Managerial Accounting System (FMAS). Within DND, coding elements include Fund, Funds Centre, Cost Centre, Work Breakdown Structure, Internal Order, General Ledger and Program Activity Code.</p>
+<p><strong>Financial Information Strategy&nbsp; </strong><em><span class="lang-fr" lang="fr">(Strat&eacute;gie d&rsquo;information financi&egrave;re)</span></em></p>
+<p>An initiative to improve the quality and timeliness of financial information for more effective decision-making by moving the focus of government accounting to full accrual accounting and from detailed transactions within central systems to retention within departmental systems.</p>
+<p><strong>Financial Reporting Accounts&nbsp; </strong><em><span class="lang-fr" lang="fr"> (Comptes de rapports financiers)</span></em></p>
+<p>Financial reporting accounts identify the relevant asset, liability, equity, revenue and expense accounts. They comprise the general ledger of the government of Canada and are used to prepare the monthly and annual financial statements.</p>
+<p><strong>Fixed Costs&nbsp;&nbsp;</strong><em><span class="lang-fr" lang="fr">(Co&ucirc;ts fixes)</span></em></p>
+<p>A cost that remains relatively unchanged in total regardless of the volume of production or activity.</p>
+<p><strong>Fraud&nbsp; </strong><em><span class="lang-fr" lang="fr">(Fraude)</span></em></p>
+<p>Is a criminal deception involving the use of false representation with the specific intent of gaining an unfair or dishonest advantage. Fraud ordinarily involves either wilful misrepresentation or deliberate concealment of material facts for the purpose of inducing another person to either part with cash or something else of value or to surrender a legal right.</p>
+<p><strong>Free-balance&nbsp; </strong><em><span class="lang-fr" lang="fr">(Solde disponible)</span></em></p>
+<p>The free balance is defined as the current year budget allocation less the year-to-date current expenditures and current commitments.</p>
+<p><strong>Full Costs&nbsp; </strong><em><span class="lang-fr" lang="fr">(Co&ucirc;ts entiers (totaux))</span></em></p>
+<p>The total of all fixed, variable direct, indirect, cash and non-cash costs incurred by the Government to produce a service.</p>
+<p><strong>Funds Centre&nbsp; </strong><em><span class="lang-fr" lang="fr">(Centre financier)</span></em></p>
+<p>Identifies the organization that holds a budget (Fund or Funds). Funds Centres are arranged hierarchically. There is one Level One Fund Centre 0162ND which represents the Department. Level Two Fund Centres relate to the Business Plan Level One organizations. Fund Centres (used to manage Funds) and Cost Centres (used to manage revenues and expenditures) satisfy the responsibility requirement of the Classification of Accounts.</p>
+<p>G<a id="G"></a></p>
+<p><strong>General Ledger (G/L) (Account)&nbsp; </strong><em><span class="lang-fr" lang="fr">(Compte du grand livre (G/L))</span></em></p>
+<p>The G/L is the lowest level of classification of financial data in DND. It classifies and records financial transactions by type: asset, liability, equity, expense and revenue.</p>
+<p><strong>Going Concern &nbsp;</strong><em><span class="lang-fr" lang="fr"> (Continuit&eacute; de l&rsquo;exploitation)</span></em></p>
+<p>The expectation that a department will continue to operate for the foreseeable future and there is no intention to curtail the operation.</p>
+<p><strong>Government Employee&nbsp; </strong><em><span class="lang-fr" lang="fr">(Fonctionnaire f&eacute;d&eacute;ral)</span></em></p>
+<p>Government "employee" means a person employed in the Public Service, other than (a) a person appointed by the Governor in Council under an Act of Parliament to a statutory position described in that Act, (b) a person not ordinarily required to work more than one third of the normal period for persons doing similar work, (c) a person who is a member of the Canadian Forces or special constable of the Royal Canadian Mounted Police or who is employed by that Force under terms and conditions substantially the same as those of a member thereof, (d) a person employed on a casual basis, (e) a person employed on a term basis, unless the term of employment is for a period of three months or more or the person has been so employed for a period of three months or more.</p>
+<p><strong>Governmental revenue&nbsp; </strong><em><span class="lang-fr" lang="fr">(Revenu de l'&Eacute;tat)</span></em></p>
+<p>Governmental revenue consists of, but is not limited to: refunds from previous years' expenditures; certain recoveries from the United Nations; refunds of certain NATO contributions; interest earned; proceeds from the disposal of real property; royalties received for the use of Crown-owned patents and other intellectual property ; and proceeds from the disposal of surplus assets. Funds received from the disposal of real property and use of Crown owned patents and Intellectual Property may be accessed by DND through supplementary estimates. In addition, statutory authority is provided to DND to spend an amount equal to the proceeds from the disposal of surplus assets.</p>
+<p><strong>Grant&nbsp; </strong><em><span class="lang-fr" lang="fr">(Subvention)</span></em></p>
+<p>A grant is a transfer payment made to an individual or organization, which is not subject to being accounted for or audited but for which eligibility and entitlement may be verified or for which the recipient may need to meet pre-conditions.</p>
+<p>H<a id="H"></a>&nbsp;</p>
+<p><strong>Holder</strong>&nbsp; <em><span class="lang-fr" lang="fr">(D&eacute;tendeur)</span></em></p>
+<p>Means the person to whom an accountable advance has been issued or who is responsible for the advance.</p>
+<p><strong>Hospitality</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Accueil)</span></em></p>
+<p>Hospitality is the complimentary provision of refreshments (beverages and light snacks), meals and sometimes, entertainment, to guests of DND or the CF, and where appropriate DND employees and CF members, at public expense.</p>
+<p><strong>Hospitality Function&nbsp; </strong><em><span class="lang-fr" lang="fr">(Fonction d'accueil)</span></em></p>
+<p>A hospitality function is an event or occasion where one or more forms of hospitality are provided. An event or occasion may cover a single meal or, such as in the case of a conference, may include various forms of hospitality over a number of days.</p>
+<p>I<a id="I"></a></p>
+<p><strong>Impairment (Asset)&nbsp; </strong><em><span class="lang-fr" lang="fr">(Moins-value (d'un actif))</span></em></p>
+<p>A reduction in the value of an asset, caused by significant technology developments, physical damage, economic changes, and changes in laws.</p>
+<p><strong>Implicit Rate&nbsp; </strong><em><span class="lang-fr" lang="fr">(Taux implicite)</span></em></p>
+<p>The discount rate that, at the inception of the lease, causes the aggregate present value of: the minimum lease payments, from the standpoint of the lessor, excluding executory costs to be paid by the lessor and any profit on such costs; and the unguaranteed residual value accruing to the benefit of the lessor to be equal to the fair value of the leased property to the less or at the inception of the lease.</p>
+<p><strong>Improvements &ndash; Land&nbsp; </strong><em><span class="lang-fr" lang="fr">(Am&eacute;lioration &ndash; Terrain)</span></em></p>
+<p>Amortizable site enhancements that are not permanent, including driveways, parking lots, fencing, and landscaping.</p>
+<p><strong>Incremental Cost&nbsp; </strong><em><span class="lang-fr" lang="fr">(Co&ucirc;t diff&eacute;rentiel (Marginal))</span></em></p>
+<p>Additional costs incurred as a direct result of supplying a service. These costs result from additional resources or a reallocation of existing resources. For short-term decisions, incremental costs are normally the same as direct costs. For long-term decisions some indirect costs become incremental costs.</p>
+<p><strong>Incremental Rate &nbsp;</strong><em><span class="lang-fr" lang="fr">(Taux diff&eacute;rentiel)</span></em></p>
+<p>The interest rate that, at the inception of the lease, the Department would have incurred to borrow, over asimilar term and with similar security for borrowing the funds necessary to purchase the leased property.</p>
+<p><strong>Indirect Cost</strong>&nbsp;&nbsp;<em><span class="lang-fr" lang="fr">(Co&ucirc;ts indirects)</span></em></p>
+<p>Costs that cannot be precisely attributed to supplying a service. Indirect costs are allocated to an activity.</p>
+<p><strong>Intercept (Standard Payment System)</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Intercept&eacute; (syst&egrave;me normalis&eacute; des paiements))</span></em></p>
+<p>An option that is available to Standard Payment System production or print sites. It is to be used to intercept a payment that should not go through to the cheque issuance process.</p>
+<p><strong>Interdepartmental transactions&nbsp; </strong><em><span class="lang-fr" lang="fr">(Transactions interminist&eacute;rielles)</span></em></p>
+<p>Financial transactions that occur between federal government organizations, as specified in Schedule 1, 1.1 and 2 of the Financial Administration Act (FAA) and which are settled by Interdepartmental Settlements (IS).</p>
+<p><strong>Internal Orders</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Ordres internes)</span></em></p>
+<p>Temporary cost collectors that allow cost centre managers to plan, forecast, monitor and manage expenditures. An internal order does not affect general ledger account balances and does not have a financial impact. Therefore, it must be used in conjunction with either a Work Breakdown Structure element or a Cost Centre.</p>
+<p><strong>Internet Fraud&nbsp; </strong><em><span class="lang-fr" lang="fr">(Fraude sur Internet)</span></em></p>
+<p>Generally refers to any type of fraud scheme that uses one or more online services - such as chat rooms, e-mail, message boards, or Web sites - to present fraudulent solicitations to prospective victims, to conduct fraudulent transactions, or to transmit the proceeds of fraud to financial institutions or to others connected with the scheme.</p>
+<p><strong>Inventories&ndash;consumable&nbsp; </strong><em><span class="lang-fr" lang="fr">(Stocks pour consommation)</span></em></p>
+<p>Physical items that are to be consumed in future years directly or indirectly in the delivery of program outputs Examples include equipment, spare parts, and material.</p>
+<p>J<a id="J"></a></p>
+<p><strong>Journal Voucher&nbsp; </strong><em><span class="lang-fr" lang="fr">(Pi&egrave;ce de journal)</span></em></p>
+<p>A supporting document to an entry in the general ledger (such as an SA document to transfer costs between funds centres).</p>
+<p>L<a id="L"></a>&nbsp;&nbsp;</p>
+<p><strong>Leachate&nbsp; </strong><em><span class="lang-fr" lang="fr">(Lixiviat)</span></em></p>
+<p>A product or solution formed by leaching, especially a solution containing contaminants picked up through the leaching of soil.</p>
+<p><strong>Lease&nbsp; </strong><em><span class="lang-fr" lang="fr">(Bail (Contrat de location))</span></em></p>
+<p>A lease is a contractual agreement between a less or and a lessee that gives the lessee the right to use specific property owned by the less or for a specific period of time in return for periodic cash payments. A lease can be classified as either an operating lease or a capital lease.</p>
+<p><strong>Leasehold Improvements&nbsp;&nbsp;</strong><em><span class="lang-fr" lang="fr">(Am&eacute;liorations locatives)</span></em></p>
+<p>A leasehold improvement is an upgrade or improvement of a value of $30,000 or more, made to a leased capital asset: under an operating lease; or a capital lease where: Ownership does not transfer to the lessee; or The lease does not contain a Bargain Purchase Option (BPO). The improvement prolongs the capital asset&rsquo;s useful life or improves its functionality beyond one year.</p>
+<p><strong>Liabilities&nbsp;</strong> <em><span class="lang-fr" lang="fr">(Passifs)</span></em></p>
+<p>Liabilities are financial obligations to outside organizations and individuals as a result of transactions and events on or before the accounting date.</p>
+<p><strong>Loan Guarantee&nbsp; </strong><em><span class="lang-fr" lang="fr">(Garantie d'emprunt)</span></em></p>
+<p>An agreement by which the federal government or one of its agencies pledges to pay part or all of the loan principal and interest to a lender or holder of a security, in the event of default by a third party borrower.</p>
+<p><strong>Local Revenue&nbsp; </strong><em><span class="lang-fr" lang="fr">(Revenu local)</span></em></p>
+<p>Revenue for which the associated costs have been charged to the local operating budget. Local managers may re-spend this revenue.</p>
+<p>M<a id="M"></a></p>
+<p><strong>Malfeasance&nbsp; </strong><em><span class="lang-fr" lang="fr">(D&eacute;lit d'action ou de commission)</span></em></p>
+<p>Is the commission of an unlawful act whereby the perpetrator has no right to perform that act or is prohibited by contract, statute or regulation from performing that act.</p>
+<p><strong>Management practices and controls</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Pratiques et contr&ocirc;les de gestion)</span></em></p>
+<p>Are policies, processes, procedures and systems that enable a department to operate its programs and activities, use its resources efficiently and effectively, exercise sound stewardship, fulfil its obligations and achieve its objectives.</p>
+<p><strong>Matching Principle&nbsp; </strong><em><span class="lang-fr" lang="fr">(Principe de rapprochement des produits ou revenus et des charges)</span></em></p>
+<p>An accounting principle whereby all costs associated with generating revenue must be matched with the revenue earned, and when other expenses are matched to the accounting period when services were provided to the public, and not when paid.</p>
+<p><strong>Materiality&nbsp; </strong><em><span class="lang-fr" lang="fr">(Importance relative)</span></em></p>
+<p>An item of information, or an aggregate of items, is considered material if its omission, non-disclosure or misstatement would mislead users of that information when making evaluations or decisions.</p>
+<p><strong>MDF&nbsp; </strong><em><span class="lang-fr" lang="fr">(EC)</span></em></p>
+<p>The Merchant Discount Fee is a fee charged by the bank for processing bank card (credit and debit) sales drafts and crediting the funds to the merchant's account. Public Works and Government Services Canada negotiates the fee on behalf of departments. For example, a 2% MDF implies that the department keeps $98 for every $100 in sales.</p>
+<p><strong>Merchant Category Code&nbsp; </strong><em><span class="lang-fr" lang="fr">(Code de cat&eacute;gorie de commer&ccedil;ant)</span></em></p>
+<p>Refers to a standard code used by a credit card provider to categorize a merchant and/or goods into a specific business class and is used for control and reporting purposes. Examples include: restaurants, hotels, medical, office supplies, etc.</p>
+<p><strong>Milestone payment&nbsp; </strong><em><span class="lang-fr" lang="fr">(Paiement d'&eacute;tape)</span></em></p>
+<p>A scheduled progress payment as specified in an agreement, which relates to a measurable /identifiable item or work package for which a price can be assigned. There must be a good probability that the assigned price will be reasonably accurate for the value of the work in order to establish these in the agreement or contract.</p>
+<p><strong>Minimum Lease Payments&nbsp; </strong><em><span class="lang-fr" lang="fr">(Loyers minimaux)</span></em></p>
+<p>Minimum lease payments, in a capital lease scenario, comprise: the minimum rental payments and cost of bargain purchase option (if any) called for by the lease over the whole lease term; and any penalty required to be paid by DND for failure to renew or extend the lease at the end of the lease term.</p>
+<p><strong>Misappropriation&nbsp; </strong><em><span class="lang-fr" lang="fr">(D&eacute;tournement)</span></em></p>
+<p>Is the act of diverting money or property to a wrongful purpose. It is often used in the context of, but is not limited to, the diversion of public funds for one's own use or the use of others; however, any use not authorized by Parliament is a form of misappropriation.</p>
+<p><strong>Misfeasance &nbsp;</strong><em><span class="lang-fr" lang="fr">(Faute d'ex&eacute;cution) </span></em></p>
+<p>Is the improper performance of a lawful act.</p>
+<p><strong>Modified Equity Method&nbsp; </strong><em><span class="lang-fr" lang="fr">(M&eacute;thode de la valeur modifi&eacute;e de consolidation)</span></em></p>
+<p>The equity method of accounting is modified only to the extent that the government business enterprise&rsquo;s accounting principles are not adjusted to conform to those of the government. Thus, the government aggregates a government business enterprise&rsquo;s net assets and net income by adjusting the investment shown in the government&rsquo;s consolidated statement of financial position and by presenting the net income as a separate item on the government&rsquo;s consolidated statement of results.</p>
+<p><strong>Monetary Consideration&nbsp; </strong><em><span class="lang-fr" lang="fr">(Contrepartie mon&eacute;taire)</span></em></p>
+<p>Money or claims to future cash flows that are fixed or determinable in amounts and timing by contract or other arrangement.</p>
+<p><strong>Monitoring of Contaminated and UXO Sites&nbsp; </strong><em><span class="lang-fr" lang="fr">(Surveillance des sites contamin&eacute;s et des sites contenant des UXO)</span></em></p>
+<p>Performance of post-remediation or post-clearance appraisals and surveillance for the purpose of determining changes in contamination levels or any changes in the adequacy of the UXO clearance to maintain the required level of safety and security.</p>
+<p><strong>Mutilated Cheque&nbsp; </strong><em><span class="lang-fr" lang="fr">(Ch&egrave;que mutil&eacute;)</span></em></p>
+<p>Refers to a Receiver General cheque that is damaged in such a fashion that makes it impossible to honour because the payee or the amount is illegible and therefore cannot be negotiated.</p>
+<p>N<a id="N"></a></p>
+<p><strong>Negligence&nbsp; </strong><em><span class="lang-fr" lang="fr">(N&eacute;gligence)</span></em></p>
+<p>Is causing loss of money or damage to property as a result of doing something or failing to provide a proper or reasonable level of care.</p>
+<p><strong>Negotiable instrument&nbsp; </strong><em><span class="lang-fr" lang="fr">(Effet de commerce)</span></em></p>
+<p>Includes any cheque, draft, traveller&rsquo;s cheque, bill of exchange, postal note, money order, postal remittance and any other similar instrument</p>
+<p><strong>Net Assets or Liabilities &nbsp;</strong><em><span class="lang-fr" lang="fr">(Actif net ou passif net)</span></em></p>
+<p>The difference between total assets and liabilities. When total assets exceed total liabilities, the resulting amount represents Net Assets. When the total liabilities exceed total assets, the resulting amount represents Net Liabilities. Net assets/liabilities may have a restricted portion where there is an earmarking of accounts that the government wishes to restrict for specific purposes. These accounts consist primarily of consolidated specified purpose accounts.</p>
+<p><strong>Net Book Value of an Asset&nbsp; </strong><em><span class="lang-fr" lang="fr">(Valeur comptable nette d'un actif)</span></em></p>
+<p>Historical cost, including the cost of any betterment, less both accumulated amortization and the amount of any write-downs.</p>
+<p><strong>Net Present value (NPV)&nbsp; </strong><em><span class="lang-fr" lang="fr">(Valeur actualis&eacute;e nette (VAN))</span></em></p>
+<p>The difference between the present value (PV) of expected cash inflows and outflows.</p>
+<p><strong>Non-Budgetary Appropriation&nbsp; </strong><em><span class="lang-fr" lang="fr">(Cr&eacute;dit non budg&eacute;taire)</span></em></p>
+<p>This type of Vote provides spending authority in the form of loans or advances to, and investments in, Crown Corporations; and loans or advances for specific purposes to provincial and foreign governments, government employee's pensions accounts, other specified accounts (e.g. trust accounts), interest and debt accounts international organizations or persons or corporations in the private sector. The use of this appropriation will not impact the surplus or deficit of the Government.</p>
+<p><strong>Nonfeasance</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Omission d&eacute;lictueuse)</span></em></p>
+<p>Is the omission of or failure to perform some specific act, duty or undertaking that one is obliged to do.</p>
+<p><strong>Non-financial Asset&nbsp; </strong><em><span class="lang-fr" lang="fr">(Actif non financier)</span></em></p>
+<p>A non-financial asset is any asset that is not: (i) cash; (ii) a contractual right to receive cash or another financial asset from another party; (iii) a contractual right to exchange financial instruments with another party under conditions that are potentially favourable to the entity; or (iv) an equity instrument of another entity. It includes capital assets, inventories of supplies, and deferred charges and prepayments.</p>
+<p><strong>Non-Monetary Consideration&nbsp; </strong><em><span class="lang-fr" lang="fr">(Contrepartie non mon&eacute;taire)</span></em></p>
+<p>Assets, services or liabilities that are not monetary.</p>
+<p><strong>Non-monetary Exchange&nbsp; </strong><em><span class="lang-fr" lang="fr">(&Eacute;change non mon&eacute;taire)</span></em></p>
+<p>An exchange of non-monetary assets, liabilities or services for other non-monetary assets, liabilities or services, with little or no monetary consideration involved</p>
+<p><strong>Non-monetary Non-reciprocal Transfer&nbsp; </strong><em><span class="lang-fr" lang="fr">(Transfert non mon&eacute;taire, non r&eacute;ciproque)</span></em></p>
+<p>Transfers of non-monetary assets, liabilities or services without consideration.</p>
+<p><strong>Non-monetary Transaction&nbsp; </strong><em><span class="lang-fr" lang="fr">(Transaction non mon&eacute;taire)</span></em></p>
+<p>All non-monetary exchanges.</p>
+<p><strong>Non-Partaking Province&nbsp; </strong><em><span class="lang-fr" lang="fr">(Province non signataire)</span></em></p>
+<p>Refers to a province or territory that is not party to the Reciprocal Taxation Agreement (RTA) or Comprehensive Integrated Tax Coordination Agreement (CITCA). (1) Qu&eacute;bec; and (2) Alberta.</p>
+<p><strong>Notes and Schedules to the Financial Statements&nbsp; </strong><em><span class="lang-fr" lang="fr">(Notes et tableaux li&eacute;s aux &eacute;tats financiers)</span></em></p>
+<p>Information that provides significant additional information on, and is an integral part of the financial statements they relate to. The notes could include statements of accounting policies. The schedules provide further breakdowns of financial statement items.</p>
+<p>O<a id="O"></a></p>
+<p><strong>Offences</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Infractions)</span></em></p>
+<p>Involve any offence under the Criminal Code or a federal statute or regulation where the Crown is a victim.</p>
+<p><strong>Operating Lease&nbsp; </strong><em><span class="lang-fr" lang="fr">(Contrat de location-exploitation)</span></em></p>
+<p>A lease in which the less or does not transfer substantially the entire benefits and risks incident to ownership of property.</p>
+<p><strong>Other Government Departments&nbsp; </strong><em><span class="lang-fr" lang="fr">(Autres minist&egrave;res)</span></em></p>
+<p>Other Government Departments refer to: the organizations listed in Schedule I of the Financial Administration Act, any of the divisions or branches of the federal public administration set out in column I of Schedule I.1; a commission under the Inquiries Act that is designated by order of the Governor in Council as a department for the purposes of the FAA; the staffs of the Senate, House of Commons, Library of Parliament, office of the Senate Ethics Officer and office of the Conflict of Interest and Ethics Commissioner, andany departmental corporation.</p>
+<p><strong>Other Transfer Payments&nbsp; </strong><em><span class="lang-fr" lang="fr">(Autres paiements de transfert)</span></em></p>
+<p>Transfer payments based on legislation or an arrangement, which normally includes a formula or schedule as one element used to determine the amount.</p>
+<p>P<a id="P"></a></p>
+<p><strong>Partaking Province&nbsp; </strong><em><span class="lang-fr" lang="fr">(Province signataire)</span></em></p>
+<p>Refers, from a provincial sales tax perspective, to a province or territory that is party to the Reciprocal Taxation Agreement (RTA). The provinces that are signatories to the RTA are: (1) Prince Edward Island; (2) Ontario; (3) Manitoba; (4) Saskatchewan; (5) British Colombia; (6) Northwest Territories; (7) Nunavut; and (8) Yukon.</p>
+<p><strong>Participating Province&nbsp; </strong><em><span class="lang-fr" lang="fr">(Province participante)</span></em></p>
+<p>Refers, from a harmonized sales tax perspective, to a province or territory that is party to the Comprehensive Integrated Tax Coordination Agreement (CITCA). The provinces that are signatories to the CITCA are: (1) Newfoundland; (2) New Brunswick; and (3) Nova Scotia.</p>
+<p><strong>Payment authority&nbsp; </strong><em><span class="lang-fr" lang="fr">(Pouvoir de payer)</span></em></p>
+<p>The authority delegated by the Minister of National Defence (MND) to financial officers under section 33 of the FAA. This delegation ensures that all payments and all other charges requisitioned against the Consolidated Revenue Fund and certified under section 34 of the FAA are timely, properly authorized and legal as prescribed by the Policies on Account Verification and Payment Requisitioning.</p>
+<p><strong>Payment Budget&nbsp; </strong><em><span class="lang-fr" lang="fr">(Budget des paiements)</span></em></p>
+<p>The budget, within the Financial Managerial Accounting System (FMAS), which contains the funding received from Treasury Board and allocated to Level 2 Fund Centres. Funds availability are checked agains the budget. Even though all funds managements related transactions will be represented in the payment budget, the budget balance is affected by accounts payable invoices, over section 33 approved journal vouchers and cash receipts only.</p>
+<p><strong>Payment Card Coordinator&nbsp; </strong><em><span class="lang-fr" lang="fr">(Coordonnateur des cartes d'achat)</span></em></p>
+<p>Is a CF member or DND employee designated by the supporting base, formation, station or unit commander, who is responsible for the coordination and maintenance of payment cards.</p>
+<p><strong>Payment Card Limit for Payments&nbsp; </strong><em><span class="lang-fr" lang="fr">(Limite pour paiements - carte d'achat)</span></em></p>
+<p>Refers to a cardholder&rsquo;s monthly financial limit to transact on behalf of the Government of Canada. For example, a $5,000 limit means that a cardholder can only spend up to $5,000 during the monthly billing cycle of the card provider.</p>
+<p><strong>Payment Card Purchase Register&nbsp; </strong><em><span class="lang-fr" lang="fr">(Relev&eacute; des achats effectu&eacute;s avec la carte d'achat)</span></em></p>
+<p>Is a document that details all purchases made with a payment card and includes: the name of the vendor; the amount; the date of purchase; the authorization number from the vendor (when available); and the description of the goods purchased.</p>
+<p><strong>Payment Card slip&nbsp; </strong><em><span class="lang-fr" lang="fr">(Bordereau de carte d'achat)</span></em></p>
+<p>Consists of the documents for the goods received from the merchant at the time of purchase. When a payment card slip is not available, a signed statement of purchase from the cardholder will be deemed as proof of purchase.</p>
+<p><strong>Payment Officers&nbsp; </strong><em><span class="lang-fr" lang="fr">(Agents payeurs)</span></em></p>
+<p>Incumbents of positions having the authority for exercising payment authority for non-pay (other operating costs) expenditures under section 33 of the FAA.</p>
+<p><strong>Percentage of Completion Method&nbsp; </strong><em><span class="lang-fr" lang="fr">(M&eacute;thode de l'avancement des travaux)</span></em></p>
+<p>A method of accounting that recognizes revenues and expenditures proportionately with the degree of completion of goods or services under a contract.</p>
+<p><strong>Periodic Inventory System&nbsp; </strong><em><span class="lang-fr" lang="fr">(Syst&egrave;me d'inventaire p&eacute;riodique)</span></em></p>
+<p>An accounting system where an actual physical count of goods on hand is taken at the end of each period for which financial statements are to be prepared. The goods are counted, weighed or measured, then extended at unit costs to derive the inventory valuation.</p>
+<p><strong>Perpetual Inventory System</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Syst&egrave;me d'inventaire permanent)</span></em></p>
+<p>An accounting system where purchases are debited directly to an inventory control account and concurrently entered into the detailed inventory records. As items of inventory are issued, the transaction is recorded in the accounts so that it carries a perpetual or continuing balance of the goods that should be on hand at any time.</p>
+<p><strong>Prepayments&nbsp; </strong><em><span class="lang-fr" lang="fr">(Paiements anticip&eacute;s)</span></em></p>
+<p>Payments made, pursuant to a contract, before the completion of work, delivery of goods or rendering of services. It includes prepaid expenses, deferred charges and advance transfer payments. Prepayments are not considered accountable advances.</p>
+<p><strong>Present value&nbsp; </strong><em><span class="lang-fr" lang="fr">(Valeur actualis&eacute;e)</span></em></p>
+<p>The value today of a future payment or series of payments discounted at an appropriate interest rate.</p>
+<p><strong>Program&nbsp; </strong><em><span class="lang-fr" lang="fr">(Programmes)</span></em></p>
+<p>A group of related activities authorized by Parliament and designed to achieve specific objectives.</p>
+<p><strong>Progress Payment</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Paiement sur acompte)</span></em></p>
+<p>It is defined by the Government Contracting Regulations as "a payment made by or on behalf of Her Majesty under the terms of a contract after the performance of the part of the contract in respect of which the payment is made but before the performance of the whole contract."</p>
+<p><strong>Provincial Sales Tax (PST) Exemption Certificate</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Certificat d'exemption au titre de la taxe de vente provinciale (TVP))</span></em></p>
+<p>Refers to a certificate that a Responsibility Centre (RC) manager uses to claim exemption from paying PST on purchases. The exemption certificate is used in accordance with the Reciprocal Taxation Agreement (RTA) of non-participating provinces.</p>
+<p><strong>Provincial Sales Tax (PST) Exemption Number&nbsp; </strong><span class="lang-fr" lang="fr"><em>(Num&eacute;ro d'exemption au titre de la taxe de vente provinciale (TVP))</em> </span></p>
+<p>Refers to the official Government of Canada exemption numbers (also referred to in official documents as account or permit numbers) that Responsibility Centre (RC) managers use to claim an exemption from paying PST on purchases. PST exemption numbers are assigned in accordance with the Reciprocal Taxation Agreements (RTA) of each partaking province or territory.</p>
+<p><strong>Public Accounts&nbsp; </strong><em><span class="lang-fr" lang="fr">(Comptes publics)</span></em></p>
+<p>The report of the Government of Canada prepared each fiscal year by the Receiver General as required by section 64 of the Financial Administration Act. The report is prepared from data contained in the Accounts of Canada and from more detailed records maintained in departments and agencies. The Accounts of Canada are the centralized record of the Government&rsquo;s financial transactions maintained by the Receiver General in which the transactions of all departments and agencies are summarized.</p>
+<p><strong>Public money&nbsp; </strong><em><span class="lang-fr" lang="fr">(Fonds publics)</span></em></p>
+<p>Is all money belonging to Canada received and collected by the Receiver General or any other public officer in his or her official capacity or any person authorized to receive or collect such money. Public money includes the following: &nbsp;Duties and revenues of Canada; &nbsp;Money borrowed by Canada or received through the issue or sale of securities; &nbsp;Money received or collected for or on behalf of Canada; and &nbsp;All money that is paid to or received or collected by a public officer under or pursuant to any act, trust, treaty, undertaking or contract, and is to be disbursed for a purpose specified in or pursuant to that act, trust, treaty, undertaking or contract.</p>
+<p><strong>Public property&nbsp; </strong><em><span class="lang-fr" lang="fr">(Biens publics)</span></em></p>
+<p>Is all property (including data), other than public money, belonging to Her Majesty in Right of Canada.</p>
+<p>Q<a id="Q"></a></p>
+<p><strong>Quality Assurance Review&nbsp; </strong><em><span class="lang-fr" lang="fr">(Examen de l'assurance de la qualit&eacute;)</span></em></p>
+<p>Refers to a periodic review of a process, procedure or system to ensure that individuals are properly following the applicable financial policy or guidelines and that all legislative requirements have been completed.</p>
+<p>R<a id="R"></a></p>
+<p><strong>Receipts&nbsp; </strong><em><span class="lang-fr" lang="fr">(Encaissements)</span></em></p>
+<p>Monies received, whether through cash, cheque or by electronic transfer of funds.</p>
+<p><strong>Reciprocal Tax Agreement (RTA)</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Accord de r&eacute;ciprocit&eacute; fiscale (ARF))</span></em></p>
+<p>Refers to a bilateral agreement between the government of Canada and partaking provinces and territories, which sets out the provisions for the collection and remittance of Provincial Sales Tax. The RTA also details the payment of sales taxes or other similar taxes levied by the provinces or territories.</p>
+<p><strong>Recurring Payment </strong><em><span class="lang-fr" lang="fr">(Versement p&eacute;riodique)</span></em></p>
+<p>A payment issued out of the Consolidated Revenue fund on a regular basis such as for Government pensions and annuities.</p>
+<p><strong>Refund of Expenditures&nbsp; </strong><em><span class="lang-fr" lang="fr">(Remboursement de d&eacute;penses)</span></em></p>
+<p>Refund from supplier overpayments, return of goods, duplicate payments, and/or recovery of advance payments.</p>
+<p><strong>Regional Departmental Accounting Office (RDAO)</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Bureau r&eacute;gional de comptabilit&eacute; minist&eacute;rielle (BRCM))</span></em></p>
+<p>The office responsible for processing accounts payable and accounts receivable for a geographic area under the financial authority of a particular base, wing or unit comptroller.</p>
+<p><strong>Regional Departmental Accounting Office (RDAO) Comptroller</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Contr&ocirc;leur de bureau r&eacute;gional de comptabilit&eacute; minist&eacute;rielle (BRCM))</span></em></p>
+<p>Refers to the individual who has been assigned to the position of Comptroller for an RDAO. This individual is the senior financial officer for a departmental accounting office, who will be held accountable for financial matters as defined in the Financial Administration Manual.</p>
+<p><strong>Related Party Transactions&nbsp; </strong><em><span class="lang-fr" lang="fr">(Op&eacute;rations entre personnes apparent&eacute;es)</span></em></p>
+<p>Transactions between organizations under common control.</p>
+<p><strong>Remediation&nbsp; </strong><em><span class="lang-fr" lang="fr">(Assainissement)</span></em></p>
+<p>The improvement of a contaminated or UXO affected site to prevent, minimize, or mitigate damage to human health or the environment. Remediation involves the development and application of a planned approach that removes, destroys, contains or otherwise reduces the availability of contaminants to receptors of concern</p>
+<p><strong>Repairables&nbsp; </strong><em><span class="lang-fr" lang="fr">(Pi&egrave;ces r&eacute;parables (r&eacute;parables))</span></em></p>
+<p>Repairable materiel that is not consumed when issued, that cycles in and out of inventory and is used over multiple accounting periods. This materiel is capitalized in capital asset pools and is amortized over the useful life of the associated equipment platforms. Examples include spare aircraft or vehicle engines.</p>
+<p><strong>Repairs and Maintenance</strong>&nbsp; <em><span class="lang-fr" lang="fr">(R&eacute;parations et entretien)</span></em></p>
+<p>Repairs and maintenance expenditures for normal maintenance and upkeep of capital assets that are necessary to keep assets in their usual service able condition.</p>
+<p><strong>Repayable Contributions&nbsp; </strong><em><span class="lang-fr" lang="fr">(Contributions remboursables)</span></em></p>
+<p>Contributions wherein the recipient is expected to repay all or part of the amount received or the Department expects to receive a financial return, according to terms in the agreement.</p>
+<p><strong>Responsibility Centre (RC) Administrators&nbsp; </strong><em><span class="lang-fr" lang="fr">(Administrateur de centre de responsabilit&eacute; (CR))</span></em></p>
+<p>Incumbents of positions having the written authority from the RC Manager to perform some or all of the administrative functions on his/her behalf.</p>
+<p><strong>Responsibility Centre (RC) Manager</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Gestionnaire de centre de responsabilit&eacute; (CR))</span></em></p>
+<p>The incumbent of a position that is allocated a budget and who has spending authority under the Financial administration Act (FAA) for this budget.</p>
+<p><strong>Revenue&nbsp; </strong><em><span class="lang-fr" lang="fr">(Revenus)</span></em></p>
+<p>Revenue consists of monies received from sources such as the: provision of services; proceeds from the disposal of surplus assets; proceeds from the sale of real property; royalties received for the use of Crown-owned patents and other intellectual property; and claims by the Crown.</p>
+<p><strong>Revenue Recognition</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Constatation des revenus)</span></em></p>
+<p>Revenue accounted for in the period in which the transactions or events giving rise to the revenues occurred.</p>
+<p><strong>Risk criteria&nbsp; </strong><em><span class="lang-fr" lang="fr">(Crit&egrave;re de risque)</span></em></p>
+<p>High Includes highly sensitive transactions, for example, when an error in payment is non-recoverable, or when payments that are largely judgmental, subject to interpretation, involve very large dollar amounts, or considered highly error prone. Low Includes transactions that are not sensitive in nature, have little or no potential financial loss associated with them, or have a low error rate with a low dollar-value impact of error, usually low to medium dollar value, and are recoverable.</p>
+<p><strong>Risk-Management&nbsp; </strong><em><span class="lang-fr" lang="fr">(Gestion des risques)</span></em></p>
+<p>The selection and implementation of a strategy of control of risk involving action to reduce the probability, intensity, or duration of exposure to contamination or UXO affectation This may involve limiting access to a contaminated or UXO affected site.</p>
+<p><strong>Robbery</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Vol qualifi&eacute;)</span></em></p>
+<p>Is the taking of money, property, or any other article of value against a person's will through violence or threat of violence.</p>
+<p>S<a id="S"></a></p>
+<p><strong>Scrap/Salvage value&nbsp; </strong><em><span class="lang-fr" lang="fr">(Valeur de r&eacute;cup&eacute;ration)</span></em></p>
+<p>The estimated net realizable value of a capital asset at the end of its life. Normally negligible in DND.</p>
+<p><strong>Service Life&nbsp; </strong><em><span class="lang-fr" lang="fr">(Dur&eacute;e d'utilisation)</span></em></p>
+<p>See Useful Life.</p>
+<p><strong>Service Potential&nbsp; </strong><em><span class="lang-fr" lang="fr">(Potentiel de service)</span></em></p>
+<p>The output or service capacity of a tangible capital asset, and is normally determined by references to attributes such as physical output capacity or capability, quality of output, associated operating costs, and useful life.</p>
+<p><strong>Site Assessment&nbsp; </strong><em><span class="lang-fr" lang="fr">(&Eacute;valuation de site)</span></em></p>
+<p>A critical appraisal of a physical location for the existence of materials, chemicals or objects that pose a threat to human health or the environment to support the decision to confirm a contaminated or UXO affected site.</p>
+<p><strong>Solid Waste Landfill site&nbsp;&nbsp;</strong><em><span class="lang-fr" lang="fr">(Site d&rsquo;enfouissement de d&eacute;chets solides)</span></em></p>
+<p>An area of land or excavation that receives waste such as household waste, commercial waste, non-hazardous sludge and industrial solid waste.</p>
+<p><strong>Specified Purpose Accounts</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Comptes &agrave; fins d&eacute;termin&eacute;es)</span></em></p>
+<p>Accounts used to record monies received for specified reasons as such monies must be accounted for separately in the Accounts of Canada.</p>
+<p><strong>Spending authority &nbsp;</strong><span class="lang-fr" lang="fr"><em>(Pouvoir de d&eacute;penser)</em> </span></p>
+<p>Spending authority consists of four elements: expenditure initiation, commitment control, contracting and confirmation of contract performance and price. These authorities are described in detail below. Expenditure Initiation Authority is the ability to make decisions to obtain goods or services that will result in the eventual expenditure of public funds, such as the decision to hire staff, to order goods and services or to authorize travel for program purposes. Commitment Authority is the authority delegated by the DM to incumbents of positions to confirm the availability of funds before a contractual arrangement is entered into, to meet the requirements of Section 32 (1) of the FAA. Authority to Contract is the authority delegated by the MND, to persons occupying specific DND/CF positions or fulfilling specific organizational functions, to enter into and sign contractual documents on behalf of the Department. Authority to confirm contract performance and price is the authority delegated by the MND to appropriate officers under Section 34 of the FAA. This delegation allows RC Managers and/or their subordinates to certify that goods have been received, work or services rendered and that the payment requested is according to the arrangements of the contract or is reasonable.</p>
+<p><strong>Stale Dated Cheque&nbsp; </strong><em><span class="lang-fr" lang="fr">(Ch&egrave;que prescrit)</span></em></p>
+<p>Refers to a Receiver General cheque that a bank may not honour or refuse to accept because it has not been presented for payment within a reasonable time after its issue (by banking custom, six months). However, it should be noted that a RG cheque remains valid regardless of the time between the date of issuance and the date it is cashed.</p>
+<p><strong>Standard Cost</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Co&ucirc;ts standards)</span></em></p>
+<p>National average costs, based on several years of historical data, of a particular resource per unit of activity, such as per full time equivalent for personnel and per flying hour for aircraft.</p>
+<p><strong>Standard Credit Card&nbsp; </strong><em><span class="lang-fr" lang="fr">(Carte de cr&eacute;dit standard)</span></em></p>
+<p>Refers to a commercial credit card issued in the name of an individual, in accordance with an agreement between the Government of Canada and a credit card provider.</p>
+<p><strong>Standing Advances&nbsp;&nbsp;</strong><em><span class="lang-fr" lang="fr">(Avances permanentes)</span></em></p>
+<p>An advance to a person to fund category of activities for an indeterminate period.</p>
+<p><strong>Statement of Cash Flow&nbsp; </strong><em><span class="lang-fr" lang="fr">(&Eacute;tat des flux de tr&eacute;sorerie)</span></em></p>
+<p>A financial statement which presents information about the operating, investing, and financing activities of the Department and the effect of those activities on the use of cash.</p>
+<p><strong>Statement of Financial Position (Position Statement)&nbsp; </strong><em><span class="lang-fr" lang="fr">(&Eacute;tat de la situation financi&egrave;re)</span></em></p>
+<p>A financial statement which presents the Department&rsquo;s financial position in terms of its assets, liabilities, and net assets or net liabilities at the end of an accounting period.</p>
+<p><strong>Statement of Management Responsibility &nbsp;</strong><em><span class="lang-fr" lang="fr">(D&eacute;claration de la responsabilit&eacute; de la direction)</span></em></p>
+<p>A report to acknowledge management&rsquo;s responsibility for the preparation of the financial statements and for the procedures and processes that enable the production of such statements and information.</p>
+<p><strong>Statement of Operations&nbsp; </strong><em><span class="lang-fr" lang="fr">(&Eacute;tat des r&eacute;sultats)</span></em></p>
+<p>A financial statement that presents the financial results of activities of the Department for the fiscal year by disclosing revenues, expenses, and operating results.</p>
+<p><strong>Statutory Appropriation&nbsp; </strong><span class="lang-fr" lang="fr"><em>(Affectation l&eacute;gislative (cr&eacute;dit l&eacute;gislatif))</em> </span></p>
+<p>Any authority by Parliament to pay money out of the Consolidated Revenue Fund granted on a continuing basis and normally provided for by statutes other than Appropriation Acts.</p>
+<p><strong>Straight-line Amortization&nbsp; </strong><em><span class="lang-fr" lang="fr">(Amortissement lin&eacute;aire)</span></em></p>
+<p>A method of accounting wherein an equal portion of the amortization expense is allocated to each accounting period during the estimated useful life of an asset.</p>
+<p><strong>Supplier Customer Account (SCA)&nbsp; </strong><em><span class="lang-fr" lang="fr">(Compte Client d'approvisionnement (CCA))</span></em></p>
+<p>An account that is used to record accountable and quantity tracked materiel.</p>
+<p>T<a id="T"></a></p>
+<p><strong>Temporary Advance&nbsp; </strong><em><span class="lang-fr" lang="fr">(Avance temporaire)</span></em></p>
+<p>An advance to a person referred to as the recipient, to fund a specific activity (e.g. Travel) for a specific period of time.</p>
+<p><strong>Theft&nbsp; </strong><em><span class="lang-fr" lang="fr">(Vols)</span></em></p>
+<p>Is the taking of money or property without the owner's consent and with the intent of depriving the owner, temporarily or permanently, of its possession, use or benefit.&nbsp;Although fraud and theft both result in depriving someone of property, a key distinguishing feature is that with fraud, the victim is induced through deceit or trickery to voluntarily give up the property, whereas with theft, the owner does not surrender the property voluntarily and, in some cases, may not initially even be aware that it has been taken.</p>
+<p><strong>Trade-in&nbsp; </strong><em><span class="lang-fr" lang="fr">(Achat ou vente avec reprise)</span></em></p>
+<p>An item given or accepted as partial payment for a new item of the same kind.</p>
+<p><strong>Transfer Payments</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Paiement de transfert)</span></em></p>
+<p>The transfer of money and/or goods or services from the Government or a Department to an individual or an organization, for which the Government or the Department does not receive any goods or services directly in return, or expect a financial return. These include grants or contributions.</p>
+<p><strong>Trust Accounts&nbsp; </strong><em><span class="lang-fr" lang="fr">(Compte en fiducie)</span></em></p>
+<p>Accounts established to record the deposits of monies in the Consolidated Revenue Fund, or the receipt of securities, when these funds must be administered by the Government of Canada according to specific terms and conditions of a trust agreement or legislation establishing a fiduciary relationship. The funds remain the property of the beneficiary and consequently a financial obligation of the Government or Department.</p>
+<p>U<a id="U"></a>&nbsp;&nbsp;</p>
+<p><strong>Unconditional Repayable Contributions&nbsp; </strong><em><span class="lang-fr" lang="fr">(Contributions remboursables sans condition)</span></em></p>
+<p>Contributions that must be repaid without qualification, since the agreement contains specific repayment terms. In substance, these are loans receivable.</p>
+<p><strong>Unexploded Explosive Ordnance (UXO)&nbsp; </strong><em><span class="lang-fr" lang="fr">(Munition explosive non explos&eacute;e (UXO))</span></em></p>
+<p>A munition which is primed, fused, armed or otherwise prepared for use, that has been launched, propelled, projected, dropped or otherwise discharged, and remains unexploded by way of malfunction or design and by virtue of the remaining potential explosive capability poses a potential hazard to human health and safety or to the surrounding environment.</p>
+<p><strong>Unexploded Explosive Ordnance (UXO) Affected Site </strong>&nbsp;<em><span class="lang-fr" lang="fr">(Site contenant des munitions explosives non explos&eacute;es (UXO))</span></em></p>
+<p>A geographical location holding one or more uncontrolled and uncontained UXOs. This site may currently be under the use or control of DND, or may be a legacy site, which was previously affected by UXOs and is not under the use or control of DND presently.</p>
+<p><strong>Useful life</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Dur&eacute;e de vie utile)</span></em></p>
+<p>The estimate of either the period over which a capital asset, (or component thereof), is expected to be used by DND, or the number of production of similar units (i.e. hours of flying) that can be obtained from the capital asset by the Department (also referred to as Service life).</p>
+<p>V<a id="V"></a></p>
+<p><strong>Variable Cost &nbsp;</strong><em><span class="lang-fr" lang="fr">(Co&ucirc;t variable)</span></em></p>
+<p>A cost that varies directly with the volume of production or activity.</p>
+<p><strong>Vendor Account Number &nbsp;</strong><em><span class="lang-fr" lang="fr">(Num&eacute;ro de compte fournisseur)</span></em></p>
+<p>Links vendor master data (name of vendor and address) to the Accounts Payable document. The vendor master data is used to identify to whom the payment is to be sent.</p>
+<p><strong>Vote&nbsp; </strong><em><span class="lang-fr" lang="fr">(Cr&eacute;dit)</span></em></p>
+<p>A vote is a funding limit in an appropriation. A vote also provides a framework for what purposes the appropriation can be used including any authority to spend revenue received. The term &ldquo;vote&rdquo; is commonly used in the sense of &ldquo;appropriation&rdquo;. A vote becomes as appropriation only when the Appropriation Act in which it is included, receives Royal assent.</p>
+<p>W<a id="W"></a>&nbsp;&nbsp;</p>
+<p><strong>Work Breakdown Structure</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Structure d'un organigramme technique de projet (OTP))</span></em></p>
+<p>A temporary cost collector used to plan, forecast, monitor and manage project costs, revenues and expenditures in the Project Systems module.</p>
+<p><strong>Working Capital Fund&nbsp; </strong><em><span class="lang-fr" lang="fr">(Fonds de roulement)</span></em></p>
+<p>A non-budgetary Vote in the DND appropriation used to fund activities in the Department.</p>
+<p><strong>Write-down&nbsp; </strong><em><span class="lang-fr" lang="fr">(R&eacute;duction de valeur)</span></em></p>
+<p>A reduction to its residual value, if any, of an asset, when it no longer contributes to the Department's ability to provide services. A write-down would be necessary, for example, when the Department no longer plans to use the asset because it has been damaged or rendered obsolete.</p>
+<p><strong>Write-off</strong>&nbsp; <em><span class="lang-fr" lang="fr">(Radiation)</span></em></p>
+<p>A reduction of the value of an asset to zero when conditions indicate that it no longer contributes to the Department&rsquo;s ability to provide goods and services, or, if there has been a total and permanent reduction in its value.</p></div>
+</div>
+</div>
+<div class="ls-row-clr"></div>
+<div class="ls-row-clr"></div>
+</div>
+</div>
+<div class="ls-cmp-wrap ls-1st" id="w1461928999561"><div class="clearfix"></div><aside>
+<h2 class="new-row mrgn-lft-md">Departmental priorities</h2>
+<div class="new-row">
+<div class="col-md-3">
+<a href="https://www.canada.ca/en/department-national-defence/campaigns/the-caf-offer.html">
+<h3 class="h5">The CAF Offer</h3>
+<img alt="The CAF Offer" src="/assets/Intranet/images/priority-buttons/2023/caf-offer-web-banner-and-icons_v3.jpg" class="priorities-image img-responsive thumbnail mrgn-bttm-sm"/>
+</a>
+<p></p>
+</div>
+<div class="col-md-3">
+<a href="http://intranet.mil.ca/en/res/support-services/sexual-misconduct-home.page?WT.mc_id=pri-sm">
+<h3 class="h5">Sexual misconduct</h3>
+<img alt="Learn about sexual misconduct and how the Defence Team is addressing it." src="/assets/Intranet/images/priority-buttons/2021/v5-sexual-misconduct-departmental-priorities_dgm-41121-vxp-04.jpg" class="priorities-image img-responsive thumbnail mrgn-bttm-sm"/>
+</a>
+<p></p>
+</div>
+<div class="col-md-3">
+<a href="https://www.canada.ca/en/department-national-defence/services/benefits-military/health-support/total-health-and-wellness-strategy.html">
+<h3 class="h5">Total Health and Wellness Strategy</h3>
+<img alt="Total Health and Wellness Strategy" src="/assets/Intranet/images/priority-buttons/2022/banner-update-3-2.jpg" class="priorities-image img-responsive thumbnail mrgn-bttm-sm"/>
+</a>
+<p></p>
+</div>
+<div class="col-md-3">
+<a href="http://intranet.mil.ca/en/conduct-culture/index.page?WT.mc_id=pri-cc">
+<h3 class="h5">Conduct, culture, diversity and inclusion</h3>
+<img alt="Conduct, culture, diversity and inclusion" src="/assets/Intranet/images/priority-buttons/2021/v5-conduct-and-culture-departmental-priorities_dgm-41121-vxp-02.jpg" class="priorities-image img-responsive thumbnail mrgn-bttm-sm"/>
+</a>
+<p></p>
+</div>
+</div>
+</aside>
+</div>
+<div class="ls-cmp-wrap" id="w1401697529540"><div class="clearfix"></div><div class="pagedetails">
+<dl id="wb-dtmd">
+<dt>Date modified:</dt>
+<dd>
+<time property="dateModified">2023-03-23</time>
+</dd>
+</dl>
+</div>
+</div>
+<div class="ls-row-clr"></div>
+</main>
+<div class="ls-row-clr"></div><div class="global-footer">
+<footer id="wb-info">
+<div class="landscape">
+<nav class="container wb-navcurr">
+<ul class="list-inline" id="gc-tctr">
+<li>
+<a href="http://intranet.mil.ca/en/terms-conditions.page">Terms and conditions</a>
+</li>
+<li>
+<a href="http://forces.gc.ca/en/transparency.page">Transparency</a>
+</li>
+</ul>
+<div class="row">
+<section class="col-sm-3">
+<h3>
+<a href="/FinCS_Intranet/about.page">About ADM(Fin)</a>
+</h3>
+<ul class="list-unstyled">
+<li>
+<a href="http://cfo-dpf.mil.ca/en/adm-fin/organization.page?">Organization</a>
+</li>
+<li>
+<a href="http://cfo-dpf.mil.ca/en/financial-policies-publications/reports.page?">Reports and publications</a>
+</li>
+</ul>
+</section>
+<section class="col-sm-3">
+<h3>
+<a href="http://cfo-dpf.mil.ca/en/adm-fin/dpc-fin/spgc/communications-web-services.page?">Contact us</a>
+</h3>
+<ul class="list-unstyled">
+<li>
+<a href="http://cfo-dpf.mil.ca/en/admfin-staff/information-management-information-technology.page?">ADM(Fin) Group Services</a>
+</li>
+<li>
+<a href="/FinCS_Intranet/policy-procedure/governance-l1-compts.page" title="Level 1 comptrollers">L1 comptrollers</a>
+</li>
+</ul>
+</section>
+<section class="col-sm-3">
+<h3>
+<a href="/FinCS_Intranet/index.page">News / Updates</a>
+</h3>
+<ul class="list-unstyled">
+<li>
+<a href="http://cfo-dpf.mil.ca/en/financial-news-updates/cdao-communiques.page?">CDAO communiqués</a>
+</li>
+<li>
+<a href="/FinCS_Intranet/news-updates/claimsx-communique.page" title="ClaimsX Communiqué">ClaimsX Communiqué</a>
+</li>
+</ul>
+</section>
+<section class="col-sm-3">
+<h3>
+<a href="http://cfo-dpf.mil.ca/en/for-adm-fin-personnel.page?" title="For Assistant Deputy Minister (Finance) personnel">For ADM(Fin) personnel</a>
+</h3>
+<ul class="list-unstyled">
+<li>
+<a href="/FinCS_Intranet/admfin-staff/awards-and-recognition.page">Awards and recognition in ADM(Fin)</a>
+</li>
+<li>
+<a href="http://cfo-dpf.mil.ca/en/admfin-staff/requesting-training.page?">Requesting training</a>
+</li>
+</ul>
+</section>
+</div>
+</nav>
+</div>
+<div class="brand">
+<div class="container">
+<div class="row">
+<h2>National Defence footer</h2>
+<div class="col-xs-6 visible-sm visible-xs tofpg">
+<a href="#wb-cont">
+Top of page
+<span class="glyphicon glyphicon-chevron-up"></span>
+</a>
+</div>
+</div>
+</div>
+</div>
+</footer>
+</div>
+<noscript><img alt="dcsimg" id="dcsimg" width="1" height="1" src="//statssdc.mil.ca/dcshy1qop10000w8ck5s7wita_1s8t/njs.gif?dcsuri=/nojavascript&amp;WT.js=No&amp;WT.tv=10.4.23&amp;dcssip=cfo-dpf.mil.ca"/></noscript><!--[if gte IE 9 | !IE ]><!--> <script src="/common/dist-gcwu-fegc/wet-boew/js/jquery/2.1.4/jquery.js"></script> <script src="/common/dist-gcwu-fegc/wet-boew/js/wet-boew.min.js"></script> <!--<![endif]--> <!--[if lt IE 9]> <script src="/common/dist-gcwu-fegc/wet-boew/js/ie8-wet-boew2.min.js"></script> <![endif]--> <script src="/common/dist-gcwu-fegc/theme-gcwu-fegc/js/theme.min.js"></script> <script src="/common/dist-gcwu-fegc/demos/feedback/demo/feedback.min.js"></script> <!-- CustomScriptsStart --> <script type="text/javascript" src="/common/dnd_custom/js/dnd-videotracking.js"></script> <script type="text/javascript" src="/common/dnd_custom/js/dnd-dropdownmenus.js?build=4.6.0"></script> <script type="text/javascript" src="/common/dnd_custom/js/dnd-tabs.js"></script> <!-- CustomScriptsEnd --></body>
+</html>

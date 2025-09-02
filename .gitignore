@@ -1,0 +1,33 @@
+.DS_Store
+node_modules
+dist
+
+# Environment files - NEVER commit these!
+.env
+.env.*
+!.env.template
+!.env.example
+
+# Backup files
+*.backup
+*.backup.*
+.env.backup*
+backups/
+*.tar
+*.tar.gz
+*.zip
+
+# Logs
+*.log
+logs/
+
+# Secure configuration
+/etc/cbthis/
+cbthis.service
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+Thumbs.db
