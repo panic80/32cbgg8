@@ -71,7 +71,8 @@ export const useStreamingChat = ({
     let followUpQuestions: FollowUpQuestion[] = [];
     let retrievalStatus = '';
     let lastUpdateTs = 0;
-    const throttleMs = 60;
+    const throttleMs = 120;
+    let scheduledFrame = false;
 
     try {
       // Check if this is a Trip Planner message - always use gpt-5-mini for Trip Planner
@@ -184,28 +185,32 @@ export const useStreamingChat = ({
                   if (event.content) {
                     streamingContent += event.content;
                     const now = Date.now();
-                    if (now - lastUpdateTs > throttleMs) {
-                      lastUpdateTs = now;
-                      // Update message with streaming content (throttled)
-                      setMessages(prev => {
-                        const newMessages = [...prev];
-                        const existingIndex = newMessages.findIndex(msg => msg.id === messageId);
-                        const markdownPattern = /```|\n\s*#|\*\*|\n\s*[-*+]\s|<[^>]+>/;
-                        const isMarkdown = markdownPattern.test(streamingContent);
-                        const streamingMessage: Message = {
-                          id: messageId,
-                          content: streamingContent,
-                          sender: 'assistant',
-                          timestamp: Date.now(),
-                          isFormatted: isMarkdown,
-                          sources: sources.length > 0 ? sources : undefined,
-                        };
-                        if (existingIndex >= 0) {
-                          newMessages[existingIndex] = streamingMessage;
-                        } else {
-                          newMessages.push(streamingMessage);
-                        }
-                        return newMessages;
+                    if ((now - lastUpdateTs > throttleMs) && !scheduledFrame) {
+                      scheduledFrame = true;
+                      requestAnimationFrame(() => {
+                        // Update message with streaming content (throttled to ~1/frame)
+                        setMessages(prev => {
+                          const newMessages = [...prev];
+                          const existingIndex = newMessages.findIndex(msg => msg.id === messageId);
+                          const markdownPattern = /```|\n\s*#|\*\*|\n\s*[-*+]\s|<[^>]+>/;
+                          const isMarkdown = markdownPattern.test(streamingContent);
+                          const streamingMessage: Message = {
+                            id: messageId,
+                            content: streamingContent,
+                            sender: 'assistant',
+                            timestamp: Date.now(),
+                            isFormatted: isMarkdown,
+                            sources: sources.length > 0 ? sources : undefined,
+                          };
+                          if (existingIndex >= 0) {
+                            newMessages[existingIndex] = streamingMessage;
+                          } else {
+                            newMessages.push(streamingMessage);
+                          }
+                          return newMessages;
+                        });
+                        lastUpdateTs = Date.now();
+                        scheduledFrame = false;
                       });
                     }
                   }

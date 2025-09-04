@@ -65,15 +65,28 @@ html {
 /* Custom scroll indicator */
 .scroll-indicator {
   position: absolute;
-  bottom: 2rem;
+  bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%);
   opacity: 0.6;
   transition: opacity 0.3s ease;
+  z-index: 30; /* ensure above decorative layers */
+  pointer-events: none; /* avoid accidental occlusion by interactions */
 }
 
 .scroll-indicator:hover {
   opacity: 1;
+}
+
+/* Inline variant — used when rendering directly below hero text */
+.scroll-indicator.inline {
+  position: static;
+  left: auto;
+  bottom: auto;
+  transform: none;
+  display: flex;
+  justify-content: center;
+  opacity: 0.8;
 }
 
 /* Floating animation for decorative elements */

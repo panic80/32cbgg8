@@ -11,7 +11,7 @@ import {
 import '../styles/landing.css';
 import '../styles/sticky-footer.css';
 import { SITE_CONFIG, getCopyrightText, getLastUpdatedText } from '../constants/siteConfig';
-import Logo from '@/components/Logo';
+import LogoImage from '@/components/LogoImage';
 
 // shadcn/ui components
 import { Button } from '@/components/ui/button';
@@ -229,13 +229,8 @@ export default function OPIPage() {
                 <div className="flex items-center">
                   <EnhancedBackButton to="/" label="Back" variant="minimal" size="sm" />
                   <div className="h-6 w-px bg-border/50 mx-2 sm:mx-3" />
-                  <div className="mr-2 sm:mr-3">
-                    <div className="block sm:hidden">
-                      <Logo size="xs" />
-                    </div>
-                    <div className="hidden sm:block">
-                      <Logo size="sm" />
-                    </div>
+                  <div className="mr-2 sm:mr-3 h-6 sm:h-7 md:h-8">
+                    <LogoImage fitParent className="h-full w-auto" />
                   </div>
                   <span className="text-base sm:text-xl md:text-2xl font-bold text-foreground">
                     <span className="sm:hidden">OPI</span>

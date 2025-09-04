@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Send, Settings, Sparkles, Command as CommandIcon, Mic, Paperclip, Hash, AtSign, HelpCircle, Zap, ChevronDown, X, Database, MapIcon, Book, Minimize2, Search, Layers, Brain } from 'lucide-react';
 import { motion, AnimatePresence, useSpring } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -43,6 +43,7 @@ import { useDisclaimer } from './ChatPage/hooks/useDisclaimer';
 import { useKeyboardShortcuts } from './ChatPage/hooks/useKeyboardShortcuts';
 import { formatPlainTextToMarkdown } from './ChatPage/utils/formatting';
 import { toast } from 'sonner';
+import { useLocation } from 'react-router-dom';
 
 
 interface ChatPageProps {
@@ -81,10 +82,13 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [showNewPill, setShowNewPill] = useState(false);
+  // Simple windowing to reduce DOM nodes for long chats
+  const [visibleCount, setVisibleCount] = useState<number>(50);
   const suppressPillRef = useRef(false);
   // Track ChatInput height to position the new replies pill dynamically
   const [inputHeight, setInputHeight] = useState<number>(96);
   const [pillMargin, setPillMargin] = useState<number>(12);
+  const location = useLocation();
 
   // Measure ChatInput (fixed footer) height with ResizeObserver
   useEffect(() => {
@@ -121,6 +125,18 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
   
   // Initialize suggestion visibility manager
   const suggestionManager = useSuggestionVisibility();
+
+  // Prefill input from query param ?q=
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(location.search);
+      const q = params.get('q');
+      if (q && q.trim().length > 0) {
+        setInput(q.trim());
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
   
   // Motion values removed to fix flickering issue
   
@@ -177,16 +193,22 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
   useEffect(() => {
     const viewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
     if (!viewport) return;
+    let ticking = false;
     const onScroll = () => {
       if (suppressPillRef.current) return;
-      const distance = viewport.scrollHeight - (viewport.scrollTop + viewport.clientHeight);
-      const atBottom = distance <= 2; // tighter threshold to avoid flapping
-      setIsAtBottom(atBottom);
-      if (atBottom) setShowNewPill(false);
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        const distance = viewport.scrollHeight - (viewport.scrollTop + viewport.clientHeight);
+        const atBottom = distance <= 2; // tighter threshold to avoid flapping
+        setIsAtBottom(atBottom);
+        if (atBottom) setShowNewPill(false);
+        ticking = false;
+      });
     };
     onScroll();
-    viewport.addEventListener('scroll', onScroll);
-    return () => viewport.removeEventListener('scroll', onScroll);
+    viewport.addEventListener('scroll', onScroll, { passive: true });
+    return () => viewport.removeEventListener('scroll', onScroll as any);
   }, []);
 
   // Show new messages pill when content changes and user is not at bottom
@@ -211,7 +233,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
     setShowHelpDialog
   });
 
-  const handleSendMessage = async (messageText?: string) => {
+  const handleSendMessage = useCallback(async (messageText?: string) => {
     const messageToSend = messageText || input.trim();
     if (!messageToSend || isLoading) return;
     
@@ -222,17 +244,17 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
     
     // Use the streaming chat hook
     await handleStreamingChat(messageToSend);
-  };
+  }, [input, isLoading, handleStreamingChat]);
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey && !showInlineCommand) {
       e.preventDefault();
       handleSendMessage();
     }
-  };
+  }, [showInlineCommand, handleSendMessage]);
   
   // Handle input changes with inline command detection
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setInput(value);
     
@@ -247,10 +269,10 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
     } else {
       setShowInlineCommand(false);
     }
-  };
+  }, [inlineCommands]);
   
   // Toggle message collapse
-  const toggleMessageCollapse = (messageId: string) => {
+  const toggleMessageCollapse = useCallback((messageId: string) => {
     setCollapsedMessages(prev => {
       const newSet = new Set(prev);
       if (newSet.has(messageId)) {
@@ -260,10 +282,10 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
       }
       return newSet;
     });
-  };
+  }, []);
   
   // Handle voice input
-  const handleVoiceInput = () => {
+  const handleVoiceInput = useCallback(() => {
     setIsRecording(!isRecording);
     // In a real implementation, this would use the Web Speech API
     if (!isRecording) {
@@ -273,32 +295,32 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
       // Stop recording
       console.log('Stopping voice recording...');
     }
-  };
+  }, [isRecording]);
 
-  const handleFollowUpClick = (question: string) => {
+  const handleFollowUpClick = useCallback((question: string) => {
     setInput(question);
     handleSendMessage(question);
     setInput("");
-  };
+  }, [handleSendMessage]);
 
-  const handleTripPlanSubmit = (tripPlan: string) => {
+  const handleTripPlanSubmit = useCallback((tripPlan: string) => {
     // Send the trip plan as a message
     handleSendMessage(tripPlan);
-  };
+  }, [handleSendMessage]);
 
-  const handleAcceptDisclaimer = () => {
+  const handleAcceptDisclaimer = useCallback(() => {
     // Just close the modal - visit count is already tracked
     setShowDisclaimer(false);
-  };
+  }, [setShowDisclaimer]);
 
 
-  const copyMessage = (content: string) => {
+  const copyMessage = useCallback((content: string) => {
     navigator.clipboard.writeText(content).then(() => {
       toast.success('Copied to clipboard');
     }).catch(() => toast.error('Copy failed'));
-  };
+  }, []);
 
-  const regenerateMessage = (id: string) => {
+  const regenerateMessage = useCallback((id: string) => {
     // Simulate regeneration
     setIsLoading(true);
     setTimeout(() => {
@@ -309,10 +331,10 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
       ));
       setIsLoading(false);
     }, 1500);
-  };
+  }, []);
 
   // Export helpers
-  const exportMarkdown = () => {
+  const exportMarkdown = useCallback(() => {
     const lines: string[] = [];
     lines.push(`# Conversation${conversationId ? ' ' + conversationId : ''}`);
     lines.push('');
@@ -332,9 +354,9 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
     a.click();
     URL.revokeObjectURL(url);
     toast.success('Exported as Markdown');
-  };
+  }, [conversationId, messages]);
 
-  const exportJSON = () => {
+  const exportJSON = useCallback(() => {
     const payload = { conversationId, messages };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -344,14 +366,14 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
     a.click();
     URL.revokeObjectURL(url);
     toast.success('Exported as JSON');
-  };
+  }, [conversationId, messages]);
 
 
-  const clearConversation = () => {
+  const clearConversation = useCallback(() => {
     setMessages([]);
     setConversationId('');
     toast.success('Conversation cleared');
-  };
+  }, []);
 
   return (
     <TooltipProvider>
@@ -431,8 +453,20 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
               />
             ) : (
               <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 pb-20 sm:pb-24">
+                {/* Show older messages loader when windowed */}
+                {messages.length > visibleCount && (
+                  <div className="flex justify-center mb-4">
+                    <button
+                      className="px-3 py-1.5 rounded-full bg-[var(--background-secondary)] text-[var(--text)] text-xs border border-[var(--border)] hover:bg-[var(--background-tertiary)]"
+                      onClick={() => setVisibleCount(c => Math.min(messages.length, c + 50))}
+                    >
+                      Show earlier messages
+                    </button>
+                  </div>
+                )}
                 <AnimatePresence>
-                  {messages.map((message, messageIndex) => {
+                  {messages.slice(Math.max(0, messages.length - visibleCount)).map((message, idx) => {
+                    const messageIndex = Math.max(0, messages.length - visibleCount) + idx;
                     const prev = messages[messageIndex - 1];
                     const showDate = !prev || new Date(prev.timestamp).toDateString() !== new Date(message.timestamp).toDateString();
                     return (

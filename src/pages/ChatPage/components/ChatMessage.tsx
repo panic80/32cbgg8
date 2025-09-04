@@ -35,7 +35,7 @@ interface ChatMessageProps {
   onFollowUpClick: (question: string) => void;
 }
 
-export const ChatMessage: React.FC<ChatMessageProps> = ({
+const ChatMessageInner: React.FC<ChatMessageProps> = ({
   message,
   messageIndex,
   isCollapsed,
@@ -287,3 +287,18 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     </motion.div>
   );
 };
+
+export const ChatMessage = React.memo(
+  ChatMessageInner,
+  (prev, next) => {
+    return (
+      prev.message.id === next.message.id &&
+      prev.message.content === next.message.content &&
+      prev.isCollapsed === next.isCollapsed &&
+      prev.isLoading === next.isLoading &&
+      prev.isLatestMessage === next.isLatestMessage &&
+      prev.currentModel === next.currentModel &&
+      prev.modelMode === next.modelMode
+    );
+  }
+);

@@ -1,7 +1,7 @@
 import React from 'react';
 import logoImg from '../assets/logo.png';
 
-const LogoImage = ({ className = '', size = 'md' }) => {
+const LogoImageBase = ({ className = '', size = 'md', fitParent = false }) => {
   const sizes = {
     xs: { width: 40, height: 48 },
     sm: { width: 60, height: 72 },
@@ -12,6 +12,24 @@ const LogoImage = ({ className = '', size = 'md' }) => {
 
   const { width, height } = sizes[size] || sizes.md;
 
+  // If fitParent is true, let the image scale to its container's height
+  if (fitParent) {
+    return (
+      <img
+        src={logoImg}
+        alt="32 CBG Badge"
+        className={className}
+        style={{
+          objectFit: 'contain',
+          height: '100%',
+          width: 'auto',
+          maxHeight: '100%',
+          display: 'block'
+        }}
+      />
+    );
+  }
+
   return (
     <img
       src={logoImg}
@@ -19,9 +37,12 @@ const LogoImage = ({ className = '', size = 'md' }) => {
       width={width}
       height={height}
       className={className}
-      style={{ objectFit: 'contain' }}
+      style={{ objectFit: 'contain', display: 'block' }}
     />
   );
 };
+
+// Prevent unnecessary re-renders when props haven't changed
+const LogoImage = React.memo(LogoImageBase);
 
 export default LogoImage;

@@ -15,6 +15,7 @@
     "preview": "vite preview",
     "start": "node server/main.js",
     "lint": "echo 'Linting not configured' && exit 0",
+    "reload": "pm2 reload cf-travel-bot --update-env",
     "deploy": "pm2 deploy production",
     "deploy:setup": "pm2 deploy production setup",
     "deploy:staging": "npm run build:staging && pm2 deploy staging",

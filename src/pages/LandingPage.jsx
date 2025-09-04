@@ -140,7 +140,7 @@ export default function LandingPage() {
             {/* Hero Section */}
             <main
               ref={heroRef}
-              className={`relative min-h-[70vh] sm:min-h-[80vh] md:min-h-[90vh] flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 pb-6 sm:pb-8 md:pb-12 hero-gradient overflow-hidden transition-opacity duration-1000 ${
+              className={`relative min-h-[70vh] sm:min-h-[80vh] md:min-h-[90vh] flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 pb-6 sm:pb-8 md:pb-12 hero-gradient overflow-hidden transition-opacity duration-1000 gpu-boost ${
                 heroVisible ? 'opacity-100' : 'opacity-0'
               }`}
             >
@@ -197,19 +197,19 @@ export default function LandingPage() {
                   >
                     Your comprehensive digital gateway to administrative resources, claims processing, and policy information. Designed to simplify and expedite your financial administrative tasks.
                   </p>
+                  {/* Inline Scroll Indicator directly after paragraph */}
+                  <div className="scroll-indicator inline animate-fade-in mt-4 sm:mt-6" style={{ animationDelay: '0.9s' }}>
+                    <ChevronDown className="w-6 h-6 sm:w-8 sm:h-8 text-[var(--text-secondary)] animate-bounce" />
+                  </div>
                 </div>
               </div>
 
-              {/* Elegant Scroll Indicator */}
-              <div className="scroll-indicator animate-fade-in mt-4 sm:mt-6" style={{ animationDelay: '1s' }}>
-                <ChevronDown className="w-6 h-6 sm:w-8 sm:h-8 text-[var(--text-secondary)] animate-bounce" />
-              </div>
             </main>
 
             {/* Features Grid Section */}
             <section
               ref={featuresRef}
-              className={`relative py-24 px-4 sm:px-6 lg:px-8 bg-[var(--background-secondary)] transition-all duration-1000 transform ${
+              className={`relative py-24 px-4 sm:px-6 lg:px-8 bg-[var(--background-secondary)] transition-all duration-1000 transform gpu-boost ${
                 featuresVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
               }`}
               aria-label="Features"

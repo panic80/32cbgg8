@@ -11,7 +11,7 @@ interface MarkdownRendererProps {
   children: string
 }
 
-export function MarkdownRenderer({ children }: MarkdownRendererProps) {
+export const MarkdownRenderer = React.memo(function MarkdownRenderer({ children }: MarkdownRendererProps) {
   return (
     <div className="space-y-3">
       <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={COMPONENTS}>
@@ -19,7 +19,7 @@ export function MarkdownRenderer({ children }: MarkdownRendererProps) {
       </Markdown>
     </div>
   )
-}
+});
 
 interface HighlightedPre extends React.HTMLAttributes<HTMLPreElement> {
   children: string

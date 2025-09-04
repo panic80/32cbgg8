@@ -295,3 +295,18 @@
 .animate-float-slow {
   animation: float-slow 6s ease-in-out infinite;
 }
+
+/* GPU acceleration hints for smoother animations */
+.gpu-boost {
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Mobile: reduce complexity for heavy animated elements */
+@media (max-width: 640px) {
+  .reduce-motion-mobile {
+    animation-duration: 0.5s !important;
+    animation-iteration-count: 1 !important;
+  }
+}

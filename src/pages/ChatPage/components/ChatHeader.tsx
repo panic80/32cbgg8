@@ -9,7 +9,7 @@ import { HelpDialog } from '@/pages/ChatPage/components/HelpDialog';
 import { WhatsNewModal } from '@/pages/ChatPage/components/WhatsNewModal';
 import { WHATS_NEW_VERSION } from '@/pages/ChatPage/constants/whatsNew';
 import { HamburgerMenu } from '@/components/HamburgerMenu';
-import Logo from '@/components/Logo';
+import LogoImage from '@/components/LogoImage';
 import { cn } from '@/lib/utils';
 
 interface ChatHeaderProps {
@@ -81,15 +81,10 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         <EnhancedBackButton to="/" label="Home" variant="minimal" size="sm" />
         <div className="h-6 w-px bg-border/50 mx-2 sm:mx-3" />
         <motion.div 
-          className="mr-2 sm:mr-3"
+          className="mr-2 sm:mr-3 h-6 sm:h-7 md:h-8"
           whileHover={{ scale: 1.05 }}
         >
-          <div className="block sm:hidden">
-            <Logo size="xs" />
-          </div>
-          <div className="hidden sm:block">
-            <Logo size="sm" />
-          </div>
+          <LogoImage fitParent className="h-full w-auto" />
         </motion.div>
         <span className="text-base sm:text-xl md:text-2xl font-bold text-foreground">
           32 CBG <span className="hidden sm:inline">Policy Assistant</span>

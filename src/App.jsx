@@ -8,7 +8,6 @@ import ScrollToTop from './components/ScrollToTop';
 // Lazy load components
 const Hero = lazy(() => import('./components/Hero'));
 const ThemeToggle = lazy(() => import('./components/ThemeToggle'));
-const MobileNavBar = lazy(() => import('./components/MobileNavBar'));
 const FAQPage = lazy(() => import('./pages/FAQPage'));
 const LandingPage = lazy(() => import('./pages/LandingPage.jsx'));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
@@ -18,13 +17,28 @@ const OPIPage = lazy(() => import('./pages/OPIPage'));
 const AdminToolsPage = lazy(() => import('./pages/AdminToolsPage'));
 const ConfigPage = lazy(() => import('./pages/ConfigPage'));
 const UIShowcase = lazy(() => import('./components/UIShowcase'));
+const LandingPageV2 = lazy(() => import('./pages/LandingPageV2.jsx'));
+import RouteSkeleton from './components/RouteSkeleton'
 
 // Prefetch components
 const prefetchComponent = (importFn) => {
-  const prefetchTimeoutId = setTimeout(() => {
-    importFn().catch(() => {});
-  }, 2000);
-  return () => clearTimeout(prefetchTimeoutId);
+  // Prefer idle time and avoid prefetch on slow connections or when Save-Data is enabled
+  const conn = typeof navigator !== 'undefined'
+    ? (navigator.connection || navigator.mozConnection || navigator.webkitConnection)
+    : undefined;
+  const saveData = conn && 'saveData' in conn ? conn.saveData : false;
+  const isSlow = conn && conn.effectiveType ? /2g/.test(conn.effectiveType) : false;
+  if (saveData || isSlow) return () => {};
+
+  let cancelled = false;
+  const run = () => { if (!cancelled) importFn().catch(() => {}); };
+  const idle = typeof window !== 'undefined' && 'requestIdleCallback' in window ? window.requestIdleCallback.bind(window) : null;
+  const idleId = idle ? idle(run, { timeout: 1500 }) : window.setTimeout(run, 0);
+  return () => {
+    cancelled = true;
+    if (idle && idleId && 'cancelIdleCallback' in window) window.cancelIdleCallback(idleId);
+    else clearTimeout(idleId);
+  };
 };
 
 function App() {
@@ -100,43 +114,48 @@ function App() {
             },
           }}
         />
-        <Suspense fallback={<div className="min-h-screen bg-background" />}>
+        <Suspense fallback={<RouteSkeleton /> }>
           <Routes>
             <Route path="/" element={
-              <Suspense fallback={<div className="min-h-screen bg-background" />}>
+              <Suspense fallback={<RouteSkeleton /> }>
                 <LandingPage />
               </Suspense>
             } />
             <Route path="/opi" element={
-              <Suspense fallback={<div className="min-h-screen bg-background" />}>
+              <Suspense fallback={<RouteSkeleton /> }>
                 <OPIPage />
               </Suspense>
             } />
             <Route path="/admin-tools" element={
-              <Suspense fallback={<div className="min-h-screen bg-background" />}>
+              <Suspense fallback={<RouteSkeleton /> }>
                 <AdminToolsPage />
               </Suspense>
             } />
             <Route
               path="/chat"
               element={
-                <Suspense fallback={<div className="min-h-screen bg-background" />}>
+                <Suspense fallback={<RouteSkeleton /> }>
                   <ChatPage theme={theme} toggleTheme={toggleTheme} />
                 </Suspense>
               }
             />
             <Route path="/chat/config" element={
-              <Suspense fallback={<div className="min-h-screen bg-background" />}>
+              <Suspense fallback={<RouteSkeleton /> }>
                 <ConfigPage />
               </Suspense>
             } />
             <Route path="/privacy" element={
-                          <Suspense fallback={<div className="min-h-screen bg-background" />}>
+                          <Suspense fallback={<RouteSkeleton /> }>
                             <PrivacyPage />
                           </Suspense>
                         } />
+            <Route path="/home-v2" element={
+              <Suspense fallback={<RouteSkeleton /> }>
+                <LandingPageV2 />
+              </Suspense>
+            } />
             <Route path="/faq" element={
-              <Suspense fallback={<div className="min-h-screen bg-background" />}>
+              <Suspense fallback={<RouteSkeleton /> }>
                 <FAQPage />
               </Suspense>
             } />
@@ -151,22 +170,17 @@ function App() {
               </div>
             } />
             <Route path="/loading-debug" element={
-              <Suspense fallback={<div className="min-h-screen bg-background" />}>
+              <Suspense fallback={<RouteSkeleton /> }>
                 <LoadingDebugPage />
               </Suspense>
             } />
             <Route path="/ui-showcase" element={
-              <Suspense fallback={<div className="min-h-screen bg-background" />}>
+              <Suspense fallback={<RouteSkeleton /> }>
                 <UIShowcase />
               </Suspense>
             } />
           </Routes>
-          {state.isMobile && (
-            <MobileNavBar
-              theme={theme}
-              toggleTheme={toggleTheme}
-            />
-          )}
+          {/* MobileNavBar removed per request */}
         </Suspense>
       </div>
     </Router>
