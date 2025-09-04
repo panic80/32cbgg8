@@ -72,6 +72,7 @@ export default function LandingPage() {
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [showSCIPConfirmation, setShowSCIPConfirmation] = useState(false);
   const [isLinkCopied, setIsLinkCopied] = useState(false);
+  const [isNavigatingToSCIP, setIsNavigatingToSCIP] = useState(false);
   
   console.log('Privacy modal state:', showPrivacyModal);
   
@@ -90,16 +91,20 @@ export default function LandingPage() {
 
   const handleSCIPClick = (e) => {
     e.preventDefault();
+    e.stopPropagation();
     setShowSCIPConfirmation(true);
   };
 
-  // SCIP Portal URL
-  const SCIP_URL = 'https://apps.powerapps.com/play/e/default-325b4494-1587-40d5-bb31-8b660b7f1038/a/75e3789b-9c1d-4feb-9515-20665ab7d6e8?tenantId=325b4494-1587-40d5-bb31-8b660b7f1038&amp;hint=c63b9850-8dc3-44f2-a186-f215cf7de716&amp;sourcetime=1738854913080';
+  // SCIP Portal URL (use centralized, correctly formatted URL)
+  const SCIP_URL = SITE_CONFIG.SCIP_PORTAL_URL;
   
   const confirmSCIPNavigation = () => {
-    window.open(SCIP_URL, '_blank', 'noopener,noreferrer');
+    if (isNavigatingToSCIP) return;
+    setIsNavigatingToSCIP(true);
+    // Always navigate in the same tab to avoid double-opens across browsers
     setShowSCIPConfirmation(false);
     setIsLinkCopied(false); // Reset copy state when closing
+    window.location.assign(SCIP_URL);
   };
   
   const copySCIPLink = () => {
@@ -548,10 +553,16 @@ export default function LandingPage() {
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={confirmSCIPNavigation}
-                className="px-4 py-2 text-sm sm:text-base text-white bg-[var(--primary)] hover:bg-[var(--primary-hover)] rounded-lg transition-colors duration-300"
+                disabled={isNavigatingToSCIP}
+                className={`px-4 py-2 text-sm sm:text-base rounded-lg transition-colors duration-300 ${
+                  isNavigatingToSCIP
+                    ? 'bg-[var(--primary)]/60 text-white cursor-not-allowed'
+                    : 'text-white bg-[var(--primary)] hover:bg-[var(--primary-hover)]'
+                }`}
               >
-                Continue
+                {isNavigatingToSCIP ? 'Opening…' : 'Continue'}
               </button>
             </div>
           </div>

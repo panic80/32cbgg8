@@ -11,6 +11,12 @@ export default function LandingPageV2() {
   const { theme, toggleTheme } = useTheme();
   const [query, setQuery] = useState('');
   const lastUpdated = useMemo(() => getLastUpdatedText(), []);
+  const isIOS = useMemo(() => {
+    if (typeof navigator === 'undefined') return false;
+    const ua = navigator.userAgent || '';
+    const platform = navigator.platform || '';
+    return /iPhone|iPad|iPod/i.test(ua) || (platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  }, []);
 
   const handleAskSubmit = (e) => {
     e.preventDefault();
@@ -30,7 +36,7 @@ export default function LandingPageV2() {
           </Link>
           <nav className="lpv2-nav" aria-label="Primary">
             <Link to="/chat" className="lpv2-nav-link">Chat</Link>
-            <a href={SITE_CONFIG.SCIP_PORTAL_URL} target="_blank" rel="noopener noreferrer" className="lpv2-nav-link">
+            <a href={SITE_CONFIG.SCIP_PORTAL_URL} target={isIOS ? undefined : "_blank"} rel={isIOS ? undefined : "noopener noreferrer"} className="lpv2-nav-link">
               SCIP <ExternalLink size={14} aria-hidden="true" />
             </a>
             <Link to="/opi" className="lpv2-nav-link">OPI</Link>
@@ -81,7 +87,7 @@ export default function LandingPageV2() {
                 <MessageSquare size={18} />
                 <span>Policy Assistant</span>
               </Link>
-              <a href={SITE_CONFIG.SCIP_PORTAL_URL} target="_blank" rel="noopener noreferrer" className="lpv2-card">
+              <a href={SITE_CONFIG.SCIP_PORTAL_URL} target={isIOS ? undefined : "_blank"} rel={isIOS ? undefined : "noopener noreferrer"} className="lpv2-card">
                 <FileText size={18} />
                 <span>SCIP Portal</span>
                 <ExternalLink size={14} aria-hidden="true" />
@@ -119,4 +125,3 @@ export default function LandingPageV2() {
     </div>
   );
 }
-
