@@ -6,7 +6,7 @@ import time
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Header, Query
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Header, Query, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
 import aiofiles
@@ -20,6 +20,9 @@ from app.services.cache import CacheService
 from app.core.vectorstore import VectorStore
 from app.services.performance_monitor import performance_monitor
 from app.pipelines.ingestion import IngestionPipeline
+from app.pipelines.parallel_retrieval import create_parallel_pipeline
+from app.api.chat import get_llm
+from app.models.query import Provider
 # from app.services.evaluation import RAGEvaluator, EvaluationDataset  # TODO: Missing module
 from app.services.query_logger import get_query_logger
 from app.models.query_history import (
@@ -809,6 +812,99 @@ async def export_queries(
     except Exception as e:
         logger.error(f"Failed to export queries: {e}")
         raise HTTPException(status_code=500, detail="Failed to export queries")
+
+
+class RetrievalWarmupRequest(BaseModel):
+    """Warmup request to prebuild retrieval pipelines and BM25 corpus."""
+    provider: str = Field("openai", description="Provider key, e.g., openai, google, anthropic")
+    model: Optional[str] = Field(None, description="Model name; defaults to configured chat model")
+    use_hybrid_search: bool = Field(True, description="Whether to build hybrid (BM25+Vector) pipeline")
+    enable_unified: Optional[bool] = Field(None, description="Override unified retrieval flag")
+    queries: Optional[List[str]] = Field(None, description="Optional queries to warm retrieval caches")
+
+
+@router.post("/warmup/retrieval")
+async def warmup_retrieval(
+    req: RetrievalWarmupRequest,
+    request: Request,
+    _: bool = Depends(AdminAuth.verify_token)
+) -> Dict[str, Any]:
+    """Prebuild retrieval pipeline, cache it, and warm BM25 corpus with optional queries."""
+    try:
+        app = request.app
+        vector_store_manager = getattr(app.state, 'vector_store_manager', None)
+        if vector_store_manager is None:
+            raise HTTPException(status_code=500, detail="VectorStoreManager not initialized")
+
+        # Ensure BM25 corpus is loaded/refreshed
+        corpus = vector_store_manager.get_all_documents(refresh=True)
+        corpus_count = len(corpus) if corpus is not None else 0
+
+        # Build LLM (for MultiQuery, etc.)
+        try:
+            llm = await asyncio.to_thread(get_llm, req.provider, req.model)
+        except Exception as e:
+            logger.warning(f"LLM creation failed during warmup, continuing without LLM: {e}")
+            llm = None
+
+        enable_unified = req.enable_unified if req.enable_unified is not None else getattr(settings, 'enable_unified_retrieval', False)
+
+        # Prepare retriever configuration matching chat path
+        retriever_configs = None
+        if req.use_hybrid_search:
+            retriever_configs = {
+                "vector_similarity": {"type": "vector", "search_type": "similarity", "k": 10},
+                "bm25": {"type": "bm25", "k": 10},
+            }
+            if llm is not None:
+                retriever_configs["multi_query"] = {"type": "multi_query", "base_retriever": "vector_similarity", "llm": llm}
+
+        # Create pipeline
+        pipeline = await asyncio.to_thread(
+            create_parallel_pipeline,
+            vector_store_manager=vector_store_manager,
+            llm=llm,
+            enable_unified=enable_unified,
+            retriever_configs=retriever_configs
+        )
+
+        # Store in cache with the same key scheme used by chat
+        provider_key = str(req.provider)
+        model_key = req.model or "default"
+        hybrid_key = "hybrid" if req.use_hybrid_search else "vector"
+        pipeline_cache_key = f"{hybrid_key}|unified={enable_unified}|{provider_key}|{model_key}"
+
+        if hasattr(app.state, 'retrieval_pipeline_cache') and isinstance(app.state.retrieval_pipeline_cache, dict):
+            app.state.retrieval_pipeline_cache[pipeline_cache_key] = pipeline
+            logger.info(f"Cached retrieval pipeline: {pipeline_cache_key}")
+
+        # Optionally warm retrieval with sample queries
+        warmed = 0
+        warm_queries = req.queries or [
+            "meal allowance rates",
+            "POMV rate",
+            "kilometric rates",
+            "incidental allowance"
+        ]
+        for q in warm_queries:
+            try:
+                await pipeline.retrieve(query=q, k=5)
+                warmed += 1
+            except Exception as e:
+                logger.warning(f"Warm retrieval failed for '{q}': {e}")
+
+        return {
+            "status": "success",
+            "pipeline_cache_key": pipeline_cache_key,
+            "bm25_corpus_docs": corpus_count,
+            "warmed_queries": warmed
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Retrieval warmup failed: {e}")
+        raise HTTPException(status_code=500, detail="Retrieval warmup failed")
 
 
 @router.get("/queries/realtime")

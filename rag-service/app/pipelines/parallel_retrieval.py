@@ -429,10 +429,22 @@ def create_parallel_pipeline(
             logger.info(f"Unified config created: {list(unified_config.keys())}")
     
     # Create retrievers
+    # Attempt to provide a BM25 corpus by loading all documents once and caching
+    all_documents = None
+    try:
+        all_documents = vector_store_manager.get_all_documents()
+        if all_documents:
+            logger.info(f"BM25 corpus available: {len(all_documents)} documents")
+        else:
+            logger.warning("BM25 corpus not available or empty; BM25 will be disabled or fallback to vector")
+    except Exception as e:
+        logger.warning(f"Unable to prepare BM25 corpus: {e}")
+
     factory = HybridRetrieverFactory(
         vectorstore=vector_store_manager.vector_store,
         llm=llm,
-        embeddings=vector_store_manager.embeddings
+        embeddings=vector_store_manager.embeddings,
+        all_documents=all_documents
     )
     retrievers = {}
     

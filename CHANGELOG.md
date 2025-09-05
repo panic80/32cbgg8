@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.4.1] - 2025-09-05
+
+### Added
+- Admin warmup endpoint to prebuild retrieval pipelines and BM25 corpus:
+  - `POST /api/v1/api/admin/warmup/retrieval` with provider/model/hybrid options and optional warmup queries.
+- Retrieval pipeline caching in memory keyed by provider/model/hybrid for faster TTFT after first build.
+
+### Changed
+- Enabled true hybrid retrieval (BM25 + Vector) in the active pipeline by providing a real corpus to BM25 (loaded from Chroma once and cached).
+- Automatic BM25 corpus refresh and retrieval pipeline cache invalidation after ingest/purge so hybrid stays up to date.
+- Retrieval-only endpoint fix: added missing settings import in `app/services/document_store.py`.
+
+### Notes
+- Hybrid toggle in chat explicitly builds BM25 + Vector; current default pipeline also includes BM25 unless configured otherwise.
+- Warmup endpoint returns `bm25_corpus_docs` and caches the pipeline using the same key scheme as chat, ensuring first user request is fast.
+
 All notable changes to the Canadian Forces Travel Instructions Chatbot (FTTT) will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),

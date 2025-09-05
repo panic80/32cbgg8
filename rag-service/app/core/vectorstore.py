@@ -30,6 +30,8 @@ class VectorStoreManager:
         self.embeddings: Optional[Embeddings] = None
         self.vector_store: Optional[VectorStore] = None
         self.executor = ThreadPoolExecutor(max_workers=settings.parallel_embedding_workers)
+        # Cache of all documents for BM25 corpus (populated on demand)
+        self._all_documents_cache: Optional[List[LangchainDocument]] = None
         
     async def initialize(self) -> None:
         """Initialize embeddings and vector store."""
@@ -46,6 +48,48 @@ class VectorStoreManager:
             logger.error(f"Failed to initialize vector store: {e}")
             raise
             
+    def get_all_documents(self, refresh: bool = False) -> List[LangchainDocument]:
+        """Return all documents from the underlying vector store (cached).
+
+        This is primarily used to provide a corpus for BM25 retrieval. For Chroma,
+        we read documents directly from the underlying collection once and cache
+        them for subsequent requests.
+
+        Args:
+            refresh: If True, forces reloading from the collection.
+
+        Returns:
+            List of LangChain Document objects representing the entire corpus.
+        """
+        try:
+            if self._all_documents_cache is not None and not refresh:
+                return self._all_documents_cache
+
+            if hasattr(self.vector_store, "_collection") and self.vector_store._collection is not None:
+                # Chroma collection access
+                results = self.vector_store._collection.get(include=["documents", "metadatas"]) or {}
+                documents = results.get("documents") or []
+                metadatas = results.get("metadatas") or []
+
+                langchain_docs: List[LangchainDocument] = []
+                for i, content in enumerate(documents):
+                    metadata = metadatas[i] if i < len(metadatas) and metadatas else {}
+                    langchain_docs.append(LangchainDocument(page_content=content or "", metadata=metadata or {}))
+
+                self._all_documents_cache = langchain_docs
+                logger.info(f"Loaded {len(langchain_docs)} documents for BM25 corpus cache")
+                return langchain_docs
+
+            # Fallback: no direct collection API available
+            logger.warning("Vector store does not expose a collection; BM25 corpus unavailable")
+            self._all_documents_cache = []
+            return self._all_documents_cache
+
+        except Exception as e:
+            logger.error(f"Failed to load all documents for BM25 corpus: {e}")
+            self._all_documents_cache = []
+            return self._all_documents_cache
+
     def _create_embeddings(self) -> Embeddings:
         """Create embeddings instance based on configuration."""
         if settings.openai_api_key:

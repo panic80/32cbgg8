@@ -71,6 +71,8 @@ async def lifespan(app: FastAPI):
         app.state.vector_store_manager = vector_store_manager
         app.state.cache_service = cache_service
         app.state.query_logger = query_logger
+        # Cache for retrieval pipelines (keyed by provider/model/hybrid flags)
+        app.state.retrieval_pipeline_cache = {}
         
     except Exception as e:
         logger.error(f"Failed to initialize services: {e}")

@@ -63,6 +63,16 @@ async def purge_database(request: Request) -> dict:
             # For Chroma
             collection = vector_store_manager.vector_store._collection
             document_count = collection.count() if collection else 0
+
+        # Invalidate retrieval pipeline cache and BM25 corpus cache
+        try:
+            # Refresh the BM25 corpus cache (now empty)
+            vector_store_manager.get_all_documents(refresh=True)
+            if hasattr(app.state, 'retrieval_pipeline_cache'):
+                app.state.retrieval_pipeline_cache.clear()
+                logger.info("Cleared retrieval pipeline cache after purge")
+        except Exception as e:
+            logger.warning(f"Failed to refresh caches after purge: {e}")
         
         logger.info(f"Database purge completed. Document count: {document_count}")
         
@@ -117,6 +127,15 @@ async def ingest_document(
         
         # Close progress stream
         await close_progress_stream(operation_id)
+        
+        # Refresh BM25 corpus and clear retrieval pipeline cache so new data is used
+        try:
+            vector_store.get_all_documents(refresh=True)
+            if hasattr(app.state, 'retrieval_pipeline_cache'):
+                app.state.retrieval_pipeline_cache.clear()
+                logger.info("Cleared retrieval pipeline cache after ingestion")
+        except Exception as e:
+            logger.warning(f"Failed to refresh caches after ingestion: {e}")
         
         return response
         
@@ -188,6 +207,15 @@ async def ingest_file(
             # Create pipeline and ingest
             pipeline = IngestionPipeline(vector_store, cache_service)
             response = await pipeline.ingest_document(ingestion_request)
+            
+            # Refresh BM25 corpus and clear retrieval pipeline cache
+            try:
+                vector_store.get_all_documents(refresh=True)
+                if hasattr(app.state, 'retrieval_pipeline_cache'):
+                    app.state.retrieval_pipeline_cache.clear()
+                    logger.info("Cleared retrieval pipeline cache after file ingestion")
+            except Exception as e:
+                logger.warning(f"Failed to refresh caches after file ingestion: {e}")
             
             return response
             
@@ -275,6 +303,15 @@ async def ingest_batch(
                 message=f"Completed: {successful} successful, {failed} failed"
             )
         
+        # Refresh BM25 corpus and clear retrieval pipeline cache
+        try:
+            vector_store.get_all_documents(refresh=True)
+            if hasattr(app.state, 'retrieval_pipeline_cache'):
+                app.state.retrieval_pipeline_cache.clear()
+                logger.info("Cleared retrieval pipeline cache after batch ingestion")
+        except Exception as e:
+            logger.warning(f"Failed to refresh caches after batch ingestion: {e}")
+        
         return responses
         
     except Exception as e:
@@ -306,6 +343,15 @@ async def ingest_canada_ca(request: Request) -> DocumentIngestionResponse:
         # Run Canada.ca ingestion
         logger.info("Starting Canada.ca travel instructions ingestion")
         response = await pipeline.ingest_canada_ca()
+        
+        # Refresh BM25 corpus and clear retrieval pipeline cache
+        try:
+            vector_store.get_all_documents(refresh=True)
+            if hasattr(app.state, 'retrieval_pipeline_cache'):
+                app.state.retrieval_pipeline_cache.clear()
+                logger.info("Cleared retrieval pipeline cache after Canada.ca ingestion")
+        except Exception as e:
+            logger.warning(f"Failed to refresh caches after Canada.ca ingestion: {e}")
         
         return response
         

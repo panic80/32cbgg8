@@ -207,12 +207,12 @@ async def chat(request: Request, chat_request: ChatRequest) -> ChatResponse:
                 except Exception as _e:
                     logger.warning(f"Unable to apply default location bias: {_e}")
             
-            # Create parallel retrieval pipeline
-            logger.info("Creating ParallelRetrievalPipeline...")
-            
+            # Create or reuse parallel retrieval pipeline (cached by provider/model/hybrid)
+            logger.info("Preparing ParallelRetrievalPipeline (with cache)...")
+
             # Check if unified retrieval is enabled
             enable_unified = getattr(settings, 'enable_unified_retrieval', False)
-            
+
             # HYBRID_SEARCH_TOGGLE_START - Handle hybrid search configuration
             # Configure retriever based on hybrid search setting
             retriever_configs = None
@@ -237,19 +237,32 @@ async def chat(request: Request, chat_request: ChatRequest) -> ChatResponse:
                         "llm": llm
                     }
             # HYBRID_SEARCH_TOGGLE_END
-            
-            # Create parallel pipeline using the factory function
-            retrieval_pipeline = await asyncio.to_thread(
-                create_parallel_pipeline,
-                vector_store_manager=vector_store,
-                llm=llm,
-                enable_unified=enable_unified,
-                # HYBRID_SEARCH_TOGGLE_START
-                retriever_configs=retriever_configs  # Pass custom configs if hybrid search is enabled
-                # HYBRID_SEARCH_TOGGLE_END
-            )
-            
-            logger.info("ParallelRetrievalPipeline created successfully")
+
+            # Build a cache key for the pipeline
+            provider_key = str(chat_request.provider)
+            model_key = chat_request.model or "default"
+            hybrid_key = "hybrid" if chat_request.use_hybrid_search else "vector"
+            pipeline_cache_key = f"{hybrid_key}|unified={enable_unified}|{provider_key}|{model_key}"
+
+            pipeline_cache = getattr(app.state, 'retrieval_pipeline_cache', None)
+            if pipeline_cache is not None and pipeline_cache_key in pipeline_cache:
+                retrieval_pipeline = pipeline_cache[pipeline_cache_key]
+                logger.info(f"Using cached retrieval pipeline: {pipeline_cache_key}")
+            else:
+                retrieval_pipeline = await asyncio.to_thread(
+                    create_parallel_pipeline,
+                    vector_store_manager=vector_store,
+                    llm=llm,
+                    enable_unified=enable_unified,
+                    # HYBRID_SEARCH_TOGGLE_START
+                    retriever_configs=retriever_configs  # Pass custom configs if hybrid search is enabled
+                    # HYBRID_SEARCH_TOGGLE_END
+                )
+                if pipeline_cache is not None:
+                    pipeline_cache[pipeline_cache_key] = retrieval_pipeline
+                    logger.info(f"Cached retrieval pipeline: {pipeline_cache_key}")
+
+            logger.info("ParallelRetrievalPipeline ready")
         
         # Generate conversation ID if not provided
         conversation_id = chat_request.conversation_id or str(uuid.uuid4())

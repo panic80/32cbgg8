@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     
     # API Configuration
     app_name: str = "CF Travel Instructions RAG Service"
-    app_version: str = "1.0.0"
+    app_version: str = "1.4.1"
     api_prefix: str = "/api/v1"
     debug: bool = False
     

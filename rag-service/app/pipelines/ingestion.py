@@ -322,7 +322,15 @@ class IngestionPipeline:
                     store_time = (datetime.utcnow() - store_start).total_seconds()
                     await progress_tracker.complete_step("storing", f"Stored {len(regular_docs)} documents in {store_time:.2f}s")
                     logger.info(f"Vector store addition completed in {store_time:.2f} seconds")
-            
+
+            # Refresh BM25 corpus cache so new documents are visible to BM25 retriever
+            try:
+                # This ensures subsequent retrieval pipelines see the updated corpus
+                self.vector_store_manager.get_all_documents(refresh=True)
+                logger.info("BM25 corpus cache refreshed after ingestion")
+            except Exception as e:
+                logger.warning(f"Failed to refresh BM25 corpus cache: {e}")
+
             # Update BM25 index with new documents
             await self._update_bm25_index(deduplicated_docs)
             
