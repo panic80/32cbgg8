@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { motion, useMotionValue, useTransform } from 'framer-motion';
+import React, { useState, useEffect, useRef, useMemo, useCallback, useDeferredValue } from 'react';
+import { forceScrollToTop } from '@/utils/scroll';
+import { motion, useMotionValue, useTransform, useReducedMotion } from 'framer-motion';
 import { 
   Search, 
   Users, 
@@ -19,13 +20,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // Fluent Card Component with Acrylic effect and Reveal highlight
-const FluentCard = ({ contact, onClick, delay = 0, type = null }) => {
+const FluentCardComponent = ({ contact, onClick, delay = 0, type = null }) => {
   const cardRef = useRef(null);
   const [isHovered, setIsHovered] = useState(false);
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
+  const reducedMotion = useReducedMotion();
   
   // Reveal highlight effect
   const revealX = useTransform(mouseX, (value) => value - 150);
@@ -42,17 +45,17 @@ const FluentCard = ({ contact, onClick, delay = 0, type = null }) => {
   return (
     <motion.div
       ref={cardRef}
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={reducedMotion ? false : { opacity: 0, y: 0 }}
+      animate={reducedMotion ? false : { opacity: 1, y: 0 }}
       transition={{ 
         delay,
         type: "spring",
         stiffness: 300,
         damping: 30
       }}
-      whileHover={{ y: -8, transition: { duration: 0.2 } }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      whileHover={reducedMotion ? undefined : { y: -8, transition: { duration: 0.2 } }}
+      onMouseEnter={() => !reducedMotion && setIsHovered(true)}
+      onMouseLeave={() => !reducedMotion && setIsHovered(false)}
       onMouseMove={handleMouseMove}
       onClick={onClick}
       className="relative cursor-pointer"
@@ -70,7 +73,7 @@ const FluentCard = ({ contact, onClick, delay = 0, type = null }) => {
           className="absolute inset-0 opacity-0 pointer-events-none"
           style={{
             background: `radial-gradient(300px circle at ${revealX}px ${revealY}px, rgba(var(--primary-rgb), 0.1), transparent)`,
-            opacity: isHovered ? 1 : 0,
+            opacity: isHovered && !reducedMotion ? 1 : 0,
             transition: 'opacity 0.2s'
           }}
         />
@@ -79,8 +82,8 @@ const FluentCard = ({ contact, onClick, delay = 0, type = null }) => {
         <div className="relative z-10 p-6 sm:p-8">
           {/* Icon with glow effect */}
           <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
+            initial={reducedMotion ? false : { scale: 0.8, opacity: 0 }}
+            animate={reducedMotion ? false : { scale: 1, opacity: 1 }}
             transition={{ delay: delay + 0.1 }}
             className="mb-6"
           >
@@ -99,8 +102,8 @@ const FluentCard = ({ contact, onClick, delay = 0, type = null }) => {
 
           {/* Contact Info */}
           <motion.div
-            initial={{ x: -20, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
+            initial={reducedMotion ? false : { x: -20, opacity: 0 }}
+            animate={reducedMotion ? false : { x: 0, opacity: 1 }}
             transition={{ delay: delay + 0.2 }}
           >
             <h3 className="text-xl font-semibold mb-2 text-[var(--text)] flex items-center gap-2">
@@ -117,8 +120,8 @@ const FluentCard = ({ contact, onClick, delay = 0, type = null }) => {
           {/* Units */}
           {contact.units && contact.units.length > 0 && (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              initial={reducedMotion ? false : { opacity: 0 }}
+              animate={reducedMotion ? false : { opacity: 1 }}
               transition={{ delay: delay + 0.3 }}
               className="flex flex-wrap gap-2 mb-4"
             >
@@ -158,51 +161,56 @@ const FluentCard = ({ contact, onClick, delay = 0, type = null }) => {
     </motion.div>
   );
 };
+const FluentCard = React.memo(FluentCardComponent);
 
 // Fluent List Component (adopted from original)
-const FluentList = ({ contact, delay = 0 }) => (
-  <motion.div
-    initial={{ opacity: 0, x: -20 }}
-    animate={{ opacity: 1, x: 0 }}
-    transition={{ delay }}
-    className={cn(
-      "p-4 rounded-lg",
-      "bg-[var(--card)]/60 backdrop-blur-md",
-      "hover:bg-[var(--background-secondary)] transition-colors",
-      "border-b border-[var(--border)] last:border-0"
-    )}
-  >
-    <div className="flex items-center justify-between gap-4">
-      <div className="flex-1">
-        <h4 className="text-base font-semibold mb-1 flex items-center gap-2">
-          {contact.name}
-          {contact.isLeadership && (
-            <Crown className="w-4 h-4 text-yellow-500" title="Leadership" />
+const FluentListComponent = ({ contact, delay = 0 }) => {
+  const reducedMotion = useReducedMotion();
+  return (
+    <motion.div
+      initial={reducedMotion ? false : { opacity: 0, x: -20 }}
+      animate={reducedMotion ? false : { opacity: 1, x: 0 }}
+      transition={{ delay }}
+      className={cn(
+        "p-4 rounded-lg",
+        "bg-[var(--card)]/60 backdrop-blur-md",
+        "hover:bg-[var(--background-secondary)] transition-colors",
+        "border-b border-[var(--border)] last:border-0"
+      )}
+    >
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex-1">
+          <h4 className="text-base font-semibold mb-1 flex items-center gap-2">
+            {contact.name}
+            {contact.isLeadership && (
+              <Crown className="w-4 h-4 text-yellow-500" title="Leadership" />
+            )}
+          </h4>
+          <p className="text-base text-[var(--text-secondary)]">{contact.role}</p>
+          {contact.units && contact.units.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {contact.units.map((unit, index) => (
+                <Badge key={index} variant="secondary" className="text-sm">
+                  {unit}
+                </Badge>
+              ))}
+            </div>
           )}
-        </h4>
-        <p className="text-base text-[var(--text-secondary)]">{contact.role}</p>
-        {contact.units && contact.units.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-2">
-            {contact.units.map((unit, index) => (
-              <Badge key={index} variant="secondary" className="text-sm">
-                {unit}
-              </Badge>
-            ))}
-          </div>
-        )}
+        </div>
+        <a 
+          href={`mailto:${contact.email}`} 
+          className="text-base text-[var(--primary)] hover:underline font-medium whitespace-nowrap"
+        >
+          {contact.email}
+        </a>
       </div>
-      <a 
-        href={`mailto:${contact.email}`} 
-        className="text-base text-[var(--primary)] hover:underline font-medium whitespace-nowrap"
-      >
-        {contact.email}
-      </a>
-    </div>
-  </motion.div>
-);
+    </motion.div>
+  );
+};
+const FluentList = React.memo(FluentListComponent);
 
 // Fluent Search Bar
-const FluentSearchBar = ({ value, onChange, placeholder }) => {
+const FluentSearchBarComponent = ({ value, onChange, placeholder }) => {
   return (
     <div className="relative">
       <div className={cn(
@@ -230,55 +238,42 @@ const FluentSearchBar = ({ value, onChange, placeholder }) => {
     </div>
   );
 };
+const FluentSearchBar = React.memo(FluentSearchBarComponent);
 
 // Navigation Pills
-const NavigationPills = ({ activeView, onViewChange }) => {
-  const views = [
+const NavigationPillsComponent = ({ activeView, onViewChange }) => {
+  const views = useMemo(() => [
     { id: 'all', label: 'All Contacts', icon: Users },
     { id: 'fsc', label: 'FSC', icon: Building2 },
     { id: 'fmc', label: 'FMC', icon: Building2 },
     { id: 'search', label: 'Search Unit', icon: Search }
-  ];
+  ], []);
 
   return (
-    <div className="flex flex-wrap gap-3 mb-8">
-      {views.map((view) => {
-        const Icon = view.icon;
-        const isActive = activeView === view.id;
-        
-        return (
-          <motion.button
-            key={view.id}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => onViewChange(view.id)}
-            className={cn(
-              "relative px-6 py-3 rounded-full",
-              "flex items-center gap-2",
-              "transition-all duration-300",
-              "backdrop-blur-xl backdrop-saturate-150",
-              isActive 
-                ? "bg-[var(--primary)] text-white shadow-lg shadow-[var(--primary)]/30" 
-                : "bg-[var(--card)]/60 hover:bg-[var(--card)]/80",
-              "border border-[var(--border)]/30"
-            )}
-          >
-            <Icon className="w-4 h-4" />
-            <span className="font-medium">{view.label}</span>
-            
-            {isActive && (
-              <motion.div
-                layoutId="activePill"
-                className="absolute inset-0 bg-[var(--primary)] rounded-full -z-10"
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              />
-            )}
-          </motion.button>
-        );
-      })}
-    </div>
+    <Tabs value={activeView} onValueChange={onViewChange} className="w-full">
+      <TabsList className="grid grid-cols-4 gap-1 md:gap-2 rounded-lg bg-muted p-1 text-muted-foreground w-full mb-6 h-auto items-stretch">
+        {views.map((view) => {
+          const Icon = view.icon;
+          return (
+            <TabsTrigger
+              key={view.id}
+              value={view.id}
+              className="w-full justify-center whitespace-nowrap font-medium ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow flex flex-col items-center gap-1 p-3 text-xs sm:text-sm rounded-md transition-all duration-200 min-h-[64px]"
+            >
+              <span className="text-lg">
+                {/* Use lucide icon as emoji-like visual */}
+                <Icon className="w-5 h-5" />
+              </span>
+              <span className="hidden sm:inline">{view.label}</span>
+              <span className="sm:hidden">{view.label.split(' ')[0]}</span>
+            </TabsTrigger>
+          );
+        })}
+      </TabsList>
+    </Tabs>
   );
 };
+const NavigationPills = React.memo(NavigationPillsComponent);
 
 export default function FluentDesignView({ 
   unitContacts = {}, 
@@ -293,21 +288,33 @@ export default function FluentDesignView({
 }) {
   const [localView, setLocalView] = useState(initialView || 'all');
   const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
+  const deferredSearch = useDeferredValue(localSearchTerm);
   const [viewStyle, setViewStyle] = useState('card'); // 'card' or 'list'
+  const reducedMotion = useReducedMotion();
   
-  // Ensure scroll to top on mount
+  // Force scroll to top after animations complete
   useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
+    // Calculate the total animation time (largest delay + animation duration)
+    const maxDelay = Math.max(fscContacts.length, fmcContacts.length) * 0.05;
+    const animationDuration = 0.3; // spring animation duration estimate
+    const totalTime = (maxDelay + animationDuration) * 1000;
+    
+    const scrollResetTimer = setTimeout(() => {
+      forceScrollToTop();
+    }, totalTime + 100); // Add buffer time
+    
+    return () => clearTimeout(scrollResetTimer);
+  }, [fscContacts.length, fmcContacts.length]);
 
   // Combine all contacts for "All" view
-  const allContacts = [...fscContacts, ...fmcContacts];
+  const allContacts = useMemo(() => [...fscContacts, ...fmcContacts], [fscContacts, fmcContacts]);
   
   // Filter units
-  const allUnits = Object.keys(unitContacts).sort();
-  const filteredUnits = allUnits.filter(unit =>
-    unit.toLowerCase().includes(localSearchTerm.toLowerCase())
-  );
+  const allUnits = useMemo(() => Object.keys(unitContacts).sort(), [unitContacts]);
+  const filteredUnits = useMemo(() => {
+    const term = (deferredSearch || '').toLowerCase();
+    return allUnits.filter(unit => unit.toLowerCase().includes(term));
+  }, [allUnits, deferredSearch]);
 
   // Get contacts to display based on view
   const getDisplayContacts = () => {
@@ -323,24 +330,33 @@ export default function FluentDesignView({
     }
   };
 
-  const displayContacts = getDisplayContacts();
+  const displayContacts = useMemo(() => getDisplayContacts(), [localView, fscContacts, fmcContacts, allContacts]);
+
+  const handleContactClick = useCallback((email) => {
+    window.location.href = `mailto:${email}`;
+  }, []);
 
   return (
     <div className="min-h-screen bg-[var(--background)] transition-colors duration-300">
       {/* Animated Background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-[var(--primary)] rounded-full opacity-10 blur-3xl animate-pulse" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-[var(--primary)] rounded-full opacity-10 blur-3xl animate-pulse animation-delay-2000" />
+        {!reducedMotion && (
+          <>
+            <div className="absolute -top-40 -right-40 w-80 h-80 bg-[var(--primary)] rounded-full opacity-10 blur-3xl animate-pulse" />
+            <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-[var(--primary)] rounded-full opacity-10 blur-3xl animate-pulse animation-delay-2000" />
+          </>
+        )}
       </div>
 
       {/* Content */}
       <div className="relative z-10 px-4 py-8 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
 
+          {/* View Tabs (Chat-style) */}
+          <NavigationPills activeView={localView} onViewChange={setLocalView} />
+
           {/* View Style Toggle */}
-          <div className="flex justify-between items-center mb-6">
-            <NavigationPills activeView={localView} onViewChange={setLocalView} />
-            
+          <div className="flex justify-end items-center mb-6">
             <div className="flex gap-2">
               <button
                 onClick={() => setViewStyle('card')}
@@ -484,15 +500,15 @@ export default function FluentDesignView({
                   <FluentCard
                     key={index}
                     contact={contact}
-                    delay={index * 0.05}
+                    delay={reducedMotion ? 0 : index * 0.05}
                     type={type}
-                    onClick={() => window.location.href = `mailto:${contact.email}`}
+                    onClick={() => handleContactClick(contact.email)}
                   />
                 ) : (
                   <FluentList
                     key={index}
                     contact={contact}
-                    delay={index * 0.05}
+                    delay={reducedMotion ? 0 : index * 0.05}
                   />
                 );
               })}

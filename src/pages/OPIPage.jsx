@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useLayoutEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   Search, 
@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 
 // Import FluentDesignView
 import FluentDesignView from './OPIPage/FluentDesignView';
+import { forceScrollToTop, forceScrollToTopDeferred } from '@/utils/scroll';
 
 export default function OPIPage() {
   const location = useLocation();
@@ -33,7 +34,17 @@ export default function OPIPage() {
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [showAboutModal, setShowAboutModal] = useState(false);
   
-  // Scroll handling centralized by global ScrollToTop
+  // Ensure immediate and deferred scroll reset on page load
+  useLayoutEffect(() => {
+    try {
+      if (topRef.current && 'scrollIntoView' in topRef.current) {
+        topRef.current.scrollIntoView({ behavior: 'auto', block: 'start', inline: 'nearest' });
+      }
+    } catch {}
+    forceScrollToTop();
+    const cleanup = forceScrollToTopDeferred();
+    return cleanup;
+  }, []);
   
   // Simulate loading state
   useEffect(() => {

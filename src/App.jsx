@@ -103,7 +103,7 @@ function App() {
   return (
     <Router>
       <ScrollToTop />
-      <div className="w-screen min-h-screen overflow-x-hidden overflow-y-auto m-0 p-0 max-w-[100vw]">
+      <div id="app-scroll-root" className="w-screen min-h-screen overflow-x-hidden overflow-y-auto m-0 p-0 max-w-[100vw]">
         <Toaster 
           position="top-right"
           toastOptions={{
