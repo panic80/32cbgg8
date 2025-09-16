@@ -509,7 +509,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
                     );
                   })}
                 </AnimatePresence>
-                {isLoading && (
+                {isLoading && !pendingMessage && (
                   <motion.div 
                     className="mr-4 sm:mr-8 lg:mr-12 mb-8"
                     initial={{ opacity: 0, y: 20 }}
