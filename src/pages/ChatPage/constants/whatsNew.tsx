@@ -13,9 +13,20 @@ export interface WhatsNewDateGroup {
 }
 
 // Bump this when you add new release notes
-export const WHATS_NEW_VERSION = '2025-08-28';
+export const WHATS_NEW_VERSION = '2025-09-16';
 
 export const WHATS_NEW_BY_DATE: WhatsNewDateGroup[] = [
+  {
+    date: 'Tuesday, September 16, 2025',
+    updates: [
+      {
+        icon: <Zap className="w-4 h-4" />,
+        text: 'Chat replies feel snappier',
+        description:
+          'Streaming now reuses retrieval pipelines and avoids duplicate placeholders, so answers appear faster and cleaner.',
+      },
+    ],
+  },
   {
     date: 'Thursday, August 28, 2025',
     updates: [
@@ -47,4 +58,3 @@ export const WHATS_NEW_BY_DATE: WhatsNewDateGroup[] = [
     ],
   },
 ];
-
