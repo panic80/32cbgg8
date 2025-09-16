@@ -50,6 +50,20 @@ const sections = [
     ],
     footer:
       'Together, this yields answers that feel instant while still citing their sources.',
+  },
+  {
+    title: 'Why not just ask an LLM?',
+    icon: <Brain className="w-5 h-5 text-[var(--primary)]" />,
+    description:
+      'Pure LLM prompts rely on what the model remembers. Our RAG pipeline keeps it grounded and auditable.',
+    bullets: [
+      'LLM-only answers can hallucinate or drift from current policy. Retrieval forces the model to cite vetted source content.',
+      'We can show our work—each response is linked to the exact document passages that supported it.',
+      'Context-aware guardrails (prompts, jurisdiction hints, follow-ups) ensure answers stay compliant and user-ready.',
+      'Caching and streaming make this RAG approach nearly as fast as a raw LLM call, but far more reliable.'
+    ],
+    footer:
+      'The result: the speed of an assistant, with the accountability of a policy manual.',
   }
 ];
 
