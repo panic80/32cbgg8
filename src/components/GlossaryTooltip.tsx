@@ -64,8 +64,8 @@ export const GlossaryTooltip: React.FC<GlossaryTooltipProps> = ({
           setError(true);
         }
       } catch (err) {
-        // Network error - don't spam console for expected 404s
-        if (!err.message?.includes('404')) {
+        const message = err instanceof Error ? err.message : '';
+        if (!message.includes('404')) {
           console.error('Error fetching glossary term:', err);
         }
         setError(true);

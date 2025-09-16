@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -48,6 +48,7 @@ export const GlossaryConfig: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [editingTerm, setEditingTerm] = useState<GlossaryTerm | null>(null);
   const [isAddingNew, setIsAddingNew] = useState(false);
+  const importInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     fetchGlossaryData();
@@ -244,23 +245,23 @@ export const GlossaryConfig: React.FC = () => {
               <Download className="h-4 w-4 mr-1" />
               Export
             </Button>
-            <label htmlFor="import-glossary">
-              <Button
-                variant="outline"
-                size="sm"
-                as="span"
-              >
-                <Upload className="h-4 w-4 mr-1" />
-                Import
-              </Button>
-              <input
-                id="import-glossary"
-                type="file"
-                accept=".json"
-                onChange={handleImport}
-                className="hidden"
-              />
-            </label>
+            <Button
+              variant="outline"
+              size="sm"
+              type="button"
+              onClick={() => importInputRef.current?.click()}
+            >
+              <Upload className="h-4 w-4 mr-1" />
+              Import
+            </Button>
+            <input
+              ref={importInputRef}
+              id="import-glossary"
+              type="file"
+              accept=".json"
+              onChange={handleImport}
+              className="hidden"
+            />
             <Button
               variant="outline"
               size="sm"

@@ -2,7 +2,7 @@ import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Calendar, ExternalLink } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { WHATS_NEW_BY_DATE, WHATS_NEW_VERSION } from '../constants/whatsNew';
 import { useLocalStorage } from '../hooks/useLocalStorage';

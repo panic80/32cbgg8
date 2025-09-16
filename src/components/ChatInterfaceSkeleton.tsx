@@ -1,5 +1,5 @@
 import React from 'react';
-import { Skeleton, SkeletonAvatar, SkeletonChatMessage, SkeletonText } from './ui/skeleton';
+import { Skeleton, SkeletonAvatar, SkeletonChatMessage } from './ui/skeleton';
 
 export const ChatInterfaceSkeleton: React.FC = () => {
   return (

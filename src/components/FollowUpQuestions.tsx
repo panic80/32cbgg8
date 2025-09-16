@@ -1,6 +1,5 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { HelpCircle, ArrowRight, Lightbulb, Search } from 'lucide-react';
 import { FollowUpQuestion } from '@/types/chat';
 import { cn } from '@/lib/utils';
@@ -83,7 +82,7 @@ const FollowUpQuestions: React.FC<FollowUpQuestionsProps> = ({
           }
         }}
       >
-        {questions.map((question, index) => (
+        {questions.map((question) => (
           <motion.div
             key={question.id}
             variants={{

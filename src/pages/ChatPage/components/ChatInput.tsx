@@ -1,10 +1,10 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { AnimatedButton } from '@/components/ui/animated-button';
 import { Input } from '@/components/ui/input';
-import { X, Minimize2, Book, HelpCircle, Send, Paperclip } from 'lucide-react';
+import { X, Send, Paperclip } from 'lucide-react';
 import { INLINE_COMMANDS as inlineCommands } from '../constants/commands';
 import { toast } from 'sonner';
 
@@ -19,10 +19,6 @@ interface ChatInputProps {
   commandFilter: string;
   selectedCommandIndex: number;
   setShowInlineCommand: (value: boolean) => void;
-  shortAnswerMode: boolean;
-  setShortAnswerMode: (value: boolean) => void;
-  setShowGlossaryModal: (value: boolean) => void;
-  setShowHelpDialog: (value: boolean) => void;
   currentModel: string;
   // Optional attachments controls
   attachments?: { id: string; name: string; size?: number }[];
@@ -41,10 +37,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   commandFilter,
   selectedCommandIndex,
   setShowInlineCommand,
-  shortAnswerMode,
-  setShortAnswerMode,
-  setShowGlossaryModal,
-  setShowHelpDialog,
   currentModel,
   attachments = [],
   onAttachFiles,

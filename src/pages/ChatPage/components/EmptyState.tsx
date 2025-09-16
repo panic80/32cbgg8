@@ -2,7 +2,6 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { WELCOME_SUGGESTIONS } from '../constants/suggestions';
-import { WhatsNew } from './WhatsNew';
 import { CategorizedSuggestions } from './CategorizedSuggestions';
 
 interface EmptyStateProps {

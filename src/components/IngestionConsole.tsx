@@ -180,13 +180,14 @@ export default function IngestionConsole({ url, onComplete, className }: Ingesti
   };
 
   const formatTimestamp = (date: Date) => {
-    return date.toLocaleTimeString('en-US', { 
-      hour12: false, 
-      hour: '2-digit', 
-      minute: '2-digit', 
+    const base = date.toLocaleTimeString('en-US', {
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit',
       second: '2-digit',
-      fractionalSecondDigits: 3
     });
+    const milliseconds = date.getMilliseconds().toString().padStart(3, '0');
+    return `${base}.${milliseconds}`;
   };
 
   return (

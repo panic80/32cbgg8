@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
 import { 
   HelpCircle, 
@@ -134,7 +133,7 @@ export const HelpDialog: React.FC<HelpDialogProps> = ({ open, onOpenChange, onIn
               </p>
               
               <div className="space-y-4">
-                {exampleCategories.map((category, categoryIndex) => (
+                {exampleCategories.map((category) => (
                   <div key={category.type}>
                     <div className="flex items-center gap-2 mb-3">
                       {category.icon}

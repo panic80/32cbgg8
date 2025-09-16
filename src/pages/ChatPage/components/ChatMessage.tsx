@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -8,20 +8,10 @@ import { MarkdownRenderer } from '@/components/ui/markdown-renderer';
 import { MessageActions } from './MessageActions';
 import SuggestionController from '@/components/SuggestionController';
 import { SourcesDisplay } from '@/components/SourcesDisplay';
-
-// Step 4.2: Define Message props interface
-interface Message {
-  id: string;
-  sender: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
-  isFormatted?: boolean;
-  sources?: any[];
-  followUpQuestions?: string[];
-}
+import type { Message as ChatMessageType } from '@/types/chat';
 
 interface ChatMessageProps {
-  message: Message;
+  message: ChatMessageType;
   messageIndex: number;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
@@ -55,6 +45,8 @@ const ChatMessageInner: React.FC<ChatMessageProps> = ({
   const displayContent = shouldTruncate && isCollapsed 
     ? message.content.slice(0, 400) + '...' 
     : message.content;
+  const isAssistant = message.sender === 'assistant';
+  const isUser = message.sender === 'user';
 
   return (
     <motion.div 
@@ -70,16 +62,16 @@ const ChatMessageInner: React.FC<ChatMessageProps> = ({
         damping: 30
       }}
     >
-      <div className={cn("flex gap-2 sm:gap-4", message.sender === 'user' ? 'justify-end' : 'justify-start')}>
+      <div className={cn('flex gap-2 sm:gap-4', isUser ? 'justify-end' : 'justify-start')}>
         <motion.div 
-          className={cn("max-w-full sm:max-w-[85%] lg:max-w-[85%] group", message.sender === 'user' ? 'order-1' : '')}
+          className={cn('max-w-full sm:max-w-[85%] lg:max-w-[85%] group', isUser ? 'order-1' : '')}
           whileHover={prefersReducedMotion ? undefined : { scale: 1.01 }}
           transition={{ type: "spring", stiffness: 400, damping: 30 }}
         >
-          {message.sender === 'user' ? (
+          {isUser ? (
             <Card className={cn(
               "border border-[var(--border)] shadow-lg transition-all duration-300",
-              message.sender === 'user' 
+              isUser 
                 ? 'bg-[var(--primary)] text-white border-transparent hover:shadow-2xl' 
                 : 'glass hover:shadow-2xl backdrop-blur-xl'
             )}>
@@ -96,10 +88,11 @@ const ChatMessageInner: React.FC<ChatMessageProps> = ({
                   transition={{ duration: 0.3 }}
                 />
                 
-                <div className="leading-relaxed text-[var(--text)] relative z-10 text-lg sm:text-base chat-message-text"
-                  style={message.sender === 'user' ? { color: 'white' } : {}}
+                <div
+                  className="leading-relaxed text-[var(--text)] relative z-10 text-lg sm:text-base chat-message-text"
+                  style={isUser ? { color: 'white' } : {}}
                 >
-                  {message.sender === 'assistant' && message.isFormatted ? (
+                  {isAssistant && message.isFormatted ? (
                     <MarkdownRenderer>{displayContent}</MarkdownRenderer>
                   ) : (
                     <div className="whitespace-pre-wrap break-words overflow-hidden">{displayContent}</div>
@@ -125,7 +118,7 @@ const ChatMessageInner: React.FC<ChatMessageProps> = ({
                 </div>
                 
                 {/* Sources Toggle */}
-                {message.sources && message.sources.length > 0 && message.sender === 'assistant' && (
+                {message.sources && message.sources.length > 0 && isAssistant && (
                   <div className="mt-4 pt-4 border-t border-[var(--border)]">
                     <button
                       className="text-xs px-2 py-1 rounded-full bg-[var(--background-secondary)] hover:bg-[var(--background-tertiary)]"
@@ -224,7 +217,7 @@ const ChatMessageInner: React.FC<ChatMessageProps> = ({
           )}
         </motion.div>
         
-        {message.sender === 'user' && (
+        {isUser && (
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
@@ -246,7 +239,7 @@ const ChatMessageInner: React.FC<ChatMessageProps> = ({
         transition={{ delay: 0.5 }}
       >
         {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        {message.sender === 'assistant' && modelMode && (
+        {isAssistant && modelMode && (
           <span className="inline-flex items-center gap-1 ml-2">
             <span className="opacity-60">•</span>
             <span className={cn(
@@ -273,7 +266,7 @@ const ChatMessageInner: React.FC<ChatMessageProps> = ({
       </motion.div>
       
       {/* Enhanced Follow-up Questions with Smart Progressive Disclosure */}
-      {message.sender === 'assistant' && message.followUpQuestions && message.followUpQuestions.length > 0 && (
+      {isAssistant && message.followUpQuestions && message.followUpQuestions.length > 0 && (
         <div className="w-full mt-4">
           <SuggestionController 
             questions={message.followUpQuestions}

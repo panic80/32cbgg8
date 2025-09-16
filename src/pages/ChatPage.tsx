@@ -16,7 +16,6 @@ import MarkdownRenderer from '@/components/ui/markdown-renderer';
 import SuggestionController from '@/components/SuggestionController';
 import { useSuggestionVisibility } from '@/hooks/useSuggestionVisibility';
 import { cn } from '@/lib/utils';
-import { parseApiResponse } from '../utils/chatUtils';
 import { getModelDisplayName, DEFAULT_MODEL_ID } from '../constants/models';
 import { generateFollowUpQuestions } from '../services/followUpService';
 import { Message, Source, FollowUpQuestion } from '@/types/chat';
@@ -335,14 +334,12 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
 
   const regenerateMessage = useCallback((id: string) => {
     // Simulate regeneration
-    setIsLoading(true);
     setTimeout(() => {
       setMessages(prev => prev.map(msg => 
         msg.id === id 
           ? { ...msg, content: "This is a regenerated response with updated content." }
           : msg
       ));
-      setIsLoading(false);
     }, 1500);
   }, []);
 
@@ -436,8 +433,6 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
             toggleTheme={toggleTheme}
             modelMode={modelMode}
             setModelMode={setModelMode}
-            useHybridSearch={useHybridSearch}
-            setUseHybridSearch={setUseHybridSearch}
             onTripPlanSubmit={handleTripPlanSubmit}
             shortAnswerMode={shortAnswerMode}
             setShortAnswerMode={setShortAnswerMode}
@@ -452,7 +447,10 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
             {isInitialLoading ? (
               <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 pb-20 sm:pb-24 space-y-8">
                 {[...Array(3)].map((_, i) => (
-                  <SkeletonChatMessage key={i} isUser={i % 2 === 0} />
+                  <SkeletonChatMessage
+                    key={i}
+                    variant={i % 2 === 0 ? 'sent' : 'received'}
+                  />
                 ))}
               </div>
             ) : messages.length === 0 ? (
@@ -634,10 +632,6 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
             commandFilter={commandFilter}
             selectedCommandIndex={selectedCommandIndex}
             setShowInlineCommand={setShowInlineCommand}
-            shortAnswerMode={shortAnswerMode}
-            setShortAnswerMode={setShortAnswerMode}
-            setShowGlossaryModal={setShowGlossaryModal}
-            setShowHelpDialog={setShowHelpDialog}
             currentModel={currentModel}
             
           />

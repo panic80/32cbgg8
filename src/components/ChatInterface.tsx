@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { Send, Copy, RefreshCw } from 'lucide-react';
+import { Send, RefreshCw } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { cn } from '../lib/utils';
-import MarkdownRenderer from './MarkdownRenderer';
+import { MarkdownRenderer } from '@/components/ui/markdown-renderer';
 import { useMobileKeyboard } from '../hooks/useMobileKeyboard';
 import './ChatInterface.css';
 
@@ -47,7 +47,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [pullOffset, setPullOffset] = useState(0);
   const [isPulling, setIsPulling] = useState(false);
   const [touchStartY, setTouchStartY] = useState(0);
-  const [isUserNearBottom, setIsUserNearBottom] = useState(true);
   
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);

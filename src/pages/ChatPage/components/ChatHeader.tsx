@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { Brain, Zap, Layers } from 'lucide-react';
 import { EnhancedBackButton } from '@/components/ui/enhanced-back-button';
-import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { TripPlanner } from '@/components/TripPlanner';
 import { GlossaryModal } from '@/components/GlossaryModal';
 import { HelpDialog } from '@/pages/ChatPage/components/HelpDialog';
@@ -11,15 +10,12 @@ import HowItWorksModal from '@/pages/ChatPage/components/HowItWorksModal';
 import { WHATS_NEW_VERSION } from '@/pages/ChatPage/constants/whatsNew';
 import { HamburgerMenu } from '@/components/HamburgerMenu';
 import LogoImage from '@/components/LogoImage';
-import { cn } from '@/lib/utils';
 
 interface ChatHeaderProps {
   theme: string;
   toggleTheme: () => void;
   modelMode: 'fast' | 'smart';
   setModelMode: (mode: 'fast' | 'smart') => void;
-  useHybridSearch: boolean;
-  setUseHybridSearch: (value: boolean) => void;
   onTripPlanSubmit: (plan: string) => void;
   shortAnswerMode: boolean;
   setShortAnswerMode: (value: boolean) => void;
@@ -34,8 +30,6 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   toggleTheme,
   modelMode,
   setModelMode,
-  useHybridSearch,
-  setUseHybridSearch,
   onTripPlanSubmit,
   shortAnswerMode,
   setShortAnswerMode,
@@ -52,7 +46,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   
   // Track if there's unseen updates
   // We keep this local to the header since it owns the modal in this component
-  const [lastSeenVersion, setLastSeenVersion] = React.useState<string>(() => {
+  const [lastSeenVersion, setLastSeenVersion] = useState<string>(() => {
     try {
       return JSON.parse(localStorage.getItem('whatsNewLastSeen') || '""');
     } catch {

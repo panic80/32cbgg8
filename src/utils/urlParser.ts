@@ -63,11 +63,8 @@ export class UrlParser {
   }
 
   private validateUrl(parsedUrl: URL): void {
-    const requiredFields = ['protocol', 'hostname'];
-    for (const field of requiredFields) {
-      if (!parsedUrl[field]) {
-        throw new Error(`Invalid URL: missing ${field}`);
-      }
+    if (!parsedUrl.protocol || !parsedUrl.hostname) {
+      throw new Error('Invalid URL: missing protocol or hostname');
     }
 
     // Validate protocol

@@ -1,4 +1,4 @@
-import React, { Suspense } from "react"
+import React from "react"
 import Markdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeRaw from "rehype-raw"
@@ -20,61 +20,6 @@ export const MarkdownRenderer = React.memo(function MarkdownRenderer({ children 
     </div>
   )
 });
-
-interface HighlightedPre extends React.HTMLAttributes<HTMLPreElement> {
-  children: string
-  language: string
-}
-
-const HighlightedPre = React.memo(
-  async ({ children, language, ...props }: HighlightedPre) => {
-    const { codeToTokens, bundledLanguages } = await import("shiki")
-
-    if (!(language in bundledLanguages)) {
-      return <pre {...props}>{children}</pre>
-    }
-
-    const { tokens } = await codeToTokens(children, {
-      lang: language as keyof typeof bundledLanguages,
-      defaultColor: false,
-      themes: {
-        light: "github-light",
-        dark: "github-dark",
-      },
-    })
-
-    return (
-      <pre {...props}>
-        <code>
-          {tokens.map((line, lineIndex) => (
-            <>
-              <span key={lineIndex}>
-                {line.map((token, tokenIndex) => {
-                  const style =
-                    typeof token.htmlStyle === "string"
-                      ? undefined
-                      : token.htmlStyle
-
-                  return (
-                    <span
-                      key={tokenIndex}
-                      className="text-shiki-light bg-shiki-light-bg dark:text-shiki-dark dark:bg-shiki-dark-bg"
-                      style={style}
-                    >
-                      {token.content}
-                    </span>
-                  )
-                })}
-              </span>
-              {lineIndex !== tokens.length - 1 && "\n"}
-            </>
-          ))}
-        </code>
-      </pre>
-    )
-  }
-)
-HighlightedPre.displayName = "HighlightedCode"
 
 interface CodeBlockProps extends React.HTMLAttributes<HTMLPreElement> {
   children: React.ReactNode
@@ -100,17 +45,9 @@ const CodeBlock = ({
 
   return (
     <div className="group/code relative mb-4">
-      <Suspense
-        fallback={
-          <pre className={preClass} {...restProps}>
-            {children}
-          </pre>
-        }
-      >
-        <HighlightedPre language={language} className={preClass}>
-          {code}
-        </HighlightedPre>
-      </Suspense>
+      <pre className={preClass} {...restProps}>
+        <code>{code}</code>
+      </pre>
 
       <div className="invisible absolute right-2 top-2 flex space-x-1 rounded-lg p-1 opacity-0 transition-all duration-200 group-hover/code:visible group-hover/code:opacity-100">
         <CopyButton content={code} copyMessage="Copied code to clipboard" />
@@ -170,15 +107,19 @@ const COMPONENTS = {
   ul: withClass("ul", "list-disc space-y-2 pl-6"),
   li: ({ children, ...props }: any) => {
     // Process text content to add glossary tooltips
-    const processChildren = (child: any): any => {
+    const processChildren = (child: React.ReactNode): React.ReactNode => {
       if (typeof child === 'string') {
         return wrapAcronymsWithTooltips(child);
       }
-      if (React.isValidElement(child) && child.props.children) {
-        return React.cloneElement(child as any, {
-          ...child.props,
-          children: React.Children.map(child.props.children, processChildren)
-        });
+      if (React.isValidElement(child)) {
+        const element = child as React.ReactElement<{ children?: React.ReactNode }>;
+        const nextChildren = element.props.children;
+        if (nextChildren) {
+          return React.cloneElement(element, {
+            ...element.props,
+            children: React.Children.map(nextChildren, processChildren),
+          });
+        }
       }
       return child;
     };
@@ -214,15 +155,19 @@ const COMPONENTS = {
   tr: withClass("tr", "m-0 border-t p-0 even:bg-muted"),
   p: ({ children, ...props }: any) => {
     // Process text content to add glossary tooltips
-    const processChildren = (child: any): any => {
+    const processChildren = (child: React.ReactNode): React.ReactNode => {
       if (typeof child === 'string') {
         return wrapAcronymsWithTooltips(child);
       }
-      if (React.isValidElement(child) && child.props.children) {
-        return React.cloneElement(child as any, {
-          ...child.props,
-          children: React.Children.map(child.props.children, processChildren)
-        });
+      if (React.isValidElement(child)) {
+        const element = child as React.ReactElement<{ children?: React.ReactNode }>;
+        const nextChildren = element.props.children;
+        if (nextChildren) {
+          return React.cloneElement(element, {
+            ...element.props,
+            children: React.Children.map(nextChildren, processChildren),
+          });
+        }
       }
       return child;
     };

@@ -16,7 +16,7 @@ interface SimpleIngestionProgressProps {
   onComplete?: () => void;
 }
 
-const STEPS: IngestionStep[] = [
+const STEPS: Array<Omit<IngestionStep, 'status'>> = [
   { id: 'loading', name: 'Loading document', duration: 3000 },
   { id: 'splitting', name: 'Splitting into chunks', duration: 4000 },
   { id: 'embedding', name: 'Generating embeddings', duration: 5000 },

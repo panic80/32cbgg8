@@ -1,4 +1,3 @@
-import React from 'react';
 import { Zap, Hash, AtSign, HelpCircle } from 'lucide-react';
 
 export const INLINE_COMMANDS = [

@@ -23,7 +23,7 @@ export const useMobileKeyboard = () => {
     if (!isMobile) return;
 
     let lastHeight = window.innerHeight;
-    let keyboardTimer: NodeJS.Timeout;
+    let keyboardTimer: ReturnType<typeof setTimeout>;
 
     const handleViewportChange = () => {
       const currentHeight = window.innerHeight;

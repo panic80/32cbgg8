@@ -104,29 +104,29 @@ export const MobileChatHeader: React.FC<MobileChatHeaderProps> = ({
 // Companion hook for header visibility
 export const useMobileChatHeader = () => {
   const [isVisible, setIsVisible] = React.useState(true);
-  const [lastScrollY, setLastScrollY] = React.useState(0);
   const scrollThreshold = 50;
+  const lastScrollYRef = React.useRef(0);
 
   React.useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-      
-      // Show header when scrolling up or at top
+      const lastScrollY = lastScrollYRef.current;
+
+      // Show header when scrolling up or near the top
       if (currentScrollY < lastScrollY || currentScrollY < scrollThreshold) {
         setIsVisible(true);
-      } 
-      // Hide header when scrolling down
+      }
+      // Hide header when scrolling down past the threshold
       else if (currentScrollY > lastScrollY && currentScrollY > scrollThreshold) {
         setIsVisible(false);
       }
-      
-      setLastScrollY(currentScrollY);
+
+      lastScrollYRef.current = currentScrollY;
     };
 
-    // Throttle scroll events
     let ticking = false;
     const throttledScroll = () => {
-      if (\!ticking) {
+      if (!ticking) {
         window.requestAnimationFrame(() => {
           handleScroll();
           ticking = false;
@@ -137,10 +137,9 @@ export const useMobileChatHeader = () => {
 
     window.addEventListener('scroll', throttledScroll, { passive: true });
     return () => window.removeEventListener('scroll', throttledScroll);
-  }, [lastScrollY]);
+  }, [scrollThreshold]);
 
   return { isVisible, setIsVisible };
 };
 
 export default MobileChatHeader;
-EOF < /dev/null

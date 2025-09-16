@@ -1,20 +1,19 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Menu, 
-  X, 
-  Brain, 
-  Zap, 
-  Minimize2, 
-  HelpCircle, 
-  Sun, 
-  Moon, 
+import {
+  Menu,
+  X,
+  Brain,
+  Zap,
+  Minimize2,
+  HelpCircle,
+  Sun,
+  Moon,
   Plane,
-  Home,
   Layers,
   FileQuestion,
-  Shield,
-  ChevronRight
+  ChevronRight,
+  BookOpen,
 } from 'lucide-react';
 import {
   Sheet,
@@ -47,6 +46,51 @@ interface HamburgerMenuProps {
   hasWhatsNew?: boolean;
 }
 
+type ToggleGroupOption = {
+  value: string;
+  label: string;
+  icon: React.ReactNode;
+};
+
+interface ToggleGroupMenuItem {
+  type: 'toggle-group';
+  label: string;
+  icon: React.ReactNode;
+  value: string;
+  options: ToggleGroupOption[];
+  onChange: (value: string) => void;
+}
+
+interface SwitchMenuItem {
+  type: 'switch';
+  label: string;
+  icon: React.ReactNode;
+  value: boolean;
+  onChange: (value: boolean) => void;
+  description?: string;
+}
+
+interface ButtonMenuItem {
+  type: 'button';
+  label: string;
+  icon: React.ReactNode;
+  onClick: () => void;
+}
+
+interface LinkMenuItem {
+  type: 'link';
+  label: string;
+  icon: React.ReactNode;
+  href: string;
+}
+
+type MenuItem = ToggleGroupMenuItem | SwitchMenuItem | ButtonMenuItem | LinkMenuItem;
+
+interface MenuSection {
+  title: string;
+  items: MenuItem[];
+}
+
 export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
   theme,
   toggleTheme,
@@ -66,7 +110,7 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
 
-  const menuSections = [
+  const menuSections: MenuSection[] = [
     {
       title: 'AI Settings',
       items: [
@@ -111,6 +155,15 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
             setIsOpen(false);
             onWhatsNewOpen && onWhatsNewOpen();
           }
+        },
+        {
+          type: 'button',
+          label: 'Glossary',
+          icon: <BookOpen className="w-4 h-4" />,
+          onClick: () => {
+            setIsOpen(false);
+            onGlossaryOpen();
+          },
         },
         {
           type: 'button',
@@ -230,10 +283,10 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
                           <span>{item.label}</span>
                         </div>
                         <div className="flex gap-1 p-1 bg-[var(--background-secondary)] rounded-lg">
-                          {item.options?.map((option) => (
+                          {item.options.map((option) => (
                             <button
                               key={option.value}
-                              onClick={() => item.onChange?.(option.value)}
+                              onClick={() => item.onChange(option.value)}
                               className={cn(
                                 "flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
                                 item.value === option.value

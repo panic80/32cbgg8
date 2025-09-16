@@ -1,29 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { getModelDisplayName } from '@/constants/models';
-
-// Step 5.2: Define hook interface
-interface Message {
-  id: string;
-  sender: 'user' | 'assistant';
-  content: string;
-  timestamp: number;
-  isFormatted?: boolean;
-  sources?: Source[];
-  followUpQuestions?: FollowUpQuestion[];
-  modelMode?: 'fast' | 'smart';
-}
-
-interface Source {
-  text: string;
-  reference: string;
-}
-
-interface FollowUpQuestion {
-  id: string;
-  question: string;
-  category: string;
-  icon?: any;
-}
+import type { Message, Source, FollowUpQuestion } from '@/types/chat';
 
 interface UseStreamingChatOptions {
   conversationId: string | null;
