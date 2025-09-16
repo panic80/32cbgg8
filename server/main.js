@@ -214,12 +214,14 @@ app.use((req, res, next) => {
   next();
 });
 
-// Add request logging middleware (without consuming body)
-app.use((req, res, next) => {
-  console.log(`[Request Logger] ${req.method} ${req.originalUrl || req.url}`);
-  console.log('[Request Logger] Headers:', req.headers);
-  next();
-});
+// Optional lightweight request logging for debugging
+const enableRequestLogging = process.env.ENABLE_REQUEST_LOGS === 'true';
+if (enableRequestLogging) {
+  app.use((req, res, next) => {
+    console.log(`[Request Logger] ${req.method} ${req.originalUrl || req.url}`);
+    next();
+  });
+}
 
 // Parse JSON request bodies with increased limit
 app.use(express.json({ limit: '10mb' }));
@@ -273,14 +275,8 @@ const cache = config.cacheEnabled ? new CacheService({
 }) : null;
 
 // Rate limiting setup (conditionally enabled)
-const apiRequestCounts = config.rateLimitEnabled ? new Map() : null;
-
-if (config.rateLimitEnabled) {
-  // Clear rate limit counters periodically
-  setInterval(() => {
-    apiRequestCounts.clear();
-  }, config.rateLimitWindow);
-}
+const rateLimitBuckets = config.rateLimitEnabled ? new Map() : null;
+let rateLimitSweepCursor = 0;
 
 
 // Initialize AI clients
@@ -375,24 +371,49 @@ const rateLimiter = (req, res, next) => {
   if (!config.rateLimitEnabled) {
     return next();
   }
-  
-  const clientIP = req.ip || req.socket.remoteAddress;
-  const requestCount = apiRequestCounts.get(clientIP) || 0;
-  
-  if (requestCount >= config.rateLimitMax) {
-    chatLogger.log({
-      message: 'Rate limit exceeded',
-      clientIP,
-      path: req.path,
-      requestCount
+
+  const clientIP = req.ip || req.socket.remoteAddress || 'unknown';
+  const now = Date.now();
+  const windowMs = config.rateLimitWindow;
+  const retryAfterSeconds = Math.ceil(windowMs / 1000);
+
+  const bucket = rateLimitBuckets.get(clientIP);
+
+  if (!bucket || bucket.expiresAt <= now) {
+    rateLimitBuckets.set(clientIP, {
+      count: 1,
+      expiresAt: now + windowMs
     });
-    return res.status(429).json({ 
-      error: 'Rate limit exceeded', 
-      retryAfter: Math.ceil(config.rateLimitWindow / 1000)
+    rateLimitSweepCursor++;
+    if (rateLimitSweepCursor >= 500) {
+      rateLimitSweepCursor = 0;
+      for (const [ip, entry] of rateLimitBuckets.entries()) {
+        if (entry.expiresAt <= now) {
+          rateLimitBuckets.delete(ip);
+        }
+      }
+    }
+    return next();
+  }
+
+  if (bucket.count >= config.rateLimitMax) {
+    if (config.loggingEnabled) {
+      chatLogger.log({
+        message: 'Rate limit exceeded',
+        clientIP,
+        path: req.path,
+        requestCount: bucket.count,
+        windowMs
+      });
+    }
+    res.setHeader('Retry-After', retryAfterSeconds);
+    return res.status(429).json({
+      error: 'Rate limit exceeded',
+      retryAfter: retryAfterSeconds
     });
   }
-  
-  apiRequestCounts.set(clientIP, requestCount + 1);
+
+  bucket.count += 1;
   next();
 };
 
@@ -923,6 +944,9 @@ app.post('/api/v2/chat/stream', rateLimiter, async (req, res) => {
     
     // Forward to RAG service streaming endpoint
     const ragServiceUrl = process.env.RAG_SERVICE_URL || 'http://localhost:8000';
+    const ragStreamTimeout = parseInt(process.env.RAG_STREAM_TIMEOUT || '120000', 10);
+    const upstreamAbortController = new AbortController();
+
     const response = await axios.post(
       `${ragServiceUrl}/api/v1/streaming_chat`,
       {
@@ -945,7 +969,9 @@ app.post('/api/v2/chat/stream', rateLimiter, async (req, res) => {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'text/event-stream'
-        }
+        },
+        timeout: ragStreamTimeout,
+        signal: upstreamAbortController.signal
       }
     );
 
@@ -960,7 +986,16 @@ app.post('/api/v2/chat/stream', rateLimiter, async (req, res) => {
 
     // Clean up on client disconnect
     req.on('close', () => {
+      upstreamAbortController.abort();
       response.data.destroy();
+    });
+
+    response.data.on('error', (streamError) => {
+      console.error('Streaming pipe error:', streamError);
+      upstreamAbortController.abort();
+      if (!res.writableEnded) {
+        res.end();
+      }
     });
 
   } catch (error) {
@@ -981,7 +1016,7 @@ app.post('/api/v2/chat/stream', rateLimiter, async (req, res) => {
       error_type: error.response?.status === 401 ? 'auth_error' : 'unknown_error',
       message: error.message || 'Streaming chat failed'
     };
-    
+
     res.write(`data: ${JSON.stringify(errorEvent)}\n\n`);
     res.end();
   }

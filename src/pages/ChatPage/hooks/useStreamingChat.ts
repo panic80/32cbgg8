@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getModelDisplayName } from '@/constants/models';
 
 // Step 5.2: Define hook interface
@@ -47,7 +47,23 @@ export const useStreamingChat = ({
   modelMode
 }: UseStreamingChatOptions) => {
   const [messages, setMessages] = useState<Message[]>([]);
+  const [pendingMessage, setPendingMessage] = useState<Message | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const pendingMessageRef = useRef<Message | null>(null);
+  const rafIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
+    };
+  }, []);
 
   const handleStreamingChat = async (messageText: string) => {
     if (!messageText || isLoading) return;
@@ -64,15 +80,21 @@ export const useStreamingChat = ({
     const currentInput = messageText;
     setIsLoading(true);
 
+    // Clean up any inflight request before starting a new one
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    pendingMessageRef.current = null;
+    setPendingMessage(null);
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     // Create a temporary message to hold streaming content
     const messageId = (Date.now() + 1).toString();
     let streamingContent = '';
     let sources: Source[] = [];
     let followUpQuestions: FollowUpQuestion[] = [];
-    let retrievalStatus = '';
-    let lastUpdateTs = 0;
-    const throttleMs = 120;
-    let scheduledFrame = false;
 
     try {
       // Check if this is a Trip Planner message - always use gpt-5-mini for Trip Planner
@@ -117,6 +139,7 @@ export const useStreamingChat = ({
           'Accept': 'text/event-stream',
         },
         body: requestBody,
+        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -138,7 +161,30 @@ export const useStreamingChat = ({
 
       // Process SSE stream with buffering for incomplete messages
       let buffer = '';
+      const flushPendingMessage = () => {
+        if (rafIdRef.current !== null) {
+          cancelAnimationFrame(rafIdRef.current);
+        }
+        if (!pendingMessageRef.current) return;
+        rafIdRef.current = requestAnimationFrame(() => {
+          rafIdRef.current = null;
+          if (pendingMessageRef.current) {
+            setPendingMessage({ ...pendingMessageRef.current });
+          }
+        });
+      };
       
+      pendingMessageRef.current = {
+        id: messageId,
+        content: '',
+        sender: 'assistant',
+        timestamp: Date.now(),
+        sources: undefined,
+        followUpQuestions: undefined,
+        modelMode: modelMode,
+      };
+      setPendingMessage({ ...pendingMessageRef.current });
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -161,13 +207,11 @@ export const useStreamingChat = ({
 
               switch (event.type) {
                 case 'retrieval_start':
-                  retrievalStatus = 'Searching documents...';
-                  // Show retrieval status - REMOVED per user request
+                  // Retrieval status intentionally suppressed in UI
                   break;
 
                 case 'retrieval_complete':
-                  retrievalStatus = '';
-                  // Clear retrieval status - REMOVED per user request
+                  // Retrieval completion acknowledged without UI toast
                   break;
 
                 case 'sources':
@@ -175,6 +219,22 @@ export const useStreamingChat = ({
                     text: source.content || source.text || '',
                     reference: source.source || source.reference || source.title || ''
                   }));
+                  if (pendingMessageRef.current) {
+                    pendingMessageRef.current.sources = sources.length > 0 ? sources : undefined;
+                    flushPendingMessage();
+                  } else if (sources.length > 0) {
+                    setMessages(prev => {
+                      if (prev.length === 0) return prev;
+                      const updated = [...prev];
+                      const lastIndex = updated.length - 1;
+                      const lastMessage = updated[lastIndex];
+                      updated[lastIndex] = {
+                        ...lastMessage,
+                        sources
+                      };
+                      return updated;
+                    });
+                  }
                   break;
 
                 case 'generation_start':
@@ -184,34 +244,11 @@ export const useStreamingChat = ({
                 case 'token':
                   if (event.content) {
                     streamingContent += event.content;
-                    const now = Date.now();
-                    if ((now - lastUpdateTs > throttleMs) && !scheduledFrame) {
-                      scheduledFrame = true;
-                      requestAnimationFrame(() => {
-                        // Update message with streaming content (throttled to ~1/frame)
-                        setMessages(prev => {
-                          const newMessages = [...prev];
-                          const existingIndex = newMessages.findIndex(msg => msg.id === messageId);
-                          const markdownPattern = /```|\n\s*#|\*\*|\n\s*[-*+]\s|<[^>]+>/;
-                          const isMarkdown = markdownPattern.test(streamingContent);
-                          const streamingMessage: Message = {
-                            id: messageId,
-                            content: streamingContent,
-                            sender: 'assistant',
-                            timestamp: Date.now(),
-                            isFormatted: isMarkdown,
-                            sources: sources.length > 0 ? sources : undefined,
-                          };
-                          if (existingIndex >= 0) {
-                            newMessages[existingIndex] = streamingMessage;
-                          } else {
-                            newMessages.push(streamingMessage);
-                          }
-                          return newMessages;
-                        });
-                        lastUpdateTs = Date.now();
-                        scheduledFrame = false;
-                      });
+                    if (pendingMessageRef.current) {
+                      pendingMessageRef.current.content = streamingContent;
+                      const markdownPattern = /```|\n\s*#|\*\*|\n\s*[-*+]\s|<[^>]+>/;
+                      pendingMessageRef.current.isFormatted = markdownPattern.test(streamingContent);
+                      flushPendingMessage();
                     }
                   }
                   break;
@@ -230,18 +267,30 @@ export const useStreamingChat = ({
                       category: q.category || 'general',
                       icon: q.icon,
                     }));
+                    if (pendingMessageRef.current) {
+                      pendingMessageRef.current.followUpQuestions = followUpQuestions.length > 0 ? followUpQuestions : undefined;
+                      flushPendingMessage();
+                    } else if (followUpQuestions.length > 0) {
+                      setMessages(prev => {
+                        if (prev.length === 0) return prev;
+                        const updated = [...prev];
+                        const lastIndex = updated.length - 1;
+                        const lastMessage = updated[lastIndex];
+                        updated[lastIndex] = {
+                          ...lastMessage,
+                          followUpQuestions
+                        };
+                        return updated;
+                      });
+                    }
                   }
                   break;
 
                 case 'complete':
                   // Finalize the message with all metadata
-                  setMessages(prev => {
-                    const newMessages = [...prev];
-                    const existingIndex = newMessages.findIndex(msg => msg.id === messageId);
-                    
-                    const markdownPattern = /```|\n\s*#|\*\*|\n\s*[-*+]\s|<[^>]+>/;
-                    const isMarkdown = markdownPattern.test(streamingContent);
-                    
+                  const markdownPattern = /```|\n\s*#|\*\*|\n\s*[-*+]\s|<[^>]+>/;
+                  const isMarkdown = markdownPattern.test(streamingContent);
+
                   const finalMessage: Message = {
                     id: messageId,
                     content: streamingContent.trim(),
@@ -253,12 +302,9 @@ export const useStreamingChat = ({
                     modelMode: modelMode,
                   };
 
-                    if (existingIndex >= 0) {
-                      newMessages[existingIndex] = finalMessage;
-                    }
-                    
-                    return newMessages;
-                  });
+                  setMessages(prev => [...prev, finalMessage]);
+                  pendingMessageRef.current = null;
+                  setPendingMessage(null);
                   break;
 
                 case 'error':
@@ -275,12 +321,26 @@ export const useStreamingChat = ({
         }
       }
 
+      if (abortControllerRef.current === controller) {
+        abortControllerRef.current = null;
+      }
+
       setIsLoading(false);
     } catch (error) {
       console.error('Error with streaming chat:', error);
       
-      // Remove any temporary messages
-      setMessages(prev => prev.filter(msg => msg.id !== messageId));
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        // Request was intentionally aborted
+        setIsLoading(false);
+        if (abortControllerRef.current === controller) {
+          abortControllerRef.current = null;
+        }
+        pendingMessageRef.current = null;
+        setPendingMessage(null);
+        return;
+      }
+      pendingMessageRef.current = null;
+      setPendingMessage(null);
       
       // Add error message
       const errorMessage: Message = {
@@ -291,12 +351,16 @@ export const useStreamingChat = ({
       };
       setMessages(prev => [...prev, errorMessage]);
       setIsLoading(false);
+      if (abortControllerRef.current === controller) {
+        abortControllerRef.current = null;
+      }
     }
   };
 
   return {
     messages,
     setMessages,
+    pendingMessage,
     isLoading,
     handleStreamingChat
   };

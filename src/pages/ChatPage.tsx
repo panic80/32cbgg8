@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Send, Settings, Sparkles, Command as CommandIcon, Mic, Paperclip, Hash, AtSign, HelpCircle, Zap, ChevronDown, X, Database, MapIcon, Book, Minimize2, Search, Layers, Brain } from 'lucide-react';
 import { motion, AnimatePresence, useSpring } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -112,7 +112,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
   const suppressTimerRef = useRef<number | null>(null);
   
   // Use streaming chat hook
-  const { messages, setMessages, isLoading, handleStreamingChat } = useStreamingChat({
+  const { messages, setMessages, pendingMessage, isLoading, handleStreamingChat } = useStreamingChat({
     conversationId,
     setConversationId,
     setCurrentModel,
@@ -125,6 +125,19 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
   
   // Initialize suggestion visibility manager
   const suggestionManager = useSuggestionVisibility();
+
+  const combinedMessages = useMemo(() => (
+    pendingMessage ? [...messages, pendingMessage] : messages
+  ), [messages, pendingMessage]);
+
+  const startIndex = useMemo(
+    () => Math.max(0, combinedMessages.length - visibleCount),
+    [combinedMessages, visibleCount]
+  );
+  const visibleMessages = useMemo(
+    () => combinedMessages.slice(startIndex),
+    [combinedMessages, startIndex]
+  );
 
   // Prefill input from query param ?q=
   useEffect(() => {
@@ -454,20 +467,20 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
             ) : (
               <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 pb-20 sm:pb-24">
                 {/* Show older messages loader when windowed */}
-                {messages.length > visibleCount && (
+                {combinedMessages.length > visibleCount && (
                   <div className="flex justify-center mb-4">
                     <button
                       className="px-3 py-1.5 rounded-full bg-[var(--background-secondary)] text-[var(--text)] text-xs border border-[var(--border)] hover:bg-[var(--background-tertiary)]"
-                      onClick={() => setVisibleCount(c => Math.min(messages.length, c + 50))}
+                      onClick={() => setVisibleCount(c => Math.min(combinedMessages.length, c + 50))}
                     >
                       Show earlier messages
                     </button>
                   </div>
                 )}
                 <AnimatePresence>
-                  {messages.slice(Math.max(0, messages.length - visibleCount)).map((message, idx) => {
-                    const messageIndex = Math.max(0, messages.length - visibleCount) + idx;
-                    const prev = messages[messageIndex - 1];
+                  {visibleMessages.map((message, idx) => {
+                    const messageIndex = startIndex + idx;
+                    const prev = combinedMessages[messageIndex - 1];
                     const showDate = !prev || new Date(prev.timestamp).toDateString() !== new Date(message.timestamp).toDateString();
                     return (
                       <React.Fragment key={message.id}>
@@ -478,20 +491,20 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
                             </span>
                           </div>
                         )}
-                    <ChatMessage
-                      message={message}
-                      messageIndex={messageIndex}
-                      isCollapsed={collapsedMessages.has(message.id)}
-                      onToggleCollapse={() => toggleMessageCollapse(message.id)}
-                      onCopy={() => copyMessage(message.content)}
-                      onRegenerate={() => regenerateMessage(message.id)}
-                      onVoice={() => handleVoiceInput()}
-                      currentModel={currentModel}
-                      modelMode={message.modelMode || modelMode}
-                      isLoading={isLoading}
-                      isLatestMessage={messageIndex === messages.length - 1}
-                      onFollowUpClick={handleFollowUpClick}
-                    />
+                        <ChatMessage
+                          message={message}
+                          messageIndex={messageIndex}
+                          isCollapsed={collapsedMessages.has(message.id)}
+                          onToggleCollapse={() => toggleMessageCollapse(message.id)}
+                          onCopy={() => copyMessage(message.content)}
+                          onRegenerate={() => regenerateMessage(message.id)}
+                          onVoice={() => handleVoiceInput()}
+                          currentModel={currentModel}
+                          modelMode={message.modelMode || modelMode}
+                          isLoading={isLoading}
+                          isLatestMessage={messageIndex === combinedMessages.length - 1}
+                          onFollowUpClick={handleFollowUpClick}
+                        />
                       </React.Fragment>
                     );
                   })}

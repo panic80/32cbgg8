@@ -1,4 +1,4 @@
-import React, { useState, useEffect, lazy, Suspense, startTransition } from 'react';
+import React, { useState, useEffect, lazy, Suspense, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import './index.css';
@@ -59,13 +59,34 @@ function App() {
 
 
   // Prefetch components on mount
+  const prefetchCleanupRef = useRef(null);
+  const prefetchTriggeredRef = useRef(false);
+
   useEffect(() => {
-    const cleanupFns = [
-      prefetchComponent(() => import('./components/Hero')),
-      prefetchComponent(() => import('./pages/ChatPage')),
-      prefetchComponent(() => import('./components/MobileToggle'))
-    ];
-    return () => cleanupFns.forEach(cleanup => cleanup());
+    const startPrefetch = () => {
+      if (prefetchTriggeredRef.current) return;
+      prefetchTriggeredRef.current = true;
+      prefetchCleanupRef.current = [
+        prefetchComponent(() => import('./components/Hero')),
+        prefetchComponent(() => import('./pages/ChatPage')),
+        prefetchComponent(() => import('./components/MobileToggle'))
+      ];
+    };
+
+    const interactionEvents = ['pointerdown', 'keydown'];
+    interactionEvents.forEach(event => {
+      document.addEventListener(event, startPrefetch, { once: true });
+    });
+
+    return () => {
+      interactionEvents.forEach(event => {
+        document.removeEventListener(event, startPrefetch);
+      });
+      if (prefetchCleanupRef.current) {
+        prefetchCleanupRef.current.forEach(cleanup => cleanup());
+        prefetchCleanupRef.current = null;
+      }
+    };
   }, []);
 
 

@@ -2,9 +2,11 @@
 
 import asyncio
 import json
+import os
 import time
 from datetime import datetime
-from typing import AsyncGenerator, Optional
+from typing import AsyncGenerator, Optional, Any, Dict
+from weakref import WeakKeyDictionary
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import StreamingResponse
 import uuid
@@ -34,6 +36,10 @@ from langchain_core.callbacks import AsyncCallbackManager
 logger = get_logger(__name__)
 
 router = APIRouter()
+
+_pipeline_cache: "WeakKeyDictionary[Any, dict]" = WeakKeyDictionary()
+_pipeline_cache_lock = asyncio.Lock()
+PROMPT_DIAGNOSTICS_ENABLED = os.environ.get('ENABLE_PROMPT_DIAGNOSTICS') == 'true'
 
 
 def should_use_gated_retrieval(chat_request: ChatRequest) -> bool:
@@ -150,6 +156,42 @@ Focus on questions about:
     return []
 
 
+async def get_retrieval_pipeline(
+    vector_store_manager,
+    llm,
+    enable_unified: bool
+):
+    """Return a cached retrieval pipeline for the given configuration."""
+    cache_key = (bool(llm), enable_unified)
+    async with _pipeline_cache_lock:
+        cache_for_store: Dict[Any, Any] = _pipeline_cache.get(vector_store_manager)
+        if cache_for_store is None:
+            cache_for_store = {}
+            _pipeline_cache[vector_store_manager] = cache_for_store
+        pipeline = cache_for_store.get(cache_key)
+
+    if pipeline is not None:
+        return pipeline
+
+    pipeline = await asyncio.to_thread(
+        create_parallel_pipeline,
+        vector_store_manager=vector_store_manager,
+        llm=llm,
+        enable_unified=enable_unified
+    )
+
+    async with _pipeline_cache_lock:
+        cache_for_store = _pipeline_cache.setdefault(vector_store_manager, {})
+        # If another coroutine populated the cache while we were building, reuse that instance
+        existing = cache_for_store.get(cache_key)
+        if existing is not None:
+            pipeline = existing
+        else:
+            cache_for_store[cache_key] = pipeline
+
+    return pipeline
+
+
 async def generate_sse_events(
     chat_request: ChatRequest,
     request: Request
@@ -158,6 +200,7 @@ async def generate_sse_events(
     start_time = datetime.utcnow()
     perf_monitor = get_performance_monitor()
     first_token_time = None
+    first_token_latency_ms = None
     
     # Record request
     perf_monitor.increment_counter("streaming_requests")
@@ -239,6 +282,8 @@ async def generate_sse_events(
                 
                 # Advanced cache initialization
                 advanced_cache = None
+                cache_context_hash = None
+                cached_response = None
                 if cache_service:
                     advanced_cache = AdvancedCacheService(cache_service)
                 
@@ -323,8 +368,7 @@ async def generate_sse_events(
                         logger.info("Using gated retrieval (optimized pipeline)")
                         enable_unified = chat_request.__dict__.get("enable_unified_retrieval", settings.enable_unified_retrieval)
                         
-                        retrieval_pipeline = await asyncio.to_thread(
-                            create_parallel_pipeline,
+                        retrieval_pipeline = await get_retrieval_pipeline(
                             vector_store_manager=vector_store,
                             llm=llm_wrapper,
                             enable_unified=enable_unified
@@ -345,8 +389,7 @@ async def generate_sse_events(
                         # Use legacy parallel retrieval pipeline
                         enable_unified = chat_request.__dict__.get("enable_unified_retrieval", settings.enable_unified_retrieval)
                         
-                        retrieval_pipeline = await asyncio.to_thread(
-                            create_parallel_pipeline,
+                        retrieval_pipeline = await get_retrieval_pipeline(
                             vector_store_manager=vector_store,
                             llm=llm_wrapper,
                             enable_unified=enable_unified
@@ -598,10 +641,11 @@ SPECIAL INSTRUCTION FOR CLASS A RESERVISTS:
 """
 
                 # DIAGNOSTIC: Log system prompt comparison
-                logger.info(f"[PROMPT_DIAG] Using streaming_chat.py endpoint")
-                logger.info(f"[PROMPT_DIAG] System prompt includes table formatting instructions: False")
-                logger.info(f"[PROMPT_DIAG] Query: {chat_request.message}")
-                logger.info(f"[SHORT_ANSWER_DEBUG] System prompt starts with: {system_prompt[:150]}...")
+                if PROMPT_DIAGNOSTICS_ENABLED:
+                    logger.info(f"[PROMPT_DIAG] Using streaming_chat.py endpoint")
+                    logger.info(f"[PROMPT_DIAG] System prompt includes table formatting instructions: False")
+                    logger.info(f"[PROMPT_DIAG] Query: {chat_request.message}")
+                    logger.info(f"[SHORT_ANSWER_DEBUG] System prompt starts with: {system_prompt[:150]}...")
 
                 messages = [SystemMessage(content=system_prompt)]
                 
@@ -691,6 +735,7 @@ User Question: {chat_request.message}"""
                             first_token_time = datetime.utcnow()
                             first_token_latency = (first_token_time - start_time).total_seconds() * 1000
                             perf_monitor.record_latency("first_token_latency_ms", first_token_latency)
+                            first_token_latency_ms = first_token_latency
                             yield f"data: {json.dumps({'type': 'first_token', 'latency': first_token_latency})}\n\n"
                         
                         # Send token
@@ -702,20 +747,18 @@ User Question: {chat_request.message}"""
                         if token_count % 10 == 0:
                             await asyncio.sleep(0.001)
                 
-                # Generate follow-up questions after full response is collected
+                follow_up_task = None
                 follow_up_questions = []
                 if full_response:
                     logger.info("Generating follow-up questions for streaming response")
-                    follow_up_questions = await generate_follow_up_questions(
-                        user_question=chat_request.message,
-                        ai_response=full_response,
-                        llm=llm,
-                        sources=sources
+                    follow_up_task = asyncio.create_task(
+                        generate_follow_up_questions(
+                            user_question=chat_request.message,
+                            ai_response=full_response,
+                            llm=llm,
+                            sources=sources
+                        )
                     )
-                    
-                    # Send metadata event with follow-up questions if any were generated
-                    if follow_up_questions:
-                        yield f"data: {json.dumps({'type': 'metadata', 'follow_up_questions': follow_up_questions})}\n\n"
                 
                 # Calculate final metrics
                 total_time = (datetime.utcnow() - start_time).total_seconds()
@@ -724,29 +767,12 @@ User Question: {chat_request.message}"""
                 perf_monitor.record_latency("streaming_total_time_ms", total_time * 1000)
                 perf_monitor.record_token_usage(str(chat_request.provider), token_count)
                 
-                # Cache the complete response if enabled
-                if advanced_cache and context and sources and full_response:
-                    # Update context hash with actual retrieved documents
-                    context_hash = create_context_hash(
-                        query=chat_request.message,
-                        documents=[doc for doc, _ in results] if results else [],
-                        model=chat_request.model or "default"
-                    )
-                    
-                    # Cache the complete response with follow-up questions
-                    await advanced_cache.set_response(
-                        query=chat_request.message,
-                        context_hash=context_hash,
-                        response={"response": full_response, "sources": sources, "follow_up_questions": follow_up_questions},
-                        model=chat_request.model or "default"
-                    )
-                
-                # Log the query BEFORE sending completion (to ensure it happens even if connection closes)
                 query_id = str(uuid.uuid4())
                 query_logger = get_query_logger()
                 logger.info(f"Attempting to log query {query_id} - logger enabled: {query_logger.enabled}")
-                try:
-                    await query_logger.log_query(
+                log_task = None
+                if query_logger.enabled:
+                    log_task = asyncio.create_task(query_logger.log_query(
                         query_id=query_id,
                         user_query=chat_request.message,
                         provider=str(chat_request.provider),
@@ -765,13 +791,44 @@ User Question: {chat_request.message}"""
                             "first_token_latency_ms": first_token_latency_ms,
                             "streaming": True
                         }
-                    )
-                except Exception as log_error:
-                    logger.error(f"Failed to log query: {log_error}")
-                
-                # Send completion event
+                    ))
+
+                # Send completion event as soon as tokens finish streaming
                 yield f"data: {json.dumps({'type': 'complete', 'duration': total_time, 'tokens': token_count})}\n\n"
-                
+
+                if follow_up_task:
+                    try:
+                        follow_up_questions = await follow_up_task
+                    except Exception as fu_error:
+                        logger.warning(f"Follow-up question generation failed: {fu_error}")
+                        follow_up_questions = []
+                    if follow_up_questions:
+                        yield f"data: {json.dumps({'type': 'metadata', 'follow_up_questions': follow_up_questions})}\n\n"
+
+                if advanced_cache and context and sources and full_response:
+                    if cache_context_hash is None:
+                        cache_context_hash = create_context_hash(
+                            query=chat_request.message,
+                            documents=[doc for doc, _ in results] if results else [],
+                            model=chat_request.model or "default"
+                        )
+                    await advanced_cache.set_response(
+                        query=chat_request.message,
+                        context_hash=cache_context_hash,
+                        response={
+                            "response": full_response,
+                            "sources": sources,
+                            "follow_up_questions": follow_up_questions
+                        },
+                        model=chat_request.model or "default"
+                    )
+
+                if log_task is not None:
+                    try:
+                        await log_task
+                    except Exception as log_error:
+                        logger.error(f"Failed to log query: {log_error}")
+
         except Exception as pool_error:
             logger.warning(f"Failed to acquire from pool: {pool_error}. Creating new instance.")
             # Fallback to creating new instance
@@ -807,6 +864,8 @@ User Question: {chat_request.message}"""
             
             # Advanced cache initialization
             advanced_cache = None
+            cache_context_hash = None
+            cached_response = None
             if cache_service:
                 advanced_cache = AdvancedCacheService(cache_service)
             
@@ -819,44 +878,6 @@ User Question: {chat_request.message}"""
             if chat_request.use_rag:
                 # Yield retrieval start event
                 yield f"data: {json.dumps({'type': 'retrieval_start'})}\n\n"
-                
-                # Check cache first
-                cached_response = None
-                if advanced_cache:
-                    context_hash = create_context_hash(
-                        query=chat_request.message,
-                        documents=[],  # Will be updated after retrieval
-                        model=chat_request.model or "default"
-                    )
-                    cached_response = await advanced_cache.get_response(
-                        query=chat_request.message,
-                        context_hash=context_hash,
-                        model=chat_request.model or "default"
-                    )
-                
-                if cached_response:
-                    # Stream cached response
-                    yield f"data: {json.dumps({'type': 'cache_hit', 'level': 'l3'})}\n\n"
-                    
-                    # Split cached response into tokens for streaming effect
-                    tokens = cached_response.get("response", "").split()
-                    for i, token in enumerate(tokens):
-                        if i == 0 and first_token_time is None:
-                            first_token_time = datetime.utcnow()
-                        yield f"data: {json.dumps({'type': 'token', 'content': token + ' '})}\n\n"
-                        await asyncio.sleep(0.01)  # Small delay for streaming effect
-                    
-                    # Send sources if available
-                    if cached_response.get("sources"):
-                        yield f"data: {json.dumps({'type': 'sources', 'sources': cached_response['sources']})}\n\n"
-                    
-                    # Send follow-up questions if available
-                    if cached_response.get("follow_up_questions"):
-                        yield f"data: {json.dumps({'type': 'metadata', 'follow_up_questions': cached_response['follow_up_questions']})}\n\n"
-                    
-                    # Complete event
-                    yield f"data: {json.dumps({'type': 'complete'})}\n\n"
-                    return
                 
                 # Query optimization (use rule-based only for speed)
                 optimized_query = chat_request.message
@@ -881,8 +902,7 @@ User Question: {chat_request.message}"""
                 enable_unified = chat_request.__dict__.get("enable_unified_retrieval", settings.enable_unified_retrieval)
                 
                 # Use parallel retrieval pipeline (use wrapper for non-streaming operations)
-                retrieval_pipeline = await asyncio.to_thread(
-                    create_parallel_pipeline,
+                retrieval_pipeline = await get_retrieval_pipeline(
                     vector_store_manager=vector_store,
                     llm=llm_wrapper,
                     enable_unified=enable_unified
@@ -912,10 +932,48 @@ User Question: {chat_request.message}"""
                         query=optimized_query
                     ):
                         processed_docs.append(doc)
-                    
+
+                    if advanced_cache is not None:
+                        try:
+                            cache_documents = processed_docs or [doc for doc, _ in results]
+                            cache_context_hash = create_context_hash(
+                                query=chat_request.message,
+                                documents=cache_documents,
+                                model=chat_request.model or "default"
+                            )
+                            cached_response = await advanced_cache.get_response(
+                                query=chat_request.message,
+                                context_hash=cache_context_hash,
+                                model=chat_request.model or "default"
+                            )
+                        except Exception as cache_error:
+                            logger.warning(f"Advanced cache lookup failed: {cache_error}")
+
+                    if cached_response:
+                        yield f"data: {json.dumps({'type': 'cache_hit', 'level': 'l3'})}\n\n"
+                        response_text = cached_response.get("response", "")
+                        if response_text and first_token_time is None:
+                            first_token_time = datetime.utcnow()
+                            first_token_latency = (first_token_time - start_time).total_seconds() * 1000
+                            perf_monitor.record_latency("first_token_latency_ms", first_token_latency)
+                            first_token_latency_ms = first_token_latency
+                            yield f"data: {json.dumps({'type': 'first_token', 'latency': first_token_latency})}\n\n"
+                        if response_text:
+                            yield f"data: {json.dumps({'type': 'token', 'content': response_text})}\n\n"
+                        if cached_response.get("sources"):
+                            yield f"data: {json.dumps({'type': 'sources', 'sources': cached_response['sources']})}\n\n"
+
+                        yield f"data: {json.dumps({'type': 'complete'})}\n\n"
+
+                        cached_followups = cached_response.get("follow_up_questions") or []
+                        if cached_followups:
+                            yield f"data: {json.dumps({'type': 'metadata', 'follow_up_questions': cached_followups})}\n\n"
+
+                        return
+
                     # Use processed_docs instead of processed_results
                     processed_results = [(doc, doc.metadata.get('score', 0.0)) for doc in processed_docs]
-                    
+
                     # Build context
                     context_parts = []
                     sources = []
@@ -1031,10 +1089,11 @@ SPECIAL INSTRUCTION FOR CLASS A RESERVISTS:
 """
 
             # DIAGNOSTIC: Log system prompt comparison (fallback flow)
-            logger.info(f"[PROMPT_DIAG] Using streaming_chat.py endpoint (fallback)")
-            logger.info(f"[PROMPT_DIAG] System prompt includes table formatting instructions: False")
-            logger.info(f"[PROMPT_DIAG] Query: {chat_request.message}")
-            logger.info(f"[SHORT_ANSWER_DEBUG FALLBACK] System prompt starts with: {system_prompt[:150]}...")
+            if PROMPT_DIAGNOSTICS_ENABLED:
+                logger.info(f"[PROMPT_DIAG] Using streaming_chat.py endpoint (fallback)")
+                logger.info(f"[PROMPT_DIAG] System prompt includes table formatting instructions: False")
+                logger.info(f"[PROMPT_DIAG] Query: {chat_request.message}")
+                logger.info(f"[SHORT_ANSWER_DEBUG FALLBACK] System prompt starts with: {system_prompt[:150]}...")
 
             messages = [SystemMessage(content=system_prompt)]
             
@@ -1067,10 +1126,13 @@ User Question: {chat_request.message}"""
                 yield f"data: {json.dumps({'type': 'streaming_optimization', 'enabled': True})}\n\n"
                 # Small delay to allow background processing
                 await asyncio.sleep(0.05)  # 50ms delay
-            
+
             # Yield generation start event
             yield f"data: {json.dumps({'type': 'generation_start'})}\n\n"
             
+            first_token_time = None
+            first_token_latency_ms = None
+
             # Stream the response
             token_count = 0
             full_response = ""
@@ -1090,6 +1152,7 @@ User Question: {chat_request.message}"""
                         first_token_time = datetime.utcnow()
                         first_token_latency = (first_token_time - start_time).total_seconds() * 1000
                         perf_monitor.record_latency("first_token_latency_ms", first_token_latency)
+                        first_token_latency_ms = first_token_latency
                         yield f"data: {json.dumps({'type': 'first_token', 'latency': first_token_latency})}\n\n"
                     
                     # Send token
@@ -1101,47 +1164,86 @@ User Question: {chat_request.message}"""
                     if token_count % 10 == 0:
                         await asyncio.sleep(0.001)
             
-            # Generate follow-up questions after full response is collected
+            follow_up_task = None
             follow_up_questions = []
             if full_response:
                 logger.info("Generating follow-up questions for streaming response (fallback)")
-                follow_up_questions = await generate_follow_up_questions(
-                    user_question=chat_request.message,
-                    ai_response=full_response,
-                    llm=llm,
-                    sources=sources
+                follow_up_task = asyncio.create_task(
+                    generate_follow_up_questions(
+                        user_question=chat_request.message,
+                        ai_response=full_response,
+                        llm=llm,
+                        sources=sources
+                    )
                 )
-                
-                # Send metadata event with follow-up questions if any were generated
-                if follow_up_questions:
-                    yield f"data: {json.dumps({'type': 'metadata', 'follow_up_questions': follow_up_questions})}\n\n"
-            
+
             # Calculate final metrics
             total_time = (datetime.utcnow() - start_time).total_seconds()
             
             # Record metrics
             perf_monitor.record_latency("streaming_total_time_ms", total_time * 1000)
             perf_monitor.record_token_usage(str(chat_request.provider), token_count)
-            
-            # Cache the complete response if enabled
+
+            query_id = str(uuid.uuid4())
+            query_logger = get_query_logger()
+            log_task = None
+            if query_logger.enabled:
+                log_task = asyncio.create_task(query_logger.log_query(
+                    query_id=query_id,
+                    user_query=chat_request.message,
+                    provider=str(chat_request.provider),
+                    model=chat_request.model or getattr(llm, 'model_name', 'unknown'),
+                    use_rag=chat_request.use_rag,
+                    response=full_response,
+                    sources_count=len(sources) if sources else 0,
+                    processing_time=total_time,
+                    tokens_used=token_count,
+                    conversation_id=chat_request.conversation_id,
+                    status=QueryStatus.SUCCESS,
+                    metadata={
+                        "temperature": chat_request.temperature,
+                        "max_tokens": chat_request.max_tokens,
+                        "include_sources": chat_request.include_sources,
+                        "first_token_latency_ms": first_token_latency_ms,
+                        "streaming": True,
+                        "fallback": True
+                    }
+                ))
+
+            yield f"data: {json.dumps({'type': 'complete', 'duration': total_time, 'tokens': token_count})}\n\n"
+
+            if follow_up_task:
+                try:
+                    follow_up_questions = await follow_up_task
+                except Exception as fu_error:
+                    logger.warning(f"Follow-up question generation failed (fallback): {fu_error}")
+                    follow_up_questions = []
+                if follow_up_questions:
+                    yield f"data: {json.dumps({'type': 'metadata', 'follow_up_questions': follow_up_questions})}\n\n"
+
             if advanced_cache and context and sources and full_response:
-                # Update context hash with actual retrieved documents
-                context_hash = create_context_hash(
-                    query=chat_request.message,
-                    documents=[doc for doc, _ in results] if results else [],
-                    model=chat_request.model or "default"
-                )
-                
-                # Cache the complete response with follow-up questions
+                if cache_context_hash is None:
+                    cache_context_hash = create_context_hash(
+                        query=chat_request.message,
+                        documents=[doc for doc, _ in results] if results else [],
+                        model=chat_request.model or "default"
+                    )
                 await advanced_cache.set_response(
                     query=chat_request.message,
-                    context_hash=context_hash,
-                    response={"response": full_response, "sources": sources, "follow_up_questions": follow_up_questions},
+                    context_hash=cache_context_hash,
+                    response={
+                        "response": full_response,
+                        "sources": sources,
+                        "follow_up_questions": follow_up_questions
+                    },
                     model=chat_request.model or "default"
                 )
-            
-            # Send completion event
-            yield f"data: {json.dumps({'type': 'complete', 'duration': total_time, 'tokens': token_count})}\n\n"
+
+            if log_task is not None:
+                try:
+                    await log_task
+                except Exception as log_error:
+                    logger.error(f"Failed to log query (fallback): {log_error}")
         
     except asyncio.CancelledError:
         # Client disconnected
