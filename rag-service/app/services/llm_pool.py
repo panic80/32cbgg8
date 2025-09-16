@@ -91,13 +91,31 @@ class LLMPool:
         
         # Pre-warm connections for commonly used models (if min_connections > 0)
         if self.min_connections > 0:
-            warm_configs = [
-                (Provider.OPENAI, settings.openai_chat_model),
-                #(Provider.GOOGLE, settings.google_chat_model),
-                (Provider.ANTHROPIC, settings.anthropic_chat_model)
-            ]
-            
+            warm_configs: List[tuple[Provider, str]] = []
+
+            default_openai = getattr(settings, 'openai_chat_model', 'gpt-4.1-mini')
+            smart_openai = getattr(settings, 'openai_smart_model', 'gpt-5-mini')
+
+            warm_configs.append((Provider.OPENAI, default_openai))
+            if smart_openai and smart_openai != default_openai:
+                warm_configs.append((Provider.OPENAI, smart_openai))
+
+            anthropic_model = getattr(settings, 'anthropic_chat_model', None)
+            if anthropic_model:
+                warm_configs.append((Provider.ANTHROPIC, anthropic_model))
+
+            # Remove duplicates while preserving order
+            seen = set()
+            unique_configs = []
             for provider, model in warm_configs:
+                if not model:
+                    continue
+                key = (provider, model)
+                if key not in seen:
+                    seen.add(key)
+                    unique_configs.append(key)
+
+            for provider, model in unique_configs:
                 if self._has_api_key(provider):
                     await self._ensure_min_connections(provider, model)
         else:

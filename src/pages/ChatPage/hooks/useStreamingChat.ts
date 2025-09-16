@@ -105,6 +105,7 @@ export const useStreamingChat = ({
       // Get selected model from localStorage or use gpt-5-mini for Trip Planner
       const userSelectedModel = localStorage.getItem('selectedLLMModel') || DEFAULT_MODEL_ID;
       const selectedModel = isTripPlannerMessage ? 'gpt-5-mini' : userSelectedModel;
+      const historyLimit = selectedModel === 'gpt-5-mini' ? 6 : 10;
       const selectedProvider = localStorage.getItem('selectedLLMProvider') || 'openai';
       
       // Only update display if NOT a Trip Planner message (keep user's display unchanged)
@@ -127,7 +128,7 @@ export const useStreamingChat = ({
         useHybridSearch: useHybridSearch,
         // HYBRID_SEARCH_TOGGLE_END
         conversationId: conversationId,
-        chatHistory: messages.slice(-10).map(msg => ({
+        chatHistory: messages.slice(-historyLimit).map(msg => ({
           role: msg.sender === 'user' ? 'user' : 'assistant',
           content: msg.content
         }))

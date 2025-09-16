@@ -4,6 +4,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
+import asyncio
 import time
 import os
 from typing import Dict, Any
@@ -50,6 +51,8 @@ async def lifespan(app: FastAPI):
         vector_store_manager = VectorStoreManager()
         await vector_store_manager.initialize()
         logger.info("Vector store initialized")
+        await asyncio.to_thread(vector_store_manager.get_all_documents, True)
+        logger.info("Vector store corpus preloaded for retrieval")
         
         # Initialize document store
         document_store = DocumentStore(vector_store_manager, cache_service)

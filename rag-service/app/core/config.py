@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     openai_embedding_model: str = "text-embedding-3-large"
     openai_embedding_dimensions: int = 3072  # Maximum dimensions for text-embedding-3-large
     openai_chat_model: str = "gpt-4.1-mini"  # Updated to gpt-4.1-mini
+    openai_smart_model: str = "gpt-5-mini"  # Preferred GPT-5 model for Smart mode
     
     # Google Configuration
     google_api_key: Optional[str] = None
