@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Send, Settings, Sparkles, Command as CommandIcon, Mic, Paperclip, Hash, AtSign, HelpCircle, Zap, ChevronDown, X, Database, MapIcon, Book, Minimize2, Search, Layers, Brain } from 'lucide-react';
+import { Send, Settings, Sparkles, Command as CommandIcon, Mic, Paperclip, Hash, AtSign, HelpCircle, Zap, ChevronDown, X, Database, MapIcon, Book, Minimize2, Search, Layers, Brain, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence, useSpring } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { AnimatedButton } from '@/components/ui/animated-button';
@@ -112,7 +112,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
   const suppressTimerRef = useRef<number | null>(null);
   
   // Use streaming chat hook
-  const { messages, setMessages, pendingMessage, isLoading, handleStreamingChat } = useStreamingChat({
+  const { messages, setMessages, pendingMessage, isLoading, retrievalStatus, handleStreamingChat } = useStreamingChat({
     conversationId,
     setConversationId,
     setCurrentModel,
@@ -477,6 +477,20 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
                     </button>
                   </div>
                 )}
+                <AnimatePresence>
+                  {retrievalStatus && (
+                    <motion.div
+                      className="flex items-center gap-2 mb-4 text-xs text-[var(--text-secondary)]"
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      key="retrieval-status"
+                    >
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--primary)]" />
+                      <span>{retrievalStatus}</span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
                 <AnimatePresence>
                   {visibleMessages.map((message, idx) => {
                     const messageIndex = startIndex + idx;

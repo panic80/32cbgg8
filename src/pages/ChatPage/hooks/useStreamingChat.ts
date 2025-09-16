@@ -49,6 +49,7 @@ export const useStreamingChat = ({
   const [messages, setMessages] = useState<Message[]>([]);
   const [pendingMessage, setPendingMessage] = useState<Message | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [retrievalStatus, setRetrievalStatus] = useState<string | null>(null);
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const pendingMessageRef = useRef<Message | null>(null);
@@ -79,6 +80,7 @@ export const useStreamingChat = ({
     setMessages(prev => [...prev, userMessage]);
     const currentInput = messageText;
     setIsLoading(true);
+    setRetrievalStatus('Contacting retrieval service...');
 
     // Clean up any inflight request before starting a new one
     if (abortControllerRef.current) {
@@ -207,11 +209,11 @@ export const useStreamingChat = ({
 
               switch (event.type) {
                 case 'retrieval_start':
-                  // Retrieval status intentionally suppressed in UI
+                  setRetrievalStatus('Searching trusted sources...');
                   break;
 
                 case 'retrieval_complete':
-                  // Retrieval completion acknowledged without UI toast
+                  setRetrievalStatus('Preparing answer...');
                   break;
 
                 case 'sources':
@@ -243,6 +245,7 @@ export const useStreamingChat = ({
 
                 case 'token':
                   if (event.content) {
+                    setRetrievalStatus(prev => (prev ? null : prev));
                     streamingContent += event.content;
                     if (pendingMessageRef.current) {
                       pendingMessageRef.current.content = streamingContent;
@@ -305,6 +308,7 @@ export const useStreamingChat = ({
                   setMessages(prev => [...prev, finalMessage]);
                   pendingMessageRef.current = null;
                   setPendingMessage(null);
+                  setRetrievalStatus(null);
                   break;
 
                 case 'error':
@@ -337,11 +341,13 @@ export const useStreamingChat = ({
         }
         pendingMessageRef.current = null;
         setPendingMessage(null);
+        setRetrievalStatus(null);
         return;
       }
       pendingMessageRef.current = null;
       setPendingMessage(null);
-      
+      setRetrievalStatus(null);
+
       // Add error message
       const errorMessage: Message = {
         id: (Date.now() + 2).toString(),
@@ -354,6 +360,7 @@ export const useStreamingChat = ({
       if (abortControllerRef.current === controller) {
         abortControllerRef.current = null;
       }
+      setRetrievalStatus(null);
     }
   };
 
@@ -362,6 +369,7 @@ export const useStreamingChat = ({
     setMessages,
     pendingMessage,
     isLoading,
+    retrievalStatus,
     handleStreamingChat
   };
 };
