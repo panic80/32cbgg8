@@ -478,22 +478,6 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
                   </div>
                 )}
                 <AnimatePresence>
-                  {retrievalStatus && (
-                    <motion.div
-                      key="retrieval-status"
-                      className="sticky bottom-4 flex justify-center"
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 8 }}
-                    >
-                      <div className="flex items-center gap-2 rounded-full bg-[var(--card)]/90 border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--text-secondary)] shadow-sm backdrop-blur">
-                        <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--primary)]" />
-                        <span>{retrievalStatus}</span>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-                <AnimatePresence>
                   {visibleMessages.map((message, idx) => {
                     const messageIndex = startIndex + idx;
                     const prev = combinedMessages[messageIndex - 1];
@@ -594,6 +578,27 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
               </div>
             )}
           </ScrollArea>
+
+          <AnimatePresence>
+            {retrievalStatus && (
+              <motion.div
+                key="retrieval-status"
+                className="absolute left-0 right-0 flex justify-center pointer-events-none"
+                style={{
+                  bottom: Math.max(Math.round(inputHeight) + pillMargin + 48, 128),
+                  zIndex: 70,
+                }}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 8 }}
+              >
+                <div className="pointer-events-auto flex items-center gap-2 rounded-full bg-[var(--card)]/95 border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--text-secondary)] shadow-md backdrop-blur">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--primary)]" />
+                  <span>{retrievalStatus}</span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* New messages pill */}
           {!isAtBottom && showNewPill && (
