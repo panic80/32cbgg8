@@ -25,6 +25,12 @@ export const WHATS_NEW_BY_DATE: WhatsNewDateGroup[] = [
         description:
           'Streaming now reuses retrieval pipelines and avoids duplicate placeholders, so answers appear faster and cleaner.',
       },
+      {
+        icon: <FileText className="w-4 h-4" />,
+        text: 'New “How this chatbot works” overview',
+        description:
+          'Explore the retrieval pipeline, guardrails, and why RAG beats a raw LLM inside the new modal in the menu.',
+      },
     ],
   },
   {
