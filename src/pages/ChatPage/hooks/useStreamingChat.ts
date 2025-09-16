@@ -245,7 +245,7 @@ export const useStreamingChat = ({
 
                 case 'token':
                   if (event.content) {
-                    setRetrievalStatus(prev => (prev ? null : prev));
+                    setRetrievalStatus(prev => prev === 'Generating answer...' ? prev : 'Generating answer...');
                     streamingContent += event.content;
                     if (pendingMessageRef.current) {
                       pendingMessageRef.current.content = streamingContent;

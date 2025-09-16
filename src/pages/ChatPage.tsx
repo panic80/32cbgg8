@@ -480,14 +480,16 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
                 <AnimatePresence>
                   {retrievalStatus && (
                     <motion.div
-                      className="flex items-center gap-2 mb-4 text-xs text-[var(--text-secondary)]"
-                      initial={{ opacity: 0, y: -4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -4 }}
                       key="retrieval-status"
+                      className="sticky bottom-4 flex justify-center"
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 8 }}
                     >
-                      <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--primary)]" />
-                      <span>{retrievalStatus}</span>
+                      <div className="flex items-center gap-2 rounded-full bg-[var(--card)]/90 border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--text-secondary)] shadow-sm backdrop-blur">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--primary)]" />
+                        <span>{retrievalStatus}</span>
+                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
