@@ -11,6 +11,7 @@ import {
   Moon, 
   Plane,
   Home,
+  Layers,
   FileQuestion,
   Shield,
   ChevronRight
@@ -39,6 +40,7 @@ interface HamburgerMenuProps {
   onGlossaryOpen: () => void;
   onHelpOpen: () => void;
   onWhatsNewOpen?: () => void;
+  onHowItWorksOpen?: () => void;
   onExportMarkdown: () => void;
   onExportJSON: () => void;
   onClearConversation: () => void;
@@ -56,6 +58,7 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
   onGlossaryOpen,
   onHelpOpen,
   onWhatsNewOpen,
+  onHowItWorksOpen,
   onExportMarkdown,
   onExportJSON,
   onClearConversation,
@@ -107,6 +110,15 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
           onClick: () => {
             setIsOpen(false);
             onWhatsNewOpen && onWhatsNewOpen();
+          }
+        },
+        {
+          type: 'button',
+          label: 'How this chatbot works',
+          icon: <Layers className="w-4 h-4" />,
+          onClick: () => {
+            setIsOpen(false);
+            onHowItWorksOpen && onHowItWorksOpen();
           }
         },
         {

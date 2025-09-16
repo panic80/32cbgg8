@@ -7,6 +7,7 @@ import { TripPlanner } from '@/components/TripPlanner';
 import { GlossaryModal } from '@/components/GlossaryModal';
 import { HelpDialog } from '@/pages/ChatPage/components/HelpDialog';
 import { WhatsNewModal } from '@/pages/ChatPage/components/WhatsNewModal';
+import HowItWorksModal from '@/pages/ChatPage/components/HowItWorksModal';
 import { WHATS_NEW_VERSION } from '@/pages/ChatPage/constants/whatsNew';
 import { HamburgerMenu } from '@/components/HamburgerMenu';
 import LogoImage from '@/components/LogoImage';
@@ -47,6 +48,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   const [showGlossary, setShowGlossary] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showWhatsNew, setShowWhatsNew] = useState(false);
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
   
   // Track if there's unseen updates
   // We keep this local to the header since it owns the modal in this component
@@ -105,6 +107,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           setShortAnswerMode={setShortAnswerMode}
           onTripPlannerOpen={() => setShowTripPlanner(true)}
           onWhatsNewOpen={() => setShowWhatsNew(true)}
+          onHowItWorksOpen={() => setShowHowItWorks(true)}
           onGlossaryOpen={() => setShowGlossary(true)}
           onHelpOpen={() => setShowHelp(true)}
           onExportMarkdown={onExportMarkdown}
@@ -143,6 +146,11 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       }
       setShowWhatsNew(open);
     }}
+  />
+
+  <HowItWorksModal
+    open={showHowItWorks}
+    onOpenChange={setShowHowItWorks}
   />
   
   <HelpDialog
