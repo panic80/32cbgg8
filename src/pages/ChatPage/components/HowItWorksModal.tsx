@@ -52,7 +52,7 @@ const sections = [
       'Together, this yields answers that feel instant while still citing their sources.',
   },
   {
-    title: 'Why not just ask an LLM?',
+    title: 'Why not just ask an LLM like ChatGPT.com?',
     icon: <Brain className="w-5 h-5 text-[var(--primary)]" />,
     description:
       'Pure LLM prompts rely on what the model remembers. Our RAG pipeline keeps it grounded and auditable.',
