@@ -1,14 +1,14 @@
-import { useEffect } from 'react';
+import { useEffect, Dispatch, SetStateAction } from 'react';
 
 interface KeyboardShortcutsOptions {
   showInlineCommand: boolean;
   selectedCommandIndex: number;
   inlineCommands: any[];
-  setCommandOpen: (open: boolean | ((prev: boolean) => boolean)) => void;
-  setSelectedCommandIndex: (index: number) => void;
+  setCommandOpen: Dispatch<SetStateAction<boolean>>;
+  setSelectedCommandIndex: Dispatch<SetStateAction<number>>;
   setInput: (value: string) => void;
-  setShowInlineCommand: (show: boolean) => void;
-  setShowHelpDialog?: (open: boolean | ((prev: boolean) => boolean)) => void;
+  setShowInlineCommand: Dispatch<SetStateAction<boolean>>;
+  setShowHelpDialog?: Dispatch<SetStateAction<boolean>>;
 }
 
 export const useKeyboardShortcuts = ({
@@ -34,22 +34,29 @@ export const useKeyboardShortcuts = ({
       }
       
       // Handle arrow navigation for inline commands
-      if (showInlineCommand) {
+      if (showInlineCommand && inlineCommands.length > 0) {
+        const total = inlineCommands.length;
+
         if (e.key === 'ArrowDown') {
           e.preventDefault();
-          setSelectedCommandIndex((selectedCommandIndex + 1) % inlineCommands.length);
+          setSelectedCommandIndex((current) => (current + 1) % total);
         } else if (e.key === 'ArrowUp') {
           e.preventDefault();
-          setSelectedCommandIndex(selectedCommandIndex === 0 ? inlineCommands.length - 1 : selectedCommandIndex - 1);
+          setSelectedCommandIndex((current) => (current - 1 + total) % total);
         } else if (e.key === 'Enter') {
           e.preventDefault();
-          const selectedCommand = inlineCommands[selectedCommandIndex];
-          setInput(selectedCommand.command + ' ');
+          const index = selectedCommandIndex % total;
+          const selectedCommand = inlineCommands[index];
+          if (selectedCommand) {
+            setInput(selectedCommand.command + ' ');
+          }
           setShowInlineCommand(false);
           // Focus is now handled inside ChatInput component
         } else if (e.key === 'Escape') {
           setShowInlineCommand(false);
         }
+      } else if (showInlineCommand && inlineCommands.length === 0 && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+        e.preventDefault();
       }
     };
 

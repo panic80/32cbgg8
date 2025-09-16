@@ -7,6 +7,15 @@
 - **Extraction Target**: ~1,150 lines into modular components
 - **Risk Level**: Low (UI-only refactoring, no logic changes)
 
+## Additional Refactor Targets
+- Break out chat view-model concerns from `src/pages/ChatPage.tsx` (state windowing, scroll tracking, command palette) into focused hooks/components so the page is a thin orchestrator.
+- Restructure `src/pages/ChatPage/hooks/useStreamingChat.ts` so transport/parsing/state concerns are isolated (e.g., reducer + helpers) for easier testing and new SSE event support.
+- Consolidate `src/components/PlaceAutocomplete.tsx` with the shared `usePlaceAutocomplete` hook to eliminate duplicate debounce/fetch logic while preserving advanced Google Maps behavior.
+- Introduce a shared glossary data provider so `src/components/GlossaryTooltip.tsx` becomes a lightweight renderer instead of managing fetch/caching on every tooltip instance.
+- Decompose `src/components/config/GlossaryConfig.tsx` into smaller subcomponents/hooks (list pane, editor form, import/export controls) to reduce rerenders and simplify maintenance.
+- Split the state machine and scoring utilities out of `src/components/SuggestionController.tsx` into dedicated hooks/modules to improve readability and reusability.
+- Convert `src/api/travelInstructions.js` to TypeScript (or add typed helpers) to replace the handwritten declaration file and catch API shape issues at compile time.
+
 ## Pre-Refactoring Setup
 - [x] Create backup: `cp src/pages/ChatPage.tsx src/pages/ChatPage.tsx.backup.20250815_233414`
 - [ ] Document current behavior and edge cases
@@ -339,18 +348,18 @@ npm run build:production && echo "✅ Production build successful"
 ### Phase 8: Extract Remaining Hooks
 **Risk**: Low | **Time**: 30 minutes | **Dependencies**: Phases 1-7
 
-- [ ] **Step 8.1**: Create useCommandPalette hook
+- [x] **Step 8.1**: Create useCommandPalette hook
   - File: `src/pages/ChatPage/hooks/useCommandPalette.ts`
   - Lines: 224-257 (keyboard handling)
   - Test: Cmd+K works
   - Rollback: Delete hook file
 
-- [ ] **Step 8.2**: Create useScrollBehavior hook
+- [x] **Step 8.2**: Create useScrollBehavior hook
   - Extract auto-scroll logic
   - Test: Scroll behavior
   - Rollback: Restore inline
 
-- [ ] **Step 8.3**: Create useMessageOperations hook
+- [x] **Step 8.3**: Create useMessageOperations hook
   - Extract copy, regenerate functions
   - Test: Operations work
   - Rollback: Restore inline
@@ -358,17 +367,17 @@ npm run build:production && echo "✅ Production build successful"
 ### Phase 9: Final Cleanup
 **Risk**: Low | **Time**: 15 minutes | **Dependencies**: All phases
 
-- [ ] **Step 9.1**: Remove unused imports
+- [x] **Step 9.1**: Remove unused imports
   - Analyze and remove unused imports
   - Test: Build succeeds
   - Rollback: Restore imports
 
-- [ ] **Step 9.2**: Organize remaining code
+- [x] **Step 9.2**: Organize remaining code
   - Group related state
   - Test: Functionality unchanged
   - Rollback: Restore organization
 
-- [ ] **Step 9.3**: Add index.ts for exports
+- [x] **Step 9.3**: Add index.ts for exports
   - Create barrel export file
   - Test: Imports work
   - Rollback: Delete index.ts

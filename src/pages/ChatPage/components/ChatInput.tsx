@@ -5,20 +5,24 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { AnimatedButton } from '@/components/ui/animated-button';
 import { Input } from '@/components/ui/input';
 import { X, Send, Paperclip } from 'lucide-react';
-import { INLINE_COMMANDS as inlineCommands } from '../constants/commands';
 import { toast } from 'sonner';
 
 interface ChatInputProps {
   input: string;
   setInput: (value: string) => void;
   handleInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handleKeyPress: (e: React.KeyboardEvent) => void;
-  handleSendMessage: () => void;
+  handleKeyPress: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  handleSendMessage: () => void | Promise<void>;
   isLoading: boolean;
   showInlineCommand: boolean;
-  commandFilter: string;
   selectedCommandIndex: number;
-  setShowInlineCommand: (value: boolean) => void;
+  setShowInlineCommand: React.Dispatch<React.SetStateAction<boolean>>;
+  commands: {
+    icon: React.ReactNode;
+    label: string;
+    command: string;
+    description: string;
+  }[];
   currentModel: string;
   // Optional attachments controls
   attachments?: { id: string; name: string; size?: number }[];
@@ -34,9 +38,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   handleSendMessage,
   isLoading,
   showInlineCommand,
-  commandFilter,
   selectedCommandIndex,
   setShowInlineCommand,
+  commands,
   currentModel,
   attachments = [],
   onAttachFiles,
@@ -81,41 +85,39 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                   exit={prefersReducedMotion ? undefined : { opacity: 0, y: 10 }}
                 >
                   <div className="p-2" role="listbox" aria-label="Inline commands">
-                    {inlineCommands
-                      .filter(cmd => cmd.command.toLowerCase().startsWith(commandFilter.toLowerCase()))
-                      .map((cmd, index) => (
-                        <motion.div
-                          key={cmd.command}
-                          className={cn(
-                            "flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors",
-                            selectedCommandIndex === index 
-                              ? "bg-[var(--primary)] text-white" 
-                              : "hover:bg-[var(--background-secondary)]"
-                          )}
-                          role="option"
-                          aria-selected={selectedCommandIndex === index}
-                          onClick={() => {
-                            setInput(cmd.command + ' ');
-                            setShowInlineCommand(false);
-                            inputRef.current?.focus();
-                          }}
-                          whileHover={prefersReducedMotion ? undefined : { x: 5 }}
-                        >
-                          <div className={cn(
-                            "w-8 h-8 rounded-lg flex items-center justify-center",
-                            selectedCommandIndex === index
-                              ? "bg-white/20"
-                              : "bg-[var(--background-secondary)]"
-                          )}>
-                            {cmd.icon}
-                          </div>
-                          <div className="flex-1">
-                            <div className="font-medium text-sm">{cmd.label}</div>
-                            <div className="text-xs opacity-70">{cmd.description}</div>
-                          </div>
-                          <kbd className="text-xs opacity-50">{cmd.command}</kbd>
-                        </motion.div>
-                      ))}
+                    {commands.map((cmd, index) => (
+                      <motion.div
+                        key={cmd.command}
+                        className={cn(
+                          "flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors",
+                          selectedCommandIndex === index 
+                            ? "bg-[var(--primary)] text-white" 
+                            : "hover:bg-[var(--background-secondary)]"
+                        )}
+                        role="option"
+                        aria-selected={selectedCommandIndex === index}
+                        onClick={() => {
+                          setInput(cmd.command + ' ');
+                          setShowInlineCommand(false);
+                          inputRef.current?.focus();
+                        }}
+                        whileHover={prefersReducedMotion ? undefined : { x: 5 }}
+                      >
+                        <div className={cn(
+                          "w-8 h-8 rounded-lg flex items-center justify-center",
+                          selectedCommandIndex === index
+                            ? "bg-white/20"
+                            : "bg-[var(--background-secondary)]"
+                        )}>
+                          {cmd.icon}
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium text-sm">{cmd.label}</div>
+                          <div className="text-xs opacity-70">{cmd.description}</div>
+                        </div>
+                        <kbd className="text-xs opacity-50">{cmd.command}</kbd>
+                      </motion.div>
+                    ))}
                     <div className="px-2 pb-2 text-[10px] text-[var(--text-secondary)]">
                       Enter to accept • Esc to close • Tab cycles
                     </div>

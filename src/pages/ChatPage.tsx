@@ -1,46 +1,34 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Send, Settings, Sparkles, Command as CommandIcon, Mic, Paperclip, Hash, AtSign, HelpCircle, Zap, ChevronDown, X, Database, MapIcon, Book, Minimize2, Search, Layers, Brain, Loader2 } from 'lucide-react';
-import { motion, AnimatePresence, useSpring } from 'framer-motion';
-import { Button } from '@/components/ui/button';
-import { AnimatedButton } from '@/components/ui/animated-button';
-import { EnhancedBackButton } from '@/components/ui/enhanced-back-button';
-import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Loader2, Sparkles, Zap } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Skeleton, SkeletonText, SkeletonChatMessage } from '@/components/ui/skeleton';
-import MarkdownRenderer from '@/components/ui/markdown-renderer';
-import SuggestionController from '@/components/SuggestionController';
-import { useSuggestionVisibility } from '@/hooks/useSuggestionVisibility';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { SkeletonChatMessage } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { getModelDisplayName, DEFAULT_MODEL_ID } from '../constants/models';
-import { generateFollowUpQuestions } from '../services/followUpService';
-import { Message, Source, FollowUpQuestion } from '@/types/chat';
-import { SourcesDisplay } from '@/components/SourcesDisplay';
-import { TripPlanner } from '@/components/TripPlanner';
 import { DisclaimerModal } from '@/components/DisclaimerModal';
 import { GlossaryModal } from '@/components/GlossaryModal';
-import Logo from '@/components/Logo';
-import { INLINE_COMMANDS } from './ChatPage/constants/commands';
 import { WELCOME_SUGGESTIONS } from './ChatPage/constants/suggestions';
 import { TypingIndicator } from './ChatPage/components/TypingIndicator';
 import { BackgroundEffects } from './ChatPage/components/BackgroundEffects';
-import { MessageActions } from './ChatPage/components/MessageActions';
 import { EmptyState } from './ChatPage/components/EmptyState';
 import { ChatHeader } from './ChatPage/components/ChatHeader';
 import { ChatMessage } from './ChatPage/components/ChatMessage';
 import { ChatInput } from './ChatPage/components/ChatInput';
 import { HelpDialog } from './ChatPage/components/HelpDialog';
-import { useLocalStorage } from './ChatPage/hooks/useLocalStorage';
-import { useStreamingChat } from './ChatPage/hooks/useStreamingChat';
-import { useTheme } from './ChatPage/hooks/useTheme';
-import { useModelMode } from './ChatPage/hooks/useModelMode';
-import { useDisclaimer } from './ChatPage/hooks/useDisclaimer';
-import { useKeyboardShortcuts } from './ChatPage/hooks/useKeyboardShortcuts';
-import { formatPlainTextToMarkdown } from './ChatPage/utils/formatting';
+import {
+  useCommandPalette,
+  useDisclaimer,
+  useLocalStorage,
+  useMessageOperations,
+  useModelMode,
+  useScrollBehavior,
+  useStreamingChat,
+  useTheme,
+} from './ChatPage/hooks';
 import { toast } from 'sonner';
 import { useLocation } from 'react-router-dom';
 
@@ -55,17 +43,12 @@ interface ChatPageProps {
  */
 const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: propToggleTheme }) => {
   const [input, setInput] = useState('');
-  const [commandOpen, setCommandOpen] = useState(false);
   const [currentModel, setCurrentModel] = useState(getModelDisplayName(DEFAULT_MODEL_ID));
-  const [showVoiceInput, setShowVoiceInput] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  const [showInlineCommand, setShowInlineCommand] = useState(false);
-  const [commandFilter, setCommandFilter] = useState('');
-  const [selectedCommandIndex, setSelectedCommandIndex] = useState(0);
   const [collapsedMessages, setCollapsedMessages] = useState<Set<string>>(new Set());
   const [showHelpDialog, setShowHelpDialog] = useState(false);
   const [showGlossaryModal, setShowGlossaryModal] = useState(false);
-  const [useRAG, setUseRAG] = useState(true);
+  const [useRAG] = useState(true);
   const [shortAnswerMode, setShortAnswerMode] = useLocalStorage('shortAnswerMode', false);
   // Model mode state for FAST/SMART toggle
   const [modelMode, setModelMode] = useState<'fast' | 'smart'>(() => {
@@ -73,20 +56,16 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
     return savedModel === 'gpt-5-mini' ? 'smart' : 'fast';
   });
   // HYBRID_SEARCH_TOGGLE_START - Remove this entire block to disable hybrid search feature
-  const [useHybridSearch, setUseHybridSearch] = useLocalStorage('useHybridSearch', false);
+  const [useHybridSearch] = useLocalStorage('useHybridSearch', false);
   // HYBRID_SEARCH_TOGGLE_END
   const [conversationId, setConversationId] = useState<string>('');
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [isAtBottom, setIsAtBottom] = useState(true);
-  const [showNewPill, setShowNewPill] = useState(false);
   // Simple windowing to reduce DOM nodes for long chats
   const [visibleCount, setVisibleCount] = useState<number>(50);
-  const suppressPillRef = useRef(false);
   // Track ChatInput height to position the new replies pill dynamically
   const [inputHeight, setInputHeight] = useState<number>(96);
-  const [pillMargin, setPillMargin] = useState<number>(12);
+  const pillMargin = 12;
   const location = useLocation();
 
   // Measure ChatInput (fixed footer) height with ResizeObserver
@@ -108,8 +87,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
       window.removeEventListener('resize', measure);
     };
   }, []);
-  const suppressTimerRef = useRef<number | null>(null);
-  
+
   // Use streaming chat hook
   const { messages, setMessages, pendingMessage, isLoading, retrievalStatus, handleStreamingChat } = useStreamingChat({
     conversationId,
@@ -122,9 +100,6 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
     modelMode
   });
   
-  // Initialize suggestion visibility manager
-  const suggestionManager = useSuggestionVisibility();
-
   const combinedMessages = useMemo(() => (
     pendingMessage ? [...messages, pendingMessage] : messages
   ), [messages, pendingMessage]);
@@ -163,9 +138,6 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
     return () => clearTimeout(timer);
   }, []);
   
-  // Inline command suggestions
-  const inlineCommands = INLINE_COMMANDS;
-
   // Apply theme changes
   useTheme(theme, propTheme);
   
@@ -182,67 +154,13 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
     
   });
 
-  // Simple, robust scroll-to-bottom with temporary suppression
-  const scrollToBottom = () => {
-    const viewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
-    if (!viewport) return;
-    // Suppress pill and scroll handling briefly to avoid bounce
-    suppressPillRef.current = true;
-    if (suppressTimerRef.current) {
-      window.clearTimeout(suppressTimerRef.current);
-    }
-    const force = () => { viewport.scrollTop = viewport.scrollHeight; };
-    force();
-    requestAnimationFrame(() => { force(); });
-    suppressTimerRef.current = window.setTimeout(() => {
-      suppressPillRef.current = false;
-    }, 400);
-    setIsAtBottom(true);
-    setShowNewPill(false);
-  };
-
-  // Track scroll position for "new messages" pill
-  useEffect(() => {
-    const viewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
-    if (!viewport) return;
-    let ticking = false;
-    const onScroll = () => {
-      if (suppressPillRef.current) return;
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(() => {
-        const distance = viewport.scrollHeight - (viewport.scrollTop + viewport.clientHeight);
-        const atBottom = distance <= 2; // tighter threshold to avoid flapping
-        setIsAtBottom(atBottom);
-        if (atBottom) setShowNewPill(false);
-        ticking = false;
-      });
-    };
-    onScroll();
-    viewport.addEventListener('scroll', onScroll, { passive: true });
-    return () => viewport.removeEventListener('scroll', onScroll as any);
-  }, []);
-
-  // Show new messages pill when content changes and user is not at bottom
-  useEffect(() => {
-    if (!isAtBottom && messages.length > 0 && !suppressPillRef.current) {
-      setShowNewPill(true);
-    }
-    if (isAtBottom) {
-      setShowNewPill(false);
-    }
-  }, [messages, isAtBottom]);
-
-  // Keyboard shortcuts
-  useKeyboardShortcuts({
-    showInlineCommand,
-    selectedCommandIndex,
-    inlineCommands,
-    setCommandOpen,
-    setSelectedCommandIndex,
-    setInput,
-    setShowInlineCommand,
-    setShowHelpDialog
+  const {
+    isAtBottom,
+    showNewPill,
+    scrollToBottom,
+  } = useScrollBehavior({
+    scrollAreaRef,
+    messages,
   });
 
   const handleSendMessage = useCallback(async (messageText?: string) => {
@@ -258,31 +176,21 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
     await handleStreamingChat(messageToSend);
   }, [input, isLoading, handleStreamingChat]);
 
-  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey && !showInlineCommand) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  }, [showInlineCommand, handleSendMessage]);
-  
-  // Handle input changes with inline command detection
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setInput(value);
-    
-    // Detect slash commands
-    if (value.startsWith('/') && value.length > 1) {
-      const command = value.toLowerCase();
-      const hasMatch = inlineCommands.some(cmd => 
-        cmd.command.toLowerCase().startsWith(command)
-      );
-      setShowInlineCommand(hasMatch);
-      setCommandFilter(command);
-    } else {
-      setShowInlineCommand(false);
-    }
-  }, [inlineCommands]);
-  
+  const {
+    commandOpen,
+    setCommandOpen,
+    showInlineCommand,
+    setShowInlineCommand,
+    selectedCommandIndex,
+    handleInputChange,
+    handleKeyPress,
+    commands: inlineCommandOptions,
+  } = useCommandPalette({
+    setInput,
+    onSubmit: handleSendMessage,
+    setShowHelpDialog,
+  });
+
   // Toggle message collapse
   const toggleMessageCollapse = useCallback((messageId: string) => {
     setCollapsedMessages(prev => {
@@ -325,23 +233,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
     setShowDisclaimer(false);
   }, [setShowDisclaimer]);
 
-
-  const copyMessage = useCallback((content: string) => {
-    navigator.clipboard.writeText(content).then(() => {
-      toast.success('Copied to clipboard');
-    }).catch(() => toast.error('Copy failed'));
-  }, []);
-
-  const regenerateMessage = useCallback((id: string) => {
-    // Simulate regeneration
-    setTimeout(() => {
-      setMessages(prev => prev.map(msg => 
-        msg.id === id 
-          ? { ...msg, content: "This is a regenerated response with updated content." }
-          : msg
-      ));
-    }, 1500);
-  }, []);
+  const { copyMessage, regenerateMessage } = useMessageOperations({ setMessages });
 
   // Export helpers
   const exportMarkdown = useCallback(() => {
@@ -572,7 +464,6 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
                     </div>
                   </motion.div>
                 )}
-                <div ref={messagesEndRef} />
               </div>
             )}
           </ScrollArea>
@@ -629,9 +520,9 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
             handleSendMessage={handleSendMessage}
             isLoading={isLoading}
             showInlineCommand={showInlineCommand}
-            commandFilter={commandFilter}
             selectedCommandIndex={selectedCommandIndex}
             setShowInlineCommand={setShowInlineCommand}
+            commands={inlineCommandOptions}
             currentModel={currentModel}
             
           />
