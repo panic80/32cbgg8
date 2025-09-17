@@ -31,6 +31,7 @@ import {
 } from './ChatPage/hooks';
 import { toast } from 'sonner';
 import { useLocation } from 'react-router-dom';
+import { exportConversationAsMarkdown, exportConversationAsJSON } from '@/utils/exportConversation';
 
 
 interface ChatPageProps {
@@ -234,36 +235,12 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
 
   // Export helpers
   const exportMarkdown = useCallback(() => {
-    const lines: string[] = [];
-    lines.push(`# Conversation${conversationId ? ' ' + conversationId : ''}`);
-    lines.push('');
-    messages.forEach(m => {
-      const role = m.sender === 'user' ? 'User' : 'Assistant';
-      lines.push(`## ${role} (${new Date(m.timestamp).toLocaleString()})`);
-      lines.push('');
-      const content = m.content.replace(/```/g, '\\`\\`\\`');
-      lines.push(content);
-      lines.push('');
-    });
-    const blob = new Blob([lines.join('\n')], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `conversation${conversationId ? '-' + conversationId : ''}.md`;
-    a.click();
-    URL.revokeObjectURL(url);
+    exportConversationAsMarkdown(messages, conversationId);
     toast.success('Exported as Markdown');
   }, [conversationId, messages]);
 
   const exportJSON = useCallback(() => {
-    const payload = { conversationId, messages };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `conversation${conversationId ? '-' + conversationId : ''}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    exportConversationAsJSON(messages, conversationId);
     toast.success('Exported as JSON');
   }, [conversationId, messages]);
 
