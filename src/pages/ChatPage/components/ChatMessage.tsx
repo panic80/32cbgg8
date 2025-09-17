@@ -10,6 +10,8 @@ import SuggestionController from '@/components/SuggestionController';
 import { SourcesDisplay } from '@/components/SourcesDisplay';
 import type { Message as ChatMessageType } from '@/types/chat';
 
+const ENABLE_MESSAGE_ACTIONS = false;
+
 interface ChatMessageProps {
   message: ChatMessageType;
   messageIndex: number;
@@ -204,7 +206,7 @@ const ChatMessageInner: React.FC<ChatMessageProps> = ({
           )}
           
           {/* Message Actions */}
-          {message.sender === 'assistant' && (
+          {ENABLE_MESSAGE_ACTIONS && message.sender === 'assistant' && (
             <MessageActions
               onCopy={onCopy}
               onRegenerate={onRegenerate}
