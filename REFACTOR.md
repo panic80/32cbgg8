@@ -2,19 +2,20 @@
 
 ## Project Overview
 - **File**: `/var/www/cbthis/src/pages/ChatPage.tsx`
-- **Current Size**: 1,349 lines
+- **Current Size**: 544 lines (post-initial extraction work)
 - **Target Size**: ~200 lines (main orchestration only)
-- **Extraction Target**: ~1,150 lines into modular components
+- **Remaining Extraction**: ~350 lines into modular components/hooks
 - **Risk Level**: Low (UI-only refactoring, no logic changes)
 
 ## Additional Refactor Targets
-- Break out chat view-model concerns from `src/pages/ChatPage.tsx` (state windowing, scroll tracking, command palette) into focused hooks/components so the page is a thin orchestrator.
-- Restructure `src/pages/ChatPage/hooks/useStreamingChat.ts` so transport/parsing/state concerns are isolated (e.g., reducer + helpers) for easier testing and new SSE event support.
+- Break out chat view-model concerns from `src/pages/ChatPage.tsx` (state windowing, scroll tracking, command palette) into focused hooks/components so the page is a thin orchestrator. ✅ Hooks extracted (`useScrollBehavior`, `useCommandPalette`, `useMessageOperations`, `useMessageWindow`) but streaming and export helpers still inline.
+- Restructure `src/pages/ChatPage/hooks/useStreamingChat.ts` so transport/parsing/state concerns are isolated (e.g., reducer + helpers) for easier testing and new SSE event support. ✅ Hook now uses a reducer + helper mappers; remaining follow-up is test coverage.
 - Consolidate `src/components/PlaceAutocomplete.tsx` with the shared `usePlaceAutocomplete` hook to eliminate duplicate debounce/fetch logic while preserving advanced Google Maps behavior.
 - Introduce a shared glossary data provider so `src/components/GlossaryTooltip.tsx` becomes a lightweight renderer instead of managing fetch/caching on every tooltip instance.
 - Decompose `src/components/config/GlossaryConfig.tsx` into smaller subcomponents/hooks (list pane, editor form, import/export controls) to reduce rerenders and simplify maintenance.
 - Split the state machine and scoring utilities out of `src/components/SuggestionController.tsx` into dedicated hooks/modules to improve readability and reusability.
 - Convert `src/api/travelInstructions.js` to TypeScript (or add typed helpers) to replace the handwritten declaration file and catch API shape issues at compile time.
+- Reduce `src/App.jsx` responsibilities (remove unused state, move route prefetching into a hook, consolidate nested `Suspense`) so navigation shell stays maintainable.
 
 ## Pre-Refactoring Setup
 - [x] Create backup: `cp src/pages/ChatPage.tsx src/pages/ChatPage.tsx.backup.20250815_233414`
@@ -95,81 +96,13 @@ npm run build:production && echo "✅ Production build successful"
   - Test: `npm run build`
   - Rollback: Restore from backup
 
-### Phase 2: Extract EmptyState Component (Lines 798-859)
-**Risk**: Low | **Time**: 20 minutes | **Dependencies**: Phase 1
+### Phase 2: Extract EmptyState Component (Completed)
+**Status**: ✅ `src/pages/ChatPage/components/EmptyState.tsx` owns the empty-state UI, including the categorized suggestions experiment.
+**Follow-up**: Retire the legacy view once the `USE_CATEGORIZED_VIEW` flag is no longer needed.
 
-- [ ] **Step 2.1**: Create EmptyState.tsx file
-  - File: `src/pages/ChatPage/components/EmptyState.tsx`
-  - Command: `touch src/pages/ChatPage/components/EmptyState.tsx`
-  - Test: `ls -la src/pages/ChatPage/components/EmptyState.tsx`
-  - Rollback: `rm src/pages/ChatPage/components/EmptyState.tsx`
-
-- [ ] **Step 2.2**: Extract EmptyState JSX structure
-  - Source: Lines 798-859 from ChatPage.tsx
-  - Target: EmptyState.tsx
-  ```typescript
-  import React from 'react';
-  import { motion } from 'framer-motion';
-  import { Card, CardContent } from '@/components/ui/card';
-  import { WELCOME_SUGGESTIONS } from '../constants/suggestions';
-  
-  interface EmptyStateProps {
-    onSuggestionClick: (title: string) => void;
-  }
-  
-  export const EmptyState: React.FC<EmptyStateProps> = ({ onSuggestionClick }) => (
-    // ... JSX from lines 798-859 ...
-  );
-  ```
-  - Test: `npx tsc --noEmit`
-  - Rollback: Clear file content
-
-- [ ] **Step 2.3**: Import EmptyState in ChatPage.tsx
-  - Line: After line 32
-  - Change: `import { EmptyState } from './ChatPage/components/EmptyState';`
-  - Test: `npm run build`
-  - Rollback: Remove import
-
-- [ ] **Step 2.4**: Replace inline EmptyState with component
-  - Lines: 798-859
-  - Change: Replace with `<EmptyState onSuggestionClick={handleSuggestionClick} />`
-  - Test: `npm run dev` and verify welcome screen
-  - Rollback: Restore original JSX
-
-### Phase 3: Extract ChatHeader Component (Lines 608-720)
-**Risk**: Medium | **Time**: 30 minutes | **Dependencies**: Phase 2
-
-- [ ] **Step 3.1**: Create ChatHeader.tsx
-  - File: `src/pages/ChatPage/components/ChatHeader.tsx`
-  - Test: `touch src/pages/ChatPage/components/ChatHeader.tsx && ls -la`
-  - Rollback: `rm src/pages/ChatPage/components/ChatHeader.tsx`
-
-- [ ] **Step 3.2**: Define ChatHeader props interface
-  ```typescript
-  interface ChatHeaderProps {
-    theme: string;
-    toggleTheme: () => void;
-    modelMode: 'fast' | 'smart';
-    setModelMode: (mode: 'fast' | 'smart') => void;
-    useHybridSearch: boolean;
-    setUseHybridSearch: (value: boolean) => void;
-    onTripPlanSubmit: (plan: string) => void;
-  }
-  ```
-  - Test: `npx tsc --noEmit`
-  - Rollback: Clear interface
-
-- [ ] **Step 3.3**: Extract header JSX (lines 608-720)
-  - Move entire header JSX to ChatHeader.tsx
-  - Include all imports needed (Logo, TripPlanner, etc.)
-  - Test: `npm run build`
-  - Rollback: Restore to empty file
-
-- [ ] **Step 3.4**: Import and use ChatHeader
-  - Import in ChatPage.tsx
-  - Replace lines 608-720 with `<ChatHeader {...headerProps} />`
-  - Test: Full manual test checklist
-  - Rollback: Restore inline JSX
+### Phase 3: Extract ChatHeader Component (Completed)
+**Status**: ✅ Header UI lives in `src/pages/ChatPage/components/ChatHeader.tsx` with focused props for theme, model mode, exports, and quick actions.
+**Follow-up**: Consider memoising expensive dropdowns if rerenders become an issue.
 
 ### CHECKPOINT A: Phase 1-3 Validation
 - [ ] Run full test suite: `npm run test:refactor`
@@ -220,53 +153,9 @@ npm run build:production && echo "✅ Production build successful"
   - Test: Full conversation flow
   - Rollback: Restore inline rendering
 
-### Phase 5: Extract useStreamingChat Hook (Lines 259-497)
-**Risk**: High | **Time**: 60 minutes | **Dependencies**: Phases 1-4
-
-- [ ] **Step 5.1**: Create useStreamingChat.ts
-  - File: `src/pages/ChatPage/hooks/useStreamingChat.ts`
-  - Test: File created
-  - Rollback: Delete file
-
-- [ ] **Step 5.2**: Define hook signature
-  ```typescript
-  export function useStreamingChat(config: StreamConfig) {
-    const [messages, setMessages] = useState<Message[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
-    // ... 
-    return { messages, sendMessage, isLoading };
-  }
-  ```
-  - Test: TypeScript check
-  - Rollback: Clear file
-
-- [ ] **Step 5.3**: Move SSE event type definitions
-  - Lines: Define StreamEvent interface
-  - Test: `npx tsc --noEmit`
-  - Rollback: Remove interface
-
-- [ ] **Step 5.4**: Extract handleSendMessage logic (part 1)
-  - Lines: 259-350 (setup and request creation)
-  - Move to hook
-  - Test: Build test
-  - Rollback: Restore inline
-
-- [ ] **Step 5.5**: Extract handleSendMessage logic (part 2)
-  - Lines: 351-420 (SSE parsing)
-  - Move to hook
-  - Test: Send message test
-  - Rollback: Restore inline
-
-- [ ] **Step 5.6**: Extract handleSendMessage logic (part 3)
-  - Lines: 421-497 (error handling)
-  - Move to hook
-  - Test: Force error, verify handling
-  - Rollback: Restore inline
-
-- [ ] **Step 5.7**: Use useStreamingChat in ChatPage
-  - Replace inline logic with hook
-  - Test: Complete chat flow
-  - Rollback: Restore inline logic
+### Phase 5: Extract useStreamingChat Hook (Completed)
+**Status**: ✅ Refactored `useStreamingChat` with a reducer-driven state machine, helper mappers for sources/follow-ups, and a `setMessages` adapter that preserves existing consumers.
+**Follow-up**: Add unit coverage around SSE edge cases (metadata-only, missing `complete` events) and consider isolating network transport for easier mocking.
 
 ### CHECKPOINT B: Phase 4-5 Validation
 - [ ] Full regression test suite
@@ -275,75 +164,13 @@ npm run build:production && echo "✅ Production build successful"
 - [ ] SSE streaming verification
 - [ ] Error handling test
 
-### Phase 6: Extract ChatInput Component (Lines 1072-1261)
-**Risk**: Medium | **Time**: 40 minutes | **Dependencies**: Phases 1-5
+### Phase 6: Extract ChatInput Component (Completed)
+**Status**: ✅ `src/pages/ChatPage/components/ChatInput.tsx` manages the footer, inline command palette, and send controls behind props.
+**Follow-up**: Attachments feature flag remains off; plan separate story for upload UX once backend is ready.
 
-- [ ] **Step 6.1**: Create ChatInput.tsx
-  - File: `src/pages/ChatPage/components/ChatInput.tsx`
-  - Test: File exists
-  - Rollback: Delete file
-
-- [ ] **Step 6.2**: Define ChatInput props
-  ```typescript
-  interface ChatInputProps {
-    input: string;
-    setInput: (value: string) => void;
-    onSend: () => void;
-    isLoading: boolean;
-    showInlineCommand: boolean;
-    // ... other props
-  }
-  ```
-  - Test: TypeScript check
-  - Rollback: Clear interface
-
-- [ ] **Step 6.3**: Extract input field JSX
-  - Lines: 1072-1150
-  - Move to ChatInput.tsx
-  - Test: Input field renders
-  - Rollback: Restore inline
-
-- [ ] **Step 6.4**: Extract command palette
-  - Lines: 1151-1220
-  - Include in ChatInput.tsx
-  - Test: Command palette opens
-  - Rollback: Restore inline
-
-- [ ] **Step 6.5**: Extract action buttons
-  - Lines: 1221-1261
-  - Include in ChatInput.tsx
-  - Test: All buttons functional
-  - Rollback: Restore inline
-
-- [ ] **Step 6.6**: Import and use ChatInput
-  - Replace inline input area
-  - Test: Send message flow
-  - Rollback: Restore inline
-
-### Phase 7: Extract HelpDialog Component (Lines 1266-1374)
-**Risk**: Low | **Time**: 20 minutes | **Dependencies**: Phases 1-6
-
-- [ ] **Step 7.1**: Create HelpDialog.tsx
-  - File: `src/pages/ChatPage/components/HelpDialog.tsx`
-  - Test: File exists
-  - Rollback: Delete file
-
-- [ ] **Step 7.2**: Extract help content to constants
-  - File: `src/pages/ChatPage/constants/helpContent.ts`
-  - Lines: Help text from dialog
-  - Test: Import works
-  - Rollback: Delete constants file
-
-- [ ] **Step 7.3**: Move dialog JSX
-  - Lines: 1266-1374
-  - Move to HelpDialog.tsx
-  - Test: Dialog opens
-  - Rollback: Restore inline
-
-- [ ] **Step 7.4**: Import and use HelpDialog
-  - Replace inline dialog
-  - Test: Help button functionality
-  - Rollback: Restore inline
+### Phase 7: Extract HelpDialog Component (Completed)
+**Status**: ✅ `src/pages/ChatPage/components/HelpDialog.tsx` encapsulates the shortcut primer with shared constants under `./constants`.
+**Follow-up**: Evaluate externalising help copy if marketing needs runtime edits.
 
 ### Phase 8: Extract Remaining Hooks
 **Risk**: Low | **Time**: 30 minutes | **Dependencies**: Phases 1-7

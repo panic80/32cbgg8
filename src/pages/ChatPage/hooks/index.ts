@@ -7,3 +7,4 @@ export * from './useModelMode';
 export * from './useScrollBehavior';
 export * from './useStreamingChat';
 export * from './useTheme';
+export * from './useMessageWindow';

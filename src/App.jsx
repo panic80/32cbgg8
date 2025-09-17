@@ -1,13 +1,13 @@
-import React, { useState, useEffect, lazy, Suspense, useRef } from 'react';
-import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
+import React, { lazy, Suspense, useMemo } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import './index.css';
 import { useTheme } from './context/ThemeContext';
 import ScrollToTop from './components/ScrollToTop';
+import useRoutePrefetch from './hooks/useRoutePrefetch';
+import useMobileFlag from './hooks/useMobileFlag';
 
 // Lazy load components
-const Hero = lazy(() => import('./components/Hero'));
-const ThemeToggle = lazy(() => import('./components/ThemeToggle'));
 const FAQPage = lazy(() => import('./pages/FAQPage'));
 const LandingPage = lazy(() => import('./pages/LandingPage.jsx'));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
@@ -18,108 +18,21 @@ const AdminToolsPage = lazy(() => import('./pages/AdminToolsPage'));
 const ConfigPage = lazy(() => import('./pages/ConfigPage'));
 const UIShowcase = lazy(() => import('./components/UIShowcase'));
 const LandingPageV2 = lazy(() => import('./pages/LandingPageV2.jsx'));
-import RouteSkeleton from './components/RouteSkeleton'
-
-// Prefetch components
-const prefetchComponent = (importFn) => {
-  // Prefer idle time and avoid prefetch on slow connections or when Save-Data is enabled
-  const conn = typeof navigator !== 'undefined'
-    ? (navigator.connection || navigator.mozConnection || navigator.webkitConnection)
-    : undefined;
-  const saveData = conn && 'saveData' in conn ? conn.saveData : false;
-  const isSlow = conn && conn.effectiveType ? /2g/.test(conn.effectiveType) : false;
-  if (saveData || isSlow) return () => {};
-
-  let cancelled = false;
-  const run = () => { if (!cancelled) importFn().catch(() => {}); };
-  const idle = typeof window !== 'undefined' && 'requestIdleCallback' in window ? window.requestIdleCallback.bind(window) : null;
-  const idleId = idle ? idle(run, { timeout: 1500 }) : window.setTimeout(run, 0);
-  return () => {
-    cancelled = true;
-    if (idle && idleId && 'cancelIdleCallback' in window) window.cancelIdleCallback(idleId);
-    else clearTimeout(idleId);
-  };
-};
+import RouteSkeleton from './components/RouteSkeleton';
 
 function App() {
   // Use global theme context
   const { theme, toggleTheme } = useTheme();
-  // Local UI state
-  const [state, setState] = useState({
-    input: '',
-    sidebarCollapsed: false,
-    isMobile: false,
-    isLoading: false,
-    isTyping: false,
-    typingTimeout: null,
-    isFirstInteraction: true,
-    isSimplified: false,
-    model: 'models/gemini-2.0-flash-001'
-  });
+  const prefetchTargets = useMemo(
+    () => [
+      () => import('./pages/ChatPage'),
+      () => import('./components/MobileToggle'),
+    ],
+    []
+  );
 
-
-  // Prefetch components on mount
-  const prefetchCleanupRef = useRef(null);
-  const prefetchTriggeredRef = useRef(false);
-
-  useEffect(() => {
-    const startPrefetch = () => {
-      if (prefetchTriggeredRef.current) return;
-      prefetchTriggeredRef.current = true;
-      prefetchCleanupRef.current = [
-        prefetchComponent(() => import('./components/Hero')),
-        prefetchComponent(() => import('./pages/ChatPage')),
-        prefetchComponent(() => import('./components/MobileToggle'))
-      ];
-    };
-
-    const interactionEvents = ['pointerdown', 'keydown'];
-    interactionEvents.forEach(event => {
-      document.addEventListener(event, startPrefetch, { once: true });
-    });
-
-    return () => {
-      interactionEvents.forEach(event => {
-        document.removeEventListener(event, startPrefetch);
-      });
-      if (prefetchCleanupRef.current) {
-        prefetchCleanupRef.current.forEach(cleanup => cleanup());
-        prefetchCleanupRef.current = null;
-      }
-    };
-  }, []);
-
-
-  // Theme updates are handled by ThemeProvider
-
-  // Mobile updates only
-  useEffect(() => {
-    
-    
-    const root = document.documentElement;
-    root.setAttribute('data-mobile', state.manualMobileToggle || state.isMobile);
-  }, [state.manualMobileToggle, state.isMobile]);
-
-  // Resize handler with debounce
-  useEffect(() => {
-    let resizeTimeout;
-    const handleResize = () => {
-      
-      clearTimeout(resizeTimeout);
-      resizeTimeout = setTimeout(() => {
-        const newIsMobile = window.innerWidth <= 768;
-        
-        setState(prev => ({ ...prev, isMobile: newIsMobile }));
-      }, 150);
-    };
-
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      clearTimeout(resizeTimeout);
-    };
-  }, []);
+  useRoutePrefetch(prefetchTargets);
+  useMobileFlag();
 
   return (
     <Router>
@@ -137,49 +50,14 @@ function App() {
         />
         <Suspense fallback={<RouteSkeleton /> }>
           <Routes>
-            <Route path="/" element={
-              <Suspense fallback={<RouteSkeleton /> }>
-                <LandingPage />
-              </Suspense>
-            } />
-            <Route path="/opi" element={
-              <Suspense fallback={<RouteSkeleton /> }>
-                <OPIPage />
-              </Suspense>
-            } />
-            <Route path="/admin-tools" element={
-              <Suspense fallback={<RouteSkeleton /> }>
-                <AdminToolsPage />
-              </Suspense>
-            } />
-            <Route
-              path="/chat"
-              element={
-                <Suspense fallback={<RouteSkeleton /> }>
-                  <ChatPage theme={theme} toggleTheme={toggleTheme} />
-                </Suspense>
-              }
-            />
-            <Route path="/chat/config" element={
-              <Suspense fallback={<RouteSkeleton /> }>
-                <ConfigPage />
-              </Suspense>
-            } />
-            <Route path="/privacy" element={
-                          <Suspense fallback={<RouteSkeleton /> }>
-                            <PrivacyPage />
-                          </Suspense>
-                        } />
-            <Route path="/home-v2" element={
-              <Suspense fallback={<RouteSkeleton /> }>
-                <LandingPageV2 />
-              </Suspense>
-            } />
-            <Route path="/faq" element={
-              <Suspense fallback={<RouteSkeleton /> }>
-                <FAQPage />
-              </Suspense>
-            } />
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/opi" element={<OPIPage />} />
+            <Route path="/admin-tools" element={<AdminToolsPage />} />
+            <Route path="/chat" element={<ChatPage theme={theme} toggleTheme={toggleTheme} />} />
+            <Route path="/chat/config" element={<ConfigPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/home-v2" element={<LandingPageV2 />} />
+            <Route path="/faq" element={<FAQPage />} />
             <Route path="/coming-soon-1" element={
               <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Coming Soon</h1>
@@ -190,16 +68,8 @@ function App() {
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Coming Soon</h1>
               </div>
             } />
-            <Route path="/loading-debug" element={
-              <Suspense fallback={<RouteSkeleton /> }>
-                <LoadingDebugPage />
-              </Suspense>
-            } />
-            <Route path="/ui-showcase" element={
-              <Suspense fallback={<RouteSkeleton /> }>
-                <UIShowcase />
-              </Suspense>
-            } />
+            <Route path="/loading-debug" element={<LoadingDebugPage />} />
+            <Route path="/ui-showcase" element={<UIShowcase />} />
           </Routes>
           {/* MobileNavBar removed per request */}
         </Suspense>

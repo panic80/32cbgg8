@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Loader2, Sparkles, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -11,7 +11,6 @@ import { cn } from '@/lib/utils';
 import { getModelDisplayName, DEFAULT_MODEL_ID } from '../constants/models';
 import { DisclaimerModal } from '@/components/DisclaimerModal';
 import { GlossaryModal } from '@/components/GlossaryModal';
-import { WELCOME_SUGGESTIONS } from './ChatPage/constants/suggestions';
 import { TypingIndicator } from './ChatPage/components/TypingIndicator';
 import { BackgroundEffects } from './ChatPage/components/BackgroundEffects';
 import { EmptyState } from './ChatPage/components/EmptyState';
@@ -28,6 +27,7 @@ import {
   useScrollBehavior,
   useStreamingChat,
   useTheme,
+  useMessageWindow,
 } from './ChatPage/hooks';
 import { toast } from 'sonner';
 import { useLocation } from 'react-router-dom';
@@ -61,8 +61,6 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
   const [conversationId, setConversationId] = useState<string>('');
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  // Simple windowing to reduce DOM nodes for long chats
-  const [visibleCount, setVisibleCount] = useState<number>(50);
   // Track ChatInput height to position the new replies pill dynamically
   const [inputHeight, setInputHeight] = useState<number>(96);
   const pillMargin = 12;
@@ -100,18 +98,13 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
     modelMode
   });
   
-  const combinedMessages = useMemo(() => (
-    pendingMessage ? [...messages, pendingMessage] : messages
-  ), [messages, pendingMessage]);
-
-  const startIndex = useMemo(
-    () => Math.max(0, combinedMessages.length - visibleCount),
-    [combinedMessages, visibleCount]
-  );
-  const visibleMessages = useMemo(
-    () => combinedMessages.slice(startIndex),
-    [combinedMessages, startIndex]
-  );
+  const {
+    combinedMessages,
+    visibleMessages,
+    startIndex,
+    canShowMore: canShowMoreMessages,
+    showMore: showMoreMessages,
+  } = useMessageWindow({ messages, pendingMessage });
 
   // Prefill input from query param ?q=
   useEffect(() => {
@@ -357,11 +350,11 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
             ) : (
               <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 pb-20 sm:pb-24">
                 {/* Show older messages loader when windowed */}
-                {combinedMessages.length > visibleCount && (
+                {canShowMoreMessages && (
                   <div className="flex justify-center mb-4">
                     <button
                       className="px-3 py-1.5 rounded-full bg-[var(--background-secondary)] text-[var(--text)] text-xs border border-[var(--border)] hover:bg-[var(--background-tertiary)]"
-                      onClick={() => setVisibleCount(c => Math.min(combinedMessages.length, c + 50))}
+                      onClick={showMoreMessages}
                     >
                       Show earlier messages
                     </button>

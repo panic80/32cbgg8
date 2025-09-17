@@ -76,7 +76,8 @@
       "Bash(iostat:*)",
       "Bash(pm2 monit:*)",
       "Bash(cat:*)",
-      "Bash(systemctl cat:*)"
+      "Bash(systemctl cat:*)",
+      "WebSearch"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

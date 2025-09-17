@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useReducer, useRef } from 'react';
+import type { SetStateAction } from 'react';
 import { getModelDisplayName } from '@/constants/models';
 import type { Message, Source, FollowUpQuestion } from '@/types/chat';
 
@@ -13,6 +14,91 @@ interface UseStreamingChatOptions {
   modelMode: 'fast' | 'smart';
 }
 
+interface StreamingState {
+  messages: Message[];
+  pendingMessage: Message | null;
+  isLoading: boolean;
+  retrievalStatus: string | null;
+}
+
+type MessagesUpdater = SetStateAction<Message[]>;
+
+type StreamingAction =
+  | { type: 'SET_MESSAGES'; updater: MessagesUpdater }
+  | { type: 'ADD_MESSAGE'; message: Message }
+  | { type: 'SET_PENDING'; message: Message | null }
+  | { type: 'SET_LOADING'; value: boolean }
+  | { type: 'SET_RETRIEVAL_STATUS'; status: string | null }
+  | { type: 'FINALIZE_MESSAGE'; message: Message };
+
+const initialState: StreamingState = {
+  messages: [],
+  pendingMessage: null,
+  isLoading: false,
+  retrievalStatus: null,
+};
+
+const streamingReducer = (state: StreamingState, action: StreamingAction): StreamingState => {
+  switch (action.type) {
+    case 'SET_MESSAGES': {
+      const nextMessages = typeof action.updater === 'function'
+        ? (action.updater as (prev: Message[]) => Message[])(state.messages)
+        : action.updater;
+      return {
+        ...state,
+        messages: nextMessages,
+        pendingMessage: nextMessages.length === 0 ? null : state.pendingMessage,
+      };
+    }
+    case 'ADD_MESSAGE':
+      return {
+        ...state,
+        messages: [...state.messages, action.message],
+      };
+    case 'SET_PENDING':
+      return {
+        ...state,
+        pendingMessage: action.message,
+      };
+    case 'SET_LOADING':
+      return {
+        ...state,
+        isLoading: action.value,
+      };
+    case 'SET_RETRIEVAL_STATUS':
+      return {
+        ...state,
+        retrievalStatus: action.status,
+      };
+    case 'FINALIZE_MESSAGE':
+      return {
+        ...state,
+        messages: [...state.messages, action.message],
+        pendingMessage: null,
+        isLoading: false,
+        retrievalStatus: null,
+      };
+    default:
+      return state;
+  }
+};
+
+const markdownPattern = /```|\n\s*#|\*\*|\n\s*[-*+]\s|<[^>]+>/;
+
+const toSources = (eventSources: any[] = []): Source[] =>
+  eventSources.map(source => ({
+    text: source.content || source.text || '',
+    reference: source.source || source.reference || source.title || '',
+  }));
+
+const toFollowUps = (messageId: string, items: any[] = []): FollowUpQuestion[] =>
+  items.map((item, index) => ({
+    id: `${messageId}-fu-${index}`,
+    question: item.question || item,
+    category: item.category || 'general',
+    icon: item.icon,
+  }));
+
 export const useStreamingChat = ({
   conversationId,
   setConversationId,
@@ -21,16 +107,28 @@ export const useStreamingChat = ({
   useRAG,
   useHybridSearch,
   shortAnswerMode,
-  modelMode
+  modelMode,
 }: UseStreamingChatOptions) => {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [pendingMessage, setPendingMessage] = useState<Message | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [retrievalStatus, setRetrievalStatus] = useState<string | null>(null);
+  const [state, dispatch] = useReducer(streamingReducer, initialState);
+  const { messages, pendingMessage, isLoading, retrievalStatus } = state;
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const pendingMessageRef = useRef<Message | null>(null);
   const rafIdRef = useRef<number | null>(null);
+
+const flushPendingMessage = useCallback(() => {
+  if (rafIdRef.current !== null) {
+    cancelAnimationFrame(rafIdRef.current);
+  }
+    if (!pendingMessageRef.current) return;
+
+    rafIdRef.current = requestAnimationFrame(() => {
+      rafIdRef.current = null;
+      if (pendingMessageRef.current) {
+        dispatch({ type: 'SET_PENDING', message: { ...pendingMessageRef.current } });
+      }
+    });
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -43,7 +141,11 @@ export const useStreamingChat = ({
     };
   }, []);
 
-  const handleStreamingChat = async (messageText: string) => {
+  const setMessages = useCallback((updater: MessagesUpdater) => {
+    dispatch({ type: 'SET_MESSAGES', updater });
+  }, []);
+
+  const handleStreamingChat = useCallback(async (messageText: string) => {
     if (!messageText || isLoading) return;
 
     const userMessage: Message = {
@@ -51,67 +153,57 @@ export const useStreamingChat = ({
       content: messageText,
       sender: 'user',
       timestamp: Date.now(),
-      modelMode: modelMode,
+      modelMode,
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    dispatch({ type: 'ADD_MESSAGE', message: userMessage });
     const currentInput = messageText;
-    setIsLoading(true);
-    setRetrievalStatus('Contacting retrieval service...');
+    dispatch({ type: 'SET_LOADING', value: true });
+    dispatch({ type: 'SET_RETRIEVAL_STATUS', status: 'Contacting retrieval service...' });
 
-    // Clean up any inflight request before starting a new one
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
     pendingMessageRef.current = null;
-    setPendingMessage(null);
+    dispatch({ type: 'SET_PENDING', message: null });
 
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    // Create a temporary message to hold streaming content
     const messageId = (Date.now() + 1).toString();
     let streamingContent = '';
     let sources: Source[] = [];
     let followUpQuestions: FollowUpQuestion[] = [];
 
     try {
-      // Check if this is a Trip Planner message - always use gpt-5-mini for Trip Planner
       const isTripPlannerMessage = messageText.startsWith('📋 **Trip Plan Request**');
-      
-      // Get selected model from localStorage or use gpt-5-mini for Trip Planner
       const userSelectedModel = localStorage.getItem('selectedLLMModel') || DEFAULT_MODEL_ID;
       const selectedModel = isTripPlannerMessage ? 'gpt-5-mini' : userSelectedModel;
       const historyLimit = selectedModel === 'gpt-5-mini' ? 6 : 10;
       const selectedProvider = localStorage.getItem('selectedLLMProvider') || 'openai';
-      
-      // Only update display if NOT a Trip Planner message (keep user's display unchanged)
+
       if (!isTripPlannerMessage) {
         const displayModel = getModelDisplayName(selectedModel);
         setCurrentModel(displayModel);
       }
-      
-      // Use SSE streaming endpoint
+
       const endpoint = '/api/v2/chat/stream';
-      
-      // Create request body
       const requestBody = JSON.stringify({
         message: currentInput,
         model: selectedModel,
         provider: selectedProvider,
-        useRAG: useRAG,
-        shortAnswerMode: shortAnswerMode,
+        useRAG,
+        shortAnswerMode,
         // HYBRID_SEARCH_TOGGLE_START
-        useHybridSearch: useHybridSearch,
+        useHybridSearch,
         // HYBRID_SEARCH_TOGGLE_END
-        conversationId: conversationId,
+        conversationId,
         chatHistory: messages.slice(-historyLimit).map(msg => ({
           role: msg.sender === 'user' ? 'user' : 'assistant',
-          content: msg.content
-        }))
+          content: msg.content,
+        })),
       });
 
-      // Use fetch with streaming response
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -127,7 +219,7 @@ export const useStreamingChat = ({
         console.error('Streaming service error response:', {
           status: response.status,
           statusText: response.statusText,
-          body: errorBody
+          body: errorBody,
         });
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -139,21 +231,8 @@ export const useStreamingChat = ({
         throw new Error('Response body is not readable');
       }
 
-      // Process SSE stream with buffering for incomplete messages
       let buffer = '';
-      const flushPendingMessage = () => {
-        if (rafIdRef.current !== null) {
-          cancelAnimationFrame(rafIdRef.current);
-        }
-        if (!pendingMessageRef.current) return;
-        rafIdRef.current = requestAnimationFrame(() => {
-          rafIdRef.current = null;
-          if (pendingMessageRef.current) {
-            setPendingMessage({ ...pendingMessageRef.current });
-          }
-        });
-      };
-      
+
       pendingMessageRef.current = {
         id: messageId,
         content: '',
@@ -161,9 +240,9 @@ export const useStreamingChat = ({
         timestamp: Date.now(),
         sources: undefined,
         followUpQuestions: undefined,
-        modelMode: modelMode,
+        modelMode,
       };
-      setPendingMessage({ ...pendingMessageRef.current });
+      dispatch({ type: 'SET_PENDING', message: { ...pendingMessageRef.current } });
 
       while (true) {
         const { done, value } = await reader.read();
@@ -171,133 +250,99 @@ export const useStreamingChat = ({
 
         const chunk = decoder.decode(value, { stream: true });
         buffer += chunk;
-        
-        // Process complete lines from the buffer
         const lines = buffer.split('\n');
-        // Keep the last potentially incomplete line in the buffer
         buffer = lines.pop() || '';
 
         for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6).trim();
-            if (data === '[DONE]' || data === '') continue;
+          if (!line.startsWith('data: ')) continue;
+          const data = line.slice(6).trim();
+          if (data === '[DONE]' || data === '') continue;
 
-            try {
-              const event = JSON.parse(data);
-
-              switch (event.type) {
-                case 'retrieval_start':
-                  setRetrievalStatus('Searching trusted sources...');
-                  break;
-
-                case 'retrieval_complete':
-                  setRetrievalStatus('Preparing answer...');
-                  break;
-
-                case 'sources':
-                  sources = (event.sources || []).map((source: any) => ({
-                    text: source.content || source.text || '',
-                    reference: source.source || source.reference || source.title || ''
-                  }));
-                  if (pendingMessageRef.current) {
-                    pendingMessageRef.current.sources = sources.length > 0 ? sources : undefined;
-                    flushPendingMessage();
-                  } else if (sources.length > 0) {
-                    setMessages(prev => {
+          try {
+            const event = JSON.parse(data);
+            switch (event.type) {
+              case 'retrieval_start':
+                dispatch({ type: 'SET_RETRIEVAL_STATUS', status: 'Searching trusted sources...' });
+                break;
+              case 'retrieval_complete':
+                dispatch({ type: 'SET_RETRIEVAL_STATUS', status: 'Preparing answer...' });
+                break;
+              case 'sources':
+                sources = toSources(event.sources);
+                if (pendingMessageRef.current) {
+                  pendingMessageRef.current.sources = sources.length > 0 ? sources : undefined;
+                  flushPendingMessage();
+                } else if (sources.length > 0) {
+                  dispatch({
+                    type: 'SET_MESSAGES',
+                    updater: prev => {
                       if (prev.length === 0) return prev;
                       const updated = [...prev];
                       const lastIndex = updated.length - 1;
-                      const lastMessage = updated[lastIndex];
-                      updated[lastIndex] = {
-                        ...lastMessage,
-                        sources
-                      };
+                      updated[lastIndex] = { ...updated[lastIndex], sources };
                       return updated;
-                    });
+                    },
+                  });
+                }
+                break;
+              case 'token':
+                if (event.content) {
+                  dispatch({ type: 'SET_RETRIEVAL_STATUS', status: 'Generating answer...' });
+                  streamingContent += event.content;
+                  if (pendingMessageRef.current) {
+                    pendingMessageRef.current.content = streamingContent;
+                    pendingMessageRef.current.isFormatted = markdownPattern.test(streamingContent);
+                    flushPendingMessage();
                   }
-                  break;
-
-                case 'generation_start':
-                  // Start showing the actual response
-                  break;
-
-                case 'token':
-                  if (event.content) {
-                    setRetrievalStatus(prev => prev === 'Generating answer...' ? prev : 'Generating answer...');
-                    streamingContent += event.content;
-                    if (pendingMessageRef.current) {
-                      pendingMessageRef.current.content = streamingContent;
-                      const markdownPattern = /```|\n\s*#|\*\*|\n\s*[-*+]\s|<[^>]+>/;
-                      pendingMessageRef.current.isFormatted = markdownPattern.test(streamingContent);
-                      flushPendingMessage();
-                    }
-                  }
-                  break;
-
-                case 'metadata':
-                  // Update conversation ID if provided
-                  if (event.conversation_id && !conversationId) {
-                    setConversationId(event.conversation_id);
-                  }
-                  
-                  // Handle follow-up questions from metadata
-                  if (event.follow_up_questions && Array.isArray(event.follow_up_questions)) {
-                    followUpQuestions = event.follow_up_questions.map((q: any, index: number) => ({
-                      id: `${messageId}-fu-${index}`,
-                      question: q.question || q,
-                      category: q.category || 'general',
-                      icon: q.icon,
-                    }));
-                    if (pendingMessageRef.current) {
-                      pendingMessageRef.current.followUpQuestions = followUpQuestions.length > 0 ? followUpQuestions : undefined;
-                      flushPendingMessage();
-                    } else if (followUpQuestions.length > 0) {
-                      setMessages(prev => {
+                }
+                break;
+              case 'metadata':
+                if (event.conversation_id && !conversationId) {
+                  setConversationId(event.conversation_id);
+                }
+                if (event.follow_up_questions && Array.isArray(event.follow_up_questions)) {
+                  followUpQuestions = toFollowUps(messageId, event.follow_up_questions);
+                  if (pendingMessageRef.current) {
+                    pendingMessageRef.current.followUpQuestions = followUpQuestions.length > 0 ? followUpQuestions : undefined;
+                    flushPendingMessage();
+                  } else if (followUpQuestions.length > 0) {
+                    dispatch({
+                      type: 'SET_MESSAGES',
+                      updater: prev => {
                         if (prev.length === 0) return prev;
                         const updated = [...prev];
                         const lastIndex = updated.length - 1;
-                        const lastMessage = updated[lastIndex];
-                        updated[lastIndex] = {
-                          ...lastMessage,
-                          followUpQuestions
-                        };
+                        updated[lastIndex] = { ...updated[lastIndex], followUpQuestions };
                         return updated;
-                      });
-                    }
+                      },
+                    });
                   }
-                  break;
-
-                case 'complete':
-                  // Finalize the message with all metadata
-                  const markdownPattern = /```|\n\s*#|\*\*|\n\s*[-*+]\s|<[^>]+>/;
-                  const isMarkdown = markdownPattern.test(streamingContent);
-
-                  const finalMessage: Message = {
-                    id: messageId,
-                    content: streamingContent.trim(),
-                    sender: 'assistant',
-                    timestamp: Date.now(),
-                    isFormatted: isMarkdown,
-                    sources: sources.length > 0 ? sources : undefined,
-                    followUpQuestions: followUpQuestions.length > 0 ? followUpQuestions : undefined,
-                    modelMode: modelMode,
-                  };
-
-                  setMessages(prev => [...prev, finalMessage]);
-                  pendingMessageRef.current = null;
-                  setPendingMessage(null);
-                  setRetrievalStatus(null);
-                  break;
-
-                case 'error':
-                  console.error('Streaming error event:', event);
-                  throw new Error(event.message || 'Streaming error occurred');
+                }
+                break;
+              case 'complete': {
+                const finalMessage: Message = {
+                  id: messageId,
+                  content: streamingContent.trim(),
+                  sender: 'assistant',
+                  timestamp: Date.now(),
+                  isFormatted: markdownPattern.test(streamingContent),
+                  sources: sources.length > 0 ? sources : undefined,
+                  followUpQuestions: followUpQuestions.length > 0 ? followUpQuestions : undefined,
+                  modelMode,
+                };
+                dispatch({ type: 'FINALIZE_MESSAGE', message: finalMessage });
+                pendingMessageRef.current = null;
+                break;
               }
-            } catch (parseError) {
-              // Only log actual parsing errors, not empty data
-              if (data && data !== '') {
-                console.error('Error parsing SSE event:', parseError, 'Data:', data.substring(0, 100));
-              }
+              case 'error':
+                console.error('Streaming error event:', event);
+                throw new Error(event.message || 'Streaming error occurred');
+              default:
+                break;
+            }
+          } catch (parseError) {
+            if (data && data !== '') {
+              console.error('Error parsing SSE event:', parseError, 'Data:', data.substring(0, 100));
             }
           }
         }
@@ -307,40 +352,54 @@ export const useStreamingChat = ({
         abortControllerRef.current = null;
       }
 
-      setIsLoading(false);
+      pendingMessageRef.current = null;
+      dispatch({ type: 'SET_PENDING', message: null });
+      dispatch({ type: 'SET_LOADING', value: false });
+      dispatch({ type: 'SET_RETRIEVAL_STATUS', status: null });
     } catch (error) {
       console.error('Error with streaming chat:', error);
-      
+
       if (error instanceof DOMException && error.name === 'AbortError') {
-        // Request was intentionally aborted
-        setIsLoading(false);
+        dispatch({ type: 'SET_LOADING', value: false });
         if (abortControllerRef.current === controller) {
           abortControllerRef.current = null;
         }
         pendingMessageRef.current = null;
-        setPendingMessage(null);
-        setRetrievalStatus(null);
+        dispatch({ type: 'SET_PENDING', message: null });
+        dispatch({ type: 'SET_RETRIEVAL_STATUS', status: null });
         return;
       }
-      pendingMessageRef.current = null;
-      setPendingMessage(null);
-      setRetrievalStatus(null);
 
-      // Add error message
+      pendingMessageRef.current = null;
+      dispatch({ type: 'SET_PENDING', message: null });
+      dispatch({ type: 'SET_RETRIEVAL_STATUS', status: null });
+
       const errorMessage: Message = {
         id: (Date.now() + 2).toString(),
         content: `Sorry, I encountered an error while processing your request. Please try again. Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
         sender: 'assistant',
         timestamp: Date.now(),
       };
-      setMessages(prev => [...prev, errorMessage]);
-      setIsLoading(false);
+      dispatch({ type: 'ADD_MESSAGE', message: errorMessage });
+      dispatch({ type: 'SET_LOADING', value: false });
+
       if (abortControllerRef.current === controller) {
         abortControllerRef.current = null;
       }
-      setRetrievalStatus(null);
     }
-  };
+  }, [
+    conversationId,
+    setConversationId,
+    setCurrentModel,
+    DEFAULT_MODEL_ID,
+    useRAG,
+    useHybridSearch,
+    shortAnswerMode,
+    modelMode,
+    messages,
+    isLoading,
+    flushPendingMessage,
+  ]);
 
   return {
     messages,
@@ -348,6 +407,8 @@ export const useStreamingChat = ({
     pendingMessage,
     isLoading,
     retrievalStatus,
-    handleStreamingChat
+    handleStreamingChat,
   };
 };
+
+export default useStreamingChat;
