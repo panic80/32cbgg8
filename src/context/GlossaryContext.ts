@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useMemo, useRef, useState, useContext } from 'react';
+import React, { createContext, useCallback, useMemo, useRef, useState, useContext, ReactNode } from 'react';
 
 export interface GlossaryTerm {
   term: string;
@@ -23,7 +23,9 @@ const GlossaryContext = createContext<GlossaryContextValue | undefined>(undefine
 
 const getApiBaseUrl = () => import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
-export const GlossaryProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+type GlossaryProviderProps = { children: ReactNode };
+
+export const GlossaryProvider = ({ children }: GlossaryProviderProps) => {
   const [glossary, setGlossary] = useState<GlossaryDataset | null>(null);
   const [glossaryLoading, setGlossaryLoading] = useState(false);
   const [glossaryError, setGlossaryError] = useState<string | null>(null);
@@ -125,11 +127,7 @@ export const GlossaryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     lookupTerm,
   }), [glossary, glossaryLoading, glossaryError, ensureGlossary, getCachedTerm, lookupTerm]);
 
-  return (
-    <GlossaryContext.Provider value={value}>
-      {children}
-    </GlossaryContext.Provider>
-  );
+  return React.createElement(GlossaryContext.Provider, { value }, children);
 };
 
 export const useGlossary = (): GlossaryContextValue => {

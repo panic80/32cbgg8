@@ -246,12 +246,12 @@ npm run build:production && echo "✅ Production build successful"
 - [ ] **Step 12.2**: Implement provider + context, refactor `GlossaryModal`/`GlossaryTooltip`
 - [ ] **Step 12.3**: Add provider-focused tests and manual verification checklist
 
-### Phase 13: Autocomplete Consolidation (Planned)
+### Phase 13: Autocomplete Consolidation (Completed)
 **Risk**: Medium | **Time**: 45 minutes | **Dependencies**: Phase 10
 
-- [ ] **Step 13.1**: Compare `PlaceAutocomplete` vs `PlaceAutocompleteSimple` to identify required API surface
-- [ ] **Step 13.2**: Merge implementations or add feature detection wrapper
-- [ ] **Step 13.3**: Update TripPlanner + tests and remove redundancies
+- [x] **Step 13.1**: Compare `PlaceAutocomplete` vs `PlaceAutocompleteSimple` to identify required API surface *(advanced `PlaceAutocomplete` component unused; TripPlanner uses simple path + backend proxy)*
+- [x] **Step 13.2**: Merge implementations or add feature detection wrapper *(removed unused component to avoid duplicate logic; hook already handles server-backed predictions)*
+- [x] **Step 13.3**: Update TripPlanner + tests and remove redundancies *(TripPlanner unaffected; build/tests re-run to confirm)*
 
 ### Phase 14: Export Helper Extraction (Planned)
 **Risk**: Low | **Time**: 30 minutes | **Dependencies**: Phase 5
