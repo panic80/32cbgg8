@@ -26,7 +26,6 @@ function App() {
   const prefetchTargets = useMemo(
     () => [
       () => import('./pages/ChatPage'),
-      () => import('./components/MobileToggle'),
     ],
     []
   );

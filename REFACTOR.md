@@ -16,6 +16,7 @@
 - Split the state machine and scoring utilities out of `src/components/SuggestionController.tsx` into dedicated hooks/modules to improve readability and reusability.
 - Convert `src/api/travelInstructions.js` to TypeScript (or add typed helpers) to replace the handwritten declaration file and catch API shape issues at compile time.
 - Reduce `src/App.jsx` responsibilities (remove unused state, move route prefetching into a hook, consolidate nested `Suspense`) so navigation shell stays maintainable.
+- Run a post-refactor cleanup pass (redundant/orphaned assets, backup files, stale feature toggles) to keep the tree lean once core extractions are finished.
 
 ## Pre-Refactoring Setup
 - [x] Create backup: `cp src/pages/ChatPage.tsx src/pages/ChatPage.tsx.backup.20250815_233414`
@@ -208,6 +209,24 @@ npm run build:production && echo "✅ Production build successful"
   - Create barrel export file
   - Test: Imports work
   - Rollback: Delete index.ts
+
+### Phase 10: Redundant Code Audit (Planned)
+**Risk**: Low | **Time**: 45 minutes | **Dependencies**: Phase 9
+
+- [ ] **Step 10.1**: Map usage of ChatPage component variants and helpers
+  - Inspect `src/pages/ChatPage/components` for backups/alternate versions (e.g., `EmptyState.tsx.backup`, `HelpDialog` variants)
+  - Use `rg` to trace imports and runtime entry points
+  - Output findings list (keep/remove/merge) before edits
+
+- [ ] **Step 10.2**: Audit shared components/assets for orphaned code
+  - Scan `src/components`, `src/assets`, and public assets for unused exports
+  - Cross-reference with route definitions and tests
+  - Summarise candidates for removal/cleanup
+
+- [ ] **Step 10.3**: Consolidate findings into actionable cleanup tasks
+  - Decide on deletions vs feature-flag retention
+  - Plan required tests (`npm run build`, targeted Vitest suites)
+  - Document the intended changeset before modifying files
 
 ### CHECKPOINT C: Final Validation
 - [ ] Complete test suite execution
