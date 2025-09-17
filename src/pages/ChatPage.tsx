@@ -55,9 +55,6 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
     const savedModel = localStorage.getItem('selectedLLMModel');
     return savedModel === 'gpt-5-mini' ? 'smart' : 'fast';
   });
-  // HYBRID_SEARCH_TOGGLE_START - Remove this entire block to disable hybrid search feature
-  const [useHybridSearch] = useLocalStorage('useHybridSearch', false);
-  // HYBRID_SEARCH_TOGGLE_END
   const [conversationId, setConversationId] = useState<string>('');
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -65,6 +62,14 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
   const [inputHeight, setInputHeight] = useState<number>(96);
   const pillMargin = 12;
   const location = useLocation();
+
+  useEffect(() => {
+    try {
+      localStorage.removeItem('useHybridSearch');
+    } catch (error) {
+      console.warn('Failed to remove legacy useHybridSearch flag', error);
+    }
+  }, []);
 
   // Measure ChatInput (fixed footer) height with ResizeObserver
   useEffect(() => {
@@ -93,7 +98,6 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
     setCurrentModel,
     DEFAULT_MODEL_ID,
     useRAG,
-    useHybridSearch,
     shortAnswerMode,
     modelMode
   });

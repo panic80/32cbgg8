@@ -64,7 +64,6 @@ describe('useStreamingChat', () => {
         setCurrentModel,
         DEFAULT_MODEL_ID: 'gpt-5-mini',
         useRAG: true,
-        useHybridSearch: false,
         shortAnswerMode: false,
         modelMode: 'fast',
       })

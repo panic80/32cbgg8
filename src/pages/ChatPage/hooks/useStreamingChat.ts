@@ -9,7 +9,6 @@ interface UseStreamingChatOptions {
   setCurrentModel: (model: string) => void;
   DEFAULT_MODEL_ID: string;
   useRAG: boolean;
-  useHybridSearch: boolean;
   shortAnswerMode: boolean;
   modelMode: 'fast' | 'smart';
 }
@@ -105,7 +104,6 @@ export const useStreamingChat = ({
   setCurrentModel,
   DEFAULT_MODEL_ID,
   useRAG,
-  useHybridSearch,
   shortAnswerMode,
   modelMode,
 }: UseStreamingChatOptions) => {
@@ -194,9 +192,6 @@ const flushPendingMessage = useCallback(() => {
         provider: selectedProvider,
         useRAG,
         shortAnswerMode,
-        // HYBRID_SEARCH_TOGGLE_START
-        useHybridSearch,
-        // HYBRID_SEARCH_TOGGLE_END
         conversationId,
         chatHistory: messages.slice(-historyLimit).map(msg => ({
           role: msg.sender === 'user' ? 'user' : 'assistant',
@@ -393,7 +388,6 @@ const flushPendingMessage = useCallback(() => {
     setCurrentModel,
     DEFAULT_MODEL_ID,
     useRAG,
-    useHybridSearch,
     shortAnswerMode,
     modelMode,
     messages,

@@ -17,6 +17,10 @@
 - Convert `src/api/travelInstructions.js` to TypeScript (or add typed helpers) to replace the handwritten declaration file and catch API shape issues at compile time.
 - Reduce `src/App.jsx` responsibilities (remove unused state, move route prefetching into a hook, consolidate nested `Suspense`) so navigation shell stays maintainable.
 - Run a post-refactor cleanup pass (redundant/orphaned assets, backup files, stale feature toggles) to keep the tree lean once core extractions are finished.
+- Remove legacy hybrid search toggle plumbing from `useStreamingChat` if the feature is sunset.
+- Centralize glossary data fetching/caching so modal + tooltip consume a single provider.
+- Consolidate Google Places autocomplete implementations into one code path.
+- Extract ChatPage export helpers (Markdown/JSON) into utilities for reuse/testing.
 
 ## Pre-Refactoring Setup
 - [x] Create backup: `cp src/pages/ChatPage.tsx src/pages/ChatPage.tsx.backup.20250815_233414`
@@ -227,6 +231,34 @@ npm run build:production && echo "✅ Production build successful"
   - Decide on deletions vs feature-flag retention
   - Plan required tests (`npm run build`, targeted Vitest suites)
   - Document the intended changeset before modifying files
+
+### Phase 11: Legacy Hybrid Search Removal (Completed)
+**Risk**: Low | **Time**: 30 minutes | **Dependencies**: Phase 5
+
+- [x] **Step 11.1**: Confirm hybrid search feature status with stakeholders/documentation *(deprecated internally; safe to remove)*
+- [x] **Step 11.2**: Remove `useHybridSearch` wiring from `useStreamingChat` + ChatPage *(see commit removing toggle and request payload flag)*
+- [x] **Step 11.3**: Clean up localStorage keys/migrations and update release notes/tests *(legacy key removed on mount; Vitest + build rerun)*
+
+### Phase 12: Glossary Data Provider (Planned)
+**Risk**: Medium | **Time**: 60 minutes | **Dependencies**: Phase 10
+
+- [ ] **Step 12.1**: Outline shared data provider responsibilities (fetch, cache, invalidation)
+- [ ] **Step 12.2**: Implement provider + context, refactor `GlossaryModal`/`GlossaryTooltip`
+- [ ] **Step 12.3**: Add provider-focused tests and manual verification checklist
+
+### Phase 13: Autocomplete Consolidation (Planned)
+**Risk**: Medium | **Time**: 45 minutes | **Dependencies**: Phase 10
+
+- [ ] **Step 13.1**: Compare `PlaceAutocomplete` vs `PlaceAutocompleteSimple` to identify required API surface
+- [ ] **Step 13.2**: Merge implementations or add feature detection wrapper
+- [ ] **Step 13.3**: Update TripPlanner + tests and remove redundancies
+
+### Phase 14: Export Helper Extraction (Planned)
+**Risk**: Low | **Time**: 30 minutes | **Dependencies**: Phase 5
+
+- [ ] **Step 14.1**: Move Markdown/JSON export helpers into `utils`
+- [ ] **Step 14.2**: Update ChatPage to consume helpers and cover with unit tests
+- [ ] **Step 14.3**: Review docs/Changelog for user-facing impact
 
 ### CHECKPOINT C: Final Validation
 - [ ] Complete test suite execution
