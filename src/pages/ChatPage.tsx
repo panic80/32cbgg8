@@ -31,7 +31,7 @@ import {
 } from './ChatPage/hooks';
 import { toast } from 'sonner';
 import { useLocation } from 'react-router-dom';
-import { exportConversationAsMarkdown, exportConversationAsJSON } from '@/utils/exportConversation';
+import { exportConversationAsMarkdown } from '@/utils/exportConversation';
 
 
 interface ChatPageProps {
@@ -239,11 +239,6 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
     toast.success('Exported as Markdown');
   }, [conversationId, messages]);
 
-  const exportJSON = useCallback(() => {
-    exportConversationAsJSON(messages, conversationId);
-    toast.success('Exported as JSON');
-  }, [conversationId, messages]);
-
 
   const clearConversation = useCallback(() => {
     setMessages([]);
@@ -303,7 +298,6 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
             shortAnswerMode={shortAnswerMode}
             setShortAnswerMode={setShortAnswerMode}
             onExportMarkdown={exportMarkdown}
-            onExportJSON={exportJSON}
             onClearConversation={clearConversation}
             onInsertExample={(q) => setInput(q)}
           />

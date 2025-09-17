@@ -20,7 +20,6 @@ interface ChatHeaderProps {
   shortAnswerMode: boolean;
   setShortAnswerMode: (value: boolean) => void;
   onExportMarkdown: () => void;
-  onExportJSON: () => void;
   onClearConversation: () => void;
   onInsertExample?: (text: string) => void;
 }
@@ -34,7 +33,6 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   shortAnswerMode,
   setShortAnswerMode,
   onExportMarkdown,
-  onExportJSON,
   onClearConversation,
   onInsertExample
 }) => {
@@ -105,7 +103,6 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           onGlossaryOpen={() => setShowGlossary(true)}
           onHelpOpen={() => setShowHelp(true)}
           onExportMarkdown={onExportMarkdown}
-          onExportJSON={onExportJSON}
           onClearConversation={onClearConversation}
           hasWhatsNew={hasWhatsNew}
         />

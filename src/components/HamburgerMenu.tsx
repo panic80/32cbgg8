@@ -41,7 +41,6 @@ interface HamburgerMenuProps {
   onWhatsNewOpen?: () => void;
   onHowItWorksOpen?: () => void;
   onExportMarkdown: () => void;
-  onExportJSON: () => void;
   onClearConversation: () => void;
   hasWhatsNew?: boolean;
 }
@@ -104,7 +103,6 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
   onWhatsNewOpen,
   onHowItWorksOpen,
   onExportMarkdown,
-  onExportJSON,
   onClearConversation,
   hasWhatsNew,
 }) => {
@@ -189,7 +187,6 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
       title: 'Conversation',
       items: [
         { type: 'button', label: 'Export as Markdown', icon: <FileQuestion className="w-4 h-4" />, onClick: onExportMarkdown },
-        { type: 'button', label: 'Export as JSON', icon: <FileQuestion className="w-4 h-4" />, onClick: onExportJSON },
         { type: 'button', label: 'Clear conversation', icon: <X className="w-4 h-4" />, onClick: onClearConversation },
       ]
     },
