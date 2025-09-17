@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -12,14 +12,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Search, Book, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-interface GlossaryTerm {
-  term: string;
-  expansion: string;
-  description: string;
-  category: string;
-  variations: string[];
-}
+import { useGlossary, GlossaryTerm } from '@/context/GlossaryContext';
 
 interface GlossaryModalProps {
   open: boolean;
@@ -31,47 +24,33 @@ export const GlossaryModal: React.FC<GlossaryModalProps> = ({
   onOpenChange,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [glossaryData, setGlossaryData] = useState<Record<string, GlossaryTerm[]>>({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const {
+    glossary,
+    glossaryLoading,
+    glossaryError,
+    ensureGlossary,
+  } = useGlossary();
 
   useEffect(() => {
     if (open) {
-      fetchGlossaryData();
+      void ensureGlossary();
     }
-  }, [open]);
+  }, [open, ensureGlossary]);
 
-  const fetchGlossaryData = async () => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
-      const response = await fetch(`${apiBaseUrl}/api/v2/glossary/`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch glossary data');
-      }
-      
-      const data = await response.json();
-      setGlossaryData(data);
-      
-      // Set first category as default if available
-      const categories = Object.keys(data);
-      if (categories.length > 0 && selectedCategory === 'all') {
-        setSelectedCategory('all');
-      }
-    } catch (err) {
-      console.error('Error fetching glossary:', err);
-      setError('Failed to load glossary. Please try again later.');
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (!glossary) return;
+    if (selectedCategory !== 'all' && !glossary[selectedCategory]) {
+      setSelectedCategory('all');
     }
-  };
+  }, [glossary, selectedCategory]);
+
+  const glossaryData = glossary ?? {};
+  const loading = glossaryLoading;
+  const error = glossaryError;
 
   // Filter terms based on search query
-  const getFilteredTerms = () => {
+  const filteredTerms = useMemo(() => {
     const allTerms: GlossaryTerm[] = [];
     
     Object.entries(glossaryData).forEach(([category, terms]) => {
@@ -89,10 +68,9 @@ export const GlossaryModal: React.FC<GlossaryModalProps> = ({
     
     // Sort alphabetically by term
     return allTerms.sort((a, b) => a.term.localeCompare(b.term));
-  };
+  }, [glossaryData, searchQuery, selectedCategory]);
 
-  const filteredTerms = getFilteredTerms();
-  const categories = ['all', ...Object.keys(glossaryData)];
+  const categories = useMemo(() => ['all', ...Object.keys(glossaryData)], [glossaryData]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

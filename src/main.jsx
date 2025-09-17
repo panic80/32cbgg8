@@ -6,11 +6,14 @@ import './styles/typography.css'
 import './styles/animations.css'
 import './styles/landing.css'
 import { ThemeProvider } from './context/ThemeContext'
+import { GlossaryProvider } from './context/GlossaryContext'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ThemeProvider>
-      <App />
+      <GlossaryProvider>
+        <App />
+      </GlossaryProvider>
     </ThemeProvider>
   </React.StrictMode>
 )

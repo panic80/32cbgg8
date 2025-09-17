@@ -7,14 +7,7 @@ import {
 } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
-
-interface GlossaryTerm {
-  term: string;
-  expansion: string;
-  description: string;
-  category: string;
-  variations: string[];
-}
+import { useGlossary, GlossaryTerm } from '@/context/GlossaryContext';
 
 interface GlossaryTooltipProps {
   term: string;
@@ -22,62 +15,62 @@ interface GlossaryTooltipProps {
   className?: string;
 }
 
-// Cache failed lookups to avoid repeated requests (shared across all component instances)
-const failedLookups = new Set<string>();
-
 export const GlossaryTooltip: React.FC<GlossaryTooltipProps> = ({
   term,
   children,
   className = '',
 }) => {
-  const [glossaryTerm, setGlossaryTerm] = useState<GlossaryTerm | null>(null);
+  const { getCachedTerm, lookupTerm } = useGlossary();
+  const [glossaryTerm, setGlossaryTerm] = useState<GlossaryTerm | null>(getCachedTerm(term));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    
-    const fetchGlossaryTerm = async () => {
-      // Skip if we already know this term doesn't exist
-      if (failedLookups.has(term.toUpperCase())) {
-        return;
-      }
-      
-      setLoading(true);
+    let isMounted = true;
+    const cached = getCachedTerm(term);
+    if (!term) {
+      setGlossaryTerm(null);
       setError(false);
-      
-      try {
-        // Use the API base URL to go through the Express proxy
-        const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
-        const response = await fetch(`${apiBaseUrl}/api/v2/glossary/term/${encodeURIComponent(term)}`);
-        
-        if (response.ok) {
-          const data = await response.json();
-          if (data) {
-            setGlossaryTerm(data);
-          }
-        } else if (response.status === 404) {
-          // Term not found - cache this to avoid future lookups
-          failedLookups.add(term.toUpperCase());
-          setError(true);
-        } else if (response.status === 503) {
-          // Service temporarily unavailable - don't cache, might work later
-          setError(true);
-        }
-      } catch (err) {
-        const message = err instanceof Error ? err.message : '';
-        if (!message.includes('404')) {
-          console.error('Error fetching glossary term:', err);
-        }
-        setError(true);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (term) {
-      fetchGlossaryTerm();
+      setLoading(false);
+      return;
     }
-  }, [term]);
+
+    if (cached) {
+      setGlossaryTerm(cached);
+      setError(false);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(false);
+
+    lookupTerm(term)
+      .then(result => {
+        if (!isMounted) return;
+        if (result) {
+          setGlossaryTerm(result);
+          setError(false);
+        } else {
+          setGlossaryTerm(null);
+          setError(true);
+        }
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setError(true);
+        setGlossaryTerm(null);
+      })
+      .finally(() => {
+        if (isMounted) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [term, getCachedTerm, lookupTerm]);
 
   // If no glossary term found or error, just render children without tooltip
   if (!glossaryTerm || error) {
