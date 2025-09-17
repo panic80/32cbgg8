@@ -8,7 +8,7 @@ import { MarkdownRenderer } from '@/components/ui/markdown-renderer';
 import { MessageActions } from './MessageActions';
 import SuggestionController from '@/components/SuggestionController';
 import { SourcesDisplay } from '@/components/SourcesDisplay';
-import type { Message as ChatMessageType } from '@/types/chat';
+import type { Message as ChatMessageType, FollowUpQuestion } from '@/types/chat';
 
 const ENABLE_MESSAGE_ACTIONS = false;
 
@@ -283,12 +283,42 @@ const ChatMessageInner: React.FC<ChatMessageProps> = ({
   );
 };
 
+const areFollowUpQuestionsEqual = (
+  prevQuestions?: FollowUpQuestion[],
+  nextQuestions?: FollowUpQuestion[],
+) => {
+  if (prevQuestions === nextQuestions) {
+    return true;
+  }
+  if (!prevQuestions || !nextQuestions) {
+    return !prevQuestions && !nextQuestions;
+  }
+  if (prevQuestions.length !== nextQuestions.length) {
+    return false;
+  }
+  return prevQuestions.every((prevQuestion, index) => {
+    const nextQuestion = nextQuestions[index];
+    if (!nextQuestion) {
+      return false;
+    }
+    return (
+      prevQuestion.id === nextQuestion.id &&
+      prevQuestion.question === nextQuestion.question &&
+      prevQuestion.category === nextQuestion.category &&
+      prevQuestion.confidence === nextQuestion.confidence &&
+      prevQuestion.groundingScore === nextQuestion.groundingScore &&
+      prevQuestion.sourceGrounding === nextQuestion.sourceGrounding
+    );
+  });
+};
+
 export const ChatMessage = React.memo(
   ChatMessageInner,
   (prev, next) => {
     return (
       prev.message.id === next.message.id &&
       prev.message.content === next.message.content &&
+      areFollowUpQuestionsEqual(prev.message.followUpQuestions, next.message.followUpQuestions) &&
       prev.isCollapsed === next.isCollapsed &&
       prev.isLoading === next.isLoading &&
       prev.isLatestMessage === next.isLatestMessage &&
