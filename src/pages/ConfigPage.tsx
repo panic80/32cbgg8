@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -33,6 +33,23 @@ import { LLM_MODELS, type LLMModel, DEFAULT_MODEL_ID } from '../constants/models
 // Ensure LLM_MODELS is always an array
 const MODELS = Array.isArray(LLM_MODELS) ? LLM_MODELS : [];
 
+type DatabaseStats = {
+  totalDocuments: number;
+  totalChunks: number;
+  totalSources: number;
+  lastIngestedAt: string | null;
+};
+
+type DatabaseSource = {
+  id: string;
+  label: string;
+  canonicalUrl: string | null;
+  chunkCount: number;
+  documentCount: number;
+  lastIngestedAt: string | null;
+  searchText: string;
+};
+
 export default function ConfigPage() {
   const [activeTab, setActiveTab] = useState('model');
   
@@ -53,17 +70,10 @@ export default function ConfigPage() {
   
   // Database management state
   const [isPurging, setIsPurging] = useState(false);
-  const [databaseStats, setDatabaseStats] = useState<{
-    total_documents: number;
-    total_chunks: number;
-    sources: Array<{
-      source: string;
-      document_count: number;
-      chunk_count: number;
-      last_updated: string;
-    }>;
-  } | null>(null);
+  const [databaseStats, setDatabaseStats] = useState<DatabaseStats | null>(null);
+  const [databaseSources, setDatabaseSources] = useState<DatabaseSource[]>([]);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
+  const [sourcesError, setSourcesError] = useState<string | null>(null);
   
   // Enhanced database panel state
   const [sourceSearchQuery, setSourceSearchQuery] = useState('');
@@ -75,35 +85,54 @@ export default function ConfigPage() {
   }>>([]);
   const [showActivityLog, setShowActivityLog] = useState(false);
 
+  const formatDateDisplay = useCallback((value: string | null, includeTime = false) => {
+    if (!value) return null;
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return null;
+    }
+    return includeTime ? parsed.toLocaleString() : parsed.toLocaleDateString();
+  }, []);
+
   // Computed values for filtered and sorted sources
   const filteredSources = useMemo(() => {
-    if (!databaseStats?.sources) return [];
-    
-    const filtered = databaseStats.sources.filter(source =>
-      source.source.toLowerCase().includes(sourceSearchQuery.toLowerCase())
-    );
-    
-    // Sort sources
+    if (databaseSources.length === 0) return [];
+
+    const query = sourceSearchQuery.trim().toLowerCase();
+    const filtered = query
+      ? databaseSources.filter(source => source.searchText.includes(query))
+      : [...databaseSources];
+
     return filtered.sort((a, b) => {
       switch (sourceSortBy) {
         case 'name':
-          return a.source.localeCompare(b.source);
+          return a.label.localeCompare(b.label);
         case 'count':
-          return b.chunk_count - a.chunk_count;
+          return (b.chunkCount || 0) - (a.chunkCount || 0);
         case 'date':
-        default:
-          return new Date(b.last_updated).getTime() - new Date(a.last_updated).getTime();
+        default: {
+          const dateA = a.lastIngestedAt ? new Date(a.lastIngestedAt).getTime() : 0;
+          const dateB = b.lastIngestedAt ? new Date(b.lastIngestedAt).getTime() : 0;
+          const safeA = Number.isFinite(dateA) ? dateA : 0;
+          const safeB = Number.isFinite(dateB) ? dateB : 0;
+          return safeB - safeA;
+        }
       }
     });
-  }, [databaseStats?.sources, sourceSearchQuery, sourceSortBy]);
+  }, [databaseSources, sourceSearchQuery, sourceSortBy]);
 
   // Calculate database usage percentage (mock calculation)
   const databaseUsagePercentage = useMemo(() => {
     if (!databaseStats) return 0;
     // Assume max capacity of 100k chunks for visualization
     const maxCapacity = 100000;
-    return Math.min((databaseStats.total_chunks / maxCapacity) * 100, 100);
+    return Math.min((databaseStats.totalChunks / maxCapacity) * 100, 100);
   }, [databaseStats]);
+
+  const lastIngestedLabel = useMemo(
+    () => formatDateDisplay(databaseStats?.lastIngestedAt ?? null, true),
+    [databaseStats?.lastIngestedAt, formatDateDisplay]
+  );
 
   // Load initial data
   useEffect(() => {
@@ -113,12 +142,6 @@ export default function ConfigPage() {
   }, []);
 
   // Load database stats when database tab is active
-  useEffect(() => {
-    if (activeTab === 'database') {
-      loadDatabaseStats();
-    }
-  }, [activeTab]);
-
   const loadModelSettings = () => {
     // Load saved model from localStorage
     const savedModel = localStorage.getItem('selectedLLMModel');
@@ -204,77 +227,190 @@ export default function ConfigPage() {
     localStorage.setItem('databaseActivityLog', JSON.stringify(updatedLog));
   };
 
-  const loadDatabaseStats = async () => {
-    setIsLoadingStats(true);
+  const fetchDatabaseStats = useCallback(async (): Promise<DatabaseStats> => {
+    const emptyStats: DatabaseStats = {
+      totalDocuments: 0,
+      totalChunks: 0,
+      totalSources: 0,
+      lastIngestedAt: null,
+    };
+
     try {
-      // Try to get stats from the stats endpoint first
       const statsResponse = await fetch('/api/v2/sources/stats');
       if (statsResponse.ok) {
         const data = await statsResponse.json();
-        // Check if we got valid data
-        if (data && (data.total_documents !== undefined || data.error)) {
-          // Even if there's an error, we might have partial data
-          setDatabaseStats({
-            total_documents: data.total_documents || 0,
-            total_chunks: data.total_chunks || 0,
-            sources: data.sources || []
-          });
-          return;
+        if (data && (data.total_documents !== undefined || data.total_chunks !== undefined || data.total_sources !== undefined)) {
+          return {
+            totalDocuments: typeof data.total_documents === 'number'
+              ? data.total_documents
+              : typeof data.totalDocuments === 'number'
+                ? data.totalDocuments
+                : 0,
+            totalChunks: typeof data.total_chunks === 'number'
+              ? data.total_chunks
+              : typeof data.totalChunks === 'number'
+                ? data.totalChunks
+                : 0,
+            totalSources: typeof data.total_sources === 'number'
+              ? data.total_sources
+              : typeof data.totalSources === 'number'
+                ? data.totalSources
+                : Array.isArray(data.sources)
+                  ? data.sources.length
+                  : 0,
+            lastIngestedAt: typeof data.last_ingested_at === 'string'
+              ? data.last_ingested_at
+              : typeof data.lastIngestedAt === 'string'
+                ? data.lastIngestedAt
+                : null,
+          };
+        }
+      } else {
+        try {
+          const errorBody = await statsResponse.json();
+          console.error('Source stats error response:', { status: statsResponse.status, body: errorBody });
+        } catch (parseError) {
+          console.error('Failed to parse source stats error response:', parseError);
         }
       }
-      
-      // Fallback: Try the simple count endpoint
+    } catch (error) {
+      console.error('Source stats request failed:', error);
+    }
+
+    try {
       const countResponse = await fetch('/api/v2/sources/count');
       if (countResponse.ok) {
         const countData = await countResponse.json();
-        setDatabaseStats({
-          total_documents: countData.count || 0,
-          total_chunks: countData.count || 0,
-          sources: []
-        });
-        return;
+        const count = typeof countData.count === 'number' ? countData.count : 0;
+        const totalSources = typeof countData.total_sources === 'number'
+          ? countData.total_sources
+          : typeof countData.totalSources === 'number'
+            ? countData.totalSources
+            : 0;
+
+        return {
+          totalDocuments: count,
+          totalChunks: typeof countData.total_chunks === 'number' ? countData.total_chunks : count,
+          totalSources: totalSources || count,
+          lastIngestedAt: null,
+        };
       }
-      
-      // Final fallback: Get basic info from health endpoint
+    } catch (error) {
+      console.error('Source count request failed:', error);
+    }
+
+    try {
       const healthResponse = await fetch('/health?checkRag=true');
       if (healthResponse.ok) {
         const healthData = await healthResponse.json();
-        if (healthData.ragService && healthData.ragService.components) {
-          const vectorStore = healthData.ragService.components.vector_store;
-          // Create a simplified stats object from health data
-          setDatabaseStats({
-            total_documents: vectorStore.document_count || 0,
-            total_chunks: vectorStore.document_count || 0, // Approximate
-            sources: [] // Health endpoint doesn't provide source breakdown
-          });
-        } else {
-          // Set empty stats instead of throwing
-          setDatabaseStats({
-            total_documents: 0,
-            total_chunks: 0,
-            sources: []
-          });
+        const vectorStore = healthData?.ragService?.components?.vector_store;
+        if (vectorStore) {
+          const documentCount = typeof vectorStore.document_count === 'number' ? vectorStore.document_count : 0;
+          return {
+            totalDocuments: documentCount,
+            totalChunks: documentCount,
+            totalSources: 0,
+            lastIngestedAt: null,
+          };
         }
-      } else {
-        // Set empty stats if all fails
-        setDatabaseStats({
-          total_documents: 0,
-          total_chunks: 0,
-          sources: []
-        });
       }
     } catch (error) {
-      console.error('Error loading database stats:', error);
-      // Don't show error toast for initial load, just set empty stats
-      setDatabaseStats({
-        total_documents: 0,
-        total_chunks: 0,
-        sources: []
-      });
-    } finally {
-      setIsLoadingStats(false);
+      console.error('Health endpoint request failed:', error);
     }
-  };
+
+    return emptyStats;
+  }, []);
+
+  const fetchDatabaseSources = useCallback(async (): Promise<DatabaseSource[]> => {
+    const response = await fetch('/api/v2/sources?page=1&page_size=100');
+    if (!response.ok) {
+      let message = `Failed to load sources (status ${response.status})`;
+      try {
+        const errorBody = await response.json();
+        if (errorBody?.message) {
+          message = errorBody.message;
+        }
+      } catch (parseError) {
+        console.error('Failed to parse sources error response:', parseError);
+      }
+      throw new Error(message);
+    }
+
+    try {
+      const data = await response.json();
+      const items = Array.isArray(data?.items) ? data.items : [];
+
+      return items.map((item: any): DatabaseSource => {
+        const canonicalUrlCandidate = item?.canonical_url ?? item?.canonicalUrl ?? item?.metadata?.canonical_url ?? item?.metadata?.source ?? null;
+        const canonicalUrl = typeof canonicalUrlCandidate === 'string' ? canonicalUrlCandidate : null;
+        const lastUpdatedCandidate = item?.last_ingested_at ?? item?.lastIngestedAt ?? item?.metadata?.last_ingested_at ?? item?.metadata?.ingested_at ?? null;
+        const lastIngestedAt = typeof lastUpdatedCandidate === 'string' ? lastUpdatedCandidate : null;
+        const labelCandidates = [
+          item?.title,
+          canonicalUrl,
+          item?.reference_path,
+          item?.source_id,
+        ];
+        const label = labelCandidates.find((value: unknown): value is string => typeof value === 'string' && value.trim().length > 0) ?? 'Unknown source';
+        const searchComponents = [
+          label,
+          canonicalUrl,
+          item?.source_id,
+          item?.reference_path,
+          item?.document_type,
+          item?.section,
+        ].filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
+
+        return {
+          id: typeof item?.source_id === 'string' && item.source_id.trim().length > 0 ? item.source_id : label,
+          label,
+          canonicalUrl,
+          chunkCount: typeof item?.chunk_count === 'number' ? item.chunk_count : 0,
+          documentCount: typeof item?.document_count === 'number' ? item.document_count : 0,
+          lastIngestedAt,
+          searchText: searchComponents.join(' ').toLowerCase(),
+        };
+      });
+    } catch (error) {
+      console.error('Failed to parse sources response:', error);
+      return [];
+    }
+  }, []);
+
+  const loadDatabaseStats = useCallback(async () => {
+    setIsLoadingStats(true);
+    setSourcesError(null);
+
+    try {
+      const stats = await fetchDatabaseStats();
+      setDatabaseStats(stats);
+    } catch (error) {
+      console.error('Error loading database stats:', error);
+      setDatabaseStats({
+        totalDocuments: 0,
+        totalChunks: 0,
+        totalSources: 0,
+        lastIngestedAt: null,
+      });
+    }
+
+    try {
+      const sources = await fetchDatabaseSources();
+      setDatabaseSources(sources);
+    } catch (error) {
+      console.error('Error loading database sources:', error);
+      setDatabaseSources([]);
+      setSourcesError(error instanceof Error ? error.message : 'Unable to load indexed sources');
+    }
+
+    setIsLoadingStats(false);
+  }, [fetchDatabaseStats, fetchDatabaseSources]);
+
+  useEffect(() => {
+    if (activeTab === 'database') {
+      loadDatabaseStats();
+    }
+  }, [activeTab, loadDatabaseStats]);
 
   const handlePurgeDatabase = async () => {
     setIsPurging(true);
@@ -315,11 +451,12 @@ export default function ConfigPage() {
     const exportData = {
       exportDate: new Date().toISOString(),
       statistics: {
-        totalDocuments: databaseStats.total_documents,
-        totalChunks: databaseStats.total_chunks,
+        totalDocuments: databaseStats.totalDocuments,
+        totalChunks: databaseStats.totalChunks,
+        totalSources: databaseStats.totalSources,
         databaseUsage: `${databaseUsagePercentage.toFixed(2)}%`
       },
-      sources: databaseStats.sources,
+      sources: databaseSources,
       activityLog: activityLog
     };
     
@@ -400,7 +537,7 @@ export default function ConfigPage() {
         
         // Reload database stats if on database tab
         if (activeTab === 'database') {
-          loadDatabaseStats();
+          void loadDatabaseStats();
         }
       } else {
         const errorMessage = data.message || 'Failed to ingest URL';
@@ -619,7 +756,7 @@ export default function ConfigPage() {
                           setCurrentIngestionUrl('');
                           // Reload database stats if on database tab
                           if (activeTab === 'database') {
-                            loadDatabaseStats();
+                            void loadDatabaseStats();
                           }
                         }}
                       />
@@ -739,7 +876,7 @@ export default function ConfigPage() {
                             <div>
                               <p className="text-xs text-muted-foreground">Total Documents</p>
                               <p className="text-2xl font-bold animate-scale-in">
-                                {databaseStats.total_documents.toLocaleString()}
+                                {databaseStats.totalDocuments.toLocaleString()}
                               </p>
                             </div>
                           </div>
@@ -752,7 +889,7 @@ export default function ConfigPage() {
                             <div>
                               <p className="text-xs text-muted-foreground">Total Chunks</p>
                               <p className="text-2xl font-bold animate-scale-in">
-                                {databaseStats.total_chunks.toLocaleString()}
+                                {databaseStats.totalChunks.toLocaleString()}
                               </p>
                             </div>
                           </div>
@@ -771,16 +908,28 @@ export default function ConfigPage() {
                           </div>
                         </div>
                         
-                        {/* Average Stats */}
-                        <div className="p-3 bg-muted/30 rounded-lg">
+                        {/* Aggregate Stats */}
+                        <div className="p-3 bg-muted/30 rounded-lg space-y-2">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground">Indexed sources:</span>
+                            <span className="font-medium">
+                              {databaseStats.totalSources.toLocaleString()}
+                            </span>
+                          </div>
                           <div className="flex items-center justify-between text-xs">
                             <span className="text-muted-foreground">Average chunks per document:</span>
                             <span className="font-medium">
-                              {databaseStats.total_documents > 0 
-                                ? (databaseStats.total_chunks / databaseStats.total_documents).toFixed(1)
+                              {databaseStats.totalDocuments > 0
+                                ? (databaseStats.totalChunks / databaseStats.totalDocuments).toFixed(1)
                                 : '0'}
                             </span>
                           </div>
+                          {lastIngestedLabel && (
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-muted-foreground">Last ingestion:</span>
+                              <span className="font-medium">{lastIngestedLabel}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ) : (
@@ -791,81 +940,101 @@ export default function ConfigPage() {
                   </div>
 
                   {/* Sources Management */}
-                  {databaseStats && databaseStats.sources && databaseStats.sources.length > 0 && (
-                    <div className="p-4 border rounded-lg space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-sm font-medium">Indexed Sources</h4>
-                        <div className="flex items-center gap-2">
-                          <div className="relative">
-                            <Search className="h-4 w-4 absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                              type="text"
-                              placeholder="Search sources..."
-                              value={sourceSearchQuery}
-                              onChange={(e) => setSourceSearchQuery(e.target.value)}
-                              className="h-8 pl-8 pr-3 text-xs w-48"
-                            />
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setSourceSortBy(current => 
-                              current === 'date' ? 'count' : current === 'count' ? 'name' : 'date'
-                            )}
-                            className="text-xs"
-                          >
-                            <Filter className="h-3 w-3 mr-1" />
-                            {sourceSortBy === 'date' ? 'Date' : sourceSortBy === 'count' ? 'Count' : 'Name'}
-                          </Button>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2 max-h-64 overflow-y-auto">
-                        {filteredSources.length > 0 ? (
-                          filteredSources.map((source, index) => (
-                            <div 
-                              key={index} 
-                              className="p-3 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors cursor-pointer group"
+                  {!isLoadingStats && (
+                    databaseSources.length > 0 ? (
+                      <div className="p-4 border rounded-lg space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-sm font-medium">Indexed Sources</h4>
+                          <div className="flex items-center gap-2">
+                            <div className="relative">
+                              <Search className="h-4 w-4 absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
+                              <Input
+                                type="text"
+                                placeholder="Search sources..."
+                                value={sourceSearchQuery}
+                                onChange={(e) => setSourceSearchQuery(e.target.value)}
+                                className="h-8 pl-8 pr-3 text-xs w-48"
+                              />
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setSourceSortBy(current => 
+                                current === 'date' ? 'count' : current === 'count' ? 'name' : 'date'
+                              )}
+                              className="text-xs"
                             >
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <Globe className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                                    <span className="font-medium text-sm truncate">
-                                      {source.source.replace(/^https?:\/\//, '').replace(/\/$/, '')}
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
-                                    <span className="flex items-center gap-1">
-                                      <FileText className="h-3 w-3" />
-                                      {source.document_count} docs
-                                    </span>
-                                    <span className="flex items-center gap-1">
-                                      <Hash className="h-3 w-3" />
-                                      {source.chunk_count} chunks
-                                    </span>
-                                    <span className="flex items-center gap-1">
-                                      <Clock className="h-3 w-3" />
-                                      {new Date(source.last_updated).toLocaleDateString()}
-                                    </span>
+                              <Filter className="h-3 w-3 mr-1" />
+                              {sourceSortBy === 'date' ? 'Date' : sourceSortBy === 'count' ? 'Count' : 'Name'}
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2 max-h-64 overflow-y-auto">
+                          {filteredSources.length > 0 ? (
+                            filteredSources.map(source => {
+                              const displayUrl = source.canonicalUrl
+                                ? source.canonicalUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')
+                                : null;
+                              const lastIndexedLabel = formatDateDisplay(source.lastIngestedAt);
+
+                              return (
+                                <div 
+                                  key={source.id}
+                                  className="p-3 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors"
+                                >
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex-1 min-w-0 space-y-1">
+                                      <div className="flex items-center gap-2">
+                                        <Globe className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                        <span className="font-medium text-sm truncate">
+                                          {source.label}
+                                        </span>
+                                      </div>
+                                      {displayUrl && (
+                                        <p className="text-xs text-muted-foreground truncate pl-6">
+                                          {displayUrl}
+                                        </p>
+                                      )}
+                                      <div className="flex items-center gap-4 text-xs text-muted-foreground pl-6">
+                                        <span className="flex items-center gap-1">
+                                          <FileText className="h-3 w-3" />
+                                          {source.documentCount} docs
+                                        </span>
+                                        <span className="flex items-center gap-1">
+                                          <Hash className="h-3 w-3" />
+                                          {source.chunkCount} chunks
+                                        </span>
+                                        <span className="flex items-center gap-1">
+                                          <Clock className="h-3 w-3" />
+                                          {lastIndexedLabel ?? 'Unknown'}
+                                        </span>
+                                      </div>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-xs text-muted-foreground text-center py-2">
-                            No sources match your search
+                              );
+                            })
+                          ) : (
+                            <p className="text-xs text-muted-foreground text-center py-2">
+                              No sources match your search
+                            </p>
+                          )}
+                        </div>
+                        
+                        {(databaseStats?.totalSources || databaseSources.length) > 5 && (
+                          <p className="text-xs text-muted-foreground text-center">
+                            Showing {filteredSources.length} of {(databaseStats?.totalSources || databaseSources.length).toLocaleString()} sources
                           </p>
                         )}
                       </div>
-                      
-                      {databaseStats.sources.length > 5 && (
-                        <p className="text-xs text-muted-foreground text-center">
-                          Showing {filteredSources.length} of {databaseStats.sources.length} sources
-                        </p>
-                      )}
-                    </div>
+                    ) : (
+                      <p
+                        className={`text-xs text-center py-4 ${sourcesError ? 'text-destructive' : 'text-muted-foreground'}`}
+                      >
+                        {sourcesError ?? 'No sources have been indexed yet. Ingest content to populate this list.'}
+                      </p>
+                    )
                   )}
 
                   <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">

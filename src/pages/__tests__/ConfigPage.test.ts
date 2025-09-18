@@ -1,0 +1,208 @@
+import React from 'react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
+
+(globalThis as any).$RefreshReg$ = () => {};
+(globalThis as any).$RefreshSig$ = () => () => {};
+(globalThis as any).__vite_plugin_react_preamble_installed__ = true;
+
+let ConfigPage: typeof import('@/pages/ConfigPage').default;
+let fetchMock: ReturnType<typeof vi.fn>;
+
+vi.mock('sonner', () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    warning: vi.fn(),
+  },
+}));
+
+vi.mock('@/components/ui/tabs', () => {
+  type TabsState = {
+    active: string;
+    setActive: (value: string) => void;
+  };
+
+  const TabsContext = React.createContext<TabsState | null>(null);
+
+  const Tabs = ({ defaultValue, value, onValueChange, children }: any) => {
+    const [internalValue, setInternalValue] = React.useState<string>(value ?? defaultValue ?? '');
+    const active = value ?? internalValue;
+    const setActive = (next: string) => {
+      setInternalValue(next);
+      onValueChange?.(next);
+    };
+
+    return React.createElement(
+      TabsContext.Provider,
+      { value: { active, setActive } },
+      children
+    );
+  };
+
+  const TabsList = ({ children, ...rest }: any) =>
+    React.createElement('div', { role: 'tablist', ...rest }, children);
+
+  const TabsTrigger = ({ value, children, ...rest }: any) => {
+    const ctx = React.useContext(TabsContext);
+    if (!ctx) {
+      throw new Error('TabsTrigger must be used within Tabs');
+    }
+    const { active, setActive } = ctx;
+    return React.createElement(
+      'button',
+      {
+        type: 'button',
+        role: 'tab',
+        'aria-selected': active === value,
+        onClick: () => setActive(value),
+        ...rest,
+      },
+      children
+    );
+  };
+
+  const TabsContent = ({ value, children, ...rest }: any) => {
+    const ctx = React.useContext(TabsContext);
+    if (!ctx) {
+      throw new Error('TabsContent must be used within Tabs');
+    }
+    if (ctx.active !== value) {
+      return null;
+    }
+    return React.createElement('div', rest, children);
+  };
+
+  return { Tabs, TabsList, TabsTrigger, TabsContent };
+});
+
+describe('ConfigPage', () => {
+  beforeEach(async () => {
+    localStorage.clear();
+    vi.resetModules();
+    fetchMock = vi.fn();
+    (globalThis as any).fetch = fetchMock;
+    (fetchMock as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({}),
+    });
+    ConfigPage = (await import('@/pages/ConfigPage')).default;
+  });
+
+  it('shows the default active model information', () => {
+    render(React.createElement(MemoryRouter, null, React.createElement(ConfigPage)));
+
+    const activeModelRow = screen.getByText(/Active Model:/).parentElement;
+    expect(activeModelRow).not.toBeNull();
+    expect(activeModelRow).toHaveTextContent('GPT-5 Mini');
+    expect(screen.getByText(/Model ID:/)).toHaveTextContent('gpt-5-mini');
+  });
+
+  it('surfaces unsaved changes when selecting a different model and persists on save', async () => {
+    render(React.createElement(MemoryRouter, null, React.createElement(ConfigPage)));
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Google' }));
+
+    const alternativeModel = await screen.findByText('Gemini 2.5 Pro');
+    fireEvent.click(alternativeModel);
+
+    expect(await screen.findByText(/You have unsaved changes/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }));
+
+    await waitFor(() => {
+      expect(localStorage.getItem('selectedLLMModel')).toBe('gemini-2.5-pro');
+      expect(localStorage.getItem('selectedLLMProvider')).toBe('google');
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText(/You have unsaved changes/)).not.toBeInTheDocument();
+    });
+  });
+
+  it('loads database stats and renders indexed sources', async () => {
+    const statsResponse = {
+      total_documents: 25,
+      total_chunks: 80,
+      total_sources: 2,
+      last_ingested_at: '2025-01-01T10:00:00Z',
+    };
+
+    const sourcesResponse = {
+      items: [
+        {
+          source_id: 'source-1',
+          title: 'Handbook Overview',
+          canonical_url: 'https://example.com/handbook/',
+          chunk_count: 30,
+          document_count: 10,
+          last_ingested_at: '2025-01-02T12:30:00Z',
+        },
+        {
+          source_id: 'source-2',
+          title: 'FAQ',
+          canonical_url: null,
+          chunk_count: 5,
+          document_count: 5,
+          last_ingested_at: null,
+        },
+      ],
+      total: 2,
+      page: 1,
+      page_size: 100,
+    };
+
+    (fetchMock as any).mockImplementation((input: RequestInfo | URL) => {
+      const url = typeof input === 'string'
+        ? input
+        : input instanceof URL
+          ? input.toString()
+          : (input as any).url ?? input.toString();
+
+      if (url === '/api/v2/sources/stats') {
+        return Promise.resolve({
+          ok: true,
+          json: async () => statsResponse,
+        });
+      }
+
+      if (url.startsWith('/api/v2/sources?page=1&page_size=100')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => sourcesResponse,
+        });
+      }
+
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({}),
+      });
+    });
+
+    render(React.createElement(MemoryRouter, null, React.createElement(ConfigPage)));
+
+    fireEvent.click(screen.getByRole('tab', { name: /database/i }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith('/api/v2/sources/stats');
+    });
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith('/api/v2/sources?page=1&page_size=100');
+    });
+
+    expect(await screen.findByText('Handbook Overview')).toBeInTheDocument();
+    expect(screen.getByText('10 docs')).toBeInTheDocument();
+    expect(screen.getByText('30 chunks')).toBeInTheDocument();
+    expect(screen.getByText('example.com/handbook')).toBeInTheDocument();
+
+    const indexedSourcesRow = screen.getByText('Indexed sources:').parentElement;
+    expect(indexedSourcesRow).not.toBeNull();
+    expect(indexedSourcesRow).toHaveTextContent('2');
+
+    // Second source lacks a last ingested timestamp and should fall back to "Unknown"
+    expect(screen.getAllByText('Unknown').length).toBeGreaterThanOrEqual(1);
+  });
+});
