@@ -85,6 +85,11 @@ export default function ConfigPage() {
   }>>([]);
   const [showActivityLog, setShowActivityLog] = useState(false);
 
+  const resetIngestionProgress = useCallback(() => {
+    setShowIngestionProgress(false);
+    setCurrentIngestionUrl('');
+  }, []);
+
   const formatDateDisplay = useCallback((value: string | null, includeTime = false) => {
     if (!value) return null;
     const parsed = new Date(value);
@@ -482,16 +487,18 @@ export default function ConfigPage() {
 
     // Validate URL
     try {
-      new URL(urlInput);
+      new URL(urlInput.trim());
     } catch {
       toast.error('Please enter a valid URL');
       return;
     }
 
+    const normalizedUrl = urlInput.trim();
+
     setIsIngesting(true);
     setShowIngestionProgress(true);
-    setCurrentIngestionUrl(urlInput);
-    
+    setCurrentIngestionUrl(normalizedUrl);
+
     try {
       const response = await fetch('/api/rag/ingest', {
         method: 'POST',
@@ -499,7 +506,7 @@ export default function ConfigPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          url: urlInput,
+          url: normalizedUrl,
           type: 'web',
           forceRefresh: forceRefresh,
           metadata: {
@@ -516,12 +523,15 @@ export default function ConfigPage() {
           toast.success(`Successfully ingested ${data.chunks_created} chunks from URL`);
         } else if (data.status === 'exists') {
           toast.info('Document already exists in the database. Use force refresh to re-ingest.');
+          resetIngestionProgress();
+        } else {
+          toast.info(data.message || 'Ingestion request received. Monitoring progress...');
         }
-        
+
         // Add to history
         const newEntry = {
-          url: urlInput,
-          status: data.status === 'exists' ? 'exists' : 'success',
+          url: normalizedUrl,
+          status: data.status === 'exists' ? 'exists' : data.status || 'pending',
           timestamp: new Date().toISOString()
         };
         const updatedHistory = [newEntry, ...ingestionHistory].slice(0, 10); // Keep last 10
@@ -529,7 +539,7 @@ export default function ConfigPage() {
         localStorage.setItem('ingestionHistory', JSON.stringify(updatedHistory));
         
         // Add to activity log
-        addActivityLogEntry('Document Ingested', `${urlInput} - ${data.chunks_created} chunks`);
+        addActivityLogEntry('Document Ingested', `${normalizedUrl} - ${data.chunks_created ?? 0} chunks`);
         
         // Clear input and reset force refresh
         setUrlInput('');
@@ -542,10 +552,11 @@ export default function ConfigPage() {
       } else {
         const errorMessage = data.message || 'Failed to ingest URL';
         toast.error(errorMessage);
+        resetIngestionProgress();
         
         // Add failed entry to history
         const newEntry = {
-          url: urlInput,
+          url: normalizedUrl,
           status: 'failed',
           timestamp: new Date().toISOString()
         };
@@ -556,6 +567,7 @@ export default function ConfigPage() {
     } catch (error) {
       console.error('Ingestion error:', error);
       toast.error('Network error during ingestion');
+      resetIngestionProgress();
     } finally {
       setIsIngesting(false);
       // Progress will auto-hide after completion
@@ -752,8 +764,7 @@ export default function ConfigPage() {
                       <IngestionConsole
                         url={currentIngestionUrl}
                         onComplete={(success) => {
-                          setShowIngestionProgress(false);
-                          setCurrentIngestionUrl('');
+                          resetIngestionProgress();
                           // Reload database stats if on database tab
                           if (activeTab === 'database') {
                             void loadDatabaseStats();

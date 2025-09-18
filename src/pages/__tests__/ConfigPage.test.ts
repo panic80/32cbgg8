@@ -19,6 +19,17 @@ vi.mock('sonner', () => ({
   },
 }));
 
+vi.mock('@/components/IngestionConsole', () => {
+  const React = require('react');
+  return {
+    __esModule: true,
+    default: ({ url }: { url: string }) =>
+      url
+        ? React.createElement('div', { 'data-testid': 'ingestion-console' }, url)
+        : null,
+  };
+});
+
 vi.mock('@/components/ui/tabs', () => {
   type TabsState = {
     active: string;
@@ -81,7 +92,7 @@ vi.mock('@/components/ui/tabs', () => {
 describe('ConfigPage', () => {
   beforeEach(async () => {
     localStorage.clear();
-    vi.resetModules();
+    vi.clearAllMocks();
     fetchMock = vi.fn();
     (globalThis as any).fetch = fetchMock;
     (fetchMock as any).mockResolvedValue({
@@ -204,5 +215,43 @@ describe('ConfigPage', () => {
 
     // Second source lacks a last ingested timestamp and should fall back to "Unknown"
     expect(screen.getAllByText('Unknown').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('clears ingestion progress when the ingest request fails', async () => {
+    (fetchMock as any).mockImplementation((input: RequestInfo | URL) => {
+      const url = typeof input === 'string'
+        ? input
+        : input instanceof URL
+          ? input.toString()
+          : (input as any).url ?? input.toString();
+
+      if (url === '/api/rag/ingest') {
+        return Promise.resolve({
+          ok: false,
+          json: async () => ({ message: 'Unable to ingest' }),
+        });
+      }
+
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({}),
+      });
+    });
+
+    render(React.createElement(MemoryRouter, null, React.createElement(ConfigPage)));
+
+    fireEvent.click(screen.getByRole('tab', { name: 'URL Ingestion' }));
+
+    const urlField = screen.getByLabelText('Enter URL to Ingest');
+    fireEvent.change(urlField, { target: { value: 'https://example.com' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Ingest URL' }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith('/api/rag/ingest', expect.any(Object));
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('ingestion-console')).not.toBeInTheDocument();
+    });
   });
 });
