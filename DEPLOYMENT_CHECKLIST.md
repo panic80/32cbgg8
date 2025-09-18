@@ -30,19 +30,12 @@ chmod +x vps-setup.sh
 sudo ./vps-setup.sh
 ```
 
-## Step 3: Choose Deployment Method
+## Step 3: Application Deployment
 
-### Option A: Docker Deployment (Recommended)
-- [ ] Follow instructions in `DOCKER_DEPLOYMENT.md`
-- [ ] Simpler setup
-- [ ] Better isolation
-- [ ] Easier updates
-
-### Option B: PM2/venv Deployment
 - [ ] Follow instructions in `PM2_DEPLOYMENT.md`
-- [ ] More control
-- [ ] Lower resource usage
-- [ ] More complex setup
+- [ ] Install dependencies and build (`npm ci && npm run build`)
+- [ ] Deploy server via PM2 (`pm2 start ecosystem.config.cjs`)
+- [ ] Configure systemd service for RAG (`cf-rag-service.service`)
 
 ## Step 4: Configuration Files
 
@@ -78,13 +71,6 @@ sudo certbot --nginx -d 32cbgg8.com -d www.32cbgg8.com
 - [ ] SSL: `curl -I https://32cbgg8.com`
 
 ## Step 7: Monitoring
-
-### Docker Commands
-```bash
-docker-compose ps
-docker-compose logs -f
-docker stats
-```
 
 ### PM2 Commands
 ```bash
@@ -122,10 +108,6 @@ sudo netstat -tlnp | grep -E '3000|8000|6379|80|443'
 
 ### Service Issues
 ```bash
-# Docker
-docker-compose down
-docker-compose up -d
-
 # PM2
 pm2 restart all
 sudo systemctl restart cf-rag-service
@@ -143,7 +125,6 @@ sudo swapon /swapfile
 ### Log Locations
 - Nginx: `/var/log/nginx/`
 - PM2: `pm2 logs`
-- Docker: `docker-compose logs`
 - RAG service: `/var/www/cbthis/rag-service/logs/`
 
 ## Support Resources

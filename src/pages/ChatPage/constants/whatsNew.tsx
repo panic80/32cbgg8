@@ -13,9 +13,19 @@ export interface WhatsNewDateGroup {
 }
 
 // Bump this when you add new release notes
-export const WHATS_NEW_VERSION = '2025-09-16';
+export const WHATS_NEW_VERSION = '2025-09-17';
 
 export const WHATS_NEW_BY_DATE: WhatsNewDateGroup[] = [
+  {
+    date: 'Wednesday, September 17, 2025',
+    updates: [
+      {
+        icon: <FileText className="w-4 h-4" />,
+        text: 'DOA Matrix and DOA Policy ingested',
+        description: 'Both documents are now part of the retrieval set so the chatbot can reference the latest guidance.',
+      },
+    ],
+  },
   {
     date: 'Tuesday, September 16, 2025',
     updates: [

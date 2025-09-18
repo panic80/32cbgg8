@@ -3,7 +3,7 @@
 import json
 import pickle
 from typing import Dict, List, Optional, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 
 from app.core.logging import get_logger
@@ -40,8 +40,8 @@ class IngestionCheckpoint:
         self.processed_chunks: List[str] = []
         self.failed_chunks: List[str] = []
         self.metadata: Dict[str, Any] = {}
-        self.created_at = datetime.utcnow()
-        self.updated_at = datetime.utcnow()
+        self.created_at = datetime.now(timezone.utc)
+        self.updated_at = datetime.now(timezone.utc)
         self.error_message: Optional[str] = None
         
     def to_dict(self) -> Dict[str, Any]:
@@ -87,7 +87,7 @@ class IngestionCheckpoint:
         """Update checkpoint state."""
         self.current_state = new_state
         self.error_message = error_message
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
 
 class IngestionCheckpointService:
@@ -182,25 +182,33 @@ class IngestionCheckpointService:
         if metadata_update:
             checkpoint.metadata.update(metadata_update)
             
-        checkpoint.updated_at = datetime.utcnow()
+        checkpoint.updated_at = datetime.now(timezone.utc)
         
         return await self.save_checkpoint(checkpoint)
         
     async def mark_completed(self, operation_id: str) -> bool:
         """Mark checkpoint as completed."""
-        return await self.update_progress(
+        key = self._get_checkpoint_key(operation_id)
+        updated = await self.update_progress(
             operation_id,
-            new_state=CheckpointState.COMPLETED
+            new_state=CheckpointState.COMPLETED,
+            metadata_update={}
         )
+        if updated:
+            await self.cache_service.delete(key)
+        return updated
         
     async def mark_failed(self, operation_id: str, error_message: str) -> bool:
         """Mark checkpoint as failed."""
         checkpoint = await self.get_checkpoint(operation_id)
         if not checkpoint:
             return False
-            
+        
         checkpoint.update_state(CheckpointState.FAILED, error_message)
-        return await self.save_checkpoint(checkpoint)
+        saved = await self.save_checkpoint(checkpoint)
+        if saved:
+            await self.cache_service.delete(self._get_checkpoint_key(operation_id))
+        return saved
         
     async def can_resume(self, operation_id: str) -> bool:
         """Check if an operation can be resumed."""
@@ -213,7 +221,7 @@ class IngestionCheckpointService:
             return False
             
         # Check if checkpoint is not too old (e.g., 24 hours)
-        age = datetime.utcnow() - checkpoint.updated_at
+        age = datetime.now(timezone.utc) - checkpoint.updated_at
         if age > timedelta(hours=24):
             logger.warning(f"Checkpoint {operation_id} is too old to resume")
             return False

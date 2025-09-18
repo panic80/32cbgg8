@@ -3,13 +3,14 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { Brain, Zap, Layers } from 'lucide-react';
 import { EnhancedBackButton } from '@/components/ui/enhanced-back-button';
 import { TripPlanner } from '@/components/TripPlanner';
-import { GlossaryModal } from '@/components/GlossaryModal';
 import { HelpDialog } from '@/pages/ChatPage/components/HelpDialog';
 import { WhatsNewModal } from '@/pages/ChatPage/components/WhatsNewModal';
 import HowItWorksModal from '@/pages/ChatPage/components/HowItWorksModal';
 import { WHATS_NEW_VERSION } from '@/pages/ChatPage/constants/whatsNew';
 import { HamburgerMenu } from '@/components/HamburgerMenu';
 import LogoImage from '@/components/LogoImage';
+import { GlossaryModal } from '@/components/GlossaryModal';
+import { FEATURE_FLAGS } from '@/constants/featureFlags';
 
 interface ChatHeaderProps {
   theme: string;
@@ -41,6 +42,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   const [showHelp, setShowHelp] = useState(false);
   const [showWhatsNew, setShowWhatsNew] = useState(false);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
+  const enableGlossary = FEATURE_FLAGS.enableGlossary;
   
   // Track if there's unseen updates
   // We keep this local to the header since it owns the modal in this component
@@ -100,7 +102,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           onTripPlannerOpen={() => setShowTripPlanner(true)}
           onWhatsNewOpen={() => setShowWhatsNew(true)}
           onHowItWorksOpen={() => setShowHowItWorks(true)}
-          onGlossaryOpen={() => setShowGlossary(true)}
+          onGlossaryOpen={enableGlossary ? () => setShowGlossary(true) : undefined}
           onHelpOpen={() => setShowHelp(true)}
           onExportMarkdown={onExportMarkdown}
           onClearConversation={onClearConversation}
@@ -120,10 +122,12 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
     }}
   />
   
-  <GlossaryModal
-    open={showGlossary}
-    onOpenChange={setShowGlossary}
-  />
+  {enableGlossary && (
+    <GlossaryModal
+      open={showGlossary}
+      onOpenChange={setShowGlossary}
+    />
+  )}
   
   {/* What's New */}
   <WhatsNewModal

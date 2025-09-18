@@ -10,7 +10,6 @@ import { SkeletonChatMessage } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { getModelDisplayName, DEFAULT_MODEL_ID } from '../constants/models';
 import { DisclaimerModal } from '@/components/DisclaimerModal';
-import { GlossaryModal } from '@/components/GlossaryModal';
 import { TypingIndicator } from './ChatPage/components/TypingIndicator';
 import { BackgroundEffects } from './ChatPage/components/BackgroundEffects';
 import { EmptyState } from './ChatPage/components/EmptyState';
@@ -48,7 +47,6 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
   const [isRecording, setIsRecording] = useState(false);
   const [collapsedMessages, setCollapsedMessages] = useState<Set<string>>(new Set());
   const [showHelpDialog, setShowHelpDialog] = useState(false);
-  const [showGlossaryModal, setShowGlossaryModal] = useState(false);
   const [useRAG] = useState(true);
   const [shortAnswerMode, setShortAnswerMode] = useLocalStorage('shortAnswerMode', false);
   // Model mode state for FAST/SMART toggle
@@ -254,11 +252,6 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
         onAccept={handleAcceptDisclaimer}
       />
       
-      <GlossaryModal
-        open={showGlossaryModal}
-        onOpenChange={setShowGlossaryModal}
-      />
-
       <div className="flex h-screen bg-[var(--background)] text-[var(--text)] relative overflow-x-hidden overflow-y-hidden">
 
         {/* Static Background Elements (motion removed to fix flickering) */}

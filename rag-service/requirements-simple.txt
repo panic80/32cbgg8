@@ -19,10 +19,12 @@ chromadb
 openai
 google-generativeai
 anthropic
+rank-bm25
 
 # Document processing
 beautifulsoup4
 pypdf
+pdfplumber
 markdownify
 python-docx
 openpyxl

@@ -2,7 +2,7 @@
 
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 
@@ -27,7 +27,19 @@ class DocumentMetadata(BaseModel):
     last_modified: Optional[datetime] = Field(None, description="Last modification date")
     policy_reference: Optional[str] = Field(None, description="Policy reference number")
     tags: List[str] = Field(default_factory=list, description="Document tags")
-    
+    source_id: Optional[str] = Field(
+        None,
+        description="Stable identifier for the canonical source entry"
+    )
+    canonical_url: Optional[str] = Field(
+        None,
+        description="Canonical URL for the underlying source"
+    )
+    reference_path: Optional[str] = Field(
+        None,
+        description="Structured location (e.g., chapter/section) within the source"
+    )
+
     model_config = ConfigDict(use_enum_values=True)
 
 
@@ -39,7 +51,7 @@ class Document(BaseModel):
     embedding: Optional[List[float]] = Field(None, description="Document embedding vector")
     chunk_index: Optional[int] = Field(None, description="Chunk index within parent document")
     parent_id: Optional[str] = Field(None, description="Parent document ID")
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     
     model_config = ConfigDict(json_encoders={datetime: lambda v: v.isoformat()})
 

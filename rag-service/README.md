@@ -22,8 +22,6 @@ rag-service/
 │   ├── models/           # Pydantic models
 │   ├── pipelines/        # Document processing pipelines
 │   └── services/         # Business logic services
-├── Dockerfile
-├── docker-compose.yml
 └── requirements.txt
 ```
 
@@ -57,15 +55,6 @@ RAG_CHUNK_OVERLAP=200
 RAG_RETRIEVAL_K=5
 ```
 
-### Running with Docker
-
-1. Build and start the services:
-```bash
-docker-compose up -d
-```
-
-2. The RAG service will be available at `http://localhost:8000`
-
 ### Running Locally
 
 1. Create a virtual environment:
@@ -81,7 +70,7 @@ pip install -r requirements.txt
 
 3. Start Redis (optional):
 ```bash
-docker run -d -p 6379:6379 redis:7-alpine
+redis-server
 ```
 
 4. Run the service:

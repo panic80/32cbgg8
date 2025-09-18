@@ -22,7 +22,7 @@
 
 ### Missing Components
 - **Redis**: Not installed (required for caching)
-- **Docker**: Not installed (optional)
+- **Container runtime**: None installed (deployment relies on PM2/systemd)
 - **Python venv**: Needs setup for RAG service
 
 ### Current Deployment Status

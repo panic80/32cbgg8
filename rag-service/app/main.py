@@ -18,6 +18,7 @@ from app.core.vectorstore import VectorStoreManager
 from app.services.cache import CacheService
 from app.services.llm_pool import initialize_llm_pool, shutdown_llm_pool
 from app.services.query_logger import query_logger
+from app.services.source_repository import SourceRepository
 
 # Set up logging
 setup_logging(settings.log_level, settings.log_format)
@@ -27,12 +28,13 @@ logger = get_logger(__name__)
 document_store: DocumentStore = None
 vector_store_manager: VectorStoreManager = None
 cache_service: CacheService = None
+source_repository: SourceRepository = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage application lifecycle."""
-    global document_store, vector_store_manager, cache_service
+    global document_store, vector_store_manager, cache_service, source_repository
     
     logger.info("Starting RAG service...")
     
@@ -53,9 +55,18 @@ async def lifespan(app: FastAPI):
         logger.info("Vector store initialized")
         await asyncio.to_thread(vector_store_manager.get_all_documents, True)
         logger.info("Vector store corpus preloaded for retrieval")
-        
+
+        # Initialize source repository (stores canonical source metadata)
+        source_repository = SourceRepository()
+        await source_repository.initialize()
+        logger.info("Source repository initialized")
+
         # Initialize document store
-        document_store = DocumentStore(vector_store_manager, cache_service)
+        document_store = DocumentStore(
+            vector_store_manager,
+            cache_service,
+            source_repository=source_repository
+        )
         logger.info("Document store initialized")
         
         # Initialize LLM connection pool (if enabled)
@@ -74,6 +85,7 @@ async def lifespan(app: FastAPI):
         app.state.vector_store_manager = vector_store_manager
         app.state.cache_service = cache_service
         app.state.query_logger = query_logger
+        app.state.source_repository = source_repository
         # Cache for retrieval pipelines (keyed by provider/model/hybrid flags)
         app.state.retrieval_pipeline_cache = {}
         

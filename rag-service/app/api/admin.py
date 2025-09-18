@@ -181,8 +181,9 @@ async def rebuild_index(
                 
                 # Create ingestion pipeline
                 pipeline = IngestionPipeline(
-                    document_store=document_store,
-                    vector_store=vector_store
+                    vector_store_manager=document_store.vector_store,
+                    cache_service=cache_service,
+                    source_repository=getattr(document_store, 'source_repository', None)
                 )
                 
                 # Ingest documents

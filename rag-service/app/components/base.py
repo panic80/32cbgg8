@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Optional, Tuple, Callable
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 
 from langchain_core.retrievers import BaseRetriever
 from langchain_core.documents import Document
@@ -44,7 +44,7 @@ class BaseComponent:
         self.component_name = component_name
         self._events = []
         self._metrics = {
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
             "events_logged": 0,
             "errors": 0
         }
@@ -69,7 +69,7 @@ class BaseComponent:
             level: Log level ('debug', 'info', 'warning', 'error')
         """
         event = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "component_type": self.component_type,
             "component_name": self.component_name,
             "event_type": event_type,
@@ -112,7 +112,7 @@ class BaseComponent:
     def reset_metrics(self) -> None:
         """Reset component metrics."""
         self._metrics = {
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
             "events_logged": 0,
             "errors": 0
         }
@@ -274,14 +274,14 @@ class BaseRAGRetriever(BaseRetriever, ABC):
         **kwargs: Any
     ) -> List[Document]:
         """Get relevant documents with retry logic."""
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)
         
         try:
             self._call_count += 1
             docs = await self.aget_relevant_documents(query, **kwargs)
             
             # Update metrics
-            latency = (datetime.utcnow() - start_time).total_seconds()
+            latency = (datetime.now(timezone.utc) - start_time).total_seconds()
             self._total_latency += latency
             
             logger.info(
@@ -401,7 +401,7 @@ class BaseRAGLoader(BaseLoader, ABC):
             
         # Add common metadata
         if "loaded_at" not in doc.metadata:
-            doc.metadata["loaded_at"] = datetime.utcnow().isoformat()
+            doc.metadata["loaded_at"] = datetime.now(timezone.utc).isoformat()
         
         if "loader" not in doc.metadata:
             doc.metadata["loader"] = self.name

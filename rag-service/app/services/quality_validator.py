@@ -76,6 +76,19 @@ class ChunkQualityValidator:
         completeness_score = self._calculate_completeness_score(content)
         formatting_score = self._calculate_formatting_score(content)
         informativeness_score = self._calculate_informativeness_score(content)
+
+        # Certain structured payloads (e.g., table serializations) should not be
+        # penalized for low narrative coherence. Detect them early so we can
+        # relax specific heuristics below.
+        content_type = str(metadata.get("content_type", "")) if metadata else ""
+        is_structured_table = content_type.startswith("table") or "table_title" in (metadata or {})
+
+        if is_structured_table:
+            # Structured tables often appear as JSON blobs which naturally score
+            # low on coherence/informativeness. Bump the raw metrics so the
+            # aggregated quality score reflects their utility.
+            coherence_score = max(coherence_score, 75)
+            informativeness_score = max(informativeness_score, 70)
         
         # Check for specific issues
         issues = []
@@ -90,22 +103,22 @@ class ChunkQualityValidator:
             suggestions.append("Split into smaller chunks")
             
         # Coherence issues
-        if coherence_score < 50:
+        if coherence_score < 50 and not is_structured_table:
             issues.append("Low coherence - may be truncated")
             suggestions.append("Check chunk boundaries")
-            
+
         # Completeness issues
         if completeness_score < 50:
             issues.append("Incomplete content detected")
             suggestions.append("Extend chunk to include complete thoughts")
-            
+
         # Formatting issues
-        if formatting_score < 50:
+        if formatting_score < 50 and not is_structured_table:
             issues.append("Poor formatting or structure")
             suggestions.append("Clean up formatting and structure")
-            
+
         # Informativeness issues
-        if informativeness_score < 30:
+        if informativeness_score < 30 and not is_structured_table:
             issues.append("Low information density")
             suggestions.append("Consider removing or merging chunk")
             
@@ -119,6 +132,11 @@ class ChunkQualityValidator:
         )
         
         # Determine quality level
+        if is_structured_table:
+            # Tables tend to be dense once normalized; treat them as at least
+            # medium quality so they are available to downstream retrieval.
+            quality_score = max(quality_score, self.min_quality_score + 5)
+
         if quality_score >= 80:
             quality_level = QualityLevel.HIGH
         elif quality_score >= 60:

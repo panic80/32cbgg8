@@ -3,7 +3,9 @@
 import re
 import json
 from typing import List, Dict, Any, Optional, Tuple
-from datetime import datetime
+import asyncio
+from datetime import datetime, timezone
+from pathlib import Path
 import pandas as pd
 from bs4 import BeautifulSoup, Tag
 from langchain_core.documents import Document
@@ -51,7 +53,7 @@ class TableAwareWebLoader:
                 doc.metadata.update({
                     "source": self.url,
                     "type": DocumentType.WEB,
-                    "scraped_at": datetime.utcnow().isoformat(),
+                    "scraped_at": datetime.now(timezone.utc).isoformat(),
                 })
             
             return documents
@@ -488,7 +490,68 @@ class UnstructuredTableLoader:
             self.partition_html = None
             self.partition_pdf = None
             self.Table = None
-    
+
+    async def extract_tables(self, source_path: str) -> List[Dict[str, Any]]:
+        """Extract table metadata and text from the supplied source."""
+        if not (self.partition_pdf or self.partition_html):
+            return []
+
+        path = Path(source_path)
+        if not path.exists():
+            logger.warning(f"Skipping table extraction; file not found: {source_path}")
+            return []
+
+        suffix = path.suffix.lower()
+
+        try:
+            if suffix == ".pdf" and self.partition_pdf:
+                elements = await asyncio.to_thread(
+                    self.partition_pdf,
+                    filename=str(path),
+                    include_page_breaks=False,
+                    infer_table_structure=True,
+                )
+            elif suffix in {".html", ".htm"} and self.partition_html:
+                elements = await asyncio.to_thread(
+                    self.partition_html,
+                    filename=str(path),
+                )
+            else:
+                return []
+
+            tables: List[Dict[str, Any]] = []
+            for element in elements:
+                if isinstance(element, self.Table):
+                    metadata = element.metadata.to_dict() if hasattr(element, "metadata") else {}
+                    html = metadata.get("text_as_html")
+                    table_info: Dict[str, Any] = {
+                        "title": metadata.get("text") or metadata.get("title"),
+                        "text": str(element).strip(),
+                        "html": html,
+                        "metadata": metadata,
+                        "page_number": metadata.get("page_number"),
+                    }
+
+                    # Provide markdown rendering when possible for downstream retrieval
+                    markdown = None
+                    if html:
+                        try:
+                            frames = pd.read_html(html)
+                            if frames:
+                                markdown = frames[0].to_markdown(index=False)
+                        except Exception:
+                            markdown = None
+                    if markdown:
+                        table_info["markdown"] = markdown
+
+                    tables.append(table_info)
+
+            return tables
+
+        except Exception as exc:
+            logger.warning(f"Failed to extract tables from {source_path}: {exc}")
+            return []
+
     async def load_html(self, html_content: str, source_url: str) -> List[Document]:
         """Load HTML content using Unstructured."""
         if not self.partition_html:

@@ -13,7 +13,6 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 # Configuration
-DEPLOYMENT_METHOD="${DEPLOYMENT_METHOD:-docker}"
 ENVIRONMENT="${ENVIRONMENT:-production}"
 DOMAIN="${DOMAIN:-32cbgg8.com}"
 PROJECT_DIR="${PROJECT_DIR:-/var/www/cbthis}"
@@ -60,7 +59,7 @@ prompt_value() {
 echo "================================================"
 echo "   Configuration Generator"
 echo "================================================"
-echo "Method: $DEPLOYMENT_METHOD"
+echo "Deployment: PM2/systemd"
 echo "Environment: $ENVIRONMENT"
 echo "Domain: $DOMAIN"
 echo "================================================"
@@ -94,13 +93,8 @@ update_env() {
 }
 
 # Set deployment-specific values
-if [[ "$DEPLOYMENT_METHOD" == "docker" ]]; then
-    update_env "REDIS_URL" "redis://redis:6379"
-    update_env "RAG_SERVICE_URL" "http://rag-service:8000"
-else
-    update_env "REDIS_URL" "redis://localhost:6379"
-    update_env "RAG_SERVICE_URL" "http://localhost:8000"
-fi
+update_env "REDIS_URL" "redis://localhost:6379"
+update_env "RAG_SERVICE_URL" "http://localhost:8000"
 
 # Set common values
 update_env "NODE_ENV" "$ENVIRONMENT"
@@ -148,128 +142,6 @@ fi
 
 print_status "Generated .env.production"
 
-# Generate docker-compose.override.yml for production
-if [[ "$DEPLOYMENT_METHOD" == "docker" ]]; then
-    print_info "Generating docker-compose.prod.yml..."
-    
-    cat > docker-compose.prod.yml << 'EOF'
-version: '3.8'
-
-services:
-  app:
-    restart: always
-    env_file:
-      - .env.production
-    volumes:
-      - ./dist:/app/dist:ro
-      - app_logs:/app/logs
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-        reservations:
-          memory: 512M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-  rag-service:
-    build:
-      context: ./rag-service
-      dockerfile: Dockerfile
-    restart: always
-    env_file:
-      - .env.production
-    volumes:
-      - chroma_data:/app/chroma_db
-      - cooccurrence_data:/app/cooccurrence_index
-      - models_cache:/app/models
-      - rag_logs:/app/logs
-    environment:
-      - SENTENCE_TRANSFORMERS_HOME=/app/models
-    deploy:
-      resources:
-        limits:
-          memory: 2G
-        reservations:
-          memory: 1G
-    depends_on:
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  redis:
-    restart: always
-    command: redis-server --appendonly yes --maxmemory 1gb --maxmemory-policy allkeys-lru
-    volumes:
-      - redis_data:/data
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-        reservations:
-          memory: 512M
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-
-  nginx:
-    image: nginx:alpine
-    restart: always
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./ssl:/etc/nginx/ssl:ro
-      - ./dist:/usr/share/nginx/html:ro
-      - nginx_logs:/var/log/nginx
-    depends_on:
-      - app
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-        reservations:
-          memory: 128M
-
-volumes:
-  app_logs:
-    driver: local
-  chroma_data:
-    driver: local
-  cooccurrence_data:
-    driver: local
-  models_cache:
-    driver: local
-  rag_logs:
-    driver: local
-  redis_data:
-    driver: local
-  nginx_logs:
-    driver: local
-
-networks:
-  default:
-    driver: bridge
-EOF
-    
-    print_status "Generated docker-compose.prod.yml"
-fi
 
 # Generate nginx configuration from template
 print_info "Generating nginx configuration..."
@@ -286,11 +158,10 @@ else
 fi
 
 # Generate systemd service for PM2
-if [[ "$DEPLOYMENT_METHOD" == "pm2" ]]; then
-    print_info "Generating systemd service files..."
-    
-    # RAG service systemd file
-    cat > cf-rag-service.service << EOF
+print_info "Generating systemd service files..."
+
+# RAG service systemd file
+cat > cf-rag-service.service << EOF
 [Unit]
 Description=CF Travel Bot RAG Service
 After=network.target redis.service
@@ -311,9 +182,8 @@ StandardError=append:$PROJECT_DIR/rag-service/logs/rag-service-error.log
 [Install]
 WantedBy=multi-user.target
 EOF
-    
-    print_status "Generated cf-rag-service.service"
-fi
+
+print_status "Generated cf-rag-service.service"
 
 # Generate backup configuration
 print_info "Generating backup configuration..."
@@ -346,12 +216,7 @@ echo "================================================"
 echo ""
 echo "Generated files:"
 echo "  - .env.production"
-if [[ "$DEPLOYMENT_METHOD" == "docker" ]]; then
-    echo "  - docker-compose.prod.yml"
-fi
-if [[ "$DEPLOYMENT_METHOD" == "pm2" ]]; then
-    echo "  - cf-rag-service.service"
-fi
+echo "  - cf-rag-service.service"
 echo "  - nginx.conf"
 echo "  - backup.conf"
 echo ""

@@ -13,7 +13,7 @@ import uuid
 
 from app.core.config import settings
 from app.core.logging import get_logger
-from app.models.query import ChatRequest, Provider
+from app.models.query import ChatRequest, Provider, Source
 from app.api.chat import get_llm
 from app.pipelines.parallel_retrieval import create_parallel_pipeline
 from app.pipelines.query_optimizer import QueryOptimizer
@@ -218,6 +218,7 @@ async def generate_sse_events(
         vector_store = app.state.vector_store_manager
         document_store = app.state.document_store
         cache_service = getattr(app.state, "cache_service", None)
+        source_repository = getattr(app.state, "source_repository", None)
         
         # Acquire LLM from pool
         llm_wrapper = None
@@ -422,40 +423,51 @@ async def generate_sse_events(
                         
                         # Use processed_docs instead of processed_results
                         processed_results = [(doc, doc.metadata.get('score', 0.0)) for doc in processed_docs]
-                        
+
                         # Build context
                         context_parts = []
                         sources = []
-                        
+
                         for i, (doc, score) in enumerate(processed_results):
-                            is_table_content = "|" in doc.page_content or "table" in doc.metadata.get("content_type", "").lower()
-                            
+                            metadata_dict = doc.metadata.model_dump() if hasattr(doc.metadata, 'model_dump') else doc.metadata
+                            content_type = (metadata_dict.get("content_type", "") or "").lower()
+                            is_table_content = "|" in doc.page_content or "table" in content_type
+
                             if is_table_content:
                                 context_parts.append(f"[Source {i+1} - Table Content]\n{doc.page_content}\n")
                             else:
                                 context_parts.append(f"[Source {i+1}]\n{doc.page_content}\n")
-                            
-                            # Create source object
-                            from app.models.query import Source
-                            
-                            # Handle different metadata field names
-                            url = doc.metadata.get("source") or doc.metadata.get("url") or doc.metadata.get("file_path", "Unknown")
-                            title = doc.metadata.get("title") or doc.metadata.get("filename") or url
-                            
-                            source = Source(
-                                id=doc.metadata.get("id", f"source_{i}"),
-                                text=doc.page_content[:settings.source_preview_max_length] if settings.source_preview_max_length > 0 else doc.page_content,
+
+                            url = (
+                                metadata_dict.get("canonical_url")
+                                or metadata_dict.get("source")
+                                or metadata_dict.get("url")
+                                or metadata_dict.get("file_path")
+                                or "Unknown"
+                            )
+                            title = metadata_dict.get("title") or metadata_dict.get("filename") or url
+
+                            if settings.source_preview_max_length > 0:
+                                text_preview = doc.page_content[:settings.source_preview_max_length]
+                            else:
+                                text_preview = doc.page_content
+
+                            source_model = Source(
+                                id=metadata_dict.get("id", f"source_{i}"),
+                                source_id=metadata_dict.get("source_id"),
+                                text=text_preview,
                                 title=title,
                                 url=url,
-                                section=doc.metadata.get("section"),
-                                page=doc.metadata.get("page_number"),
+                                section=metadata_dict.get("section"),
+                                page=metadata_dict.get("page_number"),
                                 score=score,
-                                metadata=doc.metadata
+                                metadata=metadata_dict
                             )
-                            sources.append(source.dict())
-                        
+                            source_models.append(source_model)
+                            sources.append(source_model.model_dump())
+
                         context = "\n".join(context_parts)
-                        
+
                         # Send sources event
                         yield f"data: {json.dumps({'type': 'sources', 'sources': sources})}\n\n"
                 
@@ -789,9 +801,19 @@ User Question: {chat_request.message}"""
                             "max_tokens": chat_request.max_tokens,
                             "include_sources": chat_request.include_sources,
                             "first_token_latency_ms": first_token_latency_ms,
-                            "streaming": True
+                            "streaming": True,
+                            "source_ids": [model.source_id or model.id for model in source_models]
                         }
                     ))
+
+                if source_repository and source_models:
+                    try:
+                        await source_repository.record_query_sources(
+                            query_id,
+                            [model.model_dump() for model in source_models]
+                        )
+                    except Exception as repo_error:
+                        logger.warning("Failed to record streaming query sources: %s", repo_error)
 
                 # Send completion event as soon as tokens finish streaming
                 yield f"data: {json.dumps({'type': 'complete', 'duration': total_time, 'tokens': token_count})}\n\n"
@@ -975,35 +997,47 @@ User Question: {chat_request.message}"""
                     processed_results = [(doc, doc.metadata.get('score', 0.0)) for doc in processed_docs]
 
                     # Build context
-                    context_parts = []
-                    sources = []
-                    
-                    for i, (doc, score) in enumerate(processed_results):
-                        is_table_content = "|" in doc.page_content or "table" in doc.metadata.get("content_type", "").lower()
-                        
-                        if is_table_content:
-                            context_parts.append(f"[Source {i+1} - Table Content]\n{doc.page_content}\n")
-                        else:
-                            context_parts.append(f"[Source {i+1}]\n{doc.page_content}\n")
-                        
-                        # Create source object
-                        from app.models.query import Source
-                        
-                        # Handle different metadata field names
-                        url = doc.metadata.get("source") or doc.metadata.get("url") or doc.metadata.get("file_path", "Unknown")
-                        title = doc.metadata.get("title") or doc.metadata.get("filename") or url
-                        
-                        source = Source(
-                            id=doc.metadata.get("id", f"source_{i}"),
-                            text=doc.page_content[:settings.source_preview_max_length] if settings.source_preview_max_length > 0 else doc.page_content,
-                            title=title,
-                            url=url,
-                            section=doc.metadata.get("section"),
-                            page=doc.metadata.get("page_number"),
-                            score=score,
-                            metadata=doc.metadata
-                        )
-                        sources.append(source.dict())
+                context_parts = []
+                sources = []
+                source_models = []
+
+                for i, (doc, score) in enumerate(processed_results):
+                    metadata_dict = doc.metadata.model_dump() if hasattr(doc.metadata, 'model_dump') else doc.metadata
+                    content_type = (metadata_dict.get("content_type", "") or "").lower()
+                    is_table_content = "|" in doc.page_content or "table" in content_type
+
+                    if is_table_content:
+                        context_parts.append(f"[Source {i+1} - Table Content]\n{doc.page_content}\n")
+                    else:
+                        context_parts.append(f"[Source {i+1}]\n{doc.page_content}\n")
+
+                    url = (
+                        metadata_dict.get("canonical_url")
+                        or metadata_dict.get("source")
+                        or metadata_dict.get("url")
+                        or metadata_dict.get("file_path")
+                        or "Unknown"
+                    )
+                    title = metadata_dict.get("title") or metadata_dict.get("filename") or url
+
+                    if settings.source_preview_max_length > 0:
+                        text_preview = doc.page_content[:settings.source_preview_max_length]
+                    else:
+                        text_preview = doc.page_content
+
+                    source_model = Source(
+                        id=metadata_dict.get("id", f"source_{i}"),
+                        source_id=metadata_dict.get("source_id"),
+                        text=text_preview,
+                        title=title,
+                        url=url,
+                        section=metadata_dict.get("section"),
+                        page=metadata_dict.get("page_number"),
+                        score=score,
+                        metadata=metadata_dict
+                    )
+                    source_models.append(source_model)
+                    sources.append(source_model.model_dump())
                     
                     context = "\n".join(context_parts)
                     
@@ -1206,9 +1240,19 @@ User Question: {chat_request.message}"""
                         "include_sources": chat_request.include_sources,
                         "first_token_latency_ms": first_token_latency_ms,
                         "streaming": True,
-                        "fallback": True
+                        "fallback": True,
+                        "source_ids": [model.source_id or model.id for model in source_models]
                     }
                 ))
+
+            if source_repository and source_models:
+                try:
+                    await source_repository.record_query_sources(
+                        query_id,
+                        [model.model_dump() for model in source_models]
+                    )
+                except Exception as repo_error:
+                    logger.warning("Failed to record streaming query sources (fallback): %s", repo_error)
 
             yield f"data: {json.dumps({'type': 'complete', 'duration': total_time, 'tokens': token_count})}\n\n"
 

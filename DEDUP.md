@@ -15,7 +15,7 @@ Last updated: 2025-08-31
 - Feature flags: preserve fallbacks and defaults.
 - Performance: same or better response times and bundle sizes.
 - Logging: keep existing log lines/locations unless explicitly improved.
-- Infra: no changes to Docker/PM2/Nginx beyond internal imports/paths.
+- Infra: no changes to PM2/Nginx beyond internal imports/paths.
 
 ---
 
@@ -114,7 +114,7 @@ Last updated: 2025-08-31
 - API responses: identical shapes/status codes/headers for all endpoints.
 - No UI/UX/regression changes in main flows (landing, chat, ingestion).
 - Logging unchanged in content and destination.
-- No new deployment steps required (PM2/Nginx/Docker unaffected).
+- No new deployment steps required (PM2/Nginx unaffected).
 
 ---
 

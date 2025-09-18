@@ -72,15 +72,6 @@ else
     ((ERROR_COUNT++))
 fi
 
-# Docker (optional)
-if command -v docker >/dev/null 2>&1; then
-    DOCKER_VERSION=$(docker --version)
-    print_status "Docker installed: $DOCKER_VERSION"
-else
-    print_warning "Docker not installed (required for Docker deployment)"
-    ((WARNING_COUNT++))
-fi
-
 echo ""
 
 # Check project structure
@@ -93,7 +84,6 @@ REQUIRED_FILES=(
     "rag-service/app/main.py"
     ".env.production.template"
     "ecosystem.config.cjs"
-    "docker-compose.yml"
 )
 
 for file in "${REQUIRED_FILES[@]}"; do
@@ -212,9 +202,7 @@ if [[ $ERROR_COUNT -eq 0 ]]; then
     echo ""
     echo "Next steps:"
     echo "1. Build the application: npm run build"
-    echo "2. Choose deployment method:"
-    echo "   - Docker: ./scripts/deploy-to-vps.sh docker"
-    echo "   - PM2: ./scripts/deploy-to-vps.sh pm2"
+    echo "2. Deploy via PM2 scripts or GitHub Actions"
 else
     echo "Status: NOT READY - Fix errors before deployment"
     exit 1

@@ -2,7 +2,7 @@
 
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 
@@ -17,7 +17,7 @@ class ChatMessage(BaseModel):
     """Chat message model."""
     role: str = Field(..., description="Message role (user/assistant/system)")
     content: str = Field(..., description="Message content")
-    timestamp: Optional[datetime] = Field(default_factory=datetime.utcnow)
+    timestamp: Optional[datetime] = Field(default_factory=lambda: datetime.now(timezone.utc))
     
     model_config = ConfigDict(json_encoders={datetime: lambda v: v.isoformat()})
 
@@ -25,6 +25,7 @@ class ChatMessage(BaseModel):
 class Source(BaseModel):
     """Source reference model."""
     id: str = Field(..., description="Source document ID")
+    source_id: Optional[str] = Field(None, description="Canonical source identifier")
     text: str = Field(..., description="Source text snippet")
     title: Optional[str] = Field(None, description="Source title")
     url: Optional[str] = Field(None, description="Source URL")

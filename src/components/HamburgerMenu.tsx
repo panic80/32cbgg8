@@ -27,6 +27,7 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
+import { FEATURE_FLAGS } from '@/constants/featureFlags';
 
 interface HamburgerMenuProps {
   theme: string;
@@ -36,7 +37,7 @@ interface HamburgerMenuProps {
   shortAnswerMode: boolean;
   setShortAnswerMode: (value: boolean) => void;
   onTripPlannerOpen: () => void;
-  onGlossaryOpen: () => void;
+  onGlossaryOpen?: () => void;
   onHelpOpen: () => void;
   onWhatsNewOpen?: () => void;
   onHowItWorksOpen?: () => void;
@@ -108,6 +109,60 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
 
+  const toolsItems: MenuItem[] = [
+    {
+      type: 'button',
+      label: 'Travel Planner',
+      icon: <Plane className="w-4 h-4" />,
+      onClick: () => {
+        setIsOpen(false);
+        onTripPlannerOpen();
+      }
+    },
+    {
+      type: 'button',
+      label: "What's New",
+      icon: <Sun className="w-4 h-4" />,
+      onClick: () => {
+        setIsOpen(false);
+        onWhatsNewOpen && onWhatsNewOpen();
+      }
+    }
+  ];
+
+  if (FEATURE_FLAGS.enableGlossary && onGlossaryOpen) {
+    toolsItems.push({
+      type: 'button',
+      label: 'Glossary',
+      icon: <BookOpen className="w-4 h-4" />,
+      onClick: () => {
+        setIsOpen(false);
+        onGlossaryOpen();
+      },
+    });
+  }
+
+  toolsItems.push(
+    {
+      type: 'button',
+      label: 'How this chatbot works',
+      icon: <Layers className="w-4 h-4" />,
+      onClick: () => {
+        setIsOpen(false);
+        onHowItWorksOpen && onHowItWorksOpen();
+      }
+    },
+    {
+      type: 'button',
+      label: 'Help',
+      icon: <HelpCircle className="w-4 h-4" />,
+      onClick: () => {
+        setIsOpen(false);
+        onHelpOpen();
+      }
+    }
+  );
+
   const menuSections: MenuSection[] = [
     {
       title: 'AI Settings',
@@ -135,53 +190,7 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
     },
     {
       title: 'Tools',
-      items: [
-        {
-          type: 'button',
-          label: 'Travel Planner',
-          icon: <Plane className="w-4 h-4" />,
-          onClick: () => {
-            setIsOpen(false);
-            onTripPlannerOpen();
-          }
-        },
-        {
-          type: 'button',
-          label: "What's New",
-          icon: <Sun className="w-4 h-4" />,
-          onClick: () => {
-            setIsOpen(false);
-            onWhatsNewOpen && onWhatsNewOpen();
-          }
-        },
-        {
-          type: 'button',
-          label: 'Glossary',
-          icon: <BookOpen className="w-4 h-4" />,
-          onClick: () => {
-            setIsOpen(false);
-            onGlossaryOpen();
-          },
-        },
-        {
-          type: 'button',
-          label: 'How this chatbot works',
-          icon: <Layers className="w-4 h-4" />,
-          onClick: () => {
-            setIsOpen(false);
-            onHowItWorksOpen && onHowItWorksOpen();
-          }
-        },
-        {
-          type: 'button',
-          label: 'Help',
-          icon: <HelpCircle className="w-4 h-4" />,
-          onClick: () => {
-            setIsOpen(false);
-            onHelpOpen();
-          }
-        }
-      ]
+      items: toolsItems,
     },
     {
       title: 'Conversation',

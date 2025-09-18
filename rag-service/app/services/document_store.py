@@ -1,7 +1,7 @@
 """Document store service for managing documents."""
 
 from typing import List, Dict, Any, Optional, Tuple
-from datetime import datetime
+from datetime import datetime, timezone
 import asyncio
 
 from app.core.vectorstore import VectorStoreManager
@@ -13,6 +13,7 @@ from app.models.documents import (
 )
 from app.models.query import Source
 from app.services.cache import CacheService, QueryCache
+from app.services.source_repository import SourceRepository
 
 logger = get_logger(__name__)
 
@@ -23,12 +24,14 @@ class DocumentStore:
     def __init__(
         self,
         vector_store_manager: VectorStoreManager,
-        cache_service: Optional[CacheService] = None
+        cache_service: Optional[CacheService] = None,
+        source_repository: Optional[SourceRepository] = None
     ):
         """Initialize document store."""
         self.vector_store = vector_store_manager
         self.cache_service = cache_service
         self.query_cache = QueryCache(cache_service) if cache_service else None
+        self.source_repository = source_repository
         
     async def search(
         self,
@@ -63,7 +66,7 @@ class DocumentStore:
                         id=doc.metadata.get("id", ""),
                         content=doc.page_content,
                         metadata=doc.metadata,
-                        created_at=doc.metadata.get("created_at", datetime.utcnow())
+                        created_at=doc.metadata.get("created_at", datetime.now(timezone.utc))
                     ),
                     score=score if request.include_scores else None,
                     highlights=self._extract_highlights(doc.page_content, request.query)
@@ -100,7 +103,7 @@ class DocumentStore:
                     id=doc.metadata.get("id", ""),
                     content=doc.page_content,
                     metadata=doc.metadata,
-                    created_at=doc.metadata.get("created_at", datetime.utcnow())
+                    created_at=doc.metadata.get("created_at", datetime.now(timezone.utc))
                 )
                 
             return None
@@ -172,22 +175,27 @@ class DocumentStore:
         sources = []
         
         for doc, score in documents[:max_sources]:
+            metadata = doc.metadata.model_dump() if hasattr(doc.metadata, 'model_dump') else doc.metadata
+            canonical_url = metadata.get("canonical_url") or metadata.get("source")
+            text_preview = doc.page_content[:500] + "..." if len(doc.page_content) > 500 else doc.page_content
+
             source = Source(
-                id=doc.metadata.get("id", ""),
-                text=doc.page_content[:500] + "..." if len(doc.page_content) > 500 else doc.page_content,
-                title=doc.metadata.get("title"),
-                url=doc.metadata.get("source"),
-                section=doc.metadata.get("section"),
-                page=doc.metadata.get("page_number"),
+                id=metadata.get("id", ""),
+                source_id=metadata.get("source_id"),
+                text=text_preview,
+                title=metadata.get("title"),
+                url=canonical_url,
+                section=metadata.get("section"),
+                page=metadata.get("page_number"),
                 score=score,
                 metadata={
-                    "type": doc.metadata.get("type"),
-                    "last_modified": doc.metadata.get("last_modified"),
-                    "tags": doc.metadata.get("tags", [])
+                    "type": metadata.get("type"),
+                    "last_modified": metadata.get("last_modified"),
+                    "tags": metadata.get("tags", [])
                 }
             )
             sources.append(source)
-            
+        
         return sources
         
     def _extract_highlights(self, content: str, query: str) -> List[str]:
@@ -227,7 +235,7 @@ class DocumentStore:
                 }
                 for r in results
             ],
-            "cached_at": datetime.utcnow().isoformat()
+            "cached_at": datetime.now(timezone.utc).isoformat()
         }
         
     def _deserialize_results(self, cached: Dict) -> List[DocumentSearchResult]:

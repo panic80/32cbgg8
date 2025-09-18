@@ -2,7 +2,7 @@
 
 import asyncio
 from typing import Dict, Any, Optional, Callable, List
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 from enum import Enum
 
@@ -43,7 +43,7 @@ class ProgressStep:
     def start(self, message: Optional[str] = None):
         """Mark step as started."""
         self.status = ProgressStatus.IN_PROGRESS
-        self.start_time = datetime.utcnow()
+        self.start_time = datetime.now(timezone.utc)
         self.message = message or f"Starting {self.name}..."
         
     def update(self, progress: float, message: Optional[str] = None, details: Optional[Dict[str, Any]] = None):
@@ -58,13 +58,13 @@ class ProgressStep:
         """Mark step as completed."""
         self.status = ProgressStatus.COMPLETED
         self.progress = 100.0
-        self.end_time = datetime.utcnow()
+        self.end_time = datetime.now(timezone.utc)
         self.message = message or f"{self.name} completed"
         
     def error(self, message: str):
         """Mark step as failed."""
         self.status = ProgressStatus.ERROR
-        self.end_time = datetime.utcnow()
+        self.end_time = datetime.now(timezone.utc)
         self.message = message
         
     def to_dict(self) -> Dict[str, Any]:
@@ -92,7 +92,7 @@ class ProgressTracker:
         self.current_step_id: Optional[str] = None
         self.callbacks: List[Callable] = []
         self.overall_progress: float = 0.0
-        self.start_time = datetime.utcnow()
+        self.start_time = datetime.now(timezone.utc)
         self.end_time: Optional[datetime] = None
         self.error: Optional[str] = None
         
@@ -202,7 +202,7 @@ class ProgressTracker:
         
     async def complete(self):
         """Mark operation as complete."""
-        self.end_time = datetime.utcnow()
+        self.end_time = datetime.now(timezone.utc)
         
         await self._notify_callbacks("complete", {
             "message": "Operation completed successfully",
@@ -270,7 +270,7 @@ class IngestionProgressTracker(ProgressTracker):
                 {
                     "current": chunks_processed,
                     "total": total_chunks,
-                    "rate": chunks_processed / max(1, (datetime.utcnow() - self.steps["splitting"].start_time).total_seconds()) if self.steps["splitting"].start_time else 0
+                    "rate": chunks_processed / max(1, (datetime.now(timezone.utc) - self.steps["splitting"].start_time).total_seconds()) if self.steps["splitting"].start_time else 0
                 }
             )
         else:
@@ -287,7 +287,7 @@ class IngestionProgressTracker(ProgressTracker):
         progress = (embeddings_generated / total_embeddings) * 100
         
         # Calculate rate
-        elapsed = (datetime.utcnow() - self.steps["embedding"].start_time).total_seconds() if self.steps["embedding"].start_time else 1
+        elapsed = (datetime.now(timezone.utc) - self.steps["embedding"].start_time).total_seconds() if self.steps["embedding"].start_time else 1
         rate = embeddings_generated / max(1, elapsed)
         
         await self.update_step(

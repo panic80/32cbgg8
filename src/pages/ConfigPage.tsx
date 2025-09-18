@@ -27,7 +27,6 @@ import {
   AlertDialogTrigger,
 } from '../components/ui/alert-dialog';
 import IngestionConsole from '../components/IngestionConsole';
-import { GlossaryConfig } from '../components/config/GlossaryConfig';
 
 import { LLM_MODELS, type LLMModel, DEFAULT_MODEL_ID } from '../constants/models';
 
@@ -446,7 +445,7 @@ export default function ConfigPage() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="model" className="flex items-center gap-2">
               <Brain className="h-4 w-4" />
               LLM Model
@@ -458,10 +457,6 @@ export default function ConfigPage() {
             <TabsTrigger value="database" className="flex items-center gap-2">
               <Trash2 className="h-4 w-4" />
               Database
-            </TabsTrigger>
-            <TabsTrigger value="glossary" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              Glossary
             </TabsTrigger>
           </TabsList>
 
@@ -995,9 +990,6 @@ export default function ConfigPage() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="glossary" className="space-y-4 animate-fade-up">
-            <GlossaryConfig />
-          </TabsContent>
         </Tabs>
       </div>
     </div>

@@ -15,8 +15,8 @@ from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.models.query import (
-    ChatRequest, ChatResponse, FollowUpRequest, 
-    FollowUpResponse, FollowUpQuestion, Provider
+    ChatRequest, ChatResponse, FollowUpRequest,
+    FollowUpResponse, FollowUpQuestion, Provider, Source
 )
 from app.pipelines.parallel_retrieval import ParallelRetrievalPipeline, create_parallel_pipeline
 from app.pipelines.query_optimizer import QueryOptimizer
@@ -143,6 +143,7 @@ async def chat(request: Request, chat_request: ChatRequest) -> ChatResponse:
         vector_store = app.state.vector_store_manager
         document_store = app.state.document_store
         cache_service = getattr(app.state, "cache_service", None)
+        source_repository = getattr(app.state, "source_repository", None)
         
         # Initialize advanced cache if available
         advanced_cache = None
@@ -307,15 +308,16 @@ async def chat(request: Request, chat_request: ChatRequest) -> ChatResponse:
             
             for i, (doc, score) in enumerate(results):
                 # Check if this is table content
-                is_table_content = "|" in doc.page_content or "table" in doc.metadata.get("content_type", "").lower()
+                metadata_dict = doc.metadata.model_dump() if hasattr(doc.metadata, 'model_dump') else doc.metadata
+                is_table_content = "|" in doc.page_content or "table" in (metadata_dict.get("content_type", "") or "").lower()
                 
                 # DIAGNOSTIC: Log table detection details
                 logger.info(f"[TABLE_DIAG] Source {i+1} analysis:")
                 logger.info(f"  - Contains pipe chars: {'|' in doc.page_content}")
-                logger.info(f"  - Content type: {doc.metadata.get('content_type', 'unknown')}")
+                logger.info(f"  - Content type: {metadata_dict.get('content_type', 'unknown')}")
                 logger.info(f"  - Is table content: {is_table_content}")
                 logger.info(f"  - Content preview (first 200 chars): {doc.page_content[:200]}")
-                logger.info(f"  - Source: {doc.metadata.get('source', 'unknown')}")
+                logger.info(f"  - Source: {metadata_dict.get('source', 'unknown')}")
                 
                 # Add to context with special handling for tables
                 if is_table_content:
@@ -330,10 +332,8 @@ async def chat(request: Request, chat_request: ChatRequest) -> ChatResponse:
                     logger.info(f"Source {i+1} contains dollar values")
                 
                 # Create source
-                from app.models.query import Source
-                
                 # Check if content has table structure
-                is_table_content = "|" in doc.page_content or "table" in doc.metadata.get("content_type", "").lower()
+                is_table_content = "|" in doc.page_content or "table" in (metadata_dict.get("content_type", "") or "").lower()
                 
                 # Get max preview length from settings (0 = no limit)
                 max_length = settings.source_preview_max_length
@@ -374,14 +374,15 @@ async def chat(request: Request, chat_request: ChatRequest) -> ChatResponse:
                                 text_preview = truncated + "..."
                 
                 source = Source(
-                    id=doc.metadata.get("id", f"source_{i}"),
+                    id=metadata_dict.get("id", f"source_{i}"),
+                    source_id=metadata_dict.get("source_id"),
                     text=text_preview,
-                    title=doc.metadata.get("title"),
-                    url=doc.metadata.get("source"),
-                    section=doc.metadata.get("section"),
-                    page=doc.metadata.get("page_number"),
+                    title=metadata_dict.get("title"),
+                    url=metadata_dict.get("canonical_url") or metadata_dict.get("source"),
+                    section=metadata_dict.get("section"),
+                    page=metadata_dict.get("page_number"),
                     score=score,
-                    metadata=doc.metadata
+                    metadata=metadata_dict
                 )
                 sources.append(source)
             
@@ -611,10 +612,23 @@ Please inform the user that no relevant information is available in the current 
                 "temperature": chat_request.temperature,
                 "max_tokens": chat_request.max_tokens,
                 "include_sources": chat_request.include_sources,
-                "confidence_score": chat_response.confidence_score
+                "confidence_score": chat_response.confidence_score,
+                "source_ids": [
+                    source.source_id or source.id for source in sources
+                ] if sources else []
             }
         )
-        
+
+        # Persist source usage for downstream auditing
+        if source_repository and sources:
+            try:
+                await source_repository.record_query_sources(
+                    query_id,
+                    [source.model_dump() for source in sources]
+                )
+            except Exception as repo_error:
+                logger.warning("Failed to record query sources: %s", repo_error)
+
         return chat_response
         
     except Exception as e:

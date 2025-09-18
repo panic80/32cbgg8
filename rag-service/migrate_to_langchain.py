@@ -97,7 +97,6 @@ class LangChainMigration:
             # Backup configuration files
             config_files = [
                 ".env",
-                "docker-compose.yml",
                 "requirements.txt"
             ]
             

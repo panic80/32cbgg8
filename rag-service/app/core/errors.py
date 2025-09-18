@@ -3,7 +3,7 @@
 from typing import Optional, Dict, Any
 from enum import Enum
 import traceback
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class ErrorCategory(Enum):
@@ -36,7 +36,7 @@ class IngestionError(Exception):
         self.details = details or {}
         self.recoverable = recoverable
         self.retry_after = retry_after
-        self.timestamp = datetime.utcnow()
+        self.timestamp = datetime.now(timezone.utc)
         self.traceback = traceback.format_exc()
         
     def to_dict(self) -> Dict[str, Any]:

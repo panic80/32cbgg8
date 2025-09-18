@@ -3,7 +3,7 @@
 import asyncio
 import aiohttp
 from typing import List, Dict, Any, Optional, Union
-from datetime import datetime
+from datetime import datetime, timezone
 from urllib.parse import urljoin, urlparse
 import re
 import os
@@ -29,7 +29,7 @@ from langchain_community.document_loaders import (
 )
 from langchain_core.documents import Document
 from langchain_core.document_loaders import BaseLoader
-from langchain.document_transformers import Html2TextTransformer
+from langchain_community.document_transformers import Html2TextTransformer
 from bs4 import BeautifulSoup, SoupStrainer
 import httpx
 try:
@@ -44,6 +44,7 @@ from app.core.logging import get_logger
 from app.models.documents import DocumentType, DocumentMetadata
 from app.components.base import BaseComponent
 from app.pipelines.table_aware_loader import TableAwareWebLoader, UnstructuredTableLoader
+from app.pipelines.pdf_table_extractor import PDFTableExtractor
 from app.utils.table_validator import TableValidator, TableStructure
 
 logger = get_logger(__name__)
@@ -89,7 +90,7 @@ class EnhancedWebLoader:
                     "type": DocumentType.WEB,
                     "title": metadata.get("title", ""),
                     "last_modified": metadata.get("last_modified"),
-                    "scraped_at": datetime.utcnow().isoformat(),
+                    "scraped_at": datetime.now(timezone.utc).isoformat(),
                 }
             )
             
@@ -242,6 +243,8 @@ class LangChainDocumentLoader(BaseComponent):
         super().__init__()
         self.table_loader = UnstructuredTableLoader()
         self.html_transformer = Html2TextTransformer()
+        self._table_cache: Dict[str, List[Dict[str, Any]]] = {}
+        self._table_cache: Dict[str, List[Dict[str, Any]]] = {}
         
         # Mapping of file extensions to LangChain loaders
         self.loader_mapping = {
@@ -314,32 +317,38 @@ class LangChainDocumentLoader(BaseComponent):
                 # Run in executor for sync loaders
                 loop = asyncio.get_event_loop()
                 documents = await loop.run_in_executor(None, loader.load)
-            
+
             # Enhance metadata
             file_name = Path(file_path).name
             file_ext = Path(file_path).suffix.lower()
-            
+            if not documents:
+                return []
+
             for doc in documents:
                 if not doc.metadata:
                     doc.metadata = {}
-                
+
                 doc.metadata.update({
                     "source": file_path,
                     "source_type": "file",
                     "file_name": file_name,
                     "file_extension": file_ext,
                     "document_type": self._detect_document_type(file_ext),
-                    "ingestion_timestamp": datetime.utcnow().isoformat()
+                    "ingestion_timestamp": datetime.now(timezone.utc).isoformat()
                 })
-                
-                # Extract tables if applicable
-                if file_ext in [".pdf", ".doc", ".docx", ".html", ".htm"] and self.table_loader:
-                    tables = await self._extract_tables_from_document(doc)
-                    if tables:
-                        doc.metadata["has_tables"] = True
-                        doc.metadata["table_count"] = len(tables)
-                        doc.metadata["tables"] = tables
-            
+            tables: List[Dict[str, Any]] = []
+            if file_ext == ".pdf":
+                tables = await self._extract_pdf_tables(file_path)
+            elif file_ext in [".html", ".htm"]:
+                tables = await self._extract_html_tables(file_path)
+
+            if tables:
+                table_docs = self._create_table_documents(documents[0].metadata, tables)
+                for doc in documents:
+                    doc.metadata["has_tables"] = True
+                    doc.metadata["table_count"] = len(tables)
+                documents.extend(table_docs)
+
             return documents
             
         except Exception as e:
@@ -393,7 +402,7 @@ class LangChainDocumentLoader(BaseComponent):
                     "source_type": "web",
                     "base_url": base_url,
                     "is_government_source": is_gov_site,
-                    "ingestion_timestamp": datetime.utcnow().isoformat()
+                    "ingestion_timestamp": datetime.now(timezone.utc).isoformat()
                 })
                 
             return documents
@@ -434,15 +443,77 @@ class LangChainDocumentLoader(BaseComponent):
         html_indicators = ['<html', '<body', '<div', '<p>', '<table', '<!DOCTYPE']
         return any(indicator in content[:500] for indicator in html_indicators)
     
-    async def _extract_tables_from_document(self, doc: Document) -> List[Dict[str, Any]]:
-        """Extract tables from document content."""
+    async def _extract_pdf_tables(self, source_path: str) -> List[Dict[str, Any]]:
+        """Extract tables from a PDF using pdfplumber with simple caching."""
+        if source_path in self._table_cache:
+            return self._table_cache[source_path]
+
         try:
-            # Use UnstructuredTableLoader for table extraction
-            if hasattr(doc, 'metadata') and doc.metadata.get('source'):
-                return await self.table_loader.extract_tables(doc.metadata['source'])
-        except Exception as e:
-            logger.warning(f"Failed to extract tables: {e}")
-        return []
+            tables = await asyncio.to_thread(PDFTableExtractor.extract_tables, source_path)
+        except Exception as exc:
+            logger.warning(f"Failed to extract PDF tables for {source_path}: {exc}")
+            tables = []
+
+        self._table_cache[source_path] = tables
+        return tables
+
+    async def _extract_html_tables(self, source_path: str) -> List[Dict[str, Any]]:
+        """Fetch tables from HTML sources using the Unstructured loader."""
+        if not self.table_loader:
+            return []
+
+        if source_path in self._table_cache:
+            return self._table_cache[source_path]
+
+        try:
+            tables = await asyncio.wait_for(
+                self.table_loader.extract_tables(source_path),
+                timeout=90,
+            )
+        except asyncio.TimeoutError:
+            logger.warning(f"Table extraction timed out for {source_path}")
+            tables = []
+        except Exception as exc:
+            logger.warning(f"Failed to extract tables for {source_path}: {exc}")
+            tables = []
+
+        self._table_cache[source_path] = tables
+        return tables
+
+    def _create_table_documents(
+        self,
+        base_metadata: Dict[str, Any],
+        tables: List[Dict[str, Any]],
+    ) -> List[Document]:
+        """Convert table payloads into standalone Document instances."""
+        table_docs: List[Document] = []
+        sanitized_base = {
+            key: value
+            for key, value in base_metadata.items()
+            if key not in {"tables"}
+        }
+
+        for idx, table in enumerate(tables):
+            table_text = (table.get("markdown") or table.get("text") or "").strip()
+            if not table_text:
+                continue
+
+            table_metadata = {
+                **sanitized_base,
+                "content_type": "table",
+                "table_index": idx,
+                "table_title": table.get("title"),
+                "table_page": table.get("page_number"),
+            }
+
+            table_docs.append(
+                Document(
+                    page_content=table_text,
+                    metadata=table_metadata,
+                )
+            )
+
+        return table_docs
 
 
 class DocumentLoaderFactory:

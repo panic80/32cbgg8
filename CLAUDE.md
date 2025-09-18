@@ -13,7 +13,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### RAG Service (Python)
 - `cd rag-service && uvicorn app.main:app --reload --port 8000` - Start RAG service
 - `cd rag-service && ./setup.sh` - Initial setup for RAG service
-- `cd rag-service && docker-compose up -d` - Run with Docker
 
 ### Building & Testing
 - `npm run build` - Production build
@@ -86,7 +85,6 @@ Test files location: `src/**/*.{test,spec}.{js,jsx,ts,tsx}`
 - The system uses Server-Sent Events (SSE) for real-time chat streaming
 - Multi-level caching strategy (Redis, in-memory, browser storage)
 - PM2 process management in production via `ecosystem.config.cjs`
-- Docker Compose setup available for containerized development
 - Automated deployment with health checks and rollback capabilities
 - Proxy architecture separates API routing from main application logic
 

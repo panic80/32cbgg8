@@ -3,7 +3,7 @@
 import time
 import asyncio
 from typing import Dict, Any, Optional, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager
 import statistics
@@ -29,7 +29,7 @@ class PerformanceMetric:
     def record(self, value: float, timestamp: Optional[datetime] = None):
         """Record a new value."""
         if timestamp is None:
-            timestamp = datetime.utcnow()
+            timestamp = datetime.now(timezone.utc)
             
         self.values.append(value)
         self.timestamps.append(timestamp)
@@ -85,7 +85,7 @@ class PerformanceMonitor:
         self.metrics: Dict[str, PerformanceMetric] = {}
         self.counters: Dict[str, int] = defaultdict(int)
         self.gauges: Dict[str, float] = {}
-        self.start_time = datetime.utcnow()
+        self.start_time = datetime.now(timezone.utc)
         
         # Pre-define common metrics
         self._init_metrics()
@@ -97,6 +97,9 @@ class PerformanceMonitor:
         self.metrics["llm_latency_ms"] = PerformanceMetric("llm_latency_ms")
         self.metrics["total_request_latency_ms"] = PerformanceMetric("total_request_latency_ms")
         self.metrics["first_token_latency_ms"] = PerformanceMetric("first_token_latency_ms")
+        self.metrics["ingestion_latency_ms"] = PerformanceMetric("ingestion_latency_ms")
+        self.metrics["ingestion_chunks"] = PerformanceMetric("ingestion_chunks")
+        self.metrics["ingestion_invalid_chunks"] = PerformanceMetric("ingestion_invalid_chunks")
         
         # Cache metrics
         self.metrics["cache_hit_rate"] = PerformanceMetric("cache_hit_rate")
@@ -155,6 +158,27 @@ class PerformanceMonitor:
         
         # Record document count
         self.increment_counter(f"retriever_{retriever_name}_docs", docs_retrieved)
+
+    def record_ingestion_result(
+        self,
+        *,
+        processing_time_ms: float,
+        chunks: int,
+        invalid_chunks: int,
+        status: str
+    ) -> None:
+        """Record ingestion-specific metrics."""
+        self.record_latency("ingestion_latency_ms", processing_time_ms)
+        self.metrics["ingestion_chunks"].record(chunks)
+        self.metrics["ingestion_invalid_chunks"].record(invalid_chunks)
+        self.increment_counter("ingestion_total", 1)
+        self.increment_counter(f"ingestion_{status}", 1)
+
+    def adjust_ingestion_in_progress(self, delta: int) -> None:
+        """Adjust the gauge tracking active ingestions."""
+        current = self.gauges.get("ingestion_in_progress", 0)
+        new_value = max(0, current + delta)
+        self.set_gauge("ingestion_in_progress", new_value)
         
     @asynccontextmanager
     async def measure_latency(self, metric_name: str):
@@ -168,7 +192,7 @@ class PerformanceMonitor:
             
     def get_metrics_summary(self) -> Dict[str, Any]:
         """Get summary of all metrics."""
-        uptime_seconds = (datetime.utcnow() - self.start_time).total_seconds()
+        uptime_seconds = (datetime.now(timezone.utc) - self.start_time).total_seconds()
         
         summary = {
             "uptime_seconds": uptime_seconds,
@@ -272,7 +296,7 @@ class PerformanceMonitor:
         # Add metadata
         lines.append("# HELP rag_uptime_seconds Time since service start")
         lines.append("# TYPE rag_uptime_seconds gauge")
-        uptime = (datetime.utcnow() - self.start_time).total_seconds()
+        uptime = (datetime.now(timezone.utc) - self.start_time).total_seconds()
         lines.append(f"rag_uptime_seconds {uptime}")
         
         # Add counters
@@ -313,7 +337,7 @@ class PerformanceMonitor:
         self.counters.clear()
         self.gauges.clear()
         self._init_metrics()
-        self.start_time = datetime.utcnow()
+        self.start_time = datetime.now(timezone.utc)
 
 
 # Global performance monitor instance

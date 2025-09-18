@@ -33,6 +33,8 @@ class TravelBM25Retriever(BaseRetriever, BaseComponent):
     bm25_retriever: LangChainBM25Retriever = Field(description="Underlying BM25 retriever")
     k: int = Field(default=10, description="Number of documents to retrieve")
     preprocess_query: bool = Field(default=True, description="Whether to preprocess queries")
+    component_type: str = Field(default="retriever", description="Component category identifier")
+    component_name: str = Field(default="bm25", description="Component name for logging and metrics")
     
     class Config:
         """Configuration for this pydantic object."""
@@ -43,6 +45,7 @@ class TravelBM25Retriever(BaseRetriever, BaseComponent):
         documents: List[Document],
         k: int = 10,
         preprocess_query: bool = True,
+        component_name: str = "bm25",
         **kwargs
     ):
         """
@@ -53,19 +56,22 @@ class TravelBM25Retriever(BaseRetriever, BaseComponent):
             k: Number of documents to retrieve
             preprocess_query: Whether to preprocess queries
         """
-        # Initialize BaseComponent
-        BaseComponent.__init__(self, component_type="retriever", component_name="bm25")
-        
         # Create underlying BM25 retriever
         bm25_retriever = LangChainBM25Retriever.from_documents(documents, k=k)
-        
+
         # Initialize BaseRetriever with fields
         super().__init__(
             bm25_retriever=bm25_retriever,
             k=k,
             preprocess_query=preprocess_query,
+            component_type="retriever",
+            component_name=component_name,
             **kwargs
         )
+
+        # Initialize BaseComponent after BaseRetriever so attribute mutation is
+        # compatible with pydantic's BaseModel internals.
+        BaseComponent.__init__(self, component_type="retriever", component_name=component_name)
         
         logger.info(f"Initialized BM25 retriever with {len(documents)} documents")
     

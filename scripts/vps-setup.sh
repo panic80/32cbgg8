@@ -114,32 +114,6 @@ setup_firewall() {
     print_status "Firewall configured and enabled"
 }
 
-# Function to install Docker
-install_docker() {
-    print_info "Installing Docker..."
-    
-    # Remove old versions
-    apt remove -y docker docker-engine docker.io containerd runc 2>/dev/null || true
-    
-    # Install Docker
-    curl -fsSL https://get.docker.com | sh
-    
-    # Install Docker Compose
-    curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-    chmod +x /usr/local/bin/docker-compose
-    
-    # Add user to docker group if specified
-    if [ -n "$DEPLOY_USER" ]; then
-        usermod -aG docker "$DEPLOY_USER"
-    fi
-    
-    # Start and enable Docker
-    systemctl start docker
-    systemctl enable docker
-    
-    print_status "Docker and Docker Compose installed"
-}
-
 # Function to install Node.js and PM2
 install_nodejs_pm2() {
     print_info "Installing Node.js 18.x..."
@@ -262,24 +236,6 @@ create_app_directories() {
     print_status "Application directories created"
 }
 
-# Main menu
-show_menu() {
-    echo ""
-    echo "========================================"
-    echo "   CF Travel Bot VPS Setup Script"
-    echo "========================================"
-    echo ""
-    echo "This script will help you set up your VPS for deployment."
-    echo ""
-    echo "Select deployment method:"
-    echo "1) Docker deployment (Recommended)"
-    echo "2) PM2/venv deployment"
-    echo "3) Both (install all dependencies)"
-    echo "4) Exit"
-    echo ""
-    read -p "Enter your choice [1-4]: " choice
-}
-
 # Main execution
 main() {
     check_root
@@ -313,42 +269,12 @@ main() {
     create_user $DEPLOY_USER
     setup_firewall
     
-    # Show menu
-    show_menu
-    
-    case $choice in
-        1)
-            print_info "Installing Docker deployment dependencies..."
-            install_docker
-            install_services
-            create_app_directories
-            ;;
-        2)
-            print_info "Installing PM2/venv deployment dependencies..."
-            install_nodejs_pm2
-            install_python
-            install_services
-            install_rag_deps
-            create_app_directories
-            ;;
-        3)
-            print_info "Installing all dependencies..."
-            install_docker
-            install_nodejs_pm2
-            install_python
-            install_services
-            install_rag_deps
-            create_app_directories
-            ;;
-        4)
-            print_info "Exiting..."
-            exit 0
-            ;;
-        *)
-            print_error "Invalid choice"
-            exit 1
-            ;;
-    esac
+    print_info "Installing PM2/virtualenv deployment dependencies..."
+    install_nodejs_pm2
+    install_python
+    install_services
+    install_rag_deps
+    create_app_directories
     
     # Final steps
     print_info "Creating deployment info file..."
@@ -357,14 +283,12 @@ CF Travel Bot Deployment Information
 ====================================
 Date: $(date)
 Deploy User: $DEPLOY_USER
-Deployment Type: $choice
 Memory: ${total_mem}MB
 VPS IP: $(curl -s http://ipinfo.io/ip)
 
 Services Installed:
 - Nginx: $(nginx -v 2>&1 | cut -d' ' -f3)
 - Redis: $(redis-server --version | cut -d' ' -f3)
-$(command -v docker >/dev/null && echo "- Docker: $(docker --version | cut -d' ' -f3)")
 $(command -v node >/dev/null && echo "- Node.js: $(node --version)")
 $(command -v pm2 >/dev/null && echo "- PM2: $(pm2 --version)")
 $(command -v python3.11 >/dev/null && echo "- Python: $(python3.11 --version | cut -d' ' -f2)")
@@ -372,9 +296,7 @@ $(command -v python3.11 >/dev/null && echo "- Python: $(python3.11 --version | c
 Next Steps:
 1. Clone your repository to /var/www/cbthis
 2. Configure environment variables
-3. Follow the appropriate deployment guide:
-   - Docker: DOCKER_DEPLOYMENT.md
-   - PM2/venv: PM2_DEPLOYMENT.md
+3. Follow the PM2/Systemd deployment guide in PM2_DEPLOYMENT.md
 EOF
     
     print_status "Setup complete!"

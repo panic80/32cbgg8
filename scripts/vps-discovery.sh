@@ -75,20 +75,6 @@ else
     echo "✗ PM2: Not installed"
 fi
 
-# Docker
-if command_exists docker; then
-    echo "✓ Docker: $(docker --version)"
-    if command_exists docker-compose; then
-        echo "✓ Docker Compose: $(docker-compose --version)"
-    else
-        echo "✗ Docker Compose: Not installed"
-    fi
-    echo "  Docker containers:"
-    docker ps -a 2>/dev/null || echo "  (Docker daemon not running or no permission)"
-else
-    echo "✗ Docker: Not installed"
-fi
-
 # Redis
 if command_exists redis-server; then
     echo "✓ Redis: $(redis-server --version | head -1)"
@@ -146,7 +132,7 @@ echo ""
 
 # Check systemd services
 echo "=== Relevant Systemd Services ==="
-for service in nginx redis redis-server postgresql mysql docker pm2-root pm2-$USER; do
+for service in nginx redis redis-server postgresql mysql pm2-root pm2-$USER; do
     if systemctl list-units --full -all | grep -Fq "$service.service"; then
         echo "$service: $(systemctl is-active $service 2>/dev/null || echo 'unknown')"
     fi
@@ -177,17 +163,11 @@ echo ""
 echo "=== Deployment Recommendations ==="
 echo ""
 
-# Check if Docker is recommended
 total_mem=$(free -m | grep Mem | awk '{print $2}')
 if [ $total_mem -ge 4096 ]; then
-    echo "✓ Sufficient memory for Docker deployment ($total_mem MB)"
-    if command_exists docker; then
-        echo "  Docker is already installed - Docker deployment recommended"
-    else
-        echo "  Docker not installed - can use either Docker or PM2/venv deployment"
-    fi
+    echo "✓ Sufficient memory available ($total_mem MB)"
 else
-    echo "⚠ Limited memory ($total_mem MB) - PM2/venv deployment recommended"
+    echo "⚠ Limited memory ($total_mem MB) - monitor usage after deployment"
 fi
 
 # Check Python version for RAG service
@@ -209,6 +189,6 @@ echo "=== Next Steps ==="
 echo "1. Save this output for deployment planning"
 echo "2. Ensure you have backups of any existing applications"
 echo "3. Prepare API keys for services (OpenAI, Gemini, Anthropic)"
-echo "4. Decide between Docker or PM2/venv deployment"
+echo "4. Prepare for PM2/systemd deployment"
 echo ""
 echo "Script completed: $(date)"

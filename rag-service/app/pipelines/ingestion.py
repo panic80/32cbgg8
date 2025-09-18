@@ -1,8 +1,8 @@
 """Document ingestion pipeline."""
 
 import uuid
-from typing import List, Dict, Any, Optional
-from datetime import datetime
+from typing import List, Dict, Any, Optional, TYPE_CHECKING
+from datetime import datetime, timezone
 import hashlib
 import asyncio
 from pathlib import Path
@@ -38,6 +38,11 @@ from app.utils.retry import retry_async, RetryManager, AGGRESSIVE_RETRY_CONFIG
 from app.utils.deduplication import DeduplicationService, ContentHasher
 from app.components.bm25_retriever import TravelBM25Retriever
 from app.components.cooccurrence_indexer import CooccurrenceIndexer
+from app.services.performance_monitor import get_performance_monitor
+from app.models.source_catalog import SourceCatalogEntry
+
+if TYPE_CHECKING:
+    from app.services.source_repository import SourceRepository
 
 logger = get_logger(__name__)
 
@@ -52,11 +57,15 @@ class IngestionPipeline:
         deduplication_threshold: float = 0.85,
         use_smart_chunking: bool = True,
         use_hierarchical_chunking: bool = False,
-        llm: Optional[Any] = None
+        llm: Optional[Any] = None,
+        source_repository: Optional["SourceRepository"] = None
     ):
         """Initialize ingestion pipeline."""
         self.vector_store_manager = vector_store_manager
         self.cache_service = cache_service
+        self.source_repository = source_repository
+        self.performance_monitor = get_performance_monitor()
+        self._active_ingestions = 0
         self.retry_manager = RetryManager(AGGRESSIVE_RETRY_CONFIG)
         self.deduplication_service = DeduplicationService(deduplication_threshold)
         self.content_hasher = ContentHasher()
@@ -127,8 +136,12 @@ class IngestionPipeline:
         progress_callback: Optional[callable] = None
     ) -> DocumentIngestionResponse:
         """Ingest a document through the pipeline."""
-        start_time = datetime.utcnow()
-        
+        start_time = datetime.now(timezone.utc)
+        self.performance_monitor.adjust_ingestion_in_progress(+1)
+        self.performance_monitor.increment_counter("ingestion_started", 1)
+        invalid_chunk_count = 0
+        deduplicated_docs: List[Document] = []
+
         # Create progress tracker
         operation_id = f"ingest_{int(start_time.timestamp())}"
         progress_tracker = IngestionProgressTracker(operation_id, request.url or "direct_input")
@@ -161,6 +174,13 @@ class IngestionPipeline:
             if not request.force_refresh and not checkpoint:
                 existing = await self._check_existing_document(request)
                 if existing:
+                    processing_time = (datetime.now(timezone.utc) - start_time).total_seconds()
+                    self.performance_monitor.record_ingestion_result(
+                        processing_time_ms=processing_time * 1000,
+                        chunks=existing.get("chunks", 0),
+                        invalid_chunks=0,
+                        status="skipped",
+                    )
                     return DocumentIngestionResponse(
                         document_id=existing["id"],
                         chunks_created=existing["chunks"],
@@ -170,7 +190,11 @@ class IngestionPipeline:
                     )
                     
             # Load document with retry (skip if resuming from later stage)
-            if not checkpoint or checkpoint.current_state == CheckpointState.LOADING:
+            serialized_docs = []
+            if checkpoint and checkpoint.metadata.get("loaded_documents"):
+                serialized_docs = checkpoint.metadata.get("loaded_documents")
+                documents = self._deserialize_documents_from_checkpoint(serialized_docs)
+            if not checkpoint or checkpoint.current_state == CheckpointState.LOADING or not serialized_docs:
                 logger.info(f"Loading document: {request.url or request.file_path}")
                 await progress_tracker.start_step("loading")
                 if self.checkpoint_service:
@@ -182,35 +206,55 @@ class IngestionPipeline:
                 if self.checkpoint_service and checkpoint:
                     checkpoint.total_documents = len(documents)
                     await self.checkpoint_service.save_checkpoint(checkpoint)
+                if self.checkpoint_service:
+                    serialized_docs = self._serialize_documents_for_checkpoint(documents)
+                    await self.checkpoint_service.update_progress(
+                        operation_id,
+                        metadata_update={"loaded_documents": serialized_docs}
+                    )
             else:
-                # Resume from checkpoint - documents should be in cache or retrievable
-                logger.info("Skipping document loading - resuming from checkpoint")
-                documents = []  # This would need to be retrieved from checkpoint data
-            
+                logger.info(
+                    "Resuming from checkpoint state %s with cached documents",
+                    checkpoint.current_state
+                )
+
             if not documents:
                 raise ParsingError("No content extracted from document")
                 
             # Split documents into chunks (skip if resuming from later stage)
-            if not checkpoint or checkpoint.current_state in [CheckpointState.LOADING, CheckpointState.SPLITTING]:
+            cached_chunks = []
+            if checkpoint and checkpoint.metadata.get("split_chunks"):
+                cached_chunks = checkpoint.metadata.get("split_chunks")
+                chunks = self._deserialize_chunks_from_checkpoint(cached_chunks)
+            else:
+                chunks = []
+
+            if not chunks or not checkpoint or checkpoint.current_state in [CheckpointState.LOADING, CheckpointState.SPLITTING]:
                 logger.info(f"Splitting {len(documents)} documents")
-                logger.error(f"BEFORE_SPLIT: About to call _split_documents_safely with {len(documents)} documents")
-                for i, doc in enumerate(documents):
-                    logger.error(f"BEFORE_SPLIT: doc {i}: type={type(doc)}, has_page_content={hasattr(doc, 'page_content')}")
                 await progress_tracker.start_step("splitting")
                 if self.checkpoint_service:
                     await self.checkpoint_service.update_progress(operation_id, new_state=CheckpointState.SPLITTING)
-                split_start = datetime.utcnow()
+                split_start = datetime.now(timezone.utc)
                 chunks = await self._split_documents_safely(documents, progress_tracker)
-                split_time = (datetime.utcnow() - split_start).total_seconds()
+                split_time = (datetime.now(timezone.utc) - split_start).total_seconds()
                 await progress_tracker.complete_step("splitting", f"Created {len(chunks)} chunks in {split_time:.2f}s")
                 logger.info(f"Document splitting completed in {split_time:.2f} seconds")
+                if self.checkpoint_service:
+                    serialized_chunks = self._serialize_chunks_for_checkpoint(chunks)
+                    await self.checkpoint_service.update_progress(
+                        operation_id,
+                        metadata_update={"split_chunks": serialized_chunks}
+                    )
             else:
-                logger.info("Skipping document splitting - resuming from checkpoint")
-                chunks = []  # This would need to be retrieved from checkpoint data
+                logger.info(
+                    "Resuming with %s cached chunks from checkpoint state %s",
+                    len(chunks),
+                    checkpoint.current_state
+                )
             
             if not chunks:
                 raise ParsingError("No chunks created from document")
-            
+
             # Extract metadata for chunks
             if getattr(settings, 'enable_metadata_extraction', True):
                 logger.info("Extracting metadata for chunks")
@@ -225,11 +269,11 @@ class IngestionPipeline:
             if getattr(settings, 'enable_quality_validation', True):
                 logger.info("Validating chunk quality")
                 valid_chunks, invalid_chunks, quality_stats = self.quality_validator.validate_batch(chunks)
-                
+                invalid_chunk_count = len(invalid_chunks)
                 logger.info(f"Quality validation: {quality_stats['valid_chunks']} valid, "
                           f"{quality_stats['invalid_chunks']} invalid, "
                           f"average score: {quality_stats['average_quality_score']}")
-                
+
                 # Use only valid chunks if validation is strict
                 if getattr(settings, 'strict_quality_validation', False):
                     chunks = valid_chunks
@@ -239,15 +283,15 @@ class IngestionPipeline:
                     # Just log invalid chunks but keep all
                     if invalid_chunks:
                         logger.warning(f"{len(invalid_chunks)} chunks below quality threshold")
-            
+
             # Generate document ID
             doc_id = self._generate_document_id(request)
-            
+
             # Convert to internal document format
             internal_docs = self._convert_to_internal_documents(
                 chunks, doc_id, request
             )
-            
+
             # Deduplicate chunks
             deduplicated_docs = await self._deduplicate_documents(
                 internal_docs, request
@@ -317,9 +361,9 @@ class IngestionPipeline:
                     await progress_tracker.start_step("storing")
                     if self.checkpoint_service:
                         await self.checkpoint_service.update_progress(operation_id, new_state=CheckpointState.STORING)
-                    store_start = datetime.utcnow()
+                    store_start = datetime.now(timezone.utc)
                     await self._store_documents_parallel(regular_docs, progress_tracker, checkpoint)
-                    store_time = (datetime.utcnow() - store_start).total_seconds()
+                    store_time = (datetime.now(timezone.utc) - store_start).total_seconds()
                     await progress_tracker.complete_step("storing", f"Stored {len(regular_docs)} documents in {store_time:.2f}s")
                     logger.info(f"Vector store addition completed in {store_time:.2f} seconds")
 
@@ -336,13 +380,16 @@ class IngestionPipeline:
             
             # Update co-occurrence index with new documents
             await self._update_cooccurrence_index(deduplicated_docs)
+
+            # Persist source catalog metadata for downstream retrieval
+            await self._update_source_catalog(deduplicated_docs)
             
             # Cache document info
             if self.cache_service:
                 await self._cache_document_info(doc_id, deduplicated_docs, request)
                 
             # Calculate processing time
-            processing_time = (datetime.utcnow() - start_time).total_seconds()
+            processing_time = (datetime.now(timezone.utc) - start_time).total_seconds()
             
             # Mark complete
             await progress_tracker.complete()
@@ -355,7 +402,14 @@ class IngestionPipeline:
                 f"Successfully ingested document {doc_id} with {len(internal_docs)} chunks "
                 f"in {processing_time:.2f} seconds"
             )
-            
+
+            self.performance_monitor.record_ingestion_result(
+                processing_time_ms=processing_time * 1000,
+                chunks=len(deduplicated_docs),
+                invalid_chunks=invalid_chunk_count,
+                status="success",
+            )
+
             return DocumentIngestionResponse(
                 document_id=doc_id,
                 chunks_created=len(deduplicated_docs),
@@ -380,8 +434,15 @@ class IngestionPipeline:
             # Mark checkpoint as failed
             if self.checkpoint_service and 'operation_id' in locals():
                 await self.checkpoint_service.mark_failed(operation_id, str(e))
-            processing_time = (datetime.utcnow() - start_time).total_seconds()
-            
+            processing_time = (datetime.now(timezone.utc) - start_time).total_seconds()
+
+            self.performance_monitor.record_ingestion_result(
+                processing_time_ms=processing_time * 1000,
+                chunks=len(deduplicated_docs),
+                invalid_chunks=invalid_chunk_count,
+                status="error",
+            )
+
             return DocumentIngestionResponse(
                 document_id="",
                 chunks_created=0,
@@ -398,8 +459,15 @@ class IngestionPipeline:
             # Mark checkpoint as failed
             if self.checkpoint_service and 'operation_id' in locals():
                 await self.checkpoint_service.mark_failed(operation_id, str(e))
-            processing_time = (datetime.utcnow() - start_time).total_seconds()
-            
+            processing_time = (datetime.now(timezone.utc) - start_time).total_seconds()
+
+            self.performance_monitor.record_ingestion_result(
+                processing_time_ms=processing_time * 1000,
+                chunks=len(deduplicated_docs),
+                invalid_chunks=invalid_chunk_count,
+                status="error",
+            )
+
             return DocumentIngestionResponse(
                 document_id="",
                 chunks_created=0,
@@ -408,6 +476,9 @@ class IngestionPipeline:
                 processing_time=processing_time,
                 error_details=categorized_error.to_dict()
             )
+
+        finally:
+            self.performance_monitor.adjust_ingestion_in_progress(-1)
             
     async def ingest_batch(
         self,
@@ -486,7 +557,7 @@ class IngestionPipeline:
         
     async def ingest_canada_ca(self) -> DocumentIngestionResponse:
         """Ingest all Canada.ca travel instructions."""
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)
         
         try:
             # Use specialized scraper
@@ -498,18 +569,28 @@ class IngestionPipeline:
             all_chunks = splitter.split_documents(documents)
             
             # Generate parent document ID
-            doc_id = f"canada_ca_travel_{datetime.utcnow().strftime('%Y%m%d')}"
+            doc_id = f"canada_ca_travel_{datetime.now(timezone.utc).strftime('%Y%m%d')}"
             
             # Convert to internal format
             internal_docs = []
             for i, chunk in enumerate(all_chunks):
+                metadata_dict = dict(chunk.metadata or {})
+                source_fields = self._prepare_source_metadata(metadata_dict, None)
+                tags_value = metadata_dict.get("tags") or ["canada.ca", "travel", "policy", "official"]
+                if isinstance(tags_value, str):
+                    tags_value = [tags_value]
+
                 metadata = DocumentMetadata(
-                    source=chunk.metadata.get("source", ""),
-                    title=chunk.metadata.get("title", "Canadian Forces Travel Instructions"),
+                    source=source_fields.get("source", metadata_dict.get("source", "")),
+                    title=metadata_dict.get("title", "Canadian Forces Travel Instructions"),
                     type=DocumentType.WEB,
-                    section=chunk.metadata.get("section"),
-                    last_modified=chunk.metadata.get("last_modified"),
-                    tags=["canada.ca", "travel", "policy", "official"]
+                    section=metadata_dict.get("section"),
+                    last_modified=metadata_dict.get("last_modified"),
+                    policy_reference=metadata_dict.get("policy_reference"),
+                    tags=tags_value,
+                    source_id=source_fields.get("source_id"),
+                    canonical_url=source_fields.get("canonical_url"),
+                    reference_path=source_fields.get("reference_path"),
                 )
                 
                 internal_doc = Document(
@@ -518,13 +599,16 @@ class IngestionPipeline:
                     metadata=metadata,
                     chunk_index=i,
                     parent_id=doc_id,
-                    created_at=datetime.utcnow()
+                    created_at=datetime.now(timezone.utc)
                 )
                 internal_docs.append(internal_doc)
                 
             # Add to vector store
             logger.info(f"Adding {len(internal_docs)} Canada.ca chunks to vector store")
             await self.vector_store_manager.add_documents(internal_docs)
+
+            # Update source catalog so Canada.ca content participates in citations
+            await self._update_source_catalog(internal_docs)
             
             # Cache ingestion info
             if self.cache_service:
@@ -535,12 +619,12 @@ class IngestionPipeline:
                         "chunks": len(internal_docs),
                         "source": "canada.ca",
                         "pages_scraped": len(documents),
-                        "ingested_at": datetime.utcnow().isoformat()
+                        "ingested_at": datetime.now(timezone.utc).isoformat()
                     },
                     ttl=86400
                 )
                 
-            processing_time = (datetime.utcnow() - start_time).total_seconds()
+            processing_time = (datetime.now(timezone.utc) - start_time).total_seconds()
             
             return DocumentIngestionResponse(
                 document_id=doc_id,
@@ -552,7 +636,7 @@ class IngestionPipeline:
             
         except Exception as e:
             logger.error(f"Canada.ca ingestion failed: {e}")
-            processing_time = (datetime.utcnow() - start_time).total_seconds()
+            processing_time = (datetime.now(timezone.utc) - start_time).total_seconds()
             
             return DocumentIngestionResponse(
                 document_id="",
@@ -782,16 +866,24 @@ class IngestionPipeline:
         
         for i, chunk in enumerate(chunks):
             try:
+                source_fields = self._prepare_source_metadata(
+                    chunk.metadata,
+                    request
+                )
+
                 # Enhance metadata
                 metadata = DocumentMetadata(
-                    source=chunk.metadata.get("source", ""),
+                    source=source_fields.get("source", "direct_input"),
                     title=chunk.metadata.get("title"),
                     type=DocumentType(chunk.metadata.get("type", request.type)),
                     section=chunk.metadata.get("section"),
                     page_number=chunk.metadata.get("page"),
                     last_modified=chunk.metadata.get("last_modified"),
                     policy_reference=chunk.metadata.get("policy_reference"),
-                    tags=chunk.metadata.get("tags", [])
+                    tags=chunk.metadata.get("tags", []),
+                    source_id=source_fields.get("source_id"),
+                    canonical_url=source_fields.get("canonical_url"),
+                    reference_path=source_fields.get("reference_path")
                 )
                 
                 # Create internal document
@@ -801,7 +893,7 @@ class IngestionPipeline:
                     metadata=metadata,
                     chunk_index=i,
                     parent_id=doc_id,
-                    created_at=datetime.utcnow()
+                    created_at=datetime.now(timezone.utc)
                 )
                 internal_docs.append(internal_doc)
                 
@@ -814,6 +906,103 @@ class IngestionPipeline:
             
         return internal_docs
         
+    def _prepare_source_metadata(
+        self,
+        raw_metadata: Dict[str, Any],
+        request: Optional[DocumentIngestionRequest] = None
+    ) -> Dict[str, Optional[str]]:
+        """Derive stable source metadata for cataloging and citations."""
+
+        metadata = raw_metadata or {}
+
+        source_value = metadata.get("source")
+        if not source_value and request:
+            source_value = request.url or request.file_path or "direct_input"
+        if not source_value:
+            source_value = "direct_input"
+        canonical_url = metadata.get("canonical_url")
+
+        if not canonical_url and isinstance(source_value, str) and source_value.startswith("http"):
+            canonical_url = source_value
+
+        reference_path = metadata.get("reference_path") or metadata.get("section") or metadata.get("title")
+
+        source_identifier = metadata.get("source_id")
+        if not source_identifier:
+            identifier_parts = [
+                str(part)
+                for part in [
+                    canonical_url or source_value,
+                    reference_path,
+                    metadata.get("policy_reference"),
+                    metadata.get("document_id"),
+                    (request.type if request else metadata.get("type")),
+                ]
+                if part
+            ]
+            identifier_seed = "|".join(identifier_parts).strip()
+
+            if not identifier_seed:
+                inferred_type = request.type if request else metadata.get("type") or "unknown"
+                identifier_seed = f"{inferred_type}:{source_value}"
+
+            source_identifier = hashlib.sha1(identifier_seed.encode("utf-8")).hexdigest()
+
+        return {
+            "source": str(source_value) if source_value is not None else "direct_input",
+            "canonical_url": str(canonical_url) if canonical_url else None,
+            "reference_path": str(reference_path) if reference_path else None,
+            "source_id": source_identifier,
+        }
+
+    def _serialize_documents_for_checkpoint(
+        self,
+        documents: List[LangchainDocument]
+    ) -> List[Dict[str, Any]]:
+        """Convert LangChain documents into JSON-serializable dictionaries."""
+        serialized = []
+        max_len = getattr(settings, "checkpoint_content_max_chars", 4000)
+        for doc in documents:
+            content = doc.page_content or ""
+            if max_len and len(content) > max_len:
+                content = content[:max_len]
+            serialized.append(
+                {
+                    "page_content": content,
+                    "metadata": doc.metadata or {},
+                }
+            )
+        return serialized
+
+    def _deserialize_documents_from_checkpoint(
+        self,
+        serialized: List[Dict[str, Any]]
+    ) -> List[LangchainDocument]:
+        """Rehydrate serialized documents into LangChain Document instances."""
+        documents = []
+        for item in serialized or []:
+            documents.append(
+                LangchainDocument(
+                    page_content=item.get("page_content", ""),
+                    metadata=item.get("metadata", {})
+                )
+            )
+        return documents
+
+    def _serialize_chunks_for_checkpoint(
+        self,
+        chunks: List[LangchainDocument]
+    ) -> List[Dict[str, Any]]:
+        """Serialize chunk objects for persistence."""
+        return self._serialize_documents_for_checkpoint(chunks)
+
+    def _deserialize_chunks_from_checkpoint(
+        self,
+        serialized: List[Dict[str, Any]]
+    ) -> List[LangchainDocument]:
+        """Deserialize chunk payload stored in checkpoint metadata."""
+        return self._deserialize_documents_from_checkpoint(serialized)
+
     async def _store_documents_with_retry(
         self, 
         documents: List[Document]
@@ -887,7 +1076,7 @@ class IngestionPipeline:
                     "chunks": len(internal_docs),
                     "source": request.url or request.file_path or "direct",
                     "type": request.type,
-                    "ingested_at": datetime.utcnow().isoformat(),
+                    "ingested_at": datetime.now(timezone.utc).isoformat(),
                     "metadata": request.metadata
                 },
                 ttl=86400  # 24 hours
@@ -895,7 +1084,78 @@ class IngestionPipeline:
         except Exception as e:
             # Log but don't fail ingestion for cache errors
             logger.warning(f"Failed to cache document info: {e}")
-            
+
+    async def _update_source_catalog(self, documents: List[Document]) -> None:
+        """Sync ingested documents to the canonical source repository."""
+        if not self.source_repository or not documents:
+            return
+
+        try:
+            entries: Dict[str, SourceCatalogEntry] = {}
+
+            def _extract_table_metadata(document: Document) -> Optional[Dict[str, Any]]:
+                metadata = document.metadata.model_dump() if hasattr(document.metadata, 'model_dump') else document.metadata
+                if isinstance(metadata, dict):
+                    content_type = (metadata.get("content_type", "") or "").lower()
+                else:
+                    content_type = ""
+                content = document.content or ""
+                if "table" not in content_type and "|" not in content:
+                    return None
+                lines = [line for line in content.splitlines() if line.strip()]
+                table_lines = [line for line in lines if "|" in line]
+                if not table_lines:
+                    return None
+                header_line = table_lines[0]
+                headers = [col.strip() for col in header_line.strip("|").split("|") if col.strip()]
+                sample_rows = table_lines[: min(len(table_lines), 5)]
+                return {
+                    "headers": headers,
+                    "sample": "\n".join(sample_rows),
+                }
+
+            for doc in documents:
+                metadata_dict = doc.metadata.model_dump() if hasattr(doc.metadata, 'model_dump') else dict(doc.metadata)
+                source_id = metadata_dict.get("source_id")
+
+                if not source_id:
+                    continue
+
+                entry = entries.get(source_id)
+                if not entry:
+                    entry = SourceCatalogEntry(
+                        source_id=source_id,
+                        title=metadata_dict.get("title"),
+                        canonical_url=metadata_dict.get("canonical_url") or metadata_dict.get("source"),
+                        reference_path=metadata_dict.get("reference_path") or metadata_dict.get("section"),
+                        document_type=str(metadata_dict.get("type")) if metadata_dict.get("type") else None,
+                        section=metadata_dict.get("section"),
+                        metadata={
+                            "source": metadata_dict.get("source"),
+                            "policy_reference": metadata_dict.get("policy_reference"),
+                            "page_number": metadata_dict.get("page_number"),
+                            "tags": metadata_dict.get("tags"),
+                        },
+                    )
+                    entries[source_id] = entry
+
+                entry.last_ingested_at = datetime.now(timezone.utc)
+                parent_ref = doc.parent_id or metadata_dict.get("parent_id")
+                entry.register_chunk(str(doc.id), str(parent_ref) if parent_ref else None)
+
+                table_meta = _extract_table_metadata(doc)
+                if table_meta:
+                    entry.metadata.setdefault("has_table", True)
+                    tables = entry.metadata.setdefault("tables", [])
+                    if len(tables) < 5:
+                        tables.append(table_meta)
+
+            if entries:
+                await self.source_repository.upsert_entries(entries.values())
+
+        except Exception as exc:
+            logger.warning("Failed to update source repository: %s", exc)
+
     async def _deduplicate_documents(
         self,
         documents: List[Document],
@@ -991,20 +1251,45 @@ class IngestionPipeline:
     ) -> List[Dict[str, Any]]:
         """Get existing documents for deduplication check."""
         try:
-            # Query vector store for similar documents
-            # This is a simplified version - in production you'd want to
-            # query based on source, type, and metadata
-            filters = {}
-            
+            lookup_values: List[str] = []
             if request.url:
-                filters["source"] = request.url
-            elif request.file_path:
-                filters["source"] = request.file_path
-                
-            # This would need to be implemented in your vector store
-            # For now, return empty list
-            return []
-            
+                lookup_values.append(request.url)
+            if request.file_path:
+                lookup_values.append(request.file_path)
+            if request.metadata:
+                candidate = request.metadata.get("source") or request.metadata.get("canonical_url")
+                if candidate:
+                    lookup_values.append(candidate)
+
+            if not lookup_values:
+                return []
+
+            lookup_values = list({str(value) for value in lookup_values if value})
+
+            def _fetch_matching_docs() -> List[Dict[str, Any]]:
+                all_docs = self.vector_store_manager.get_all_documents(refresh=False)
+                matches: List[Dict[str, Any]] = []
+                for doc in all_docs:
+                    metadata = doc.metadata or {}
+                    source_candidates = {
+                        metadata.get("source"),
+                        metadata.get("canonical_url"),
+                        metadata.get("file_path"),
+                    }
+                    if any(value in lookup_values for value in source_candidates if value):
+                        matches.append(
+                            {
+                                "id": metadata.get("id"),
+                                "content": doc.page_content,
+                                "metadata": metadata,
+                            }
+                        )
+                        if len(matches) >= limit:
+                            break
+                return matches
+
+            return await asyncio.to_thread(_fetch_matching_docs)
+
         except Exception as e:
             logger.warning(f"Failed to get existing documents: {e}")
             return []

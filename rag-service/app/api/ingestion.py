@@ -4,7 +4,7 @@ from fastapi import APIRouter, Request, HTTPException, UploadFile, File, Form, Q
 from typing import List, Optional
 import os
 import tempfile
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 
 from app.core.logging import get_logger
@@ -80,7 +80,7 @@ async def purge_database(request: Request) -> dict:
             "status": "success",
             "message": "Database purged successfully",
             "document_count": document_count,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
         
     except Exception as e:
@@ -99,15 +99,20 @@ async def ingest_document(
         app = request.app
         vector_store = app.state.vector_store_manager
         cache_service = getattr(app.state, "cache_service", None)
+        source_repository = getattr(app.state, "source_repository", None)
         
         # Create ingestion pipeline
-        pipeline = IngestionPipeline(vector_store, cache_service)
+        pipeline = IngestionPipeline(
+            vector_store,
+            cache_service,
+            source_repository=source_repository
+        )
         
         # Create operation ID based on URL or content hash
         if ingestion_request.url:
             operation_id = f"url_{hash(ingestion_request.url)}"
         else:
-            operation_id = f"ingest_{int(datetime.utcnow().timestamp())}"
+            operation_id = f"ingest_{int(datetime.now(timezone.utc).timestamp())}"
         
         # Store URL mapping for progress tracking
         if ingestion_request.url:
@@ -203,9 +208,14 @@ async def ingest_file(
             app = request.app
             vector_store = app.state.vector_store_manager
             cache_service = getattr(app.state, "cache_service", None)
+            source_repository = getattr(app.state, "source_repository", None)
             
             # Create pipeline and ingest
-            pipeline = IngestionPipeline(vector_store, cache_service)
+            pipeline = IngestionPipeline(
+                vector_store,
+                cache_service,
+                source_repository=source_repository
+            )
             response = await pipeline.ingest_document(ingestion_request)
             
             # Refresh BM25 corpus and clear retrieval pipeline cache
@@ -263,9 +273,14 @@ async def ingest_batch(
         app = request.app
         vector_store = app.state.vector_store_manager
         cache_service = getattr(app.state, "cache_service", None)
+        source_repository = getattr(app.state, "source_repository", None)
         
         # Create pipeline
-        pipeline = IngestionPipeline(vector_store, cache_service)
+        pipeline = IngestionPipeline(
+            vector_store,
+            cache_service,
+            source_repository=source_repository
+        )
         
         # Create progress callback
         async def progress_callback(index: int, total: int, response: DocumentIngestionResponse):
@@ -336,9 +351,14 @@ async def ingest_canada_ca(request: Request) -> DocumentIngestionResponse:
         app = request.app
         vector_store = app.state.vector_store_manager
         cache_service = getattr(app.state, "cache_service", None)
+        source_repository = getattr(app.state, "source_repository", None)
         
         # Create pipeline
-        pipeline = IngestionPipeline(vector_store, cache_service)
+        pipeline = IngestionPipeline(
+            vector_store,
+            cache_service,
+            source_repository=source_repository
+        )
         
         # Run Canada.ca ingestion
         logger.info("Starting Canada.ca travel instructions ingestion")
