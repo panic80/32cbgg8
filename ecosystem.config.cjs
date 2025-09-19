@@ -9,7 +9,9 @@ module.exports = {
       NODE_ENV: 'production',
       PORT: 3000,
       RAG_SERVICE_URL: 'http://127.0.0.1:8000',
-      ENABLE_LOGGING: 'true'
+      ENABLE_LOGGING: 'true',
+      CONFIG_PANEL_USER: process.env.CONFIG_PANEL_USER || 'admin',
+      CONFIG_PANEL_PASSWORD: process.env.CONFIG_PANEL_PASSWORD || ''
     },
     max_memory_restart: '2G',
     error_file: '/var/log/cbthis/pm2-error.log',

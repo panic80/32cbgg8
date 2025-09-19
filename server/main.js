@@ -258,6 +258,44 @@ const config = {
   canadaCaUrl: process.env.CANADA_CA_URL || 'https://www.canada.ca/en/department-national-defence/services/benefits-military/pay-pension-benefits/benefits/canadian-forces-temporary-duty-travel-instructions.html'
 };
 
+const adminAuthEnabled = typeof process.env.CONFIG_PANEL_PASSWORD === 'string' && process.env.CONFIG_PANEL_PASSWORD.length > 0;
+const adminAuthUser = process.env.CONFIG_PANEL_USER || 'admin';
+
+const requireAdminAuth = (req, res, next) => {
+  if (!adminAuthEnabled || req.method === 'OPTIONS') {
+    return next();
+  }
+
+  const authHeader = req.headers.authorization || '';
+  const [scheme, encoded] = authHeader.split(' ');
+
+  if (scheme === 'Basic' && encoded) {
+    try {
+      const decoded = Buffer.from(encoded, 'base64').toString('utf8');
+      const separatorIndex = decoded.indexOf(':');
+      if (separatorIndex !== -1) {
+        const providedUser = decoded.slice(0, separatorIndex);
+        const providedPassword = decoded.slice(separatorIndex + 1);
+
+        if (providedUser === adminAuthUser && providedPassword === process.env.CONFIG_PANEL_PASSWORD) {
+          return next();
+        }
+      }
+    } catch (error) {
+      console.error('Failed to decode admin auth credentials', error);
+    }
+  }
+
+  res.setHeader('WWW-Authenticate', 'Basic realm="Config", charset="UTF-8"');
+  return res.status(401).json({
+    error: 'Unauthorized',
+    message: 'Administrator credentials required to access this resource.'
+  });
+};
+
+app.use('/api/admin', requireAdminAuth);
+app.use('/config', requireAdminAuth);
+
 console.log('Server configuration:', {
   nodeEnv: NODE_ENV,
   port: PORT,
