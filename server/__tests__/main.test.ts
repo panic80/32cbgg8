@@ -44,13 +44,8 @@ describe('server/main routes', () => {
     process.env.NODE_ENV = 'test';
     process.env.ENABLE_CACHE = 'false';
     process.env.ENABLE_LOGGING = 'true';
-<<<<<<< HEAD
     process.env.CONFIG_PANEL_USER = 'admin';
     process.env.CONFIG_PANEL_PASSWORD = 'buMeod98!!';
-=======
-    process.env.CONFIG_PANEL_USER = 'admin';
-    process.env.CONFIG_PANEL_PASSWORD = 'buMeod98!!';
->>>>>>> 8cdc941 (Protect config panel and admin APIs with basic auth)
     const module = await import('../main.js');
     app = module.default;
   });
@@ -94,11 +89,7 @@ describe('server/main routes', () => {
     expect(unauthorized.status).toBe(401);
     expect(unauthorized.headers['www-authenticate']).toMatch(/Basic/);
 
-<<<<<<< HEAD
     const credentials = Buffer.from('admin:buMeod98!!').toString('base64');
-=======
-    const credentials = Buffer.from('admin:buMeod98!!').toString('base64');
->>>>>>> 8cdc941 (Protect config panel and admin APIs with basic auth)
     const authorized = await request(app)
       .get('/api/admin/chat-logs?limit=1&offset=0')
       .set('Authorization', `Basic ${credentials}`);
@@ -108,6 +99,13 @@ describe('server/main routes', () => {
 
   it('locks the /config route behind authentication', async () => {
     const response = await request(app).get('/config');
+
+    expect(response.status).toBe(401);
+    expect(response.headers['www-authenticate']).toMatch(/Basic/);
+  });
+
+  it('locks the /chat/config route behind authentication', async () => {
+    const response = await request(app).get('/chat/config');
 
     expect(response.status).toBe(401);
     expect(response.headers['www-authenticate']).toMatch(/Basic/);
