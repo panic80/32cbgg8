@@ -165,6 +165,41 @@ app.use(cors({
 // This ensures favicon.ico and other static files are served before any route handlers
 let distPath = existsSync(path.join(__dirname, '..', 'dist')) ? path.join(__dirname, '..', 'dist') : null;
 
+const adminAuthEnabled = typeof process.env.CONFIG_PANEL_PASSWORD === 'string' && process.env.CONFIG_PANEL_PASSWORD.length > 0;
+const adminAuthUser = process.env.CONFIG_PANEL_USER || 'admin';
+
+const requireAdminAuth = (req, res, next) => {
+  if (!adminAuthEnabled || req.method === 'OPTIONS') {
+    return next();
+  }
+
+  const authHeader = req.headers.authorization || '';
+  const [scheme, encoded] = authHeader.split(' ');
+
+  if (scheme === 'Basic' && encoded) {
+    try {
+      const decoded = Buffer.from(encoded, 'base64').toString('utf8');
+      const separatorIndex = decoded.indexOf(':');
+      if (separatorIndex !== -1) {
+        const providedUser = decoded.slice(0, separatorIndex);
+        const providedPassword = decoded.slice(separatorIndex + 1);
+
+        if (providedUser === adminAuthUser && providedPassword === process.env.CONFIG_PANEL_PASSWORD) {
+          return next();
+        }
+      }
+    } catch (error) {
+      console.error('Failed to decode admin auth credentials', error);
+    }
+  }
+
+  res.setHeader('WWW-Authenticate', 'Basic realm="Config", charset="UTF-8"');
+  return res.status(401).json({
+    error: 'Unauthorized',
+    message: 'Administrator credentials required to access this resource.'
+  });
+};
+
 // Explicit favicon.ico route
 app.get('/favicon.ico', (req, res) => {
   console.log('Favicon route hit!');
@@ -181,22 +216,46 @@ app.get('/favicon.ico', (req, res) => {
   }
 });
 
+// Protect config panel before serving static assets
+app.use('/config', requireAdminAuth);
+
 if (distPath) {
   console.log("Serving static files early from:", distPath);
-  app.use(express.static(distPath, {
-    setHeaders: (res, filePath) => {
-      if (filePath.endsWith('.ico')) {
-        res.setHeader('Content-Type', 'image/x-icon');
-        res.setHeader('Cache-Control', 'public, max-age=604800');
-      } else if (filePath.endsWith('.svg')) {
-        res.setHeader('Content-Type', 'image/svg+xml');
-        res.setHeader('Cache-Control', 'public, max-age=604800');
-      } else if (filePath.endsWith('.png')) {
-        res.setHeader('Content-Type', 'image/png');
-        res.setHeader('Cache-Control', 'public, max-age=604800');
-      }
+  app.use((req, res, next) => {
+    if (req.path === '/config' && adminAuthEnabled) {
+      return requireAdminAuth(req, res, () => {
+        express.static(distPath, {
+          setHeaders: (res, filePath) => {
+            if (filePath.endsWith('.ico')) {
+              res.setHeader('Content-Type', 'image/x-icon');
+              res.setHeader('Cache-Control', 'public, max-age=604800');
+            } else if (filePath.endsWith('.svg')) {
+              res.setHeader('Content-Type', 'image/svg+xml');
+              res.setHeader('Cache-Control', 'public, max-age=604800');
+            } else if (filePath.endsWith('.png')) {
+              res.setHeader('Content-Type', 'image/png');
+              res.setHeader('Cache-Control', 'public, max-age=604800');
+            }
+          }
+        })(req, res, next);
+      });
     }
-  }));
+
+    return express.static(distPath, {
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.ico')) {
+          res.setHeader('Content-Type', 'image/x-icon');
+          res.setHeader('Cache-Control', 'public, max-age=604800');
+        } else if (filePath.endsWith('.svg')) {
+          res.setHeader('Content-Type', 'image/svg+xml');
+          res.setHeader('Cache-Control', 'public, max-age=604800');
+        } else if (filePath.endsWith('.png')) {
+          res.setHeader('Content-Type', 'image/png');
+          res.setHeader('Cache-Control', 'public, max-age=604800');
+        }
+      }
+    })(req, res, next);
+  });
 }
 
 // Additional security headers not covered by Helmet
@@ -258,6 +317,7 @@ const config = {
   canadaCaUrl: process.env.CANADA_CA_URL || 'https://www.canada.ca/en/department-national-defence/services/benefits-military/pay-pension-benefits/benefits/canadian-forces-temporary-duty-travel-instructions.html'
 };
 
+<<<<<<< HEAD
 const adminAuthEnabled = typeof process.env.CONFIG_PANEL_PASSWORD === 'string' && process.env.CONFIG_PANEL_PASSWORD.length > 0;
 const adminAuthUser = process.env.CONFIG_PANEL_USER || 'admin';
 
@@ -295,6 +355,9 @@ const requireAdminAuth = (req, res, next) => {
 
 app.use('/api/admin', requireAdminAuth);
 app.use('/config', requireAdminAuth);
+=======
+app.use('/api/admin', requireAdminAuth);
+>>>>>>> 8cdc941 (Protect config panel and admin APIs with basic auth)
 
 console.log('Server configuration:', {
   nodeEnv: NODE_ENV,
