@@ -14,6 +14,7 @@ import CacheService from './services/cache.js';
 import mapsRoutes from './routes/maps.js';
 import createSourcesRoutes from './routes/sources.js';
 import createGlossaryRoutes from './routes/glossary.js';
+import createLogsRoutes from './routes/logs.js';
 import dotenv from 'dotenv';
 import { decodeUrlParams } from './utils/http.js';
 import { processContent } from './utils/html.js';
@@ -21,6 +22,7 @@ import { setSseHeaders } from './utils/sse.js';
 import helmet from 'helmet';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
+import { PassThrough } from 'stream';
 
 // Load secure secrets first (if file exists)
 const secureEnvPath = '/etc/cbthis/env';
@@ -698,6 +700,21 @@ app.post('/api/v2/chat', rateLimiter, async (req, res) => {
         });
     }
     
+    if (config.loggingEnabled) {
+      const loggedAt = new Date().toISOString();
+      chatLogger.logChat(req, {
+        timestamp: loggedAt,
+        question: message.trim(),
+        answer: response,
+        model,
+        provider,
+        ragEnabled: false,
+        metadata: {
+          route: '/api/v2/chat'
+        }
+      });
+    }
+
     // Send response
     res.json({
       response: response,
@@ -709,6 +726,21 @@ app.post('/api/v2/chat', rateLimiter, async (req, res) => {
   } catch (error) {
     console.error('Error processing chat request:', error);
     
+    if (config.loggingEnabled) {
+      chatLogger.logChat(req, {
+        timestamp: new Date().toISOString(),
+        question: message.trim(),
+        answer: null,
+        model,
+        provider,
+        ragEnabled: false,
+        metadata: {
+          route: '/api/v2/chat',
+          error: error instanceof Error ? error.message : 'Unknown error'
+        }
+      });
+    }
+
     // Handle specific error cases
     if (error.status === 429) {
       return res.status(429).json({
@@ -784,48 +816,46 @@ app.post('/api/rag/ingest', rateLimiter, async (req, res) => {
 });
 
 // SSE endpoint for ingestion progress - proxy to RAG service
-app.get('/api/rag/ingest/progress', async (req, res) => {
+const proxyIngestionProgress = async (req, res) => {
   const { url } = req.query;
-  
+
   if (!url) {
     return res.status(400).json({ error: 'URL parameter required' });
   }
-  
+
   try {
     const ragServiceUrl = process.env.RAG_SERVICE_URL || 'http://localhost:8000';
-    
-    // Proxy the SSE request to RAG service with URL parameter
+
     const response = await axios.get(
       `${ragServiceUrl}/api/v1/ingest/progress`,
       {
         params: { url },
         responseType: 'stream',
         headers: {
-          'Accept': 'text/event-stream',
-          'Cache-Control': 'no-cache'
-        }
+          Accept: 'text/event-stream',
+          'Cache-Control': 'no-cache',
+        },
       }
     );
-    
-    // Set SSE headers
+
     setSseHeaders(res, {
       'Access-Control-Allow-Origin': '*',
-      'X-Accel-Buffering': 'no', // Disable Nginx buffering
+      'X-Accel-Buffering': 'no',
     });
-    
-    // Pipe the response
+
     response.data.pipe(res);
-    
-    // Clean up on client disconnect
+
     req.on('close', () => {
       response.data.destroy();
     });
-    
   } catch (error) {
     console.error('Progress streaming error:', error);
     res.status(500).json({ error: 'Failed to connect to progress stream' });
   }
-});
+};
+
+app.get('/api/rag/ingest/progress', proxyIngestionProgress);
+app.get('/api/v2/ingest/progress', proxyIngestionProgress);
 
 app.post('/api/v2/ingest', rateLimiter, async (req, res) => {
   const { url, content, type = 'web', metadata, forceRefresh = false } = req.body;
@@ -909,6 +939,7 @@ app.use(createSourcesRoutes({ rateLimiter }));
 
 // Mount glossary routes
 app.use(createGlossaryRoutes({ rateLimiter }));
+app.use(createLogsRoutes({ rateLimiter }));
 
 // SSE Streaming chat endpoint - proxy to RAG service
 app.post('/api/v2/chat/stream', rateLimiter, async (req, res) => {
@@ -975,27 +1006,138 @@ app.post('/api/v2/chat/stream', rateLimiter, async (req, res) => {
       }
     );
 
-    // Set SSE headers
+    // Prepare to proxy SSE while capturing analytics data
     setSseHeaders(res, {
       'Access-Control-Allow-Origin': '*',
       'X-Accel-Buffering': 'no', // Disable Nginx buffering
     });
 
-    // Pipe the response
-    response.data.pipe(res);
+    const passThrough = new PassThrough();
+    passThrough.pipe(res);
+
+    let buffer = '';
+    let aggregatedAnswer = '';
+    let remoteConversationId = conversationId || null;
+    let remoteModel = model;
+    let remoteProvider = provider || 'openai';
+    let sourcesCount = 0;
+    let followUpCount = 0;
+    let sawErrorEvent = false;
+    let logged = false;
+
+    const finaliseLog = (override = {}) => {
+      if (logged) return;
+      logged = true;
+      if (!config.loggingEnabled) {
+        return;
+      }
+
+      const timestamp = new Date().toISOString();
+      const mergedAnswer = (override.answer ?? aggregatedAnswer) || '';
+      chatLogger.logChat(req, {
+        timestamp,
+        question: message.trim(),
+        answer: mergedAnswer.trim() || null,
+        conversationId: remoteConversationId,
+        model: remoteModel,
+        provider: remoteProvider,
+        ragEnabled: useRAG,
+        shortAnswerMode,
+        metadata: {
+          route: '/api/v2/chat/stream',
+          useHybridSearch,
+          sourcesCount,
+          followUpCount,
+          sawErrorEvent,
+          ...(override.metadata || {})
+        }
+      });
+    };
+
+    const processLine = (line) => {
+      if (!line.startsWith('data: ')) return;
+      const data = line.slice(6).trim();
+      if (data === '' || data === '[DONE]') return;
+
+      try {
+        const event = JSON.parse(data);
+        switch (event.type) {
+          case 'token':
+            if (event.content) {
+              aggregatedAnswer += event.content;
+            }
+            break;
+          case 'metadata':
+            if (event.conversation_id) {
+              remoteConversationId = event.conversation_id;
+            }
+            if (event.model) {
+              remoteModel = event.model;
+            }
+            if (event.provider) {
+              remoteProvider = event.provider;
+            }
+            if (Array.isArray(event.follow_up_questions)) {
+              followUpCount = event.follow_up_questions.length;
+            }
+            break;
+          case 'sources':
+            if (Array.isArray(event.sources)) {
+              sourcesCount = event.sources.length;
+            }
+            break;
+          case 'error':
+            sawErrorEvent = true;
+            finaliseLog();
+            break;
+          case 'complete':
+            finaliseLog();
+            break;
+          default:
+            break;
+        }
+      } catch (parseError) {
+        console.error('Failed to parse upstream streaming event for analytics logging:', parseError);
+      }
+    };
+
+    response.data.on('data', (chunk) => {
+      passThrough.write(chunk);
+      buffer += chunk.toString('utf8');
+
+      let newlineIndex;
+      while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+        const rawLine = buffer.slice(0, newlineIndex);
+        buffer = buffer.slice(newlineIndex + 1);
+        processLine(rawLine.replace(/\r$/, ''));
+      }
+    });
+
+    response.data.on('end', () => {
+      buffer
+        .split('\n')
+        .filter(Boolean)
+        .forEach(line => processLine(line.replace(/\r$/, '')));
+      finaliseLog();
+      passThrough.end();
+    });
+
+    response.data.on('error', (streamError) => {
+      console.error('Streaming pipe error:', streamError);
+      sawErrorEvent = true;
+      finaliseLog();
+      upstreamAbortController.abort();
+      if (!res.writableEnded) {
+        res.end();
+      }
+    });
 
     // Clean up on client disconnect
     req.on('close', () => {
       upstreamAbortController.abort();
       response.data.destroy();
-    });
-
-    response.data.on('error', (streamError) => {
-      console.error('Streaming pipe error:', streamError);
-      upstreamAbortController.abort();
-      if (!res.writableEnded) {
-        res.end();
-      }
+      finaliseLog();
+      passThrough.end();
     });
 
   } catch (error) {
@@ -1005,6 +1147,24 @@ app.post('/api/v2/chat/stream', rateLimiter, async (req, res) => {
       response: error.response?.data,
       status: error.response?.status
     });
+
+    if (config.loggingEnabled) {
+      const errorSummary = error instanceof Error ? error.message : 'Streaming chat failed';
+      aggregatedAnswer = aggregatedAnswer || '';
+      finaliseLog({
+        answer: aggregatedAnswer || `Error: ${errorSummary}`,
+        metadata: { errorMessage: errorSummary }
+      });
+
+      chatLogger.log({
+        type: 'streaming_chat_error',
+        message: errorSummary,
+        status: error.response?.status,
+        provider,
+        model,
+        route: '/api/v2/chat/stream'
+      });
+    }
     
     // For streaming errors, we need to send SSE formatted error
     if (!res.headersSent) {
@@ -1820,9 +1980,11 @@ const gracefulShutdown = async (signal) => {
   console.log(`\n${signal} received. Starting graceful shutdown...`);
   
   // Stop accepting new connections
-  server.close(() => {
-    console.log('HTTP server closed');
-  });
+  if (server) {
+    server.close(() => {
+      console.log('HTTP server closed');
+    });
+  }
   
   // Close cache connections
   if (cache) {
@@ -1844,25 +2006,29 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 // Start server
 // Do not bind to a specific host when running under PM2 cluster mode,
 // so workers can share the same port without EADDRINUSE.
-const server = app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'production'}`);
-  console.log(`Cache: ${config.cacheEnabled ? 'Enabled' : 'Disabled'}`);
-  console.log(`Rate Limiting: ${config.rateLimitEnabled ? `Enabled (${config.rateLimitMax} req/min)` : 'Disabled'}`);
-  console.log(`Static assets: ${distPath || 'Not found'}`);
-  console.log(`Landing page: ${landingPath || 'Not found'}`);
-  
-  // Log available endpoints
-  console.log('\nAvailable endpoints:');
-  console.log('  GET  /health');
-  console.log('  GET  /api/config');
-  console.log('  GET  /api/travel-instructions');
-  console.log('  POST /api/gemini/generateContent');
-  console.log('  POST /api/v2/chat');
-  console.log('  POST /api/v2/followup');
-  console.log('  POST /api/clear-cache');
-  console.log('  GET  /api/deployment-info');
-});
+let server = null;
+
+if (process.env.NODE_ENV !== 'test') {
+  server = app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'production'}`);
+    console.log(`Cache: ${config.cacheEnabled ? 'Enabled' : 'Disabled'}`);
+    console.log(`Rate Limiting: ${config.rateLimitEnabled ? `Enabled (${config.rateLimitMax} req/min)` : 'Disabled'}`);
+    console.log(`Static assets: ${distPath || 'Not found'}`);
+    console.log(`Landing page: ${landingPath || 'Not found'}`);
+    
+    // Log available endpoints
+    console.log('\nAvailable endpoints:');
+    console.log('  GET  /health');
+    console.log('  GET  /api/config');
+    console.log('  GET  /api/travel-instructions');
+    console.log('  POST /api/gemini/generateContent');
+    console.log('  POST /api/v2/chat');
+    console.log('  POST /api/v2/followup');
+    console.log('  POST /api/clear-cache');
+    console.log('  GET  /api/deployment-info');
+  });
+}
 
 // Handle unhandled rejections
 process.on('unhandledRejection', (reason, promise) => {

@@ -50,6 +50,43 @@ type DatabaseSource = {
   searchText: string;
 };
 
+type ChatLogEntry = {
+  id: number;
+  askedAt: string;
+  question: string;
+  answer: string | null;
+  conversationId: string | null;
+  model: string | null;
+  provider: string | null;
+  ragEnabled: boolean | null;
+  shortAnswerMode: boolean | null;
+  metadata: unknown;
+};
+
+type LogFilters = {
+  search: string;
+  startAt: string;
+  endAt: string;
+  provider: string;
+  model: string;
+  conversationId: string;
+  ragEnabled: 'all' | 'true' | 'false';
+  shortAnswerMode: 'all' | 'true' | 'false';
+};
+
+const LOGS_PAGE_SIZE = 20;
+
+const LOGS_FILTER_DEFAULTS: LogFilters = {
+  search: '',
+  startAt: '',
+  endAt: '',
+  provider: 'all',
+  model: '',
+  conversationId: '',
+  ragEnabled: 'all',
+  shortAnswerMode: 'all',
+};
+
 export default function ConfigPage() {
   const [activeTab, setActiveTab] = useState('model');
   
@@ -67,6 +104,7 @@ export default function ConfigPage() {
   const [ingestionHistory, setIngestionHistory] = useState<Array<{url: string, status: string, timestamp: string}>>([]);
   const [showIngestionProgress, setShowIngestionProgress] = useState(false);
   const [currentIngestionUrl, setCurrentIngestionUrl] = useState('');
+  const [ingestionProgressEndpoint, setIngestionProgressEndpoint] = useState<string | null>('/api/rag/ingest/progress');
   
   // Database management state
   const [isPurging, setIsPurging] = useState(false);
@@ -85,9 +123,23 @@ export default function ConfigPage() {
   }>>([]);
   const [showActivityLog, setShowActivityLog] = useState(false);
 
+  // Chat logs panel state
+  const [logsInitialized, setLogsInitialized] = useState(false);
+  const [chatLogs, setChatLogs] = useState<ChatLogEntry[]>([]);
+  const [logsFilters, setLogsFilters] = useState<LogFilters>({ ...LOGS_FILTER_DEFAULTS });
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [logsError, setLogsError] = useState<string | null>(null);
+  const [logsPagination, setLogsPagination] = useState({
+    limit: LOGS_PAGE_SIZE,
+    offset: 0,
+    hasMore: false,
+    nextOffset: null as number | null,
+  });
+
   const resetIngestionProgress = useCallback(() => {
     setShowIngestionProgress(false);
     setCurrentIngestionUrl('');
+    setIngestionProgressEndpoint('/api/rag/ingest/progress');
   }, []);
 
   const formatDateDisplay = useCallback((value: string | null, includeTime = false) => {
@@ -98,6 +150,126 @@ export default function ConfigPage() {
     }
     return includeTime ? parsed.toLocaleString() : parsed.toLocaleDateString();
   }, []);
+
+  const formatBooleanLabel = useCallback((value: boolean | null) => {
+    if (value === null) return 'Unknown';
+    return value ? 'Yes' : 'No';
+  }, []);
+
+  const summariseMetadata = useCallback((metadata: unknown) => {
+    if (!metadata) return null;
+    try {
+      const raw = typeof metadata === 'string' ? metadata : JSON.stringify(metadata);
+      if (raw.length <= 160) return raw;
+      return `${raw.slice(0, 157)}…`;
+    } catch (error) {
+      console.warn('Failed to summarise chat log metadata', error);
+      return null;
+    }
+  }, []);
+
+  const fetchChatLogs = useCallback(async ({ offset, filters }: { offset: number; filters?: LogFilters }) => {
+    const appliedFilters = filters ?? logsFilters;
+    const params = new URLSearchParams();
+    params.set('limit', LOGS_PAGE_SIZE.toString());
+    params.set('offset', Math.max(offset, 0).toString());
+
+    if (appliedFilters.search.trim()) {
+      params.set('search', appliedFilters.search.trim());
+    }
+    if (appliedFilters.startAt) {
+      params.set('startAt', appliedFilters.startAt);
+    }
+    if (appliedFilters.endAt) {
+      params.set('endAt', appliedFilters.endAt);
+    }
+    if (appliedFilters.provider !== 'all') {
+      params.set('provider', appliedFilters.provider);
+    }
+    if (appliedFilters.model.trim()) {
+      params.set('model', appliedFilters.model.trim());
+    }
+    if (appliedFilters.conversationId.trim()) {
+      params.set('conversationId', appliedFilters.conversationId.trim());
+    }
+    if (appliedFilters.ragEnabled !== 'all') {
+      params.set('ragEnabled', appliedFilters.ragEnabled);
+    }
+    if (appliedFilters.shortAnswerMode !== 'all') {
+      params.set('shortAnswerMode', appliedFilters.shortAnswerMode);
+    }
+
+    setLogsLoading(true);
+    setLogsError(null);
+
+    try {
+      const response = await fetch(`/api/admin/chat-logs?${params.toString()}`);
+      if (response.status === 503) {
+        setLogsError('Logging is disabled on the server. Enable ENABLE_LOGGING to view analytics.');
+        setChatLogs([]);
+        setLogsPagination(prev => ({ ...prev, offset: Math.max(offset, 0), hasMore: false, nextOffset: null }));
+        return;
+      }
+
+      if (!response.ok) {
+        let message = `Failed to load chat logs (status ${response.status})`;
+        try {
+          const errorBody = await response.json();
+          if (errorBody?.message) {
+            message = errorBody.message;
+          }
+        } catch (parseError) {
+          console.error('Failed to parse chat logs error response:', parseError);
+        }
+        throw new Error(message);
+      }
+
+      const data = await response.json();
+      const rows: ChatLogEntry[] = Array.isArray(data?.data) ? data.data : [];
+      const pagination = data?.pagination ?? {};
+
+      setChatLogs(rows);
+      setLogsPagination({
+        limit: typeof pagination.limit === 'number' ? pagination.limit : LOGS_PAGE_SIZE,
+        offset: typeof pagination.offset === 'number' ? pagination.offset : Math.max(offset, 0),
+        hasMore: Boolean(pagination.hasMore),
+        nextOffset: typeof pagination.nextOffset === 'number' ? pagination.nextOffset : null,
+      });
+    } catch (error) {
+      console.error('Chat log fetch failed:', error);
+      setLogsError(error instanceof Error ? error.message : 'Failed to load chat logs');
+      setChatLogs([]);
+    } finally {
+      setLogsLoading(false);
+    }
+  }, [logsFilters]);
+
+  const handleLogsApplyFilters = useCallback(() => {
+    const applied = { ...logsFilters };
+    void fetchChatLogs({ offset: 0, filters: applied });
+  }, [fetchChatLogs, logsFilters]);
+
+  const handleLogsResetFilters = useCallback(() => {
+    const resetFilters = { ...LOGS_FILTER_DEFAULTS };
+    setLogsFilters(resetFilters);
+    void fetchChatLogs({ offset: 0, filters: resetFilters });
+  }, [fetchChatLogs]);
+
+  const handleLogsNextPage = useCallback(() => {
+    if (logsLoading || (!logsPagination.hasMore && logsPagination.nextOffset === null)) {
+      return;
+    }
+    const nextOffset = logsPagination.nextOffset ?? logsPagination.offset + logsPagination.limit;
+    void fetchChatLogs({ offset: nextOffset, filters: { ...logsFilters } });
+  }, [fetchChatLogs, logsFilters, logsLoading, logsPagination]);
+
+  const handleLogsPreviousPage = useCallback(() => {
+    if (logsLoading || logsPagination.offset === 0) {
+      return;
+    }
+    const prevOffset = Math.max(logsPagination.offset - logsPagination.limit, 0);
+    void fetchChatLogs({ offset: prevOffset, filters: { ...logsFilters } });
+  }, [fetchChatLogs, logsFilters, logsLoading, logsPagination]);
 
   // Computed values for filtered and sorted sources
   const filteredSources = useMemo(() => {
@@ -145,6 +317,13 @@ export default function ConfigPage() {
     loadIngestionHistory();
     loadActivityLog();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'logs' && !logsInitialized) {
+      setLogsInitialized(true);
+      void fetchChatLogs({ offset: 0, filters: { ...logsFilters } });
+    }
+  }, [activeTab, fetchChatLogs, logsFilters, logsInitialized]);
 
   // Load database stats when database tab is active
   const loadModelSettings = () => {
@@ -496,29 +675,78 @@ export default function ConfigPage() {
     const normalizedUrl = urlInput.trim();
 
     setIsIngesting(true);
-    setShowIngestionProgress(true);
-    setCurrentIngestionUrl(normalizedUrl);
+    setShowIngestionProgress(false);
+    setCurrentIngestionUrl('');
+    setIngestionProgressEndpoint('/api/rag/ingest/progress');
 
     try {
-      const response = await fetch('/api/rag/ingest', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          url: normalizedUrl,
-          type: 'web',
-          forceRefresh: forceRefresh,
-          metadata: {
-            source: 'manual_ingestion',
-            ingested_from: 'config_page'
-          }
-        }),
-      });
+      const ingestionTargets = [
+        { submit: '/api/v2/ingest', progress: '/api/v2/ingest/progress' },
+        { submit: '/api/rag/ingest', progress: '/api/rag/ingest/progress' },
+      ] as const;
 
-      const data = await response.json();
+      let responseData: any = null;
+      let responseStatus = 0;
+      let responseOk = false;
+      let targetUsed: typeof ingestionTargets[number] | null = null;
+      let lastError: string | null = null;
+
+      for (const target of ingestionTargets) {
+        try {
+          const response = await fetch(target.submit, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              url: normalizedUrl,
+              type: 'web',
+              forceRefresh: forceRefresh,
+              metadata: {
+                source: 'manual_ingestion',
+                ingested_from: 'config_page'
+              }
+            }),
+          });
+
+          responseStatus = response.status;
+          responseOk = response.ok;
+          try {
+            responseData = await response.json();
+          } catch (parseError) {
+            responseData = null;
+          }
+
+          if (response.status === 404) {
+            lastError = typeof responseData?.message === 'string'
+              ? responseData.message
+              : 'Endpoint not found';
+            continue;
+          }
+
+          targetUsed = target;
+          break;
+        } catch (networkError) {
+          console.error('Ingestion request error:', networkError);
+          lastError = 'Network error during ingestion';
+        }
+      }
+
+      if (!targetUsed) {
+        toast.error(lastError || 'Unable to reach ingestion service');
+        return;
+      }
+
+      const data = responseData || {};
+      if (targetUsed.progress) {
+        setCurrentIngestionUrl(normalizedUrl);
+        setIngestionProgressEndpoint(targetUsed.progress);
+        setShowIngestionProgress(true);
+      } else {
+        resetIngestionProgress();
+      }
       
-      if (response.ok) {
+      if (responseOk) {
         if (data.status === 'success') {
           toast.success(`Successfully ingested ${data.chunks_created} chunks from URL`);
         } else if (data.status === 'exists') {
@@ -550,10 +778,10 @@ export default function ConfigPage() {
           void loadDatabaseStats();
         }
       } else {
-        const errorMessage = data.message || 'Failed to ingest URL';
+        const errorMessage = data?.message || lastError || 'Failed to ingest URL';
         toast.error(errorMessage);
         resetIngestionProgress();
-        
+
         // Add failed entry to history
         const newEntry = {
           url: normalizedUrl,
@@ -594,7 +822,7 @@ export default function ConfigPage() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="model" className="flex items-center gap-2">
               <Brain className="h-4 w-4" />
               LLM Model
@@ -606,6 +834,10 @@ export default function ConfigPage() {
             <TabsTrigger value="database" className="flex items-center gap-2">
               <Trash2 className="h-4 w-4" />
               Database
+            </TabsTrigger>
+            <TabsTrigger value="logs" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Logs
             </TabsTrigger>
           </TabsList>
 
@@ -763,6 +995,7 @@ export default function ConfigPage() {
                     <div className="mt-4">
                       <IngestionConsole
                         url={currentIngestionUrl}
+                        progressEndpoint={ingestionProgressEndpoint}
                         onComplete={(success) => {
                           resetIngestionProgress();
                           // Reload database stats if on database tab
@@ -1165,6 +1398,237 @@ export default function ConfigPage() {
                       <li>• The database uses ChromaDB for vector storage</li>
                     </ul>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="logs" className="space-y-4 animate-fade-up">
+            <Card className="glass border-border/50">
+              <CardHeader>
+                <CardTitle>Chat Analytics Logs</CardTitle>
+                <CardDescription>
+                  Review recently asked questions, responses, and model usage to inform tuning and quality checks.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="log-search">Search questions</Label>
+                    <Input
+                      id="log-search"
+                      placeholder="Keyword or phrase"
+                      value={logsFilters.search}
+                      onChange={(event) => setLogsFilters(prev => ({ ...prev, search: event.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="log-conversation">Conversation ID</Label>
+                    <Input
+                      id="log-conversation"
+                      placeholder="conversation-123"
+                      value={logsFilters.conversationId}
+                      onChange={(event) => setLogsFilters(prev => ({ ...prev, conversationId: event.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="log-provider">Provider</Label>
+                    <select
+                      id="log-provider"
+                      className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                      value={logsFilters.provider}
+                      onChange={(event) => setLogsFilters(prev => ({ ...prev, provider: event.target.value }))}
+                    >
+                      <option value="all">All providers</option>
+                      <option value="openai">OpenAI</option>
+                      <option value="google">Google</option>
+                      <option value="anthropic">Anthropic</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="log-model">Model</Label>
+                    <Input
+                      id="log-model"
+                      placeholder="gpt-5-mini"
+                      value={logsFilters.model}
+                      onChange={(event) => setLogsFilters(prev => ({ ...prev, model: event.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="log-start">Start date</Label>
+                    <Input
+                      id="log-start"
+                      type="date"
+                      value={logsFilters.startAt}
+                      onChange={(event) => setLogsFilters(prev => ({ ...prev, startAt: event.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="log-end">End date</Label>
+                    <Input
+                      id="log-end"
+                      type="date"
+                      value={logsFilters.endAt}
+                      onChange={(event) => setLogsFilters(prev => ({ ...prev, endAt: event.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="log-rag">RAG enabled</Label>
+                    <select
+                      id="log-rag"
+                      className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                      value={logsFilters.ragEnabled}
+                      onChange={(event) => setLogsFilters(prev => ({ ...prev, ragEnabled: event.target.value as LogFilters['ragEnabled'] }))}
+                    >
+                      <option value="all">All</option>
+                      <option value="true">Yes</option>
+                      <option value="false">No</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="log-short">Short answer mode</Label>
+                    <select
+                      id="log-short"
+                      className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                      value={logsFilters.shortAnswerMode}
+                      onChange={(event) => setLogsFilters(prev => ({ ...prev, shortAnswerMode: event.target.value as LogFilters['shortAnswerMode'] }))}
+                    >
+                      <option value="all">All</option>
+                      <option value="true">Enabled</option>
+                      <option value="false">Disabled</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button onClick={handleLogsApplyFilters} disabled={logsLoading}>
+                    {logsLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Loading
+                      </>
+                    ) : (
+                      'Apply filters'
+                    )}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleLogsResetFilters}
+                    disabled={logsLoading}
+                  >
+                    Reset
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => void fetchChatLogs({ offset: logsPagination.offset, filters: { ...logsFilters } })}
+                    disabled={logsLoading}
+                  >
+                    <RefreshCw className={`mr-2 h-4 w-4 ${logsLoading ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
+                  <span className="text-xs text-muted-foreground ml-auto">
+                    Showing {chatLogs.length} of {logsPagination.hasMore ? `${logsPagination.limit}+` : chatLogs.length} results
+                  </span>
+                </div>
+
+                {logsError && (
+                  <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
+                    {logsError}
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  {logsLoading ? (
+                    <div className="space-y-3">
+                      {[0, 1, 2].map((index) => (
+                        <Skeleton key={index} className="h-32 rounded-lg" />
+                      ))}
+                    </div>
+                  ) : chatLogs.length === 0 ? (
+                    <div className="rounded-lg border border-border/60 bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
+                      No chat activity found for the selected filters.
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {chatLogs.map((log) => {
+                        const askedAtLabel = formatDateDisplay(log.askedAt, true) ?? 'Unknown time';
+                        const metadataSummary = summariseMetadata(log.metadata);
+                        const answerPreview = log.answer ? (log.answer.length > 280 ? `${log.answer.slice(0, 277)}…` : log.answer) : null;
+                        return (
+                          <div key={log.id} className="rounded-lg border border-border/60 bg-background/60 p-4 shadow-sm">
+                            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                              <span className="font-medium text-foreground">{askedAtLabel}</span>
+                              {log.provider && (
+                                <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] uppercase tracking-wide text-foreground/80">
+                                  {log.provider}
+                                </span>
+                              )}
+                              {log.model && (
+                                <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-foreground/80">
+                                  {log.model}
+                                </span>
+                              )}
+                              <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-foreground/70">
+                                RAG: {formatBooleanLabel(log.ragEnabled)}
+                              </span>
+                              <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-foreground/70">
+                                Short answers: {formatBooleanLabel(log.shortAnswerMode)}
+                              </span>
+                              {log.conversationId && (
+                                <span className="truncate text-[11px] text-muted-foreground" title={log.conversationId}>
+                                  Conversation: {log.conversationId}
+                                </span>
+                              )}
+                            </div>
+                            <div className="mt-3 space-y-2">
+                              <div>
+                                <p className="text-sm font-semibold text-foreground">Question</p>
+                                <p className="text-sm text-muted-foreground whitespace-pre-line">{log.question}</p>
+                              </div>
+                              {answerPreview && (
+                                <div>
+                                  <p className="text-sm font-semibold text-foreground">Answer</p>
+                                  <p className="text-sm text-muted-foreground whitespace-pre-line">{answerPreview}</p>
+                                </div>
+                              )}
+                              {metadataSummary && (
+                                <div className="text-xs text-muted-foreground">
+                                  Metadata: {metadataSummary}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleLogsPreviousPage}
+                    disabled={logsLoading || logsPagination.offset === 0}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleLogsNextPage}
+                    disabled={logsLoading || (!logsPagination.hasMore && logsPagination.nextOffset === null)}
+                  >
+                    Next
+                  </Button>
+                  <span className="text-xs text-muted-foreground">
+                    Page {Math.floor(logsPagination.offset / logsPagination.limit) + 1}
+                    {logsPagination.hasMore || logsPagination.nextOffset !== null
+                      ? ' • more results available'
+                      : ''}
+                  </span>
                 </div>
               </CardContent>
             </Card>

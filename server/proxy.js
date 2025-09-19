@@ -11,6 +11,7 @@ import dotenv from 'dotenv';
 // Load environment variables from .env file
 dotenv.config();
 const app = express();
+const loggingEnabled = process.env.ENABLE_LOGGING === 'true';
 
 // Parse JSON request bodies with increased limit
 app.use(express.json({ limit: '10mb' }));
@@ -203,18 +204,27 @@ app.post('/api/gemini/generateContent', rateLimiter, async (req, res) => {
       responseLines[answerIndex].replace(/^Answer:\s*/, '').trim() :
       responseText;
     
-    console.log('Logging chat:', { // Debug log
-      timestamp: new Date().toISOString(),
-      question: cleanedPrompt,
-      answer: cleanedResponse
-    });
-    
-    chatLogger.logChat(null, { // Use logChat method with null for req
-      timestamp: new Date().toISOString(),
-      question: cleanedPrompt,
-      answer: cleanedResponse
-    });
-    console.log('Logged chat data'); // Debug log
+    if (loggingEnabled) {
+      const loggedAt = new Date().toISOString();
+      console.log('Logging chat:', { // Debug log
+        timestamp: loggedAt,
+        question: cleanedPrompt,
+        answer: cleanedResponse
+      });
+      
+      chatLogger.logChat(null, {
+        timestamp: loggedAt,
+        question: cleanedPrompt,
+        answer: cleanedResponse,
+        provider: 'google',
+        model: modelName,
+        metadata: {
+          route: '/api/gemini/generateContent',
+          generationConfig
+        }
+      });
+      console.log('Logged chat data'); // Debug log
+    }
     
     res.json({
       candidates: [{
@@ -673,11 +683,15 @@ app.use((req, res) => {
   res.status(404).json(response);
 });
 
-app.listen(PORT, () => {
- console.log(`Proxy server running on port ${PORT}`);
- console.log(`Health check available at http://localhost:${PORT}/health`);
- console.log('Environment:', process.env.NODE_ENV || 'production');
-});
+let server = null;
+
+if (process.env.NODE_ENV !== 'test') {
+  server = app.listen(PORT, () => {
+    console.log(`Proxy server running on port ${PORT}`);
+    console.log(`Health check available at http://localhost:${PORT}/health`);
+    console.log('Environment:', process.env.NODE_ENV || 'production');
+  });
+}
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
@@ -691,3 +705,13 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
   // Perform any cleanup if needed
 });
+
+export const __testing = {
+  cache,
+  apiRequestCounts,
+  rateLimiter,
+  validateApiKey,
+};
+
+export { app, server };
+export default app;

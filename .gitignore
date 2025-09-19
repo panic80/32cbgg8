@@ -24,6 +24,7 @@ logs/
 # Secure configuration
 /etc/cbthis/
 cbthis.service
+server/data/
 
 # IDE files
 .vscode/

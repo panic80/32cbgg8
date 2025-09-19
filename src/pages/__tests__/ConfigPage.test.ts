@@ -225,15 +225,25 @@ describe('ConfigPage', () => {
           ? input.toString()
           : (input as any).url ?? input.toString();
 
+      if (url === '/api/v2/ingest') {
+        return Promise.resolve({
+          ok: false,
+          status: 404,
+          json: async () => ({ message: 'Unable to ingest' }),
+        });
+      }
+
       if (url === '/api/rag/ingest') {
         return Promise.resolve({
           ok: false,
+          status: 404,
           json: async () => ({ message: 'Unable to ingest' }),
         });
       }
 
       return Promise.resolve({
         ok: true,
+        status: 200,
         json: async () => ({}),
       });
     });
@@ -247,11 +257,81 @@ describe('ConfigPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Ingest URL' }));
 
     await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith('/api/v2/ingest', expect.any(Object));
+    });
+
+    await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith('/api/rag/ingest', expect.any(Object));
     });
 
     await waitFor(() => {
       expect(screen.queryByTestId('ingestion-console')).not.toBeInTheDocument();
     });
+  });
+
+  it('fetches chat logs when the Logs tab is opened', async () => {
+    const logsResponse = {
+      data: [
+        {
+          id: 1,
+          askedAt: '2024-03-01T12:00:00.000Z',
+          question: 'How do I submit my travel claim?',
+          answer: 'You can submit claims through the secure travel portal.',
+          conversationId: 'conv-123',
+          model: 'gpt-5-mini',
+          provider: 'openai',
+          ragEnabled: true,
+          shortAnswerMode: false,
+          metadata: { route: '/api/v2/chat' },
+        },
+      ],
+      pagination: {
+        limit: 20,
+        offset: 0,
+        hasMore: true,
+        nextOffset: 20,
+      },
+    };
+
+    (fetchMock as any).mockImplementation((input: RequestInfo | URL) => {
+      const url = typeof input === 'string'
+        ? input
+        : input instanceof URL
+          ? input.toString()
+          : (input as any).url ?? input.toString();
+
+      if (url.startsWith('/api/admin/chat-logs')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => logsResponse,
+        });
+      }
+
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({}),
+      });
+    });
+
+    render(React.createElement(MemoryRouter, null, React.createElement(ConfigPage)));
+
+    fireEvent.click(screen.getByRole('tab', { name: /logs/i }));
+
+    await waitFor(() => {
+      const calls = fetchMock.mock.calls as Array<[RequestInfo | URL]>;
+      expect(calls.some(([requestUrl]) => {
+        const urlString = typeof requestUrl === 'string'
+          ? requestUrl
+          : requestUrl instanceof URL
+            ? requestUrl.toString()
+            : (requestUrl as any).url ?? requestUrl.toString();
+        return typeof urlString === 'string' && urlString.startsWith('/api/admin/chat-logs?limit=20&offset=0');
+      })).toBe(true);
+    });
+
+    expect(await screen.findByText('How do I submit my travel claim?')).toBeInTheDocument();
+    expect(screen.getByText('RAG: Yes')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Next' })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled();
   });
 });
