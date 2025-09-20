@@ -45,63 +45,37 @@ The application supports the following Gemini models:
 - `gemini-2.0-flash`: Default model offering a balance of speed and quality
 - `gemini-2.0-flash-lite`: Faster, lighter model for simpler queries
 
-## Server-Side Proxy (server/proxy.js)
+## Server Gateway (`server/main.js`)
 
-The server-side proxy provides additional security, caching, and error handling for API requests:
+All Gemini traffic now flows through the hardened Express gateway. This service handles authentication, rate limiting, caching, and outbound calls to Gemini on behalf of the client. Key endpoints include:
 
-### Endpoints
-
-1. **`/api/gemini/generateContent`**:
+1. **`/api/gemini/generateContent`**
    - **Method**: POST
-   - **Purpose**: Generate AI content from Gemini
-   - **Authentication**: Requires API key
+   - **Purpose**: Generate AI content via Gemini using server-held credentials
+   - **Security**: Protected by the gateway's rate limiter and never exposes API keys to the browser
 
-2. **`/api/travel-instructions`**:
+2. **`/api/travel-instructions`**
    - **Method**: GET
-   - **Purpose**: Retrieve travel instructions content
-   - **Caching**: Implements TTL-based caching
+   - **Purpose**: Retrieve preprocessed travel-instruction content
+   - **Caching**: Backed by Redis/memory cache with TTL controls
 
-3. **`/health`**:
+3. **`/health`** and **`/api/config`**
    - **Method**: GET
-   - **Purpose**: Health check for system status
-   - **Authentication**: None (admin mode available with query params)
-
-4. **`/api/config`**:
-   - **Method**: GET
-   - **Purpose**: Get API configuration
-   - **Authentication**: None
+   - **Purpose**: Operational diagnostics and safe client configuration payloads
+   - **Security**: `/health` provides limited details by default; admin-only information remains gated
 
 ### Rate Limiting
 
-The server implements rate limiting to prevent abuse:
-
-- 60 requests per minute per client
-- Proper 429 responses with Retry-After headers
-- Exponential backoff for retry attempts
+The gateway enforces configurable rate limits (default 60 requests/min per client) and returns 429 responses with `Retry-After` headers when exceeded.
 
 ### Response Format
 
-Successful responses follow this format:
+Gemini responses are normalized before returning to the client. Errors emit structured JSON payloads such as:
 
 ```json
 {
-  "candidates": [{
-    "content": {
-      "parts": [{
-        "text": "Generated content from Gemini"
-      }]
-    }
-  }]
-}
-```
-
-Error responses follow this format:
-
-```json
-{
-  "error": "Error type (e.g., 'Rate Limit Exceeded')",
-  "message": "Human-readable error message",
-  "retryAfter": 60 // Optional retry suggestion in seconds
+  "error": "Rate limit exceeded",
+  "retryAfter": 60
 }
 ```
 
@@ -128,6 +102,6 @@ The API integration implements a multi-level caching strategy:
 
 API integration can be configured via environment variables:
 
-- `VITE_GEMINI_API_KEY`: Your Gemini API key
+- `GEMINI_API_KEY`: Server-side Gemini API key (never exposed to clients)
 - `NODE_ENV`: Environment setting (development/production)
 - Other settings via the `/api/config` endpoint

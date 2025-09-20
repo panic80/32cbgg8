@@ -113,12 +113,11 @@ fi
 print_info "Checking API keys..."
 
 # Gemini API Key
-if grep -q "^VITE_GEMINI_API_KEY=your_gemini_api_key_here" .env.production || ! grep -q "^VITE_GEMINI_API_KEY=" .env.production; then
+if grep -q "^GEMINI_API_KEY=your_gemini_api_key_here" .env.production || ! grep -q "^GEMINI_API_KEY=" .env.production; then
     print_warning "Gemini API key not configured"
     GEMINI_KEY=$(prompt_value "Enter Gemini API key" "skip" true)
     if [[ "$GEMINI_KEY" != "skip" ]]; then
-        update_env "VITE_GEMINI_API_KEY" "$GEMINI_KEY"
-        update_env "GEMINI_API_KEY" "$GEMINI_KEY"  # Also set without VITE_ prefix
+        update_env "GEMINI_API_KEY" "$GEMINI_KEY"
     fi
 fi
 

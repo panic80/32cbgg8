@@ -56,7 +56,7 @@ This is a Canadian Forces Travel Instructions Chatbot with a multi-service archi
 Environment files: `.env`, `.env.development`, `.env.staging`, `.env.production`
 
 Critical environment variables:
-- `VITE_GEMINI_API_KEY` - Google Gemini API key
+- `GEMINI_API_KEY` - Google Gemini API key
 - `OPENAI_API_KEY` - OpenAI API key
 - `ANTHROPIC_API_KEY` - Anthropic API key
 - `REDIS_URL` - Redis connection URL

@@ -17,9 +17,8 @@ Create a `.env` file at the root of your project:
 
 ```
 PORT=3000
-PROXY_PORT=3001
 NODE_ENV=production
-VITE_GEMINI_API_KEY=your-api-key-here
+GEMINI_API_KEY=your-api-key-here
 ```
 
 2. **Install PM2 for process management**

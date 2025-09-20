@@ -28,7 +28,7 @@ npm install
 Create a `.env` file in the root directory:
 
 ```
-VITE_GEMINI_API_KEY=your-api-key-here
+GEMINI_API_KEY=your-api-key-here
 NODE_ENV=development
 ```
 
@@ -40,7 +40,6 @@ npm run dev
 
 This will start:
 - The main server on port 3000
-- The proxy server on port 3001
 - The Vite development server with HMR
 
 ## Project Structure
@@ -53,8 +52,7 @@ The project follows this structure:
 ├── package.json           # Project dependencies and scripts
 ├── public_html/           # Static files for main landing page
 ├── server/                # Server-side code
-│   ├── main.js            # Main Express server
-│   ├── proxy.js           # Proxy server for API requests
+│   ├── main.js            # Express gateway
 │   └── travelData.js      # Default travel data
 ├── src/                   # Frontend source code
 │   ├── api/               # API integration
@@ -115,13 +113,12 @@ npm run lint:fix
 
 The application interfaces with Google's Gemini API for AI capabilities:
 
-1. **Local Development**: Uses proxy server for API calls
-2. **Production**: Uses direct SDK integration
+1. **Local Development & Production**: All Gemini calls flow through the Express gateway (`server/main.js`), which holds the server-side credentials and mediates requests.
 
 The main integration points:
 
-- `src/api/gemini.jsx`: Client-side integration
-- `server/proxy.js`: Server-side proxy for API calls
+- `src/api/gemini.jsx`: Client-side request helper that talks to `/api/gemini/generateContent`
+- `server/main.js`: Gateway that signs requests with the server-managed Gemini API key
 
 ### API Key Management
 

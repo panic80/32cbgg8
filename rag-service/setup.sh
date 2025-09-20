@@ -40,7 +40,7 @@ if [ ! -f .env ]; then
     cat > .env << EOF
 # API Keys
 OPENAI_API_KEY=your_openai_key_here
-VITE_GEMINI_API_KEY=your_gemini_key_here
+GEMINI_API_KEY=your_gemini_key_here
 ANTHROPIC_API_KEY=your_anthropic_key_here
 
 # Redis Configuration

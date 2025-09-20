@@ -21,8 +21,8 @@ This guide provides solutions to common issues that may arise during development
 
 1. **Verify API Key**:
    ```bash
-   # Check environment variable
-   echo $VITE_GEMINI_API_KEY
+   # Check environment variable (server-side only)
+   echo $GEMINI_API_KEY
    
    # Verify key format (should start with 'AIza')
    ```
@@ -45,7 +45,7 @@ This guide provides solutions to common issues that may arise during development
 
 ## Server Issues
 
-### Proxy Server Not Starting
+### Express Gateway Not Starting
 
 **Symptoms**:
 - Connection refused errors
@@ -61,16 +61,15 @@ This guide provides solutions to common issues that may arise during development
 
 1. **Check for Port Conflicts**:
    ```bash
-   # Check if ports are already in use
+   # Check if the gateway port is already in use
    lsof -i :3000
-   lsof -i :3001
    
    # Kill processes if needed
    kill -9 <PID>
    ```
 
 2. **Verify Environment Setup**:
-   - Check for `.env` file with required variables
+   - Check for `.env` file with required variables (including `GEMINI_API_KEY`)
    - Ensure Node.js version is 18+
 
 3. **Check Server Logs**:
@@ -160,7 +159,7 @@ This guide provides solutions to common issues that may arise during development
 1. **Check Browser Console for Errors**
 2. **Verify API Connection**:
    - Check Network tab in DevTools
-   - Ensure proxy server is running
+   - Ensure the Express gateway (`cf-travel-bot` PM2 process) is running
 3. **Clear Browser Cache and Storage**:
    - Clear IndexedDB storage
    - Clear browser cache
@@ -184,8 +183,8 @@ This guide provides solutions to common issues that may arise during development
 
 2. **Clear Server Cache**:
    ```bash
-   # Restart the proxy server
-   pm2 restart proxy-server
+   # Restart the Express gateway
+   pm2 restart cf-travel-bot
    ```
 
 3. **Force Cache Revalidation**:

@@ -1,26 +1,9 @@
-import { GoogleGenAI } from '@google/genai';
 import { fetchTravelInstructions } from './travelInstructions';
 import { parseApiResponse } from '../utils/chatUtils';
 import { ChatError, ChatErrorType } from '../utils/chatErrors';
 
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const MAX_RETRIES = 2;
 const RETRY_DELAY = 1000; // 1 second
-
-/**
- * Validates API key format
- * @param {string} apiKey - The API key to validate
- * @returns {boolean} Whether the API key is valid
- */
-export const validateApiKey = (apiKey) => {
-  if (!apiKey) return false;
-  
-  // Google API keys typically start with 'AIza'
-  if (!apiKey.startsWith('AIza')) return false;
-  
-  // Must be at least 20 characters
-  return apiKey.length >= 20;
-};
 
 /**
  * Creates a prompt for the Gemini API
@@ -94,7 +77,7 @@ const handleApiError = (error) => {
   if (error.message.includes('API key') || error.message.includes('authentication')) {
     return new ChatError(ChatErrorType.API_KEY, {
       message: error.message,
-      details: 'Check VITE_GEMINI_API_KEY in .env file'
+      details: 'Ensure GEMINI_API_KEY is configured on the server.'
     });
   }
 

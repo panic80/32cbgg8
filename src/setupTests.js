@@ -37,7 +37,6 @@ window.matchMedia = vi.fn().mockImplementation((query) => ({
 // Mock the import.meta.env
 vi.stubGlobal('import.meta', {
   env: {
-    VITE_GEMINI_API_KEY: 'test-api-key',
     DEV: true
   }
 });

@@ -481,8 +481,24 @@ const isValidApiKey = (key) => {
          key.length > 10;
 };
 
-if (isValidApiKey(process.env.VITE_GEMINI_API_KEY)) {
-  geminiClient = new GoogleGenerativeAI(process.env.VITE_GEMINI_API_KEY);
+const resolveGeminiApiKey = () => {
+  const primary = process.env.GEMINI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY;
+  if (isValidApiKey(primary)) {
+    return primary;
+  }
+
+  if (isValidApiKey(process.env.VITE_GEMINI_API_KEY)) {
+    console.warn('VITE_GEMINI_API_KEY is deprecated. Migrate to GEMINI_API_KEY to keep credentials server-side.');
+    return process.env.VITE_GEMINI_API_KEY;
+  }
+
+  return null;
+};
+
+const geminiApiKey = resolveGeminiApiKey();
+
+if (geminiApiKey) {
+  geminiClient = new GoogleGenerativeAI(geminiApiKey);
   console.log('Gemini API client initialized');
 } else {
   console.log('Gemini API key not configured or invalid');

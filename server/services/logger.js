@@ -1,4 +1,5 @@
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import Database from 'better-sqlite3';
@@ -10,6 +11,22 @@ const ensureDirectory = (dirPath) => {
   if (!fs.existsSync(dirPath)) {
     fs.mkdirSync(dirPath, { recursive: true });
   }
+};
+
+const resolveDatabasePath = () => {
+  if (process.env.CHAT_LOG_DB_PATH) {
+    return path.resolve(process.env.CHAT_LOG_DB_PATH);
+  }
+
+  if (process.env.NODE_ENV === 'test') {
+    const testDir = process.env.CHAT_LOG_TEST_DIR
+      ? path.resolve(process.env.CHAT_LOG_TEST_DIR)
+      : os.tmpdir();
+    ensureDirectory(testDir);
+    return path.join(testDir, `cbthis-chat-logs-${process.pid}.sqlite`);
+  }
+
+  return path.join(__dirname, '..', 'data', 'analytics.sqlite');
 };
 
 const toBooleanFlag = (value) => {
@@ -43,8 +60,8 @@ const toMetadataString = (metadata) => {
 
 class ChatLogger {
   constructor() {
-    this.dataDir = path.join(__dirname, '..', 'data');
-    this.dbPath = path.join(this.dataDir, 'analytics.sqlite');
+    this.dbPath = resolveDatabasePath();
+    this.dataDir = path.dirname(this.dbPath);
 
     ensureDirectory(this.dataDir);
 
@@ -60,6 +77,24 @@ class ChatLogger {
         this.db.close();
       } catch (error) {
         console.error('Failed to close analytics database on exit:', error);
+      }
+
+      if (process.env.NODE_ENV === 'test' && !process.env.CHAT_LOG_DB_PATH) {
+        const cleanupTargets = [
+          this.dbPath,
+          `${this.dbPath}-wal`,
+          `${this.dbPath}-shm`
+        ];
+
+        for (const file of cleanupTargets) {
+          try {
+            if (fs.existsSync(file)) {
+              fs.rmSync(file, { force: true });
+            }
+          } catch (error) {
+            console.warn('Failed to remove test analytics artifact', file, error.message);
+          }
+        }
       }
     });
   }

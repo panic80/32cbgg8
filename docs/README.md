@@ -39,9 +39,8 @@ npm run build
 This application uses environment variables for configuration. Create a `.env` file in the root directory:
 
 ```
-VITE_GEMINI_API_KEY=your-api-key-here
+GEMINI_API_KEY=your-api-key-here
 PORT=3000
-PROXY_PORT=3001
 NODE_ENV=development
 ```
 

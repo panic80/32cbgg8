@@ -44,27 +44,18 @@ The frontend is built with React and follows a component-based architecture:
 
 ## Backend Architecture
 
-The backend consists of two server processes:
+The backend now runs a single hardened Express gateway (`server/main.js`):
 
-### Main Server (main.js)
-
-- Serves the static React build
-- Handles basic routing
-- Provides API endpoints for static data
-
-### Proxy Server (proxy.js)
-
-- Handles requests to external APIs
-- Implements caching and rate limiting
-- Provides error handling and logging
+- Serves the static React build in production
+- Exposes REST endpoints for chat, ingestion, maps, and admin utilities
+- Holds outbound credentials (OpenAI, Gemini, Anthropic, Maps) and applies caching/rate limiting before contacting external APIs
 
 ## Data Flow
 
 1. User interacts with React frontend
 2. Frontend makes API requests to Main Server
-3. For external API requests, Main Server proxies to Proxy Server
-4. Proxy Server communicates with external services
-5. Responses flow back through the chain
+3. Main Server contacts external services directly (Gemini/OpenAI/Anthropic/Maps) while keeping credentials server-side
+4. Responses flow back through the gateway to the client
 
 ## Caching Strategy
 

@@ -62,6 +62,11 @@ if [ -f /etc/cbthis/env ]; then
     if sudo test -r /etc/cbthis/env; then
         eval $(sudo grep -E '^[A-Z_]+=' /etc/cbthis/env | sed 's/^/OLD_/')
     fi
+
+    # Provide backward compatibility when migrating from legacy Vite-prefixed env vars
+    if [ -z "$OLD_GEMINI_API_KEY" ] && [ ! -z "$OLD_VITE_GEMINI_API_KEY" ]; then
+        OLD_GEMINI_API_KEY="$OLD_VITE_GEMINI_API_KEY"
+    fi
 fi
 
 echo ""
@@ -72,7 +77,7 @@ echo ""
 # Prompt for each secret
 OPENAI_KEY=$(prompt_secret "OPENAI_API_KEY" "OpenAI API Key:" "$OLD_OPENAI_API_KEY")
 ANTHROPIC_KEY=$(prompt_secret "ANTHROPIC_API_KEY" "Anthropic API Key:" "$OLD_ANTHROPIC_API_KEY")
-GEMINI_KEY=$(prompt_secret "VITE_GEMINI_API_KEY" "Google Gemini API Key:" "$OLD_VITE_GEMINI_API_KEY")
+GEMINI_KEY=$(prompt_secret "GEMINI_API_KEY" "Google Gemini API Key:" "$OLD_GEMINI_API_KEY")
 MAPS_KEY=$(prompt_secret "GOOGLE_MAPS_API_KEY" "Google Maps API Key:" "$OLD_GOOGLE_MAPS_API_KEY")
 VITE_MAPS_KEY=$(prompt_secret "VITE_GOOGLE_MAPS_API_KEY" "Vite Google Maps API Key:" "$OLD_VITE_GOOGLE_MAPS_API_KEY")
 REDIS_PASS=$(prompt_secret "REDIS_PASSWORD" "Redis Password:" "$OLD_REDIS_PASSWORD")
@@ -89,7 +94,7 @@ sudo tee /etc/cbthis/env > /dev/null << EOF
 # API Keys - SENSITIVE
 OPENAI_API_KEY=$OPENAI_KEY
 ANTHROPIC_API_KEY=$ANTHROPIC_KEY
-VITE_GEMINI_API_KEY=$GEMINI_KEY
+GEMINI_API_KEY=$GEMINI_KEY
 GOOGLE_MAPS_API_KEY=$MAPS_KEY
 VITE_GOOGLE_MAPS_API_KEY=$VITE_MAPS_KEY
 
@@ -112,7 +117,7 @@ sudo tee /etc/cbthis/rag-env > /dev/null << EOF
 # API Keys - SENSITIVE
 OPENAI_API_KEY=$OPENAI_KEY
 ANTHROPIC_API_KEY=$ANTHROPIC_KEY
-VITE_GEMINI_API_KEY=$GEMINI_KEY
+GEMINI_API_KEY=$GEMINI_KEY
 
 # Redis Password - SENSITIVE
 REDIS_PASSWORD=$REDIS_PASS

@@ -206,8 +206,15 @@ settings = Settings()
 if os.getenv("OPENAI_API_KEY"):
     settings.openai_api_key = os.getenv("OPENAI_API_KEY").strip()
     
-if os.getenv("VITE_GEMINI_API_KEY"):
-    settings.google_api_key = os.getenv("VITE_GEMINI_API_KEY").strip()
+gemini_env_key = None
+if os.getenv("GEMINI_API_KEY"):
+    gemini_env_key = os.getenv("GEMINI_API_KEY").strip()
+elif os.getenv("VITE_GEMINI_API_KEY"):
+    gemini_env_key = os.getenv("VITE_GEMINI_API_KEY").strip()
+    print("[warning] VITE_GEMINI_API_KEY is deprecated. Please migrate to GEMINI_API_KEY.")
+
+if gemini_env_key:
+    settings.google_api_key = gemini_env_key
     
 if os.getenv("ANTHROPIC_API_KEY"):
     settings.anthropic_api_key = os.getenv("ANTHROPIC_API_KEY").strip()

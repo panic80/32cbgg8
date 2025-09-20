@@ -29,11 +29,7 @@ Example:
 
 ### API Integration
 
-The chat logging is integrated with the API endpoint in `server/proxy.js`. When a request is made to `/api/gemini/generateContent`:
-
-1. The API processes the request using the Gemini API
-2. The question and answer are extracted from the request and response
-3. The data is logged using the chat logger service
+Chat logging hooks live inside the hardened gateway (`server/main.js`). Requests to `/api/gemini/generateContent` and `/api/v2/chat` are processed server-side; once the Gemini/OpenAI/Anthropic providers respond, the gateway extracts the prompt and answer and persists them via the logger service.
 
 ### Environment Variables
 

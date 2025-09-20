@@ -137,7 +137,7 @@ if [[ -f ".env.production" ]]; then
     # Check critical variables
     CRITICAL_VARS=(
         "VITE_API_BASE_URL"
-        "VITE_GEMINI_API_KEY"
+        "GEMINI_API_KEY"
         "NODE_ENV"
         "PORT"
     )

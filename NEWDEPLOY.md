@@ -147,7 +147,7 @@ NODE_ENV=production
 PORT=3000
 
 # API Keys (replace with your actual keys)
-VITE_GEMINI_API_KEY=your_gemini_key_here
+GEMINI_API_KEY=your_gemini_key_here
 OPENAI_API_KEY=your_openai_key_here
 ANTHROPIC_API_KEY=your_anthropic_key_here
 GOOGLE_MAPS_API_KEY=your_google_maps_key_here

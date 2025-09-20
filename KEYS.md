@@ -76,7 +76,7 @@ cd rag-service && ./start-secure.sh
    - Get from: https://console.anthropic.com/
    - Used for: Claude models
 
-3. **Google Gemini API Key** (`VITE_GEMINI_API_KEY`)
+3. **Google Gemini API Key** (`GEMINI_API_KEY`)
    - Get from: https://makersuite.google.com/app/apikey
    - Used for: Gemini models
 
@@ -95,7 +95,7 @@ cd rag-service && ./start-secure.sh
 # API Keys - SENSITIVE
 OPENAI_API_KEY=your-key-here
 ANTHROPIC_API_KEY=your-key-here
-VITE_GEMINI_API_KEY=your-key-here
+GEMINI_API_KEY=your-key-here
 GOOGLE_MAPS_API_KEY=your-key-here
 VITE_GOOGLE_MAPS_API_KEY=your-key-here
 

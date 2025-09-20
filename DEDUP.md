@@ -28,8 +28,7 @@ Last updated: 2025-08-31
     - `use-audio-recording`
 - Multiple ChatPage backups not imported:
   - `src/pages/ChatPage.tsx.*` (several variants: backup, bak2, bubble_backup, etc.)
-- Server duplication between `server/main.js` and `server/proxy.js`:
-  - Repeated helpers: `decodeUrlParams`, `processContent`, custom rate limiter, health/config endpoints, SSE proxying.
+- Legacy proxy (`server/proxy.js`) has been removed; keep gateway logic consolidated in `server/main.js` and delete stale references.
 - Env and security setup spread across server entry; can be centralized.
 - Numerous `._*` files (OS artifacts) and committed `dist/` (verify necessity before moving/deleting).
 - RAG service is modular but may benefit from unified helpers (HTTP client, HTML/text cleaning) and stricter response models.
@@ -79,9 +78,7 @@ Last updated: 2025-08-31
 - [ ] Split routes into modules under `server/routes`:
   - [ ] Chat (legacy redirect), RAG proxy, ingestion, sources, health/config
   - [ ] Keep `maps` router as-is
-- [ ] Reconcile `server/proxy.js`:
-  - [ ] Make it import shared utils, or
-  - [ ] If unused, mark as deprecated and remove only after verification
+- [x] Remove legacy `server/proxy.js` and consolidate gateway logic in `server/main.js`.
 - [ ] Preserve logging behavior (`middleware/logging.js`, `services/logger.js`).
 
 ### Phase 3 — RAG Service (FastAPI) Unification
@@ -119,7 +116,7 @@ Last updated: 2025-08-31
 
 ## Risks & Mitigations
 
-- Drift between `main.js` and `proxy.js`: extract shared helpers first; refactor routes to depend on them.
+- Legacy proxy removal: ensure future changes modify `server/main.js` only to avoid reintroducing divergent entry points.
 - Static asset resolution: explicitly test favicon/SVG routes in dev and prod.
 - RAG service availability: preserve current fallback behavior to regular chat.
 

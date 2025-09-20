@@ -43,7 +43,7 @@ Create a `.env` file in the project root:
 ```bash
 # API Keys
 OPENAI_API_KEY=your_openai_key
-VITE_GEMINI_API_KEY=your_gemini_key
+GEMINI_API_KEY=your_gemini_key
 ANTHROPIC_API_KEY=your_anthropic_key
 
 # Redis (optional)
