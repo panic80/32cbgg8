@@ -1829,8 +1829,6 @@ app.get('/health', async (req, res) => {
   }
   
   // For detailed health checks, add API connectivity test
-  const isAdmin = req.query.admin === 'true';
-  
   const healthData = {
     status: 'healthy',
     version: '1.0.0',
@@ -1870,14 +1868,18 @@ app.get('/health', async (req, res) => {
     ragService: ragHealth,
     timestamp: new Date().toISOString()
   };
-  
-  // Only show detailed system info for admin requests
-  if (!isAdmin) {
-    delete healthData.memory;
-    delete healthData.rateLimiting;
+
+  const publicHealthData = { ...healthData };
+  delete publicHealthData.memory;
+  delete publicHealthData.rateLimiting;
+
+  if (req.query.admin === 'true') {
+    return requireAdminAuth(req, res, () => {
+      res.json(healthData);
+    });
   }
-  
-  res.json(healthData);
+
+  res.json(publicHealthData);
 });
 
 // API configuration endpoint with environment-specific settings
@@ -1939,7 +1941,7 @@ app.get('/api/config', (req, res) => {
 });
 
 // Deployment verification endpoint (for debugging cache issues)
-app.get('/api/deployment-info', (req, res) => {
+app.get('/api/deployment-info', requireAdminAuth, (req, res) => {
   const buildInfo = {
     timestamp: new Date().toISOString(),
     buildTime: process.env.BUILD_TIMESTAMP,

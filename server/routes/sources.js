@@ -7,12 +7,13 @@ export function createSourcesRoutes({ rateLimiter, requireAdminAuth, getRagAuthH
   const buildRagAuthHeaders = typeof getRagAuthHeaders === 'function' ? getRagAuthHeaders : () => ({});
 
   // List indexed sources
-  router.get('/api/v2/sources', rateLimiter, async (req, res) => {
+  router.get('/api/v2/sources', adminMiddleware, rateLimiter, async (req, res) => {
     try {
       const ragServiceUrl = process.env.RAG_SERVICE_URL || 'http://localhost:8000';
       const ragResponse = await axios.get(`${ragServiceUrl}/api/v1/sources`, {
         params: req.query,
         timeout: 10000,
+        headers: { ...buildRagAuthHeaders() }
       });
 
       res.json(ragResponse.data);
@@ -29,11 +30,12 @@ export function createSourcesRoutes({ rateLimiter, requireAdminAuth, getRagAuthH
   });
 
   // Get source statistics
-  router.get('/api/v2/sources/stats', rateLimiter, async (req, res) => {
+  router.get('/api/v2/sources/stats', adminMiddleware, rateLimiter, async (req, res) => {
     try {
       const ragServiceUrl = process.env.RAG_SERVICE_URL || 'http://localhost:8000';
       const ragResponse = await axios.get(`${ragServiceUrl}/api/v1/sources/stats`, {
         timeout: 10000,
+        headers: { ...buildRagAuthHeaders() }
       });
 
       res.json(ragResponse.data);
@@ -50,11 +52,12 @@ export function createSourcesRoutes({ rateLimiter, requireAdminAuth, getRagAuthH
   });
 
   // Get source count
-  router.get('/api/v2/sources/count', rateLimiter, async (req, res) => {
+  router.get('/api/v2/sources/count', adminMiddleware, rateLimiter, async (req, res) => {
     try {
       const ragServiceUrl = process.env.RAG_SERVICE_URL || 'http://localhost:8000';
       const ragResponse = await axios.get(`${ragServiceUrl}/api/v1/sources/count`, {
         timeout: 10000,
+        headers: { ...buildRagAuthHeaders() }
       });
 
       res.json(ragResponse.data);
@@ -92,4 +95,3 @@ export function createSourcesRoutes({ rateLimiter, requireAdminAuth, getRagAuthH
 }
 
 export default createSourcesRoutes;
-

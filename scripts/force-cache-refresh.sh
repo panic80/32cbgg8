@@ -6,9 +6,21 @@
 echo "=== CF Travel Bot Cache Refresh Helper ==="
 echo ""
 
-# Get current deployment info
+# Get current deployment info (requires admin credentials)
 echo "Checking current deployment..."
-DEPLOYMENT_INFO=$(curl -s http://32cbgg8.com/api/deployment-info 2>/dev/null || curl -s https://32cbgg8.com/api/deployment-info 2>/dev/null)
+
+AUTH_USER=${CONFIG_PANEL_USER:-admin}
+AUTH_PASSWORD=${CONFIG_PANEL_PASSWORD:-}
+AUTH_ARGS=()
+
+if [ -n "$AUTH_PASSWORD" ]; then
+    AUTH_ARGS=(-u "${AUTH_USER}:${AUTH_PASSWORD}")
+else
+    echo "(Set CONFIG_PANEL_USER and CONFIG_PANEL_PASSWORD to auto-fetch deployment info)"
+fi
+
+DEPLOYMENT_INFO=$(curl -s "${AUTH_ARGS[@]}" http://32cbgg8.com/api/deployment-info 2>/dev/null || \
+                  curl -s "${AUTH_ARGS[@]}" https://32cbgg8.com/api/deployment-info 2>/dev/null)
 
 if [ $? -eq 0 ]; then
     echo "Current deployment info:"
