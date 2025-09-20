@@ -1,8 +1,10 @@
 import express from 'express';
 import axios from 'axios';
 
-export function createSourcesRoutes({ rateLimiter }) {
+export function createSourcesRoutes({ rateLimiter, requireAdminAuth, getRagAuthHeaders }) {
   const router = express.Router();
+  const adminMiddleware = typeof requireAdminAuth === 'function' ? requireAdminAuth : (req, res, next) => next();
+  const buildRagAuthHeaders = typeof getRagAuthHeaders === 'function' ? getRagAuthHeaders : () => ({});
 
   // List indexed sources
   router.get('/api/v2/sources', rateLimiter, async (req, res) => {
@@ -64,13 +66,13 @@ export function createSourcesRoutes({ rateLimiter }) {
   });
 
   // Purge database endpoint
-  router.post('/api/v2/database/purge', rateLimiter, async (req, res) => {
+  router.post('/api/v2/database/purge', adminMiddleware, rateLimiter, async (req, res) => {
     try {
       console.log('Database purge requested');
       const ragServiceUrl = process.env.RAG_SERVICE_URL || 'http://localhost:8000';
       const ragResponse = await axios.post(`${ragServiceUrl}/api/v1/database/purge`, {}, {
         timeout: 30000,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...buildRagAuthHeaders() },
       });
       console.log('Database purge completed:', ragResponse.data);
       res.json(ragResponse.data);

@@ -1,6 +1,6 @@
 """Document ingestion API endpoints."""
 
-from fastapi import APIRouter, Request, HTTPException, UploadFile, File, Form, Query
+from fastapi import APIRouter, Request, HTTPException, UploadFile, File, Form, Query, Depends
 from typing import List, Optional
 import os
 import tempfile
@@ -16,10 +16,11 @@ from app.pipelines.ingestion import IngestionPipeline
 from app.services.cache import CacheService
 from app.api.websocket import progress_tracker
 from app.api.progress import send_progress_update, close_progress_stream
+from app.api.security import verify_admin_bearer_token
 
 logger = get_logger(__name__)
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(verify_admin_bearer_token)])
 
 
 @router.post("/database/purge")

@@ -1,16 +1,17 @@
 """Progress tracking API endpoints."""
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Depends
 from fastapi.responses import StreamingResponse
 import asyncio
 import json
 from typing import Dict, Any
 
 from app.core.logging import get_logger
+from app.api.security import verify_admin_bearer_token
 
 logger = get_logger(__name__)
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(verify_admin_bearer_token)])
 
 # Global store for progress updates
 progress_queues: Dict[str, asyncio.Queue] = {}

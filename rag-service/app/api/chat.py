@@ -46,10 +46,6 @@ def get_llm(provider: Provider, model: Optional[str] = None):
         if not settings.openai_api_key:
             raise ValueError("OpenAI API key not configured")
         
-        # Log API key info for debugging
-        logger.info(f"OpenAI API key starts with: {settings.openai_api_key[:10]}...")
-        logger.info(f"OpenAI API key length: {len(settings.openai_api_key)}")
-        
         # Check if it's an O-series reasoning model
         model_name = model or settings.openai_chat_model
         is_o_series = (model_name and (

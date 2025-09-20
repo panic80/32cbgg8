@@ -46,6 +46,7 @@ describe('server/main routes', () => {
     process.env.ENABLE_LOGGING = 'true';
     process.env.CONFIG_PANEL_USER = 'admin';
     process.env.CONFIG_PANEL_PASSWORD = 'buMeod98!!';
+    process.env.ADMIN_API_TOKEN = 'test-admin-token';
     const module = await import('../main.js');
     app = module.default;
   });

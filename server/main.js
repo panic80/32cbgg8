@@ -23,6 +23,8 @@ import helmet from 'helmet';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import { PassThrough } from 'stream';
+import dns from 'node:dns/promises';
+import net from 'node:net';
 
 // Load secure secrets first (if file exists)
 const secureEnvPath = '/etc/cbthis/env';
@@ -142,6 +144,110 @@ const allowedOrigins = isDevelopment ? [
   process.env.FRONTEND_URL
 ].filter(Boolean);
 
+const allowedOriginsSet = new Set(allowedOrigins);
+
+const isPrivateIpv4 = (ip) => {
+  if (typeof ip !== 'string') return false;
+  const parts = ip.split('.').map(Number);
+  if (parts.length !== 4 || parts.some((segment) => Number.isNaN(segment))) {
+    return false;
+  }
+  if (parts[0] === 10) return true;
+  if (parts[0] === 127) return true;
+  if (parts[0] === 169 && parts[1] === 254) return true;
+  if (parts[0] === 192 && parts[1] === 168) return true;
+  if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
+  if (parts[0] === 0) return true;
+  return false;
+};
+
+const isPrivateIpv6 = (ip) => {
+  if (typeof ip !== 'string') return false;
+  const normalized = ip.toLowerCase();
+  if (normalized === '::1') return true;
+  if (normalized.startsWith('fc') || normalized.startsWith('fd')) return true; // Unique local
+  if (normalized.startsWith('fe80') || normalized.startsWith('fec0')) return true; // Link-local/site-local
+  if (normalized === '::') return true;
+  return false;
+};
+
+const resolveHostAddresses = async (hostname) => {
+  try {
+    const results = await dns.lookup(hostname, { all: true });
+    return results.map(({ address, family }) => ({ address, family }));
+  } catch (error) {
+    throw new Error('Unable to resolve ingestion host');
+  }
+};
+
+const isAddressDisallowed = ({ address, family }) => {
+  if (family === 4) {
+    return isPrivateIpv4(address);
+  }
+  if (family === 6) {
+    return isPrivateIpv6(address);
+  }
+  return true;
+};
+
+const validateIngestionUrl = async (rawUrl) => {
+  if (!rawUrl || typeof rawUrl !== 'string') {
+    throw Object.assign(new Error('Ingestion URL is required'), { statusCode: 400 });
+  }
+
+  let parsed;
+  try {
+    parsed = new URL(rawUrl);
+  } catch (error) {
+    throw Object.assign(new Error('Invalid ingestion URL format'), { statusCode: 400 });
+  }
+
+  if (!['http:', 'https:'].includes(parsed.protocol)) {
+    throw Object.assign(new Error('Only HTTP and HTTPS ingestion URLs are allowed'), { statusCode: 400 });
+  }
+
+  const hostname = parsed.hostname.toLowerCase();
+  const disallowedHostnames = new Set(['localhost', '127.0.0.1', '::1']);
+  if (disallowedHostnames.has(hostname)) {
+    throw Object.assign(new Error('Ingestion URL may not target local addresses'), { statusCode: 400 });
+  }
+
+  const ipType = net.isIP(hostname);
+  let addresses;
+  if (ipType) {
+    const family = ipType === 6 ? 6 : 4;
+    addresses = [{ address: hostname, family }];
+  } else {
+    addresses = await resolveHostAddresses(hostname);
+  }
+
+  if (!Array.isArray(addresses) || addresses.length === 0) {
+    throw Object.assign(new Error('Unable to resolve ingestion URL host'), { statusCode: 400 });
+  }
+
+  if (addresses.some(isAddressDisallowed)) {
+    throw Object.assign(new Error('Ingestion URL resolves to a private or disallowed address'), { statusCode: 400 });
+  }
+
+  return parsed.toString();
+};
+
+const buildSseCorsHeaders = (originHeader) => {
+  if (!originHeader) {
+    return {};
+  }
+
+  if (allowedOriginsSet.has(originHeader)) {
+    return {
+      'Access-Control-Allow-Origin': originHeader,
+      'Access-Control-Allow-Credentials': 'true',
+      Vary: 'Origin'
+    };
+  }
+
+  return {};
+};
+
 app.use(cors({
   origin: function(origin, callback) {
     // Allow requests with no origin (like mobile apps or curl)
@@ -166,7 +272,17 @@ app.use(cors({
 let distPath = existsSync(path.join(__dirname, '..', 'dist')) ? path.join(__dirname, '..', 'dist') : null;
 
 const adminAuthEnabled = typeof process.env.CONFIG_PANEL_PASSWORD === 'string' && process.env.CONFIG_PANEL_PASSWORD.length > 0;
+if (!adminAuthEnabled) {
+  throw new Error('CONFIG_PANEL_PASSWORD must be set before starting the server.');
+}
+
+const adminApiToken = process.env.ADMIN_API_TOKEN;
+if (!adminApiToken || adminApiToken.trim().length === 0) {
+  throw new Error('ADMIN_API_TOKEN must be set before starting the server.');
+}
+
 const adminAuthUser = process.env.CONFIG_PANEL_USER || 'admin';
+const getRagAuthHeaders = () => ({ Authorization: `Bearer ${adminApiToken}` });
 
 const requiresConfigAuth = (pathname = '') => {
   return pathname === '/config' || pathname.startsWith('/config/') ||
@@ -174,7 +290,7 @@ const requiresConfigAuth = (pathname = '') => {
 };
 
 const requireAdminAuth = (req, res, next) => {
-  if (!adminAuthEnabled || req.method === 'OPTIONS') {
+  if (req.method === 'OPTIONS') {
     return next();
   }
 
@@ -579,7 +695,8 @@ app.post('/api/v2/chat/rag', rateLimiter, async (req, res, next) => {
     }, {
       timeout: 30000,
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        ...getRagAuthHeaders()
       }
     });
 
@@ -837,14 +954,29 @@ app.post('/api/v2/chat', rateLimiter, async (req, res) => {
 
 // Document ingestion endpoints
 // Proxy route for /api/rag/ingest to /api/v2/ingest
-app.post('/api/rag/ingest', rateLimiter, async (req, res) => {
+app.post('/api/rag/ingest', requireAdminAuth, rateLimiter, async (req, res) => {
   const { url, content, type = 'web', metadata, forceRefresh = false } = req.body;
+  const ingestionUrl = typeof url === 'string' ? url : undefined;
 
   // Validate input
-  if (!url && !content) {
+  if (!ingestionUrl && !content) {
     return res.status(400).json({ 
       error: 'Bad Request', 
       message: 'Either URL or content must be provided.' 
+    });
+  }
+
+  let sanitizedIngestionUrl;
+
+  try {
+    if (ingestionUrl) {
+      sanitizedIngestionUrl = await validateIngestionUrl(ingestionUrl);
+    }
+  } catch (validationError) {
+    console.error('Rejected ingestion URL:', validationError.message);
+    return res.status(validationError.statusCode || 400).json({
+      error: 'Bad Request',
+      message: validationError.message
     });
   }
 
@@ -852,14 +984,14 @@ app.post('/api/rag/ingest', rateLimiter, async (req, res) => {
     // Forward to RAG service
     const ragServiceUrl = process.env.RAG_SERVICE_URL || 'http://localhost:8000';
     console.log('Forwarding ingestion request to RAG service:', {
-      url: url || 'N/A',
+      url: sanitizedIngestionUrl || 'N/A',
       type,
       hasContent: !!content,
       forceRefresh
     });
-    
+
     const ragResponse = await axios.post(`${ragServiceUrl}/api/v1/ingest`, {
-      url,
+      url: sanitizedIngestionUrl,
       content,
       type,
       metadata: metadata || {},
@@ -867,7 +999,8 @@ app.post('/api/rag/ingest', rateLimiter, async (req, res) => {
     }, {
       timeout: 300000, // 5 minute timeout for complex documents
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        ...getRagAuthHeaders()
       }
     });
 
@@ -890,9 +1023,22 @@ app.post('/api/rag/ingest', rateLimiter, async (req, res) => {
 // SSE endpoint for ingestion progress - proxy to RAG service
 const proxyIngestionProgress = async (req, res) => {
   const { url } = req.query;
+  const targetUrl = Array.isArray(url) ? url[0] : url;
 
-  if (!url) {
+  if (!targetUrl) {
     return res.status(400).json({ error: 'URL parameter required' });
+  }
+
+  let sanitizedTargetUrl;
+
+  try {
+    sanitizedTargetUrl = await validateIngestionUrl(targetUrl);
+  } catch (validationError) {
+    console.error('Rejected ingestion progress URL:', validationError.message);
+    return res.status(validationError.statusCode || 400).json({
+      error: 'Bad Request',
+      message: validationError.message
+    });
   }
 
   try {
@@ -901,17 +1047,19 @@ const proxyIngestionProgress = async (req, res) => {
     const response = await axios.get(
       `${ragServiceUrl}/api/v1/ingest/progress`,
       {
-        params: { url },
+        params: { url: sanitizedTargetUrl },
         responseType: 'stream',
         headers: {
           Accept: 'text/event-stream',
           'Cache-Control': 'no-cache',
+          ...getRagAuthHeaders(),
         },
       }
     );
 
+    const corsHeaders = buildSseCorsHeaders(req.headers.origin);
     setSseHeaders(res, {
-      'Access-Control-Allow-Origin': '*',
+      ...corsHeaders,
       'X-Accel-Buffering': 'no',
     });
 
@@ -926,17 +1074,32 @@ const proxyIngestionProgress = async (req, res) => {
   }
 };
 
-app.get('/api/rag/ingest/progress', proxyIngestionProgress);
-app.get('/api/v2/ingest/progress', proxyIngestionProgress);
+app.get('/api/rag/ingest/progress', requireAdminAuth, proxyIngestionProgress);
+app.get('/api/v2/ingest/progress', requireAdminAuth, proxyIngestionProgress);
 
-app.post('/api/v2/ingest', rateLimiter, async (req, res) => {
+app.post('/api/v2/ingest', requireAdminAuth, rateLimiter, async (req, res) => {
   const { url, content, type = 'web', metadata, forceRefresh = false } = req.body;
+  const ingestionUrl = typeof url === 'string' ? url : undefined;
 
   // Validate input
-  if (!url && !content) {
+  if (!ingestionUrl && !content) {
     return res.status(400).json({ 
       error: 'Bad Request', 
       message: 'Either URL or content must be provided.' 
+    });
+  }
+
+  let sanitizedIngestionUrl;
+
+  try {
+    if (ingestionUrl) {
+      sanitizedIngestionUrl = await validateIngestionUrl(ingestionUrl);
+    }
+  } catch (validationError) {
+    console.error('Rejected ingestion URL:', validationError.message);
+    return res.status(validationError.statusCode || 400).json({
+      error: 'Bad Request',
+      message: validationError.message
     });
   }
 
@@ -944,14 +1107,14 @@ app.post('/api/v2/ingest', rateLimiter, async (req, res) => {
     // Forward to RAG service
     const ragServiceUrl = process.env.RAG_SERVICE_URL || 'http://localhost:8000';
     console.log('Forwarding ingestion request to RAG service:', {
-      url: url || 'N/A',
+      url: sanitizedIngestionUrl || 'N/A',
       type,
       hasContent: !!content,
       forceRefresh
     });
-    
+
     const ragResponse = await axios.post(`${ragServiceUrl}/api/v1/ingest`, {
-      url,
+      url: sanitizedIngestionUrl,
       content,
       type,
       metadata: metadata || {},
@@ -959,7 +1122,8 @@ app.post('/api/v2/ingest', rateLimiter, async (req, res) => {
     }, {
       timeout: 300000, // 5 minute timeout for complex documents
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        ...getRagAuthHeaders()
       }
     });
 
@@ -980,13 +1144,14 @@ app.post('/api/v2/ingest', rateLimiter, async (req, res) => {
 });
 
 // Ingest Canada.ca travel instructions
-app.post('/api/v2/ingest/canada-ca', rateLimiter, async (req, res) => {
+app.post('/api/v2/ingest/canada-ca', requireAdminAuth, rateLimiter, async (req, res) => {
   try {
     const ragServiceUrl = process.env.RAG_SERVICE_URL || 'http://localhost:8000';
     const ragResponse = await axios.post(`${ragServiceUrl}/api/v1/ingest/canada-ca`, {}, {
       timeout: 300000, // 5 minute timeout for full scraping
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        ...getRagAuthHeaders()
       }
     });
 
@@ -1007,7 +1172,7 @@ app.post('/api/v2/ingest/canada-ca', rateLimiter, async (req, res) => {
 });
 
 // Mount sources routes
-app.use(createSourcesRoutes({ rateLimiter }));
+app.use(createSourcesRoutes({ rateLimiter, requireAdminAuth, getRagAuthHeaders }));
 
 // Mount glossary routes
 app.use(createGlossaryRoutes({ rateLimiter }));
@@ -1079,8 +1244,9 @@ app.post('/api/v2/chat/stream', rateLimiter, async (req, res) => {
     );
 
     // Prepare to proxy SSE while capturing analytics data
+    const streamingCorsHeaders = buildSseCorsHeaders(req.headers.origin);
     setSseHeaders(res, {
-      'Access-Control-Allow-Origin': '*',
+      ...streamingCorsHeaders,
       'X-Accel-Buffering': 'no', // Disable Nginx buffering
     });
 
@@ -1240,7 +1406,11 @@ app.post('/api/v2/chat/stream', rateLimiter, async (req, res) => {
     
     // For streaming errors, we need to send SSE formatted error
     if (!res.headersSent) {
-      setSseHeaders(res);
+      const errorCorsHeaders = buildSseCorsHeaders(req.headers.origin);
+      setSseHeaders(res, {
+        ...errorCorsHeaders,
+        'X-Accel-Buffering': 'no'
+      });
     }
     
     const errorEvent = {
