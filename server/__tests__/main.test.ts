@@ -111,4 +111,20 @@ describe('server/main routes', () => {
     expect(response.status).toBe(401);
     expect(response.headers['www-authenticate']).toMatch(/Basic/);
   });
+
+  it('returns 404 for legacy glossary endpoints', async () => {
+    const listResponse = await request(app).get('/api/v2/glossary/');
+    expect(listResponse.status).toBe(404);
+    expect(listResponse.body).toMatchObject({
+      error: expect.stringMatching(/not found/i),
+    });
+
+    const updateResponse = await request(app)
+      .post('/api/v2/glossary/update')
+      .send({ glossary: {} });
+    expect(updateResponse.status).toBe(404);
+    expect(updateResponse.body).toMatchObject({
+      error: expect.stringMatching(/not found/i),
+    });
+  });
 });
