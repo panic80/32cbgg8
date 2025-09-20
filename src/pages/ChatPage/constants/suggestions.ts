@@ -1,6 +1,6 @@
 // Original suggestions (kept for backward compatibility)
 export const WELCOME_SUGGESTIONS = [
-  { title: "TD claim requirements", subtitle: "explain travel claim process", icon: "📋" },
+  { title: "Document Requirements for TD in Simple Steps", subtitle: "explain travel claim process", icon: "📋" },
   { title: "LTA eligibility", subtitle: "leave travel assistance benefits", icon: "🏖️" },
   { title: "Car Storage", subtitle: "vehicle storage policies", icon: "🚗" },
   { title: "Travel authorization", subtitle: "approval process and forms", icon: "✈️" },
@@ -30,10 +30,13 @@ export const CATEGORIZED_SUGGESTIONS: CategoryData[] = [
     label: 'Popular',
     icon: '⭐',
     questions: [
-      { title: "TD claim requirements", subtitle: "explain travel claim process", icon: "📋" },
+      { title: "Document Requirements for TD in Simple Steps", subtitle: "explain travel claim process", icon: "📋" },
       { title: "Meal allowances", subtitle: "daily rates and eligibility", icon: "🍽️" },
       { title: "POMV vs GMT", subtitle: "pros and cons comparison", icon: "🚙" },
       { title: "Travel authorization", subtitle: "approval process and forms", icon: "✈️" },
+      { title: "Can I choose to drive?", subtitle: "personal vehicle options", icon: "🚘" },
+      { title: "Can I choose to drive instead of GMT, in 5 points", subtitle: "personal vehicle options overview", icon: "🚘" },
+      { title: "How do i book Hotels for TD?", subtitle: "lodging options and booking rules", icon: "🏨" },
     ]
   },
   {
@@ -43,6 +46,7 @@ export const CATEGORIZED_SUGGESTIONS: CategoryData[] = [
     questions: [
       { title: "International travel", subtitle: "procedures for travel outside Canada", icon: "🌍" },
       { title: "Travel advances", subtitle: "how to request travel funds", icon: "💵" },
+      { title: "How do i book Hotels for TD?", subtitle: "lodging options and booking rules", icon: "🏨" },
       { title: "Can I choose to drive?", subtitle: "personal vehicle options", icon: "🚘" },
       { title: "Travel card usage", subtitle: "government credit card policies", icon: "💳" },
     ]
@@ -66,7 +70,7 @@ export const CATEGORIZED_SUGGESTIONS: CategoryData[] = [
     questions: [
       { title: "Car Storage", subtitle: "vehicle storage policies", icon: "🚗" },
       { title: "Expense claims", subtitle: "submission and approval process", icon: "📄" },
-      { title: "Document requirements", subtitle: "required forms and receipts", icon: "📋" },
+      { title: "Document Requirements for TD in Simple Steps", subtitle: "required forms and receipts", icon: "📋" },
       { title: "Approval process", subtitle: "who approves what and when", icon: "✅" },
     ]
   }

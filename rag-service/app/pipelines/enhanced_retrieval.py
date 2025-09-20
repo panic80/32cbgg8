@@ -22,7 +22,6 @@ from app.components.table_query_rewriter import TableQueryRewriter
 from app.components.table_ranker import TableRanker
 from app.services.llm_pool import LLMPool
 from app.models.query import Provider
-from app.utils.glossary_loader import get_glossary_loader
 
 
 class QueryType(str, Enum):
@@ -180,13 +179,6 @@ class EnhancedRetrievalPipeline:
         return ChatPromptTemplate.from_messages([
             ("system", """Synthesize a comprehensive answer from the retrieved documents.
             Be precise and cite sources using [Source: filename] format.
-            
-            IMPORTANT GLOSSARY RULE:
-            When there's a conflict between glossary definitions and document content, 
-            ALWAYS prioritize the glossary definition as the authoritative source.
-            
-            Glossary terms (if any):
-            {glossary_terms}
             
             Context documents:
             {context}"""),
@@ -426,22 +418,7 @@ class EnhancedRetrievalPipeline:
                 for doc in state["reranked_documents"]
             ])
             
-            # Extract glossary terms from the query
-            glossary_loader = get_glossary_loader()
-            query_words = state["query"].split()
-            glossary_terms = []
-            
-            for word in query_words:
-                cleaned_word = word.lower().strip(".,!?;:()")
-                expansion = glossary_loader.get_expansion(cleaned_word)
-                if expansion:
-                    glossary_terms.append(f"- {cleaned_word.upper()}: {expansion}")
-            
-            # Format glossary terms
-            glossary_context = "\n".join(glossary_terms) if glossary_terms else "No glossary terms found in query."
-            
             self.logger.debug(f"Context length: {len(context)} chars, Documents: {len(state['reranked_documents'])}")
-            self.logger.debug(f"Glossary terms found: {len(glossary_terms)}")
             
             # Get appropriate LLM based on query complexity
             model = "gpt-4o" if state.get("query_type") in [QueryType.COMPLEX.value, QueryType.MULTI_HOP.value] else "gpt-4o-mini"
@@ -452,8 +429,7 @@ class EnhancedRetrievalPipeline:
                 
                 invoke_params = {
                     "context": context,
-                    "query": state["query"],
-                    "glossary_terms": glossary_context
+                    "query": state["query"]
                 }
                 
                 try:

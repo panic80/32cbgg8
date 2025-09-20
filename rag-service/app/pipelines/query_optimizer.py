@@ -10,7 +10,6 @@ from langchain_core.output_parsers import PydanticOutputParser
 from pydantic import BaseModel, Field
 
 from app.core.logging import get_logger
-from app.utils.glossary_loader import get_glossary_loader
 
 logger = get_logger(__name__)
 
@@ -92,7 +91,6 @@ class QueryOptimizer:
         """Initialize query optimizer."""
         self.llm = llm
         self._setup_classifier()
-        self._load_glossary_abbreviations()
         
     def _setup_classifier(self):
         """Setup query classifier prompt."""
@@ -120,25 +118,6 @@ Provide your classification:""",
             partial_variables={"format_instructions": self.parser.get_format_instructions()}
         )
     
-    def _load_glossary_abbreviations(self):
-        """Load abbreviations from centralized glossary."""
-        try:
-            glossary_loader = get_glossary_loader()
-            glossary_abbrevs = glossary_loader.get_abbreviations()
-            
-            # Convert glossary format to QueryOptimizer format
-            # The glossary returns {abbrev: expansion} already
-            for abbrev, expansion in glossary_abbrevs.items():
-                # Only add if not already in hardcoded list or update if different
-                if abbrev.upper() not in self.ABBREVIATIONS or self.ABBREVIATIONS.get(abbrev.upper()) != expansion:
-                    self.ABBREVIATIONS[abbrev.upper()] = expansion
-                    
-            logger.info(f"Loaded {len(glossary_abbrevs)} abbreviations from glossary")
-            
-        except Exception as e:
-            logger.warning(f"Failed to load glossary abbreviations: {e}")
-            # Continue with hardcoded abbreviations
-        
     def expand_abbreviations(self, query: str) -> str:
         """Expand known abbreviations in the query."""
         expanded = query

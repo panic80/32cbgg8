@@ -491,25 +491,18 @@ Always provide accurate, specific information based on the official documentatio
 If you're not certain about something, clearly state that.
 
 IMPORTANT RULES:
-1. GLOSSARY PRIORITY: When glossary definitions are provided, they take ABSOLUTE PRECEDENCE over any conflicting information in the documents
-2. When multiple sources are present, prioritize the source that provides the most specific and complete information (e.g., actual dollar amounts over references to appendices)
-3. NEVER mention source numbers, citations, or reference which source you used
-4. Do NOT say things like "according to Source X" or "as stated in the documentation"
-5. Give direct, clear answers without referencing the documentation structure
-6. If specific values are found, state them directly without qualification
-7. CRITICAL: For ANY rates or dollar amounts NOT found in the retrieved context (especially meal rates), you MUST say "not available in current documentation" - NEVER make up or estimate values
-8. Always use proper markdown formatting in your responses:
-   - Tables for structured data
-   - **Bold** for important values or headers
-   - Bullet points or numbered lists for multiple items
-   - Clear section headers when appropriate
-
-CRITICAL: When answering questions about rates, allowances, or tables:
-nCRITICAL: When answering questions about authorization or permissions:
-- ALWAYS include ANY restrictions, limitations, or maximum values found in the documentation
-- Include distance limitations (e.g., 500 km per day)
-- Include time restrictions
-
+1. When multiple sources are present, prioritize the source that provides the most specific and complete information (e.g., actual dollar amounts over references to appendices).
+2. NEVER mention source numbers, citations, or reference which source you used. Do NOT say things like "according to Source X" or "as stated in the documentation".
+3. Give direct, clear answers without referencing the documentation structure.
+4. If specific values are found, state them directly without qualification.
+5. For ANY rates or dollar amounts NOT found in the retrieved context (especially meal rates), you MUST say "not available in current documentation"—never make up or estimate values.
+6. When answering authorization or permission questions, always include restrictions, limitations, maximum values, distance limits, time restrictions, and approval requirements that appear in the documentation.
+7. Preserve structured data: if the documentation contains a table (| separators), reproduce it as a markdown table. Use **bold** for important values, bullet or numbered lists for multiple items, and clear section headers when appropriate.
+8. For rate and allowance questions:
+   - Only use meal allowance values found in the retrieved content. If meal rates are missing, state "Meal rates not available in current documentation".
+   - For kilometric rates, include the cents-per-kilometre values.
+   - For incidental allowances, include the daily rates.
+   - Do not summarize when specific values are available.
 TRIP COST ESTIMATION INSTRUCTIONS:
 When presented with a "Trip Plan Request with Cost Estimate", analyze the provided information and calculate costs based on current CF travel regulations.
 
@@ -672,31 +665,9 @@ SPECIAL INSTRUCTION FOR CLASS A RESERVISTS:
                 
                 # Add context or current message
                 if context:
-                    # Extract glossary terms from the query
-                    from app.utils.glossary_loader import get_glossary_loader
-                    glossary_loader = get_glossary_loader()
-                    query_words = chat_request.message.split()
-                    glossary_terms = []
-                    
-                    for word in query_words:
-                        cleaned_word = word.lower().strip(".,!?;:()")
-                        expansion = glossary_loader.get_expansion(cleaned_word)
-                        if expansion:
-                            glossary_terms.append(f"- {cleaned_word.upper()}: {expansion}")
-                    
-                    # Format glossary context
-                    glossary_context = ""
-                    if glossary_terms:
-                        glossary_context = f"""
-IMPORTANT GLOSSARY DEFINITIONS (These take precedence over document content):
-{chr(10).join(glossary_terms)}
-
-"""
-                    
                     context_prompt = f"""Based on the following official documentation, answer the user's question:
 
-{glossary_context}{context}
-
+{context}
 
 ⚠️ IMPORTANT: If this is a trip plan request, DO NOT show any summary table at the beginning.
 Show trip details and calculations first, then the summary table at the very END.
@@ -1070,316 +1041,16 @@ IMPORTANT RULES:
 4. Give direct, clear answers without referencing the documentation structure
 5. If specific values are found, state them directly without qualification
 6. CRITICAL: For ANY rates or dollar amounts NOT found in the retrieved context (especially meal rates), you MUST say "not available in current documentation" - NEVER make up or estimate values
-6. Always use proper markdown formatting in your responses:
-   - Tables for structured data
-   - **Bold** for important values or headers
-   - Bullet points or numbered lists for multiple items
-   - Clear section headers when appropriate
-
-CRITICAL: When answering questions about rates, allowances, or tables:
-nCRITICAL: When answering questions about authorization or permissions:
-- ALWAYS include ANY restrictions, limitations, or maximum values found in the documentation
-- Include distance limitations (e.g., 500 km per day)
-- Include time restrictions
-- Include approval requirements
-- Never omit restrictions even if they seem secondary to the main question
-- ALWAYS include the actual dollar amounts or specific values found in the documentation
-- If you find a table structure (with | characters), preserve and present it as a markdown table
-- For meal allowances: ONLY use breakfast, lunch, and dinner rates found in the retrieved documentation. If meal rates are not in the context, state "Meal rates not available in current documentation" - DO NOT make up or estimate rates
-- For kilometric rates, include the cents per kilometer values
-- For incidental allowances:
-  • First 30 days: .30 per day
-  • Days 31+: .00 per day (75% reduction) when staying in the same location
-  • Last day (Change in Location - CIL): Always .30 per day regardless of trip duration
-  • IMPORTANT: The last day is always at the full rate due to Change in Location (CIL)
-  
-  MANDATORY CALCULATION FOR TRIPS OVER 30 DAYS:
-  You MUST apply this formula for any trip exceeding 30 days:
-  - Days 1-30: Count × $17.30
-  - Days 31 to (Total Days - 1): Count × $13.00
-  - Last Day (CIL): .30
-  
-  Example for 44-day trip:
-  - Days 1-30: 30 × $17.30 = $519.00
-  - Days 31-43: 13 × $13.00 = $169.00  
-  - Day 44 (CIL): 1 × $17.30 = $17.30
-  - Total: $705.30
-  
-  ⚠️ WARNING: Simply multiplying total days × $17.30 is INCORRECT for trips over 30 days
-- If the documentation contains a complete table, reproduce it in your response
-- Do not summarize or generalize when specific values are available
-
-SPECIAL INSTRUCTION FOR CLASS A RESERVISTS:
-- After providing the general answer, ALWAYS add a section titled "**For Class A Reservists:**"
-- In this section, provide specific information that applies to Class A Primary Reserve members
-- Include any special conditions, restrictions, or entitlements that specifically apply to Class A service
-- If there are differences in rates, allowances, or procedures for Class A members, highlight them
-- Common Class A specific considerations include:
-  - Travel time limits and restrictions
-  - Meal allowance eligibility during training
-  - Accommodation entitlements
-  - Kilometric rate applications
-  - TD (Temporary Duty) limitations
-"""
-
-            # DIAGNOSTIC: Log system prompt comparison (fallback flow)
-            if PROMPT_DIAGNOSTICS_ENABLED:
-                logger.info(f"[PROMPT_DIAG] Using streaming_chat.py endpoint (fallback)")
-                logger.info(f"[PROMPT_DIAG] System prompt includes table formatting instructions: False")
-                logger.info(f"[PROMPT_DIAG] Query: {chat_request.message}")
-                logger.info(f"[SHORT_ANSWER_DEBUG FALLBACK] System prompt starts with: {system_prompt[:150]}...")
-
-            messages = [SystemMessage(content=system_prompt)]
-            
-            # Add chat history
-            if chat_request.chat_history:
-                for msg in chat_request.chat_history:
-                    if msg.role == "user":
-                        messages.append(HumanMessage(content=msg.content))
-                    elif msg.role == "assistant":
-                        messages.append(AIMessage(content=msg.content))
-                    # Skip system messages from history to avoid consecutive system messages
-            
-            # Add context or current message
-            if context:
-                context_prompt = f"""Based on the following official documentation, answer the user's question:
-
-{context}
-
-
-⚠️ IMPORTANT: If this is a trip plan request, DO NOT show any summary table at the beginning.
-Show trip details and calculations first, then the summary table at the very END.
-User Question: {chat_request.message}"""
-                messages.append(HumanMessage(content=context_prompt))
-            else:
-                messages.append(HumanMessage(content=chat_request.message))
-            
-            # Apply delayed head streaming if using gated retrieval (fallback case)
-            if use_gated_retrieval and settings.delayed_streaming_enabled:
-                # Simple delay for gated retrieval queries (advanced streaming logic disabled for now)
-                yield f"data: {json.dumps({'type': 'streaming_optimization', 'enabled': True})}\n\n"
-                # Small delay to allow background processing
-                await asyncio.sleep(0.05)  # 50ms delay
-
-            # Yield generation start event
-            yield f"data: {json.dumps({'type': 'generation_start'})}\n\n"
-            
-            first_token_time = None
-            first_token_latency_ms = None
-
-            # Stream the response
-            token_count = 0
-            full_response = ""
-            async for chunk in llm.astream(messages):
-                # Handle different chunk types from different providers
-                content = None
-                if hasattr(chunk, 'content'):
-                    content = chunk.content
-                elif isinstance(chunk, dict) and 'content' in chunk:
-                    content = chunk['content']
-                elif isinstance(chunk, str):
-                    content = chunk
-                
-                if content:
-                    # Record first token time
-                    if first_token_time is None:
-                        first_token_time = datetime.utcnow()
-                        first_token_latency = (first_token_time - start_time).total_seconds() * 1000
-                        perf_monitor.record_latency("first_token_latency_ms", first_token_latency)
-                        first_token_latency_ms = first_token_latency
-                        yield f"data: {json.dumps({'type': 'first_token', 'latency': first_token_latency})}\n\n"
-                    
-                    # Send token
-                    yield f"data: {json.dumps({'type': 'token', 'content': content})}\n\n"
-                    full_response += content
-                    token_count += 1
-                    
-                    # Backpressure management - slow down if client is slow
-                    if token_count % 10 == 0:
-                        await asyncio.sleep(0.001)
-            
-            follow_up_task = None
-            follow_up_questions = []
-            if full_response:
-                logger.info("Generating follow-up questions for streaming response (fallback)")
-                follow_up_task = asyncio.create_task(
-                    generate_follow_up_questions(
-                        user_question=chat_request.message,
-                        ai_response=full_response,
-                        llm=llm,
-                        sources=sources
-                    )
-                )
-
-            # Calculate final metrics
-            total_time = (datetime.utcnow() - start_time).total_seconds()
-            
-            # Record metrics
-            perf_monitor.record_latency("streaming_total_time_ms", total_time * 1000)
-            perf_monitor.record_token_usage(str(chat_request.provider), token_count)
-
-            query_id = str(uuid.uuid4())
-            query_logger = get_query_logger()
-            log_task = None
-            if query_logger.enabled:
-                log_task = asyncio.create_task(query_logger.log_query(
-                    query_id=query_id,
-                    user_query=chat_request.message,
-                    provider=str(chat_request.provider),
-                    model=chat_request.model or getattr(llm, 'model_name', 'unknown'),
-                    use_rag=chat_request.use_rag,
-                    response=full_response,
-                    sources_count=len(sources) if sources else 0,
-                    processing_time=total_time,
-                    tokens_used=token_count,
-                    conversation_id=chat_request.conversation_id,
-                    status=QueryStatus.SUCCESS,
-                    metadata={
-                        "temperature": chat_request.temperature,
-                        "max_tokens": chat_request.max_tokens,
-                        "include_sources": chat_request.include_sources,
-                        "first_token_latency_ms": first_token_latency_ms,
-                        "streaming": True,
-                        "fallback": True,
-                        "source_ids": [model.source_id or model.id for model in source_models]
-                    }
-                ))
-
-            if source_repository and source_models:
-                try:
-                    await source_repository.record_query_sources(
-                        query_id,
-                        [model.model_dump() for model in source_models]
-                    )
-                except Exception as repo_error:
-                    logger.warning("Failed to record streaming query sources (fallback): %s", repo_error)
-
-            yield f"data: {json.dumps({'type': 'complete', 'duration': total_time, 'tokens': token_count})}\n\n"
-
-            if follow_up_task:
-                try:
-                    follow_up_questions = await follow_up_task
-                except Exception as fu_error:
-                    logger.warning(f"Follow-up question generation failed (fallback): {fu_error}")
-                    follow_up_questions = []
-                if follow_up_questions:
-                    yield f"data: {json.dumps({'type': 'metadata', 'follow_up_questions': follow_up_questions})}\n\n"
-
-            if advanced_cache and context and sources and full_response:
-                if cache_context_hash is None:
-                    cache_context_hash = create_context_hash(
-                        query=chat_request.message,
-                        documents=[doc for doc, _ in results] if results else [],
-                        model=chat_request.model or "default"
-                    )
-                await advanced_cache.set_response(
-                    query=chat_request.message,
-                    context_hash=cache_context_hash,
-                    response={
-                        "response": full_response,
-                        "sources": sources,
-                        "follow_up_questions": follow_up_questions
-                    },
-                    model=chat_request.model or "default"
-                )
-
-            if log_task is not None:
-                try:
-                    await log_task
-                except Exception as log_error:
-                    logger.error(f"Failed to log query (fallback): {log_error}")
-        
-    except asyncio.CancelledError:
-        # Client disconnected
-        logger.info(f"Streaming connection {connection_id} cancelled by client")
-        yield f"data: {json.dumps({'type': 'error', 'message': 'Connection cancelled'})}\n\n"
-        raise
-        
-    except Exception as e:
-        logger.error(f"Streaming chat error: {e}", exc_info=True)
-        perf_monitor.increment_counter("streaming_errors")
-        
-        # Log failed query
-        processing_time = (datetime.utcnow() - start_time).total_seconds()
-        query_id = str(uuid.uuid4())
-        query_logger = get_query_logger()
-        await query_logger.log_query(
-            query_id=query_id,
-            user_query=chat_request.message,
-            provider=str(chat_request.provider),
-            model=chat_request.model or "unknown",
-            use_rag=chat_request.use_rag,
-            response=None,
-            sources_count=0,
-            processing_time=processing_time,
-            tokens_used=None,
-            conversation_id=chat_request.conversation_id,
-            status=QueryStatus.ERROR,
-            error_message=str(e),
-            metadata={
-                "temperature": chat_request.temperature,
-                "max_tokens": chat_request.max_tokens,
-                "include_sources": chat_request.include_sources,
-                "streaming": True
-            }
-        )
-        
-        error_message = str(e)
-        if "rate limit" in error_message.lower():
-            error_type = "rate_limit"
-        elif "api key" in error_message.lower():
-            error_type = "auth_error"
-        else:
-            error_type = "unknown_error"
-        
-        yield f"data: {json.dumps({'type': 'error', 'error_type': error_type, 'message': error_message})}\n\n"
-        
-    finally:
-        # Connection cleanup is handled automatically by the async context manager
-        logger.info(f"Streaming connection {connection_id} closed")
-        perf_monitor.increment_counter("streaming_connections_closed")
-
-
-@router.post("/streaming_chat")
-async def streaming_chat(request: Request, chat_request: ChatRequest):
-    """
-    Streaming chat endpoint using Server-Sent Events.
-    
-    Returns real-time token-by-token responses with progress updates.
-    """
-    # Validate streaming support
-    if not hasattr(settings, "enable_streaming") or not settings.enable_streaming:
-        raise HTTPException(
-            status_code=501,
-            detail="Streaming is not enabled in this deployment"
-        )
-    
-    # Create streaming response
-    return StreamingResponse(
-        generate_sse_events(chat_request, request),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",  # Disable Nginx buffering
-        }
-    )
-
-
-@router.get("/streaming_chat/test")
-async def test_streaming():
-    """Test endpoint for streaming functionality."""
-    async def generate():
-        for i in range(10):
-            yield f"data: {json.dumps({'type': 'test', 'count': i})}\n\n"
-            await asyncio.sleep(0.5)
-        yield f"data: {json.dumps({'type': 'complete'})}\n\n"
-    
-    return StreamingResponse(
-        generate(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-        }
-    )
+IMPORTANT RULES:
+1. When multiple sources are present, prioritize the source that provides the most specific and complete information (e.g., actual dollar amounts over references to appendices).
+2. NEVER mention source numbers, citations, or reference which source you used. Do NOT say things like "according to Source X" or "as stated in the documentation".
+3. Give direct, clear answers without referencing the documentation structure.
+4. If specific values are found, state them directly without qualification.
+5. For ANY rates or dollar amounts NOT found in the retrieved context (especially meal rates), you MUST say "not available in current documentation"—never make up or estimate values.
+6. When answering authorization or permission questions, always include restrictions, limitations, maximum values, distance limits, time restrictions, and approval requirements that appear in the documentation.
+7. Preserve structured data: if the documentation contains a table (| separators), reproduce it as a markdown table. Use **bold** for important values, bullet or numbered lists for multiple items, and clear section headers when appropriate.
+8. For rate and allowance questions:
+   - Only use meal allowance values found in the retrieved content. If meal rates are missing, state "Meal rates not available in current documentation".
+   - For kilometric rates, include the cents-per-kilometre values.
+   - For incidental allowances, include the daily rates.
+   - Do not summarize when specific values are available.

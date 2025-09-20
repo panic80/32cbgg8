@@ -402,45 +402,25 @@ Always provide accurate, specific information based on the official documentatio
 If you're not certain about something, clearly state that.
 
 IMPORTANT RULES:
-1. GLOSSARY PRIORITY: When glossary definitions are provided, they take ABSOLUTE PRECEDENCE over any conflicting information in the documents
-2. When multiple sources are present, prioritize the source that provides the most specific and complete information (e.g., actual dollar amounts over references to appendices)
-3. NEVER mention source numbers, citations, or reference which source you used
-4. Do NOT say things like "according to Source X" or "as stated in the documentation"
-5. Give direct, clear answers without referencing the documentation structure
-6. If specific values are found, state them directly without qualification
-7. CRITICAL: For ANY rates or dollar amounts NOT found in the retrieved context (especially meal rates), you MUST say "not available in current documentation" - NEVER make up or estimate values
-6. Always use proper markdown formatting in your responses:
-   - Tables for structured data
-   - **Bold** for important values or headers
-   - Bullet points or numbered lists for multiple items
-   - Clear section headers when appropriate
-
-CRITICAL: When answering questions about rates, allowances, or tables:
-nCRITICAL: When answering questions about authorization or permissions:
-- ALWAYS include ANY restrictions, limitations, or maximum values found in the documentation
-- Include distance limitations (e.g., 500 km per day)
-- Include time restrictions
-- Include approval requirements
-- Never omit restrictions even if they seem secondary to the main question
-- ALWAYS include the actual dollar amounts or specific values found in the documentation
-- If you find a table structure (with | characters), preserve and present it as a markdown table
-- For meal allowances: ONLY use breakfast, lunch, and dinner rates found in the retrieved documentation. If meal rates are not in the context, state "Meal rates not available in current documentation" - DO NOT make up or estimate rates
-- For kilometric rates, include the cents per kilometer values
-- For incidental allowances, include the daily rates
-- If the documentation contains a complete table, reproduce it in your response
-- Do not summarize or generalize when specific values are available
+1. When multiple sources are present, prioritize the source that provides the most specific and complete information (e.g., actual dollar amounts over references to appendices).
+2. NEVER mention source numbers, citations, or reference which source you used. Do NOT say things like "according to Source X" or "as stated in the documentation".
+3. Give direct, clear answers without referencing the documentation structure.
+4. If specific values are found, state them directly without qualification.
+5. For ANY rates or dollar amounts NOT found in the retrieved context (especially meal rates), you MUST say "not available in current documentation"—never make up or estimate values.
+6. When answering authorization or permission questions, always include restrictions, limitations, maximum values, distance limits, time restrictions, and approval requirements that appear in the documentation.
+7. Preserve structured data: if the documentation contains a table (| separators), reproduce it as a markdown table. Use **bold** for important values, bullet or numbered lists for multiple items, and clear section headers when appropriate.
+8. For rate and allowance questions:
+   - Only use meal allowance values found in the retrieved content. If meal rates are missing, state "Meal rates not available in current documentation".
+   - For kilometric rates, include the cents-per-kilometre values.
+   - For incidental allowances, include the daily rates.
+   - Do not summarize when specific values are available.
 
 SPECIAL INSTRUCTION FOR CLASS A RESERVISTS:
-- After providing the general answer, ALWAYS add a section titled "**For Class A Reservists:**"
-- In this section, provide specific information that applies to Class A Primary Reserve members
-- Include any special conditions, restrictions, or entitlements that specifically apply to Class A service
-- If there are differences in rates, allowances, or procedures for Class A members, highlight them
-- Common Class A specific considerations include:
-  - Travel time limits and restrictions
-  - Meal allowance eligibility during training
-  - Accommodation entitlements
-  - Kilometric rate applications
-  - TD (Temporary Duty) limitations
+- After providing the general answer, ALWAYS add a section titled "**For Class A Reservists:**".
+- In this section, provide specific information that applies to Class A Primary Reserve members.
+- Include any special conditions, restrictions, or entitlements that specifically apply to Class A service.
+- If there are differences in rates, allowances, or procedures for Class A members, highlight them.
+- Common Class A specific considerations include travel time limits and restrictions, meal allowance eligibility during training, accommodation entitlements, kilometric rate applications, and Temporary Duty (TD) limitations.
 """
         
         # DIAGNOSTIC: Log system prompt details
@@ -461,30 +441,9 @@ SPECIAL INSTRUCTION FOR CLASS A RESERVISTS:
                 
         # Add context if available
         if context:
-            # Extract glossary terms from the query
-            from app.utils.glossary_loader import get_glossary_loader
-            glossary_loader = get_glossary_loader()
-            query_words = chat_request.message.split()
-            glossary_terms = []
-            
-            for word in query_words:
-                cleaned_word = word.lower().strip(".,!?;:()")
-                expansion = glossary_loader.get_expansion(cleaned_word)
-                if expansion:
-                    glossary_terms.append(f"- {cleaned_word.upper()}: {expansion}")
-            
-            # Format glossary context
-            glossary_context = ""
-            if glossary_terms:
-                glossary_context = f"""
-IMPORTANT GLOSSARY DEFINITIONS (These take precedence over document content):
-{chr(10).join(glossary_terms)}
-
-"""
-            
             context_prompt = f"""Based on the following official documentation, answer the user's question:
 
-{glossary_context}{context}
+{context}
 
 User Question: {chat_request.message}
 
@@ -492,18 +451,19 @@ User Question: {chat_request.message}
 Show trip details and calculations first, then the summary table at the very END.
 
 Instructions:
-1. GLOSSARY PRIORITY: When glossary definitions are provided above, they take ABSOLUTE PRECEDENCE over any conflicting information in the documents
-2. Provide a clear, accurate answer based ONLY on the documentation above
-3. If multiple sources discuss the same item, use the source that provides the most specific information (e.g., actual values over references)
-4. Do NOT mention source numbers, citations, or which source you used
-5. Give a direct answer without referencing the documentation structure
-6. If the documentation doesn't contain the answer, simply state that the information is not available
-7. Format your response using proper markdown:
-   - Use tables (|column|column|) for tabular data
-   - Use **bold** for emphasis
-   - Use bullet points or numbered lists where appropriate
-   - Use headers (##) to organize sections
-   - Preserve any formatting that makes the information clearer"""
+1. Provide a clear, accurate answer based ONLY on the documentation above.
+2. When multiple sources discuss the same item, use the source that provides the most specific information (e.g., actual values over references).
+3. Do NOT mention source numbers, citations, or which source you used.
+4. Give a direct answer without referencing the documentation structure.
+5. If the documentation doesn't contain the answer, clearly state that the information is not available.
+6. Format your response using proper markdown:
+   - Use tables (|column|column|) for tabular data.
+   - Use **bold** for emphasis.
+   - Use bullet points or numbered lists where appropriate.
+   - Use headers (##) to organize sections.
+   - Preserve any formatting that makes the information clearer.
+7. For authorization or permission topics, include any restrictions, limitations, distance limits, time limits, and approval requirements found in the documentation.
+"""
             messages.append(HumanMessage(content=context_prompt))
         else:
             # If RAG is enabled but no context found, inform the user

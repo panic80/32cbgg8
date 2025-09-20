@@ -10,7 +10,6 @@ from app.unified_retrieval.strategies.base import BaseStrategy, RetrievalContext
 from app.core.logging import get_logger
 from app.services.cache import cache_result
 from app.services.llm_pool import get_llm_pool
-from app.utils.glossary_loader import get_glossary_loader
 
 logger = get_logger(__name__)
 
@@ -409,17 +408,10 @@ Keep it concise and relevant:"""
 
 
 class AbbreviationExpansionStrategy(BaseStrategy):
-    """
-    Handle CAF-specific abbreviations using centralized glossary.
-    
-    This strategy expands military abbreviations and acronyms
-    to their full forms for better retrieval, using the centralized
-    glossary database.
-    """
+    """Handle CAF-specific abbreviations using a curated dictionary."""
     
     def __init__(
         self,
-        use_centralized_glossary: bool = True,
         abbreviations: Optional[Dict[str, str]] = None,
         include_both: bool = True,
         **kwargs
@@ -428,9 +420,8 @@ class AbbreviationExpansionStrategy(BaseStrategy):
         Initialize the abbreviation expansion strategy.
         
         Args:
-            use_centralized_glossary: Use the centralized glossary loader
-            abbreviations: Optional custom abbreviations (used if centralized is False)
-            include_both: Include both abbreviation and expansion in query
+            abbreviations: Optional custom abbreviation mapping to extend the defaults
+            include_both: Include both abbreviation and expansion in the rewritten query
         """
         super().__init__(
             strategy_type=StrategyType.QUERY_ENHANCEMENT,
@@ -438,14 +429,7 @@ class AbbreviationExpansionStrategy(BaseStrategy):
             **kwargs
         )
         self.include_both = include_both
-        self.use_centralized_glossary = use_centralized_glossary
-        
-        if use_centralized_glossary:
-            self.glossary_loader = get_glossary_loader()
-            self.abbreviations = self.glossary_loader.get_abbreviations()
-            logger.info(f"Loaded {len(self.abbreviations)} abbreviations from centralized glossary")
-        else:
-            self.abbreviations = abbreviations or self._get_legacy_abbreviations()
+        self.abbreviations = (abbreviations or self._get_legacy_abbreviations())
     
     def _get_legacy_abbreviations(self) -> Dict[str, str]:
         """Get legacy CAF abbreviations for backward compatibility."""
@@ -477,26 +461,22 @@ class AbbreviationExpansionStrategy(BaseStrategy):
     
     def _expand_abbreviations(self, text: str) -> str:
         """Expand abbreviations in text."""
-        if self.use_centralized_glossary and self.glossary_loader:
-            # Use the glossary loader's expand_text method
-            return self.glossary_loader.expand_text(text, include_both=self.include_both)
-        else:
-            # Legacy expansion logic
-            words = text.split()
-            expanded_words = []
-            
-            for word in words:
-                lower_word = word.lower().strip(".,!?;:()[]{}\"'")
-                if lower_word in self.abbreviations:
-                    expansion = self.abbreviations[lower_word]
-                    if self.include_both:
-                        expanded_words.append(f"({word} OR {expansion})")
-                    else:
-                        expanded_words.append(expansion)
+        # Expand using the configured abbreviation dictionary
+        words = text.split()
+        expanded_words = []
+        
+        for word in words:
+            lower_word = word.lower().strip(".,!?;:()[]{}\"'")
+            if lower_word in self.abbreviations:
+                expansion = self.abbreviations[lower_word]
+                if self.include_both:
+                    expanded_words.append(f"({word} OR {expansion})")
                 else:
-                    expanded_words.append(word)
-            
-            return " ".join(expanded_words)
+                    expanded_words.append(expansion)
+            else:
+                expanded_words.append(word)
+        
+        return " ".join(expanded_words)
     
     async def execute(self, context: RetrievalContext) -> RetrievalContext:
         """Execute the abbreviation expansion."""

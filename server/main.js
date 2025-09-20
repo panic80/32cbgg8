@@ -13,7 +13,6 @@ import chatLogger from './services/logger.js';
 import CacheService from './services/cache.js';
 import mapsRoutes from './routes/maps.js';
 import createSourcesRoutes from './routes/sources.js';
-import createGlossaryRoutes from './routes/glossary.js';
 import createLogsRoutes from './routes/logs.js';
 import dotenv from 'dotenv';
 import { decodeUrlParams } from './utils/http.js';
@@ -1171,11 +1170,8 @@ app.post('/api/v2/ingest/canada-ca', requireAdminAuth, rateLimiter, async (req, 
   }
 });
 
-// Mount sources routes
+// Mount sources and logs routes
 app.use(createSourcesRoutes({ rateLimiter, requireAdminAuth, getRagAuthHeaders }));
-
-// Mount glossary routes
-app.use(createGlossaryRoutes({ rateLimiter }));
 app.use(createLogsRoutes({ rateLimiter }));
 
 // SSE Streaming chat endpoint - proxy to RAG service

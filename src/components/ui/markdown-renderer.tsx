@@ -4,7 +4,6 @@ import remarkGfm from "remark-gfm"
 
 import { cn } from "@/lib/utils"
 import { CopyButton } from "@/components/ui/copy-button"
-import { wrapAcronymsWithTooltips } from "@/components/GlossaryTooltip"
 
 interface MarkdownRendererProps {
   children: string
@@ -104,33 +103,11 @@ const COMPONENTS = {
   pre: ({ children }: any) => children,
   ol: withClass("ol", "list-decimal space-y-2 pl-6"),
   ul: withClass("ul", "list-disc space-y-2 pl-6"),
-  li: ({ children, ...props }: any) => {
-    // Process text content to add glossary tooltips
-    const processChildren = (child: React.ReactNode): React.ReactNode => {
-      if (typeof child === 'string') {
-        return wrapAcronymsWithTooltips(child);
-      }
-      if (React.isValidElement(child)) {
-        const element = child as React.ReactElement<{ children?: React.ReactNode }>;
-        const nextChildren = element.props.children;
-        if (nextChildren) {
-          return React.cloneElement(element, {
-            ...element.props,
-            children: React.Children.map(nextChildren, processChildren),
-          });
-        }
-      }
-      return child;
-    };
-
-    const processedChildren = React.Children.map(children, processChildren);
-    
-    return (
-      <li className="my-1.5" {...props}>
-        {processedChildren}
-      </li>
-    );
-  },
+  li: ({ children, ...props }: any) => (
+    <li className="my-1.5" {...props}>
+      {children}
+    </li>
+  ),
   table: ({ children, ...props }: any) => (
     <div className="relative w-full my-4">
       <div className="overflow-x-auto touch-pan-x rounded-md border border-foreground/20 [-webkit-overflow-scrolling:touch]">
@@ -152,33 +129,7 @@ const COMPONENTS = {
     "border border-foreground/20 px-3 py-2 sm:px-4 text-left [&[align=center]]:text-center [&[align=right]]:text-right"
   ),
   tr: withClass("tr", "m-0 border-t p-0 even:bg-muted"),
-  p: ({ children, ...props }: any) => {
-    // Process text content to add glossary tooltips
-    const processChildren = (child: React.ReactNode): React.ReactNode => {
-      if (typeof child === 'string') {
-        return wrapAcronymsWithTooltips(child);
-      }
-      if (React.isValidElement(child)) {
-        const element = child as React.ReactElement<{ children?: React.ReactNode }>;
-        const nextChildren = element.props.children;
-        if (nextChildren) {
-          return React.cloneElement(element, {
-            ...element.props,
-            children: React.Children.map(nextChildren, processChildren),
-          });
-        }
-      }
-      return child;
-    };
-
-    const processedChildren = React.Children.map(children, processChildren);
-    
-    return (
-      <p className="whitespace-pre-wrap text-base sm:text-base" {...props}>
-        {processedChildren}
-      </p>
-    );
-  },
+  p: withClass("p", "whitespace-pre-wrap text-base sm:text-base"),
   hr: withClass("hr", "border-foreground/20"),
 }
 

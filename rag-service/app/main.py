@@ -12,7 +12,7 @@ from typing import Dict, Any
 from app.core.config import settings
 from app.core.logging import setup_logging, get_logger
 from app.core.langchain_config import LangChainConfig
-from app.api import health, chat, ingestion, sources, websocket, progress, streaming_chat, admin, glossary
+from app.api import health, chat, ingestion, sources, websocket, progress, streaming_chat, admin
 from app.services.document_store import DocumentStore
 from app.core.vectorstore import VectorStoreManager
 from app.services.cache import CacheService
@@ -172,7 +172,6 @@ app.include_router(ingestion.router, prefix=settings.api_prefix, tags=["ingestio
 app.include_router(sources.router, prefix=settings.api_prefix, tags=["sources"])
 app.include_router(websocket.router, prefix=settings.api_prefix, tags=["websocket"])
 app.include_router(progress.router, prefix=settings.api_prefix, tags=["progress"])
-app.include_router(glossary.router, tags=["glossary"])
 
 
 @app.get("/")

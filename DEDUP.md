@@ -52,7 +52,6 @@ Last updated: 2025-08-31
   - [ ] `GET /api/v2/sources/stats`
   - [ ] `GET /api/v2/sources/count`
   - [ ] `POST /api/v2/database/purge`
-  - [ ] `GET /api/v2/glossary/`
 - [ ] Run tests (JS: `vitest`, Python: targeted RAG tests) for baseline.
 - [ ] Record bundle sizes and build artifacts (`vite build`).
 
@@ -78,7 +77,7 @@ Last updated: 2025-08-31
   - [ ] `sse.js`: SSE headers + piping utilities
 - [ ] Centralize security/CORS/helmet in `server/config/security.js` and consume in entry.
 - [ ] Split routes into modules under `server/routes`:
-  - [ ] Chat (legacy redirect), RAG proxy, ingestion, glossary, sources, health/config
+  - [ ] Chat (legacy redirect), RAG proxy, ingestion, sources, health/config
   - [ ] Keep `maps` router as-is
 - [ ] Reconcile `server/proxy.js`:
   - [ ] Make it import shared utils, or

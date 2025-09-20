@@ -9,8 +9,6 @@ import HowItWorksModal from '@/pages/ChatPage/components/HowItWorksModal';
 import { WHATS_NEW_VERSION } from '@/pages/ChatPage/constants/whatsNew';
 import { HamburgerMenu } from '@/components/HamburgerMenu';
 import LogoImage from '@/components/LogoImage';
-import { GlossaryModal } from '@/components/GlossaryModal';
-import { FEATURE_FLAGS } from '@/constants/featureFlags';
 
 interface ChatHeaderProps {
   theme: string;
@@ -38,11 +36,9 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   onInsertExample
 }) => {
   const [showTripPlanner, setShowTripPlanner] = useState(false);
-  const [showGlossary, setShowGlossary] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showWhatsNew, setShowWhatsNew] = useState(false);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
-  const enableGlossary = FEATURE_FLAGS.enableGlossary;
   
   // Track if there's unseen updates
   // We keep this local to the header since it owns the modal in this component
@@ -102,7 +98,6 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           onTripPlannerOpen={() => setShowTripPlanner(true)}
           onWhatsNewOpen={() => setShowWhatsNew(true)}
           onHowItWorksOpen={() => setShowHowItWorks(true)}
-          onGlossaryOpen={enableGlossary ? () => setShowGlossary(true) : undefined}
           onHelpOpen={() => setShowHelp(true)}
           onExportMarkdown={onExportMarkdown}
           onClearConversation={onClearConversation}
@@ -121,13 +116,6 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       setShowTripPlanner(false);
     }}
   />
-  
-  {enableGlossary && (
-    <GlossaryModal
-      open={showGlossary}
-      onOpenChange={setShowGlossary}
-    />
-  )}
   
   {/* What's New */}
   <WhatsNewModal

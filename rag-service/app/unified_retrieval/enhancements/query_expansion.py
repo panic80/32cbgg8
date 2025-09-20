@@ -12,7 +12,6 @@ import spacy
 from langchain.schema import BaseMessage
 import logging
 
-from app.utils.glossary_loader import get_glossary_loader
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +24,7 @@ class AdvancedQueryExpander:
         
         Args:
             spacy_model: SpaCy model for NLP tasks
-            use_centralized_glossary: Whether to use centralized glossary
+            use_centralized_glossary: Deprecated flag retained for compatibility; centralized glossary has been removed
         """
         try:
             self.nlp = spacy.load(spacy_model)
@@ -35,13 +34,9 @@ class AdvancedQueryExpander:
         
         self.use_centralized_glossary = use_centralized_glossary
         if use_centralized_glossary:
-            self.glossary_loader = get_glossary_loader()
-            # Load abbreviations from centralized glossary
-            self.abbreviations = self.glossary_loader.get_abbreviations()
-            logger.info(f"Loaded {len(self.abbreviations)} abbreviations from centralized glossary")
-        else:
-            # Use legacy abbreviations
-            self.abbreviations = self._get_legacy_abbreviations()
+            logger.warning("Centralized glossary support has been removed; using built-in abbreviations")
+        # Use legacy abbreviations
+        self.abbreviations = self._get_legacy_abbreviations()
         
         # Canadian Forces domain-specific synonyms
         self.domain_synonyms = {
@@ -160,24 +155,20 @@ class AdvancedQueryExpander:
     
     def _expand_abbreviations(self, query: str) -> str:
         """Expand known abbreviations in query"""
-        if self.use_centralized_glossary and self.glossary_loader:
-            # Use glossary loader for expansion
-            return self.glossary_loader.expand_text(query, include_both=True)
-        else:
-            # Legacy expansion logic
-            expanded = query
-            
-            for abbr, full in self.abbreviations.items():
-                # Match whole words only
-                pattern = r'\b' + re.escape(abbr) + r'\b'
-                expanded = re.sub(
-                    pattern,
-                    f"{abbr} ({full})",
-                    expanded,
-                    flags=re.IGNORECASE
-                )
-            
-            return expanded
+        # Expand using the built-in abbreviation mappings
+        expanded = query
+        
+        for abbr, full in self.abbreviations.items():
+            # Match whole words only
+            pattern = r'\b' + re.escape(abbr) + r'\b'
+            expanded = re.sub(
+                pattern,
+                f"{abbr} ({full})",
+                expanded,
+                flags=re.IGNORECASE
+            )
+        
+        return expanded
     
     def _extract_entities(self, query: str) -> Dict[str, List[str]]:
         """Extract named entities from query"""

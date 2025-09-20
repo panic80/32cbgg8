@@ -13,7 +13,6 @@ import {
   Layers,
   FileQuestion,
   ChevronRight,
-  BookOpen,
 } from 'lucide-react';
 import {
   Sheet,
@@ -27,7 +26,6 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
-import { FEATURE_FLAGS } from '@/constants/featureFlags';
 
 interface HamburgerMenuProps {
   theme: string;
@@ -37,7 +35,6 @@ interface HamburgerMenuProps {
   shortAnswerMode: boolean;
   setShortAnswerMode: (value: boolean) => void;
   onTripPlannerOpen: () => void;
-  onGlossaryOpen?: () => void;
   onHelpOpen: () => void;
   onWhatsNewOpen?: () => void;
   onHowItWorksOpen?: () => void;
@@ -99,7 +96,6 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
   shortAnswerMode,
   setShortAnswerMode,
   onTripPlannerOpen,
-  onGlossaryOpen,
   onHelpOpen,
   onWhatsNewOpen,
   onHowItWorksOpen,
@@ -129,18 +125,6 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
       }
     }
   ];
-
-  if (FEATURE_FLAGS.enableGlossary && onGlossaryOpen) {
-    toolsItems.push({
-      type: 'button',
-      label: 'Glossary',
-      icon: <BookOpen className="w-4 h-4" />,
-      onClick: () => {
-        setIsOpen(false);
-        onGlossaryOpen();
-      },
-    });
-  }
 
   toolsItems.push(
     {
