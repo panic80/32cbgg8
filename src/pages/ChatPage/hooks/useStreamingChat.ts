@@ -2,6 +2,7 @@ import { useCallback, useEffect, useReducer, useRef } from 'react';
 import type { SetStateAction } from 'react';
 import { getModelDisplayName } from '@/constants/models';
 import type { Message, Source, FollowUpQuestion } from '@/types/chat';
+import { formatPlainTextToMarkdown } from '../utils/formatting';
 
 interface UseStreamingChatOptions {
   conversationId: string | null;
@@ -82,7 +83,7 @@ const streamingReducer = (state: StreamingState, action: StreamingAction): Strea
   }
 };
 
-const markdownPattern = /```|\n\s*#|\*\*|\n\s*[-*+]\s|<[^>]+>/;
+const markdownPattern = /```|\n\s*#|\*\*|\n\s*[-*+]\s|\n\s*\d+[.)]\s|<[^>]+>/;
 
 const toSources = (eventSources: any[] = []): Source[] =>
   eventSources.map(source => ({
@@ -172,6 +173,7 @@ const flushPendingMessage = useCallback(() => {
     let streamingContent = '';
     let sources: Source[] = [];
     let followUpQuestions: FollowUpQuestion[] = [];
+    let streamHasMarkdownSyntax = false;
 
     try {
       const isTripPlannerMessage = messageText.startsWith('📋 **Trip Plan Request**');
@@ -284,9 +286,15 @@ const flushPendingMessage = useCallback(() => {
                 if (event.content) {
                   dispatch({ type: 'SET_RETRIEVAL_STATUS', status: 'Generating answer...' });
                   streamingContent += event.content;
+                  const hasMarkdownSyntax = markdownPattern.test(streamingContent);
+                  streamHasMarkdownSyntax = streamHasMarkdownSyntax || hasMarkdownSyntax;
                   if (pendingMessageRef.current) {
-                    pendingMessageRef.current.content = streamingContent;
-                    pendingMessageRef.current.isFormatted = markdownPattern.test(streamingContent);
+                    const formattedContent = hasMarkdownSyntax
+                      ? streamingContent
+                      : formatPlainTextToMarkdown(streamingContent);
+                    const displayContent = formattedContent || streamingContent.trim();
+                    pendingMessageRef.current.content = displayContent;
+                    pendingMessageRef.current.isFormatted = true;
                     flushPendingMessage();
                   }
                 }
@@ -315,12 +323,19 @@ const flushPendingMessage = useCallback(() => {
                 }
                 break;
               case 'complete': {
+                const trimmedContent = streamingContent.trim();
+                const hasMarkdownSyntax = streamHasMarkdownSyntax || markdownPattern.test(trimmedContent);
+                const formattedContent = hasMarkdownSyntax
+                  ? trimmedContent
+                  : formatPlainTextToMarkdown(trimmedContent);
+                const finalContent = formattedContent || trimmedContent;
+
                 const finalMessage: Message = {
                   id: messageId,
-                  content: streamingContent.trim(),
+                  content: finalContent,
                   sender: 'assistant',
                   timestamp: Date.now(),
-                  isFormatted: markdownPattern.test(streamingContent),
+                  isFormatted: true,
                   sources: sources.length > 0 ? sources : undefined,
                   followUpQuestions: followUpQuestions.length > 0 ? followUpQuestions : undefined,
                   modelMode,
