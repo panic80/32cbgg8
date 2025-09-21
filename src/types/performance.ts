@@ -32,9 +32,23 @@ export interface LatencyMetrics {
   firstToken: MetricStats;
 }
 
+export interface RetrievalScoreMetrics {
+  avg: MetricStats;
+  max: MetricStats;
+  min: MetricStats;
+  std: MetricStats;
+  gap: MetricStats;
+}
+
 export interface QualityMetrics {
   contextCoverage: MetricStats;
+  contextSupport: MetricStats;
+  answerToContext: MetricStats;
   hallucinationRate: MetricStats;
+  answerTokens: MetricStats;
+  sourceTokens: MetricStats;
+  sourceCount: MetricStats;
+  retrievalScores: RetrievalScoreMetrics;
   errorRate: ErrorRateSummary;
 }
 

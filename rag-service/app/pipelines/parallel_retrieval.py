@@ -14,6 +14,7 @@ from app.core.config import settings
 from app.components.reranker import CrossEncoderReranker
 from app.components.table_ranker import TableRanker
 from app.unified_retrieval.unified_retriever import UnifiedRetriever
+from app.services.performance_monitor import get_performance_monitor
 
 logger = get_logger(__name__)
 
@@ -173,6 +174,8 @@ class ParallelRetrievalPipeline:
             task = self._retrieve_with_timeout(name, retriever, query, k * 2)  # Get more for merging
             tasks.append(task)
         
+        monitor = get_performance_monitor()
+
         # Execute with concurrency limit
         results_by_retriever = {}
         latencies = {}
@@ -189,7 +192,16 @@ class ParallelRetrievalPipeline:
                     name, docs, latency = result
                     if docs:
                         results_by_retriever[name] = docs
-                        latencies[name] = latency
+                    latencies[name] = latency
+                    if monitor:
+                        try:
+                            monitor.record_retriever_performance(
+                                name,
+                                float(latency) * 1000,
+                                len(docs),
+                            )
+                        except Exception as exc:  # pragma: no cover - defensive logging
+                            logger.debug("Failed to record retriever metric for %s: %s", name, exc)
         
         # Log retrieval metrics
         logger.info(f"Parallel retrieval completed - Active: {len(active_retrievers)}, "

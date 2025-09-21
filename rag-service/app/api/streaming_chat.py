@@ -24,6 +24,7 @@ from app.services.performance_monitor import get_performance_monitor
 from app.services.llm_pool import llm_pool
 from app.services.query_logger import get_query_logger
 from app.models.query_history import QueryStatus
+from app.utils.metrics import compute_quality_metrics
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -113,6 +114,30 @@ def _extract_chunk_text(chunk) -> str:
         return chunk
 
     return ""
+
+
+def _extract_token_usage_from_chunk(chunk) -> Optional[int]:
+    """Best-effort extraction of token usage from a streaming chunk."""
+    if chunk is None:
+        return None
+
+    candidate_maps = []
+    for attr in ("generation_info", "response_metadata", "metadata", "info"):
+        value = getattr(chunk, attr, None)
+        if isinstance(value, dict):
+            candidate_maps.append(value)
+    if isinstance(chunk, dict):
+        candidate_maps.append(chunk)
+
+    for mapping in candidate_maps:
+        for key in ("token_usage", "usage", "usage_metadata"):
+            usage = mapping.get(key)
+            if isinstance(usage, dict):
+                for token_key in ("total_tokens", "total", "totalTokens", "completion_tokens"):
+                    token_value = usage.get(token_key)
+                    if isinstance(token_value, (int, float)):
+                        return int(token_value)
+    return None
 
 
 def _build_history_messages(chat_request: ChatRequest) -> List[SystemMessage | HumanMessage | AIMessage]:
@@ -321,6 +346,8 @@ async def _run_streaming_flow(
     query_optimizer = QueryOptimizer(llm_wrapper)
     result_processor = ResultProcessor()
 
+    retrieval_results: List[Tuple] = []
+
     optimized_query = chat_request.message
     try:
         optimized_query = query_optimizer.expand_abbreviations(chat_request.message)
@@ -348,6 +375,7 @@ async def _run_streaming_flow(
             query=optimized_query,
             k=getattr(settings, "max_chunks_per_query", 6),
         )
+        retrieval_results = results
         retrieval_time_ms = (time.perf_counter() - retrieval_start) * 1000
         retrieval_count = len(results)
         yield f"data: {json.dumps({'type': 'retrieval_complete', 'duration': retrieval_time_ms / 1000, 'count': retrieval_count})}\n\n"
@@ -362,11 +390,6 @@ async def _run_streaming_flow(
 
             if sources:
                 yield f"data: {json.dumps({'type': 'sources', 'sources': [s.model_dump() for s in sources]})}\n\n"
-                perf_monitor.record_value("context_coverage_rate", 1.0)
-                perf_monitor.record_value("hallucination_rate", 0.0)
-        else:
-            perf_monitor.record_value("context_coverage_rate", 0.0)
-            perf_monitor.record_value("hallucination_rate", 1.0)
     else:
         perf_monitor.record_latency("search_latency_ms", 0)
         perf_monitor.record_latency("context_build_latency_ms", 0)
@@ -388,6 +411,7 @@ async def _run_streaming_flow(
     generation_start = time.perf_counter()
     first_token_sent = False
     full_response_parts: List[str] = []
+    token_usage_total: Optional[int] = None
 
     async for chunk in llm.astream(messages):
         if await request.is_disconnected():
@@ -400,6 +424,10 @@ async def _run_streaming_flow(
 
         full_response_parts.append(token_text)
 
+        usage_from_chunk = _extract_token_usage_from_chunk(chunk)
+        if usage_from_chunk is not None:
+            token_usage_total = usage_from_chunk
+
         if not first_token_sent and token_text.strip():
             first_token_sent = True
             latency_ms = (time.perf_counter() - generation_start) * 1000
@@ -410,11 +438,25 @@ async def _run_streaming_flow(
 
     full_response = "".join(full_response_parts).strip()
 
+    if token_usage_total is not None:
+        try:
+            perf_monitor.record_token_usage(
+                str(chat_request.provider),
+                int(token_usage_total),
+            )
+        except (TypeError, ValueError):
+            logger.debug("Streaming token usage not numeric: %s", token_usage_total)
+
     answer_latency_ms = (time.perf_counter() - generation_start) * 1000
     total_latency_ms = (time.perf_counter() - request_timer) * 1000
     perf_monitor.record_latency("answer_generation_latency_ms", answer_latency_ms)
     perf_monitor.record_latency("llm_latency_ms", answer_latency_ms)
     perf_monitor.record_latency("total_request_latency_ms", total_latency_ms)
+
+    quality_metrics = compute_quality_metrics(full_response, sources, retrieval_results)
+    for key, value in quality_metrics.items():
+        perf_monitor.record_value(key, value)
+
     perf_monitor.increment_counter("successful_requests")
 
     yield f"data: {json.dumps({'type': 'complete', 'duration': total_latency_ms / 1000})}\n\n"
@@ -429,7 +471,7 @@ async def _run_streaming_flow(
             response=full_response,
             sources_count=len(sources),
             processing_time=(datetime.utcnow() - start_time).total_seconds(),
-            tokens_used=None,
+            tokens_used=token_usage_total,
             conversation_id=conversation_id,
             status=QueryStatus.SUCCESS,
             metadata={

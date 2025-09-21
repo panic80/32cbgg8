@@ -128,7 +128,7 @@ const PerformanceDashboard = () => {
 
             <section className="space-y-3">
               <h2 className="text-lg font-semibold text-foreground">Quality</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                 <MetricCard
                   title="Context Coverage"
                   metric={data.quality.contextCoverage}
@@ -137,12 +137,54 @@ const PerformanceDashboard = () => {
                   target={0.9}
                 />
                 <MetricCard
+                  title="Support Ratio"
+                  metric={data.quality.contextSupport}
+                  unit="ratio"
+                  description="Context tokens relative to answer tokens"
+                  target={0.9}
+                />
+                <MetricCard
+                  title="Answer vs Context"
+                  metric={data.quality.answerToContext}
+                  unit="ratio"
+                  description="Answer size relative to supporting context"
+                  target={1.2}
+                />
+                <MetricCard
                   title="Hallucination Rate"
                   metric={data.quality.hallucinationRate}
                   unit="ratio"
                   description="Responses missing supporting evidence"
                   target={0.05}
                 />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                <MetricCard
+                  title="Answer Tokens"
+                  metric={data.quality.answerTokens}
+                  unit="count"
+                  description="Tokens generated per answer"
+                />
+                <MetricCard
+                  title="Source Tokens"
+                  metric={data.quality.sourceTokens}
+                  unit="count"
+                  description="Tokens included from supporting sources"
+                />
+                <MetricCard
+                  title="Retrieval Score Avg"
+                  metric={data.quality.retrievalScores.avg}
+                  unit="ratio"
+                  description="Mean retriever confidence"
+                />
+                <MetricCard
+                  title="Retrieval Score Gap"
+                  metric={data.quality.retrievalScores.gap}
+                  unit="ratio"
+                  description="Separation between top documents"
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="rounded-xl border border-border/60 bg-background p-4 flex flex-col gap-4 shadow-sm">
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground">Error Rate</h3>
@@ -152,6 +194,14 @@ const PerformanceDashboard = () => {
                     </p>
                   </div>
                   <TrendSparkline data={data.quality.hallucinationRate.recent} className="text-red-500" />
+                </div>
+                <div className="rounded-xl border border-border/60 bg-background p-4 flex flex-col gap-4 shadow-sm">
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">Source Count</h3>
+                    <p className="text-2xl font-semibold text-foreground mt-1">{formatNumber(data.quality.sourceCount.p75)}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Median supporting documents referenced per answer</p>
+                  </div>
+                  <TrendSparkline data={data.quality.sourceCount.recent} className="text-primary" />
                 </div>
               </div>
             </section>

@@ -77,6 +77,7 @@ const normalisePayload = (payload) => {
 
   const latencies = payload.latency || {};
   const quality = payload.quality || {};
+  const retrievalScores = quality.retrievalScores || {};
 
   return {
     latency: {
@@ -88,7 +89,19 @@ const normalisePayload = (payload) => {
     },
     quality: {
       contextCoverage: normaliseMetric(quality.contextCoverage),
+      contextSupport: normaliseMetric(quality.contextSupport),
+      answerToContext: normaliseMetric(quality.answerToContext),
       hallucinationRate: normaliseMetric(quality.hallucinationRate),
+      answerTokens: normaliseMetric(quality.answerTokens),
+      sourceTokens: normaliseMetric(quality.sourceTokens),
+      sourceCount: normaliseMetric(quality.sourceCount),
+      retrievalScores: {
+        avg: normaliseMetric(retrievalScores.avg),
+        max: normaliseMetric(retrievalScores.max),
+        min: normaliseMetric(retrievalScores.min),
+        std: normaliseMetric(retrievalScores.std),
+        gap: normaliseMetric(retrievalScores.gap),
+      },
       errorRate: {
         total_requests: normaliseNumber(quality.errorRate?.total_requests),
         failed_requests: normaliseNumber(quality.errorRate?.failed_requests),

@@ -291,7 +291,19 @@ class PerformanceMonitor:
             },
             "quality": {
                 "contextCoverage": with_recent("context_coverage_rate"),
+                "contextSupport": with_recent("context_support_ratio"),
+                "answerToContext": with_recent("answer_to_context_ratio"),
                 "hallucinationRate": with_recent("hallucination_rate"),
+                "answerTokens": with_recent("answer_token_count"),
+                "sourceTokens": with_recent("source_token_count"),
+                "sourceCount": with_recent("source_count"),
+                "retrievalScores": {
+                    "avg": with_recent("retrieval_score_avg"),
+                    "max": with_recent("retrieval_score_max"),
+                    "min": with_recent("retrieval_score_min"),
+                    "std": with_recent("retrieval_score_std"),
+                    "gap": with_recent("retrieval_score_gap"),
+                },
                 "errorRate": self._get_error_rates()
             },
             "throughput": throughput,

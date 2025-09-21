@@ -25,6 +25,7 @@ from app.services.cache import QueryCache
 from app.services.advanced_cache import AdvancedCacheService, create_context_hash
 from app.services.performance_monitor import get_performance_monitor
 from app.utils.langchain_utils import RetryableLLM, handle_llm_error
+from app.utils.metrics import compute_quality_metrics
 from app.api.streaming import create_streaming_response
 from app.components.result_processor import ResultProcessor
 # Removed unused imports - now using ParallelRetrievalPipeline which includes these internally
@@ -137,6 +138,7 @@ async def chat(request: Request, chat_request: ChatRequest) -> ChatResponse:
     search_time_ms: Optional[float] = None
     context_time_ms: Optional[float] = None
     answer_time_ms: Optional[float] = None
+    retrieval_results = []
 
     try:
         # Get services from app state
@@ -195,14 +197,27 @@ async def chat(request: Request, chat_request: ChatRequest) -> ChatResponse:
                     else:
                         cached_model = ChatResponse(**cached_response.dict())
 
-                if chat_request.use_rag:
-                    has_sources = bool(getattr(cached_model, "sources", []))
-                    perf_monitor.record_value("context_coverage_rate", 1.0 if has_sources else 0.0)
-                    perf_monitor.record_value("hallucination_rate", 0.0 if has_sources else 1.0)
-
                 cached_model.processing_time = cache_latency_ms / 1000
                 perf_monitor.increment_counter("successful_requests")
                 perf_monitor.record_cache_hit("l3", True)
+                quality_metrics = compute_quality_metrics(
+                    cached_model.response,
+                    cached_model.sources or [],
+                    None,
+                )
+                for key, value in quality_metrics.items():
+                    perf_monitor.record_value(key, value)
+
+                tokens_used = getattr(cached_model, "tokens_used", None)
+                if tokens_used is not None:
+                    try:
+                        perf_monitor.record_token_usage(
+                            str(chat_request.provider),
+                            int(tokens_used),
+                        )
+                    except (TypeError, ValueError):
+                        logger.debug("Cached tokens_used not numeric: %s", tokens_used)
+
                 logger.info("L3 cache hit - returning cached response")
                 return cached_model
             else:
@@ -318,6 +333,7 @@ async def chat(request: Request, chat_request: ChatRequest) -> ChatResponse:
                     query=query,
                     k=settings.max_chunks_per_query
                 )
+                retrieval_results = results
                 search_time_ms = (time.perf_counter() - retrieval_start) * 1000
                 perf_monitor.record_latency("search_latency_ms", search_time_ms)
                 perf_monitor.record_latency("retriever_latency_ms", search_time_ms)
@@ -576,6 +592,15 @@ Please inform the user that no relevant information is available in the current 
                 tokens_used = response.usage_metadata.get("total_tokens")
             elif hasattr(response.usage_metadata, "total_tokens"):
                 tokens_used = response.usage_metadata.total_tokens
+
+        if tokens_used is not None:
+            try:
+                perf_monitor.record_token_usage(
+                    str(chat_request.provider),
+                    int(tokens_used),
+                )
+            except (TypeError, ValueError):
+                logger.debug("tokens_used not numeric: %s", tokens_used)
         
         # Create response object
         chat_response = ChatResponse(
@@ -601,10 +626,9 @@ Please inform the user that no relevant information is available in the current 
             perf_monitor.record_latency("answer_generation_latency_ms", total_latency_ms)
             perf_monitor.record_latency("llm_latency_ms", total_latency_ms)
 
-        if chat_request.use_rag:
-            has_sources = bool(sources)
-            perf_monitor.record_value("context_coverage_rate", 1.0 if has_sources else 0.0)
-            perf_monitor.record_value("hallucination_rate", 0.0 if has_sources else 1.0)
+        quality_metrics = compute_quality_metrics(response_text, sources, retrieval_results)
+        for key, value in quality_metrics.items():
+            perf_monitor.record_value(key, value)
 
         perf_monitor.increment_counter("successful_requests")
         
