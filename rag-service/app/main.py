@@ -12,7 +12,7 @@ from typing import Dict, Any
 from app.core.config import settings
 from app.core.logging import setup_logging, get_logger
 from app.core.langchain_config import LangChainConfig
-from app.api import health, chat, ingestion, sources, websocket, progress, streaming_chat, admin
+from app.api import health, chat, ingestion, sources, websocket, progress, streaming_chat, admin, metrics
 from app.services.document_store import DocumentStore
 from app.core.vectorstore import VectorStoreManager
 from app.services.cache import CacheService
@@ -167,11 +167,12 @@ async def general_exception_handler(request: Request, exc: Exception):
 # Include routers
 app.include_router(health.router, prefix=settings.api_prefix, tags=["health"])
 app.include_router(chat.router, prefix=settings.api_prefix, tags=["chat"])
-app.include_router(streaming_chat.router, prefix=settings.api_prefix, tags=["streaming"])
 app.include_router(ingestion.router, prefix=settings.api_prefix, tags=["ingestion"])
 app.include_router(sources.router, prefix=settings.api_prefix, tags=["sources"])
 app.include_router(websocket.router, prefix=settings.api_prefix, tags=["websocket"])
 app.include_router(progress.router, prefix=settings.api_prefix, tags=["progress"])
+app.include_router(streaming_chat.router, prefix=settings.api_prefix, tags=["streaming"])
+app.include_router(metrics.router, prefix=settings.api_prefix, tags=["metrics"])
 
 
 @app.get("/")

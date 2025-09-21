@@ -118,6 +118,9 @@ export default function AdminToolsPage() {
                     Resource Library
                   </span>
                 </div>
+                <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex">
+                  <Link to="/admin/performance">Performance Dashboard</Link>
+                </Button>
               </div>
             </header>
 

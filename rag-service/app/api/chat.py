@@ -2,6 +2,7 @@
 
 import asyncio
 import hashlib
+import time
 from fastapi import APIRouter, Request, HTTPException
 from typing import Dict, Any, Optional
 from datetime import datetime
@@ -129,10 +130,14 @@ async def chat(request: Request, chat_request: ChatRequest) -> ChatResponse:
     """Chat endpoint with RAG support."""
     start_time = datetime.utcnow()
     perf_monitor = get_performance_monitor()
-    
+
     # Record request
     perf_monitor.increment_counter("total_requests")
-    
+    request_timer = time.perf_counter()
+    search_time_ms: Optional[float] = None
+    context_time_ms: Optional[float] = None
+    answer_time_ms: Optional[float] = None
+
     try:
         # Get services from app state
         app = request.app
@@ -172,12 +177,34 @@ async def chat(request: Request, chat_request: ChatRequest) -> ChatResponse:
                 )
                 
             if cached_response:
+                cache_latency_ms = (time.perf_counter() - request_timer) * 1000
+                perf_monitor.record_latency("total_request_latency_ms", cache_latency_ms)
+                perf_monitor.record_latency("answer_generation_latency_ms", cache_latency_ms)
+                perf_monitor.record_latency("llm_latency_ms", cache_latency_ms)
+                perf_monitor.record_latency("search_latency_ms", 0)
+                perf_monitor.record_latency("context_build_latency_ms", 0)
+
+                if isinstance(cached_response, ChatResponse):
+                    cached_model = cached_response
+                elif isinstance(cached_response, dict):
+                    cached_model = ChatResponse(**cached_response)
+                else:
+                    dump_method = getattr(cached_response, "model_dump", None)
+                    if callable(dump_method):
+                        cached_model = ChatResponse(**dump_method())
+                    else:
+                        cached_model = ChatResponse(**cached_response.dict())
+
+                if chat_request.use_rag:
+                    has_sources = bool(getattr(cached_model, "sources", []))
+                    perf_monitor.record_value("context_coverage_rate", 1.0 if has_sources else 0.0)
+                    perf_monitor.record_value("hallucination_rate", 0.0 if has_sources else 1.0)
+
+                cached_model.processing_time = cache_latency_ms / 1000
+                perf_monitor.increment_counter("successful_requests")
                 perf_monitor.record_cache_hit("l3", True)
                 logger.info("L3 cache hit - returning cached response")
-                # Convert cached response to proper format if it's a dict
-                if isinstance(cached_response, dict):
-                    return ChatResponse(**cached_response)
-                return cached_response
+                return cached_model
             else:
                 if advanced_cache:
                     perf_monitor.record_cache_hit("l3", False)
@@ -286,19 +313,26 @@ async def chat(request: Request, chat_request: ChatRequest) -> ChatResponse:
                         })
                 
                 # Retrieve using parallel pipeline
+                retrieval_start = time.perf_counter()
                 results = await retrieval_pipeline.retrieve(
                     query=query,
                     k=settings.max_chunks_per_query
                 )
-                
+                search_time_ms = (time.perf_counter() - retrieval_start) * 1000
+                perf_monitor.record_latency("search_latency_ms", search_time_ms)
+                perf_monitor.record_latency("retriever_latency_ms", search_time_ms)
+                perf_monitor.increment_counter("retrieval_operations", 1)
+                perf_monitor.increment_counter("retrieved_documents_total", len(results))
+
                 # Results are already in (doc, score) format
-                logger.info(f"Retrieved {len(results)} documents")
+                logger.info(f"Retrieved {len(results)} documents in {search_time_ms:.2f} ms")
             else:
                 # This shouldn't happen, but handle it gracefully
                 logger.error("Retrieval pipeline not initialized despite RAG being enabled")
                 results = []
-            
+
             # Convert results to context and sources
+            context_build_start = time.perf_counter()
             context_parts = []
             sources = []
             
@@ -383,6 +417,8 @@ async def chat(request: Request, chat_request: ChatRequest) -> ChatResponse:
                 sources.append(source)
             
             context = "\n".join(context_parts)
+            context_time_ms = (time.perf_counter() - context_build_start) * 1000
+            perf_monitor.record_latency("context_build_latency_ms", context_time_ms)
             
             # Log context size for debugging
             logger.info(f"Retrieved {len(sources)} sources, total context length: {len(context)} characters")
@@ -501,7 +537,11 @@ Please inform the user that no relevant information is available in the current 
             if chat_request.max_tokens:
                 invoke_kwargs["max_tokens"] = chat_request.max_tokens
         
+        answer_start = time.perf_counter()
         response = await llm.ainvoke(messages, **invoke_kwargs)
+        answer_time_ms = (time.perf_counter() - answer_start) * 1000
+        perf_monitor.record_latency("answer_generation_latency_ms", answer_time_ms)
+        perf_monitor.record_latency("llm_latency_ms", answer_time_ms)
         
         # Handle response content - it might be a string or a list of content blocks (for thinking mode)
         if isinstance(response.content, str):
@@ -548,6 +588,25 @@ Please inform the user that no relevant information is available in the current 
             tokens_used=tokens_used,
             confidence_score=0.8 if sources else 0.5  # Higher confidence with sources
         )
+
+        # Finalise performance metrics
+        total_latency_ms = (time.perf_counter() - request_timer) * 1000
+        perf_monitor.record_latency("total_request_latency_ms", total_latency_ms)
+
+        if search_time_ms is None:
+            perf_monitor.record_latency("search_latency_ms", 0)
+        if context_time_ms is None:
+            perf_monitor.record_latency("context_build_latency_ms", 0)
+        if answer_time_ms is None:
+            perf_monitor.record_latency("answer_generation_latency_ms", total_latency_ms)
+            perf_monitor.record_latency("llm_latency_ms", total_latency_ms)
+
+        if chat_request.use_rag:
+            has_sources = bool(sources)
+            perf_monitor.record_value("context_coverage_rate", 1.0 if has_sources else 0.0)
+            perf_monitor.record_value("hallucination_rate", 0.0 if has_sources else 1.0)
+
+        perf_monitor.increment_counter("successful_requests")
         
         # Log the query
         query_id = str(uuid.uuid4())
@@ -590,7 +649,15 @@ Please inform the user that no relevant information is available in the current 
     except Exception as e:
         # Log the full error with traceback
         logger.error(f"Chat request failed: {e}", exc_info=True)
-        
+
+        failure_latency_ms = (time.perf_counter() - request_timer) * 1000
+        perf_monitor.record_latency("total_request_latency_ms", failure_latency_ms)
+        if search_time_ms is not None:
+            perf_monitor.record_latency("search_latency_ms", search_time_ms)
+        if context_time_ms is not None:
+            perf_monitor.record_latency("context_build_latency_ms", context_time_ms)
+        perf_monitor.increment_counter("failed_requests")
+
         # Log failed query
         processing_time = (datetime.utcnow() - start_time).total_seconds()
         query_id = str(uuid.uuid4())

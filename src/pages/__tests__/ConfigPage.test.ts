@@ -10,6 +10,18 @@ import { MemoryRouter } from 'react-router-dom';
 let ConfigPage: typeof import('@/pages/ConfigPage').default;
 let fetchMock: ReturnType<typeof vi.fn>;
 
+vi.mock('react-router-dom', () => {
+  const React = require('react');
+  const navigate = vi.fn();
+  return {
+    MemoryRouter: ({ children }: { children: React.ReactNode }) =>
+      React.createElement(React.Fragment, null, children),
+    useNavigate: () => navigate,
+    Link: ({ children, to }: { children: React.ReactNode; to: string }) =>
+      React.createElement('a', { href: to }, children),
+  };
+});
+
 vi.mock('sonner', () => ({
   toast: {
     success: vi.fn(),

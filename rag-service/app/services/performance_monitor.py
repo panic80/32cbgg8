@@ -45,36 +45,60 @@ class PerformanceMetric:
                 "min": 0,
                 "max": 0,
                 "p50": 0,
+                "p75": 0,
                 "p95": 0,
                 "p99": 0,
-                "rate_per_minute": 0
+                "rate_per_minute": 0,
+                "window_size": 0
             }
-            
+
         sorted_values = sorted(self.values)
-        
-        # Calculate percentiles
-        p50_idx = int(len(sorted_values) * 0.5)
-        p95_idx = int(len(sorted_values) * 0.95)
-        p99_idx = int(len(sorted_values) * 0.99)
-        
-        # Calculate rate
+        last_index = len(sorted_values) - 1
+
+        def percentile_index(ratio: float) -> int:
+            index = int(len(sorted_values) * ratio)
+            if index > last_index:
+                return last_index
+            return index
+
+        p50_idx = percentile_index(0.5)
+        p75_idx = percentile_index(0.75)
+        p95_idx = percentile_index(0.95)
+        p99_idx = percentile_index(0.99)
+
         if len(self.timestamps) > 1:
             time_span = (self.timestamps[-1] - self.timestamps[0]).total_seconds()
             rate_per_minute = (len(self.values) / time_span) * 60 if time_span > 0 else 0
         else:
             rate_per_minute = 0
-            
+
         return {
             "count": self.total_count,
             "mean": statistics.mean(self.values),
             "min": min(self.values),
             "max": max(self.values),
             "p50": sorted_values[p50_idx],
+            "p75": sorted_values[p75_idx],
             "p95": sorted_values[p95_idx],
             "p99": sorted_values[p99_idx],
             "rate_per_minute": rate_per_minute,
             "window_size": len(self.values)
         }
+
+    def get_recent_samples(self, limit: int = 20) -> List[Dict[str, Any]]:
+        """Return the most recent samples with timestamps for sparkline charts."""
+        if not self.values:
+            return []
+
+        limit = max(0, min(limit, len(self.values)))
+        start_index = len(self.values) - limit
+        samples: List[Dict[str, Any]] = []
+        for idx in range(start_index, len(self.values)):
+            samples.append({
+                "value": float(self.values[idx]),
+                "timestamp": self.timestamps[idx].isoformat()
+            })
+        return samples
 
 
 class PerformanceMonitor:
@@ -97,19 +121,24 @@ class PerformanceMonitor:
         self.metrics["llm_latency_ms"] = PerformanceMetric("llm_latency_ms")
         self.metrics["total_request_latency_ms"] = PerformanceMetric("total_request_latency_ms")
         self.metrics["first_token_latency_ms"] = PerformanceMetric("first_token_latency_ms")
+        self.metrics["search_latency_ms"] = PerformanceMetric("search_latency_ms")
+        self.metrics["context_build_latency_ms"] = PerformanceMetric("context_build_latency_ms")
+        self.metrics["answer_generation_latency_ms"] = PerformanceMetric("answer_generation_latency_ms")
         self.metrics["ingestion_latency_ms"] = PerformanceMetric("ingestion_latency_ms")
         self.metrics["ingestion_chunks"] = PerformanceMetric("ingestion_chunks")
         self.metrics["ingestion_invalid_chunks"] = PerformanceMetric("ingestion_invalid_chunks")
-        
+
         # Cache metrics
         self.metrics["cache_hit_rate"] = PerformanceMetric("cache_hit_rate")
-        
+
         # Token usage metrics
         self.metrics["tokens_per_request"] = PerformanceMetric("tokens_per_request")
         self.tokens_per_provider: Dict[str, PerformanceMetric] = {}
-        
+
         # Success/failure rates
         self.metrics["query_success_rate"] = PerformanceMetric("query_success_rate")
+        self.metrics["context_coverage_rate"] = PerformanceMetric("context_coverage_rate")
+        self.metrics["hallucination_rate"] = PerformanceMetric("hallucination_rate")
         
     def record_latency(self, metric_name: str, latency_ms: float):
         """Record a latency measurement."""
@@ -117,6 +146,12 @@ class PerformanceMonitor:
             self.metrics[metric_name] = PerformanceMetric(metric_name)
             
         self.metrics[metric_name].record(latency_ms)
+
+    def record_value(self, metric_name: str, value: float):
+        """Record a non-latency metric value (e.g., ratios)."""
+        if metric_name not in self.metrics:
+            self.metrics[metric_name] = PerformanceMetric(metric_name)
+        self.metrics[metric_name].record(value)
         
     def increment_counter(self, counter_name: str, value: int = 1):
         """Increment a counter."""
@@ -193,7 +228,7 @@ class PerformanceMonitor:
     def get_metrics_summary(self) -> Dict[str, Any]:
         """Get summary of all metrics."""
         uptime_seconds = (datetime.now(timezone.utc) - self.start_time).total_seconds()
-        
+
         summary = {
             "uptime_seconds": uptime_seconds,
             "start_time": self.start_time.isoformat(),
@@ -205,13 +240,70 @@ class PerformanceMonitor:
             "token_usage": self._get_token_usage(),
             "error_rates": self._get_error_rates()
         }
-        
+
         # Add latency metrics
         for name, metric in self.metrics.items():
             if "latency" in name:
                 summary["latencies"][name] = metric.get_stats()
-                
+
         return summary
+
+    def get_dashboard_metrics(self, recent_points: int = 24) -> Dict[str, Any]:
+        """Return structured metrics specifically for the performance dashboard."""
+        def with_recent(metric_name: str) -> Dict[str, Any]:
+            metric = self.metrics.get(metric_name)
+            if not metric:
+                return {
+                    "count": 0,
+                    "mean": 0,
+                    "min": 0,
+                    "max": 0,
+                    "p50": 0,
+                    "p75": 0,
+                    "p95": 0,
+                    "p99": 0,
+                    "rate_per_minute": 0,
+                    "window_size": 0,
+                    "recent": []
+                }
+
+            stats = metric.get_stats()
+            stats["recent"] = metric.get_recent_samples(recent_points)
+            return stats
+
+        answer_metric = with_recent("total_request_latency_ms")
+        now = datetime.now(timezone.utc)
+
+        throughput = {
+            "requestsPerMinute": answer_metric.get("rate_per_minute", 0),
+            "totalRequests": self.counters.get("total_requests", 0),
+            "successfulRequests": self.counters.get("successful_requests", 0),
+            "failedRequests": self.counters.get("failed_requests", 0)
+        }
+
+        return {
+            "latency": {
+                "answerTime": answer_metric,
+                "searchTime": with_recent("search_latency_ms"),
+                "retrievalTime": with_recent("context_build_latency_ms"),
+                "answerGeneration": with_recent("answer_generation_latency_ms"),
+                "firstToken": with_recent("first_token_latency_ms")
+            },
+            "quality": {
+                "contextCoverage": with_recent("context_coverage_rate"),
+                "hallucinationRate": with_recent("hallucination_rate"),
+                "errorRate": self._get_error_rates()
+            },
+            "throughput": throughput,
+            "cache": self._get_cache_performance(),
+            "retrievers": self._get_retriever_performance(),
+            "tokenUsage": self._get_token_usage(),
+            "meta": {
+                "windowSize": next(iter(self.metrics.values())).window_size if self.metrics else 0,
+                "updatedAt": now.isoformat(),
+                "uptimeSeconds": (now - self.start_time).total_seconds()
+            }
+        }
         
     def _get_cache_performance(self) -> Dict[str, Any]:
         """Get cache performance metrics."""

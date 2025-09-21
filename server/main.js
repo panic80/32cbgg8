@@ -14,6 +14,7 @@ import CacheService from './services/cache.js';
 import mapsRoutes from './routes/maps.js';
 import createSourcesRoutes from './routes/sources.js';
 import createLogsRoutes from './routes/logs.js';
+import createPerformanceHandler from './routes/performance.js';
 import dotenv from 'dotenv';
 import { decodeUrlParams } from './utils/http.js';
 import { processContent } from './utils/html.js';
@@ -88,7 +89,8 @@ app.use(helmet({
       scriptSrcAttr: ["'unsafe-inline'"], // Allow inline event handlers
       fontSrc: [
         "'self'",
-        "https://fonts.gstatic.com"
+        "https://fonts.gstatic.com",
+        "https://r2cdn.perplexity.ai"
       ],
       imgSrc: ["'self'", "data:", "https:"],
       connectSrc: [
@@ -442,7 +444,6 @@ const config = {
   canadaCaUrl: process.env.CANADA_CA_URL || 'https://www.canada.ca/en/department-national-defence/services/benefits-military/pay-pension-benefits/benefits/canadian-forces-temporary-duty-travel-instructions.html'
 };
 
-app.use('/api/admin', requireAdminAuth);
 
 console.log('Server configuration:', {
   nodeEnv: NODE_ENV,
@@ -621,6 +622,17 @@ const rateLimiter = (req, res, next) => {
   bucket.count += 1;
   next();
 };
+
+console.log('Registering /api/admin/performance route');
+const performanceHandler = createPerformanceHandler();
+app.get('/api/admin/performance', requireAdminAuth, rateLimiter, (req, res, next) => {
+  return performanceHandler(req, res, next);
+});
+
+app.all('/api/admin/performance', requireAdminAuth, (_req, res) => {
+  return res.status(405).json({ error: 'Method Not Allowed' });
+});
+app.use('/api/admin', requireAdminAuth);
 
 // Legacy chat middleware for backward compatibility
 app.use('/api/chat', async (req, res, next) => {

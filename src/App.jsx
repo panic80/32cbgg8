@@ -18,6 +18,7 @@ const AdminToolsPage = lazy(() => import('./pages/AdminToolsPage'));
 const ConfigPage = lazy(() => import('./pages/ConfigPage'));
 const UIShowcase = lazy(() => import('./components/UIShowcase'));
 const LandingPageV2 = lazy(() => import('./pages/LandingPageV2.jsx'));
+const PerformanceDashboard = lazy(() => import('./pages/PerformanceDashboard'));
 import RouteSkeleton from './components/RouteSkeleton';
 
 function App() {
@@ -69,6 +70,7 @@ function App() {
             } />
             <Route path="/loading-debug" element={<LoadingDebugPage />} />
             <Route path="/ui-showcase" element={<UIShowcase />} />
+            <Route path="/admin/performance" element={<PerformanceDashboard />} />
           </Routes>
           {/* MobileNavBar removed per request */}
         </Suspense>
