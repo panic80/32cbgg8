@@ -82,11 +82,11 @@ export const CategorizedSuggestions: React.FC<CategorizedSuggestionsProps> = ({
           whileHover={{ scale: 1.02, y: -2 }}
           whileTap={{ scale: 0.98 }}
         >
-          <Card 
-            className="cursor-pointer group glass rounded-2xl transition-all duration-300 hover:shadow-xl" 
+          <Card
+            className="cursor-pointer group glass rounded-2xl transition-all duration-300 hover:shadow-xl h-full"
             onClick={() => onSuggestionClick(item.title)}
           >
-            <CardContent className="p-4 sm:p-6 relative min-h-[80px]">
+            <CardContent className="p-4 sm:p-6 relative h-full flex items-center">
               <div className="flex items-start gap-3">
                 <span className="text-2xl">{item.icon}</span>
                 <div className="flex-1">
