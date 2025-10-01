@@ -1,12 +1,20 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { 
-  Search, 
-  Users, 
-  Mail as MailIcon, 
+import {
+  Search,
+  Users,
+  Mail as MailIcon,
   Building2 as Building,
   Info,
-  ShieldCheck
+  ShieldCheck,
+  ChevronDown,
+  MapPin,
+  Briefcase,
+  Filter,
+  SortAsc,
+  Grid3x3,
+  LayoutList,
+  Star
 } from 'lucide-react';
 import '../styles/landing.css';
 import '../styles/sticky-footer.css';
@@ -20,12 +28,15 @@ import { EnhancedBackButton } from '@/components/ui/enhanced-back-button';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
 
-// Import ReimaginedOPIView
+// Import reimagined component
 import ReimaginedOPIView from './OPIPage/ReimaginedOPIView';
 import { forceScrollToTop, forceScrollToTopDeferred } from '@/utils/scroll';
 
-export default function OPIPage() {
+export default function OPIPageTest() {
   const location = useLocation();
   const topRef = useRef(null);
   const [contactView, setContactView] = useState('all');
@@ -34,7 +45,7 @@ export default function OPIPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [showAboutModal, setShowAboutModal] = useState(false);
-  
+
   // Ensure immediate and deferred scroll reset on page load
   useLayoutEffect(() => {
     try {
@@ -46,14 +57,12 @@ export default function OPIPage() {
     const cleanup = forceScrollToTopDeferred();
     return cleanup;
   }, []);
-  
+
   // Simulate loading state
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 800);
     return () => clearTimeout(timer);
   }, []);
-  
-  // Theme is managed globally by ThemeProvider
 
   // Handle About link click
   const handleAboutClick = (e) => {
@@ -252,6 +261,9 @@ export default function OPIPage() {
                     <span className="text-xs text-muted-foreground hidden sm:block">Contact Directory</span>
                   </div>
                 </div>
+                <Badge variant="secondary" className="hidden sm:inline-flex bg-primary/10 text-primary border-primary/20 hover:bg-primary/20">
+                  Beta
+                </Badge>
               </div>
             </header>
 
@@ -307,7 +319,7 @@ export default function OPIPage() {
                 <p>{getCopyrightText()}</p>
               </div>
             </div>
-            
+
             {/* Desktop footer content */}
             <div className="hidden md:block">
               <nav className="flex flex-wrap justify-center gap-4 sm:gap-6 lg:gap-8 mb-4" aria-label="Footer Navigation">

@@ -14,6 +14,7 @@ const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
 const ChatPage = lazy(() => import('./pages/ChatPage'));
 const LoadingDebugPage = lazy(() => import('./pages/LoadingDebugPage'));
 const OPIPage = lazy(() => import('./pages/OPIPage'));
+const OPIPageTest = lazy(() => import('./pages/OPIPageTest'));
 const AdminToolsPage = lazy(() => import('./pages/AdminToolsPage'));
 const ConfigPage = lazy(() => import('./pages/ConfigPage'));
 const UIShowcase = lazy(() => import('./components/UIShowcase'));
@@ -52,6 +53,7 @@ function App() {
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/opi" element={<OPIPage />} />
+            <Route path="/opi-test" element={<OPIPageTest />} />
             <Route path="/admin-tools" element={<AdminToolsPage />} />
             <Route path="/chat" element={<ChatPage theme={theme} toggleTheme={toggleTheme} />} />
             <Route path="/chat/config" element={<ConfigPage />} />

@@ -62,8 +62,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 
   return (
     <>
-  <motion.header 
-    className="border-b border-[var(--border)] bg-background/95 backdrop-blur sticky top-0 z-40 max-w-full overflow-hidden"
+  <motion.header
+    className="border-b border-[var(--border)] glass backdrop-blur-xl sticky top-0 z-40 shadow-sm max-w-full overflow-hidden"
     initial={prefersReducedMotion ? undefined : { y: -100 }}
     animate={prefersReducedMotion ? undefined : { y: 0 }}
     transition={{ type: "spring", stiffness: 300, damping: 30 }}
