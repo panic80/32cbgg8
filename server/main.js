@@ -287,7 +287,8 @@ const getRagAuthHeaders = () => ({ Authorization: `Bearer ${adminApiToken}` });
 
 const requiresConfigAuth = (pathname = '') => {
   return pathname === '/config' || pathname.startsWith('/config/') ||
-    pathname === '/chat/config' || pathname.startsWith('/chat/config/');
+    pathname === '/chat/config' || pathname.startsWith('/chat/config/') ||
+    pathname === '/landing-test' || pathname.startsWith('/landing-test/');
 };
 
 const requireAdminAuth = (req, res, next) => {

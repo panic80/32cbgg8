@@ -19,6 +19,7 @@ const AdminToolsPage = lazy(() => import('./pages/AdminToolsPage'));
 const ConfigPage = lazy(() => import('./pages/ConfigPage'));
 const UIShowcase = lazy(() => import('./components/UIShowcase'));
 const LandingPageV2 = lazy(() => import('./pages/LandingPageV2.jsx'));
+const LandingPageTest = lazy(() => import('./pages/LandingPageTest.jsx'));
 const PerformanceDashboard = lazy(() => import('./pages/PerformanceDashboard'));
 import RouteSkeleton from './components/RouteSkeleton';
 
@@ -59,6 +60,7 @@ function App() {
             <Route path="/chat/config" element={<ConfigPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/home-v2" element={<LandingPageV2 />} />
+            <Route path="/landing-test" element={<LandingPageTest />} />
             <Route path="/faq" element={<FAQPage />} />
             <Route path="/coming-soon-1" element={
               <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
