@@ -25,6 +25,7 @@ logs/
 /etc/cbthis/
 cbthis.service
 server/data/
+rag-service/.keys/
 
 # IDE files
 .vscode/

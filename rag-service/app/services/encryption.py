@@ -14,13 +14,15 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from datetime import datetime
 import logging
 
+from app.core.config import settings
+
 logger = logging.getLogger(__name__)
 
 
 class EncryptionService:
     """Handles encryption and decryption of Q&A data for secure logging."""
     
-    def __init__(self, key_path: Optional[str] = None, use_env_key: bool = True):
+    def __init__(self, key_path: Optional[str] = None, use_env_key: Optional[bool] = None):
         """
         Initialize the encryption service.
         
@@ -28,8 +30,14 @@ class EncryptionService:
             key_path: Path to file containing encryption key
             use_env_key: Whether to check environment variable for key
         """
-        self.key_path = key_path or os.path.join(os.path.dirname(__file__), '../../.keys/encryption.key')
-        self.use_env_key = use_env_key
+        configured_path = key_path or getattr(settings, 'encryption_key_path', None) or os.environ.get('RAG_ENCRYPTION_KEY_PATH')
+        # Default to secure filesystem location rather than the repository tree
+        self.key_path = configured_path or '/etc/cbthis/rag-encryption.key'
+        # Fallback to settings flag when use_env_key is not explicitly provided
+        if use_env_key is None:
+            self.use_env_key = getattr(settings, 'use_env_encryption_key', True)
+        else:
+            self.use_env_key = use_env_key
         self._cipher = None
         self._key_version = "v1"
         self._initialize_cipher()
@@ -50,34 +58,26 @@ class EncryptionService:
                     key_bytes = base64.urlsafe_b64decode(env_key.encode())
                     if len(key_bytes) == 32:  # Fernet key is 32 bytes
                         return env_key.encode()
+                    logger.error('RAG_ENCRYPTION_KEY must decode to 32 bytes')
                 except Exception as e:
                     logger.warning(f"Invalid encryption key in environment: {e}")
-        
-        # Try to load from file
-        if os.path.exists(self.key_path):
+            else:
+                logger.debug('RAG_ENCRYPTION_KEY environment variable not set')
+
+        # Next, check configured key path on disk
+        if self.key_path and os.path.exists(self.key_path):
             try:
                 with open(self.key_path, 'rb') as f:
                     key = f.read().strip()
-                    # Validate key
-                    Fernet(key)  # This will raise if invalid
+                    Fernet(key)  # Validate key
                     return key
             except Exception as e:
-                logger.error(f"Failed to load encryption key from file: {e}")
-        
-        # Generate new key
-        key = Fernet.generate_key()
-        
-        # Save to file
-        try:
-            os.makedirs(os.path.dirname(self.key_path), exist_ok=True)
-            with open(self.key_path, 'wb') as f:
-                f.write(key)
-            os.chmod(self.key_path, 0o600)  # Restrict permissions
-            logger.info(f"Generated new encryption key at {self.key_path}")
-        except Exception as e:
-            logger.error(f"Failed to save encryption key: {e}")
-        
-        return key
+                logger.error(f"Failed to load encryption key from file '{self.key_path}': {e}")
+
+        raise RuntimeError(
+            "Encryption key is not configured. Set RAG_ENCRYPTION_KEY or provide a secure file via "
+            "settings.encryption_key_path / RAG_ENCRYPTION_KEY_PATH before starting the service."
+        )
     
     def encrypt_text(self, text: str) -> Tuple[str, str]:
         """
