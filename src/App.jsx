@@ -52,7 +52,7 @@ function App() {
         />
         <Suspense fallback={<RouteSkeleton /> }>
           <Routes>
-            <Route path="/" element={<LandingPage />} />
+            <Route path="/" element={<LandingPageTest />} />
             <Route path="/opi" element={<OPIPage />} />
             <Route path="/opi-test" element={<OPIPageTest />} />
             <Route path="/admin-tools" element={<AdminToolsPage />} />
@@ -60,7 +60,7 @@ function App() {
             <Route path="/chat/config" element={<ConfigPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/home-v2" element={<LandingPageV2 />} />
-            <Route path="/landing-test" element={<LandingPageTest />} />
+            <Route path="/landing-test" element={<LandingPage />} />
             <Route path="/faq" element={<FAQPage />} />
             <Route path="/coming-soon-1" element={
               <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
