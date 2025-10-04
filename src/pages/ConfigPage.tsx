@@ -29,6 +29,7 @@ import {
 import IngestionConsole from '../components/IngestionConsole';
 
 import { LLM_MODELS, type LLMModel, DEFAULT_MODEL_ID } from '../constants/models';
+import { fetchVisitSummary, type VisitSummary } from '@/api/analytics';
 
 // Ensure LLM_MODELS is always an array
 const MODELS = Array.isArray(LLM_MODELS) ? LLM_MODELS : [];
@@ -135,6 +136,10 @@ export default function ConfigPage() {
     hasMore: false,
     nextOffset: null as number | null,
   });
+  const [visitSummary, setVisitSummary] = useState<VisitSummary | null>(null);
+  const [visitSummaryError, setVisitSummaryError] = useState<string | null>(null);
+  const [visitSummaryLoading, setVisitSummaryLoading] = useState(false);
+  const [visitSummaryInitialized, setVisitSummaryInitialized] = useState(false);
 
   const resetIngestionProgress = useCallback(() => {
     setShowIngestionProgress(false);
@@ -167,6 +172,15 @@ export default function ConfigPage() {
       return null;
     }
   }, []);
+
+  const visitDailyCounts = useMemo(() => {
+    if (!visitSummary?.dailyCounts) {
+      return [] as Array<{ date: string; count: number }>;
+    }
+
+    const lastSeven = visitSummary.dailyCounts.slice(-7);
+    return lastSeven;
+  }, [visitSummary]);
 
   const fetchChatLogs = useCallback(async ({ offset, filters }: { offset: number; filters?: LogFilters }) => {
     const appliedFilters = filters ?? logsFilters;
@@ -244,6 +258,22 @@ export default function ConfigPage() {
     }
   }, [logsFilters]);
 
+  const loadVisitSummary = useCallback(async () => {
+    try {
+      setVisitSummaryLoading(true);
+      setVisitSummaryError(null);
+
+      const summary = await fetchVisitSummary();
+      setVisitSummary(summary);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to load visit analytics.';
+      setVisitSummaryError(message);
+    } finally {
+      setVisitSummaryLoading(false);
+      setVisitSummaryInitialized(true);
+    }
+  }, []);
+
   const handleLogsApplyFilters = useCallback(() => {
     const applied = { ...logsFilters };
     void fetchChatLogs({ offset: 0, filters: applied });
@@ -270,6 +300,10 @@ export default function ConfigPage() {
     const prevOffset = Math.max(logsPagination.offset - logsPagination.limit, 0);
     void fetchChatLogs({ offset: prevOffset, filters: { ...logsFilters } });
   }, [fetchChatLogs, logsFilters, logsLoading, logsPagination]);
+
+  const handleRefreshVisitSummary = useCallback(() => {
+    void loadVisitSummary();
+  }, [loadVisitSummary]);
 
   // Computed values for filtered and sorted sources
   const filteredSources = useMemo(() => {
@@ -324,6 +358,12 @@ export default function ConfigPage() {
       void fetchChatLogs({ offset: 0, filters: { ...logsFilters } });
     }
   }, [activeTab, fetchChatLogs, logsFilters, logsInitialized]);
+
+  useEffect(() => {
+    if (activeTab === 'logs' && !visitSummaryInitialized && !visitSummaryLoading) {
+      void loadVisitSummary();
+    }
+  }, [activeTab, loadVisitSummary, visitSummaryInitialized, visitSummaryLoading]);
 
   // Load database stats when database tab is active
   const loadModelSettings = () => {
@@ -1404,6 +1444,93 @@ export default function ConfigPage() {
           </TabsContent>
 
           <TabsContent value="logs" className="space-y-4 animate-fade-up">
+            <Card className="glass border-border/50">
+              <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5" />
+                    Visit Analytics
+                  </CardTitle>
+                  <CardDescription>
+                    High-level page view insights captured from the visit logger.
+                  </CardDescription>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleRefreshVisitSummary}
+                  disabled={visitSummaryLoading}
+                >
+                  <RefreshCw className={`mr-2 h-4 w-4 ${visitSummaryLoading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {visitSummaryError ? (
+                  <div className="rounded-md border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800 dark:border-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200">
+                    {visitSummaryError}
+                  </div>
+                ) : visitSummaryLoading && !visitSummary ? (
+                  <div className="grid gap-4 md:grid-cols-3">
+                    {[0, 1, 2].map((index) => (
+                      <Skeleton key={index} className="h-24 rounded-lg" />
+                    ))}
+                    <Skeleton className="md:col-span-3 h-40 rounded-lg" />
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <div className="rounded-lg border border-border/60 bg-background/60 p-4 shadow-sm">
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">Total visits</p>
+                        <p className="mt-2 text-2xl font-semibold text-foreground">
+                          {(visitSummary?.totalVisits ?? 0).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="rounded-lg border border-border/60 bg-background/60 p-4 shadow-sm">
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">First recorded visit</p>
+                        <p className="mt-2 text-sm font-medium text-foreground">
+                          {formatDateDisplay(visitSummary?.firstVisit ?? null, true) ?? '—'}
+                        </p>
+                      </div>
+                      <div className="rounded-lg border border-border/60 bg-background/60 p-4 shadow-sm">
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">Most recent visit</p>
+                        <p className="mt-2 text-sm font-medium text-foreground">
+                          {formatDateDisplay(visitSummary?.lastVisit ?? null, true) ?? '—'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg border border-border/60 bg-background/60 p-4 shadow-sm">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-foreground">Last 7 days</p>
+                        <span className="text-xs text-muted-foreground">
+                          {visitDailyCounts.length === 0 ? 'No visit data yet' : 'Daily totals'}
+                        </span>
+                      </div>
+                      <div className="mt-4 space-y-2">
+                        {visitDailyCounts.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">We will show daily visit counts once traffic arrives.</p>
+                        ) : (
+                          visitDailyCounts.map((entry) => {
+                            const safeDate = entry.date ? new Date(`${entry.date}T00:00:00Z`) : null;
+                            const displayDate = safeDate && !Number.isNaN(safeDate.getTime())
+                              ? safeDate.toLocaleDateString()
+                              : entry.date;
+                            return (
+                              <div key={entry.date} className="flex items-center justify-between rounded-md bg-muted/40 px-3 py-2 text-sm">
+                                <span>{displayDate}</span>
+                                <span className="font-medium text-foreground">{entry.count.toLocaleString()}</span>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
             <Card className="glass border-border/50">
               <CardHeader>
                 <CardTitle>Chat Analytics Logs</CardTitle>

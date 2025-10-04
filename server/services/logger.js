@@ -58,6 +58,26 @@ const toMetadataString = (metadata) => {
   }
 };
 
+const compactObject = (input) => {
+  if (!input || typeof input !== 'object') {
+    return null;
+  }
+
+  const entries = Object.entries(input).filter(([, value]) => {
+    if (value === null || value === undefined) return false;
+    if (typeof value === 'string') {
+      return value.trim().length > 0;
+    }
+    return true;
+  });
+
+  if (entries.length === 0) {
+    return null;
+  }
+
+  return Object.fromEntries(entries);
+};
+
 class ChatLogger {
   constructor() {
     this.dbPath = resolveDatabasePath();
@@ -203,6 +223,110 @@ class ChatLogger {
       this.insertEventStmt.run(record);
     } catch (error) {
       console.error('Failed to persist event log entry:', error, record);
+    }
+  }
+
+  logVisit(visitData = {}) {
+    const pathValue = typeof visitData.path === 'string' ? visitData.path.trim() : '';
+    const normalizedPath = pathValue.length > 0 ? pathValue : 'unknown';
+
+    const baseMetadata = {
+      path: normalizedPath,
+      referrer: typeof visitData.referrer === 'string' ? visitData.referrer : null,
+      sessionId: typeof visitData.sessionId === 'string' ? visitData.sessionId : null,
+      locale: typeof visitData.locale === 'string' ? visitData.locale : null,
+      title: typeof visitData.title === 'string' ? visitData.title : null,
+      userAgent: typeof visitData.userAgent === 'string' ? visitData.userAgent : null,
+      viewport: typeof visitData.viewport === 'string' ? visitData.viewport : null,
+    };
+
+    const additionalMetadata = visitData.metadata && typeof visitData.metadata === 'object'
+      ? visitData.metadata
+      : null;
+
+    const metadata = compactObject({
+      ...(additionalMetadata || {}),
+      ...baseMetadata,
+    });
+
+    this.log({
+      type: 'visit',
+      message: normalizedPath,
+      metadata,
+    });
+  }
+
+  getVisitSummary({ startAt, endAt, path } = {}) {
+    const conditions = ['type = @eventType'];
+    const params = { eventType: 'visit' };
+
+    if (startAt) {
+      const parsedStart = Date.parse(startAt);
+      if (!Number.isNaN(parsedStart)) {
+        conditions.push('recorded_at >= @startAt');
+        params.startAt = parsedStart;
+      }
+    }
+
+    if (endAt) {
+      const parsedEnd = Date.parse(endAt);
+      if (!Number.isNaN(parsedEnd)) {
+        conditions.push('recorded_at <= @endAt');
+        params.endAt = parsedEnd;
+      }
+    }
+
+    if (typeof path === 'string') {
+      const trimmedPath = path.trim();
+      if (trimmedPath.length > 0) {
+        conditions.push('message = @path');
+        params.path = trimmedPath;
+      }
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    try {
+      const totalsStmt = this.db.prepare(`
+        SELECT
+          COUNT(*) AS totalVisits,
+          MIN(recorded_at_iso) AS firstVisit,
+          MAX(recorded_at_iso) AS lastVisit
+        FROM event_logs
+        ${whereClause}
+      `);
+
+      const totalsRow = totalsStmt.get(params) || {};
+
+      const trendStmt = this.db.prepare(`
+        SELECT
+          strftime('%Y-%m-%d', datetime(recorded_at / 1000, 'unixepoch')) AS date,
+          COUNT(*) AS count
+        FROM event_logs
+        ${whereClause}
+        GROUP BY date
+        ORDER BY date ASC
+      `);
+
+      const trendRows = trendStmt.all(params) || [];
+
+      return {
+        totalVisits: Number(totalsRow.totalVisits) || 0,
+        firstVisit: totalsRow.firstVisit ?? null,
+        lastVisit: totalsRow.lastVisit ?? null,
+        dailyCounts: trendRows.map((row) => ({
+          date: row.date,
+          count: Number(row.count) || 0,
+        })),
+      };
+    } catch (error) {
+      console.error('Failed to summarise visit analytics:', error);
+      return {
+        totalVisits: 0,
+        firstVisit: null,
+        lastVisit: null,
+        dailyCounts: [],
+      };
     }
   }
 

@@ -6,6 +6,12 @@ import { useTheme } from './context/ThemeContext';
 import ScrollToTop from './components/ScrollToTop';
 import useRoutePrefetch from './hooks/useRoutePrefetch';
 import useMobileFlag from './hooks/useMobileFlag';
+import useVisitAnalytics from './hooks/useVisitAnalytics';
+
+function VisitAnalyticsListener() {
+  useVisitAnalytics();
+  return null;
+}
 
 // Lazy load components
 const FAQPage = lazy(() => import('./pages/FAQPage'));
@@ -38,6 +44,7 @@ function App() {
 
   return (
     <Router>
+      <VisitAnalyticsListener />
       <ScrollToTop />
       <div id="app-scroll-root" className="w-screen min-h-screen overflow-x-hidden overflow-y-auto m-0 p-0 max-w-[100vw]">
         <Toaster 

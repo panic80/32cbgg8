@@ -67,6 +67,59 @@ const createLogsRoutes = ({ rateLimiter }) => {
     });
   });
 
+  router.get('/api/admin/analytics/visits', rateLimiter, (req, res) => {
+    if (process.env.ENABLE_LOGGING !== 'true') {
+      return res.status(503).json({
+        error: 'LoggingDisabled',
+        message: 'Analytics logging is disabled. Enable ENABLE_LOGGING to access visit analytics.'
+      });
+    }
+
+    const filters = {
+      startAt: sanitizeString(req.query.startAt),
+      endAt: sanitizeString(req.query.endAt),
+      path: sanitizeString(req.query.path),
+    };
+
+    const summary = chatLogger.getVisitSummary(filters);
+
+    res.json({
+      data: summary,
+      filters: {
+        startAt: filters.startAt ?? null,
+        endAt: filters.endAt ?? null,
+        path: filters.path ?? null,
+      },
+    });
+  });
+
+  router.post('/api/analytics/visit', rateLimiter, (req, res) => {
+    if (process.env.ENABLE_LOGGING !== 'true') {
+      return res.status(503).json({
+        error: 'LoggingDisabled',
+        message: 'Analytics logging is disabled. Visit events will not be recorded.'
+      });
+    }
+
+    const { path: visitPath, referrer, sessionId, locale, title, viewport, metadata } = req.body || {};
+
+    const sanitizedPath = typeof visitPath === 'string' ? visitPath.trim() : '';
+    const cleanMetadata = metadata && typeof metadata === 'object' ? metadata : undefined;
+
+    chatLogger.logVisit({
+      path: sanitizedPath,
+      referrer: typeof referrer === 'string' ? referrer : null,
+      sessionId: typeof sessionId === 'string' ? sessionId : null,
+      locale: typeof locale === 'string' ? locale : null,
+      title: typeof title === 'string' ? title : null,
+      viewport: typeof viewport === 'string' ? viewport : null,
+      metadata: cleanMetadata,
+      userAgent: req.get('user-agent') || null,
+    });
+
+    res.status(202).json({ ok: true });
+  });
+
   return router;
 };
 

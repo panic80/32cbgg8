@@ -346,4 +346,73 @@ describe('ConfigPage', () => {
     expect(screen.getByRole('button', { name: 'Next' })).not.toBeDisabled();
     expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled();
   });
+
+  it('fetches visit analytics summary when the Logs tab opens', async () => {
+    const visitAnalyticsResponse = {
+      data: {
+        totalVisits: 42,
+        firstVisit: '2025-01-01T12:00:00Z',
+        lastVisit: '2025-01-07T09:30:00Z',
+        dailyCounts: [
+          { date: '2025-01-01', count: 5 },
+          { date: '2025-01-02', count: 7 },
+        ],
+      },
+      filters: {
+        startAt: null,
+        endAt: null,
+        path: null,
+      },
+    };
+
+    const logsResponse = {
+      data: [],
+      pagination: {
+        limit: 20,
+        offset: 0,
+        hasMore: false,
+        nextOffset: null,
+      },
+    };
+
+    (fetchMock as any).mockImplementation((input: RequestInfo | URL) => {
+      const url = typeof input === 'string'
+        ? input
+        : input instanceof URL
+          ? input.toString()
+          : (input as any).url ?? input.toString();
+
+      if (url.startsWith('/api/admin/analytics/visits')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => visitAnalyticsResponse,
+        });
+      }
+
+      if (url.startsWith('/api/admin/chat-logs')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => logsResponse,
+        });
+      }
+
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({}),
+      });
+    });
+
+    render(React.createElement(MemoryRouter, null, React.createElement(ConfigPage)));
+
+    fireEvent.click(screen.getByRole('tab', { name: /logs/i }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith('/api/admin/analytics/visits');
+    });
+
+    await screen.findByText('Visit Analytics');
+    const totalVisitsRow = screen.getByText(/Total visits/i).parentElement;
+    expect(totalVisitsRow).toHaveTextContent('42');
+    expect(screen.getByText(/Last 7 days/i)).toBeInTheDocument();
+  });
 });

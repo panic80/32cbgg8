@@ -1203,6 +1203,64 @@ app.post('/api/v2/ingest/canada-ca', requireAdminAuth, rateLimiter, async (req, 
 app.use(createSourcesRoutes({ rateLimiter, requireAdminAuth, getRagAuthHeaders }));
 app.use(createLogsRoutes({ rateLimiter }));
 
+// Directly register visit analytics endpoints to ensure availability
+// even if nested routers change. These mirror server/routes/logs.js.
+console.log('Registering admin analytics visits route');
+app.get('/api/admin/analytics/visits', requireAdminAuth, rateLimiter, (req, res) => {
+  console.log('Handling GET /api/admin/analytics/visits');
+  if (process.env.ENABLE_LOGGING !== 'true') {
+    return res.status(503).json({
+      error: 'LoggingDisabled',
+      message: 'Analytics logging is disabled. Enable ENABLE_LOGGING to access visit analytics.'
+    });
+  }
+
+  const toStringOrUndefined = (v) => typeof v === 'string' && v.trim().length > 0 ? v.trim() : undefined;
+  const filters = {
+    startAt: toStringOrUndefined(req.query.startAt),
+    endAt: toStringOrUndefined(req.query.endAt),
+    path: toStringOrUndefined(req.query.path),
+  };
+
+  const summary = chatLogger.getVisitSummary(filters);
+  res.json({
+    data: summary,
+    filters: {
+      startAt: filters.startAt ?? null,
+      endAt: filters.endAt ?? null,
+      path: filters.path ?? null,
+    },
+  });
+});
+
+console.log('Registering public analytics visit route');
+app.post('/api/analytics/visit', rateLimiter, (req, res) => {
+  console.log('Handling POST /api/analytics/visit');
+  if (process.env.ENABLE_LOGGING !== 'true') {
+    return res.status(503).json({
+      error: 'LoggingDisabled',
+      message: 'Analytics logging is disabled. Visit events will not be recorded.'
+    });
+  }
+
+  const { path: visitPath, referrer, sessionId, locale, title, viewport, metadata } = req.body || {};
+  const p = typeof visitPath === 'string' ? visitPath.trim() : '';
+  const cleanMetadata = metadata && typeof metadata === 'object' ? metadata : undefined;
+
+  chatLogger.logVisit({
+    path: p,
+    referrer: typeof referrer === 'string' ? referrer : null,
+    sessionId: typeof sessionId === 'string' ? sessionId : null,
+    locale: typeof locale === 'string' ? locale : null,
+    title: typeof title === 'string' ? title : null,
+    viewport: typeof viewport === 'string' ? viewport : null,
+    metadata: cleanMetadata,
+    userAgent: req.get('user-agent') || null,
+  });
+
+  res.status(202).json({ ok: true });
+});
+
 // SSE Streaming chat endpoint - proxy to RAG service
 app.post('/api/v2/chat/stream', rateLimiter, async (req, res) => {
   // HYBRID_SEARCH_TOGGLE_START - Extract hybrid search parameter

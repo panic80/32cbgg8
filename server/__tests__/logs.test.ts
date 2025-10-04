@@ -79,4 +79,62 @@ describe('admin chat log routes', () => {
     expect(response.body.pagination.hasMore).toBe(false);
     expect(response.body.filters.ragEnabled).toBe('false');
   });
+
+  it('records visit events and surfaces summary data', async () => {
+    process.env.ENABLE_LOGGING = 'true';
+
+    const visitPayload = {
+      path: '/test-page',
+      sessionId: 'session-123',
+      referrer: 'https://example.org',
+      locale: 'en-CA',
+    };
+
+    const visitResponse = await request(app)
+      .post('/api/analytics/visit')
+      .send(visitPayload);
+
+    expect(visitResponse.status).toBe(202);
+
+    const summaryResponse = await request(app)
+      .get('/api/admin/analytics/visits');
+
+    expect(summaryResponse.status).toBe(200);
+    expect(summaryResponse.body.data.totalVisits).toBeGreaterThanOrEqual(1);
+    expect(Array.isArray(summaryResponse.body.data.dailyCounts)).toBe(true);
+    expect(summaryResponse.body.filters.path).toBeNull();
+  });
+
+  it('filters visit analytics by date window', async () => {
+    process.env.ENABLE_LOGGING = 'true';
+
+    chatLogger.logVisit({
+      path: '/historic',
+      metadata: { note: 'outside range' },
+    });
+
+    const summaryResponse = await request(app)
+      .get('/api/admin/analytics/visits')
+      .query({ startAt: '2999-01-01' });
+
+    expect(summaryResponse.status).toBe(200);
+    expect(summaryResponse.body.data.totalVisits).toBe(0);
+  });
+
+  it('returns service unavailable for visit routes when logging disabled', async () => {
+    process.env.ENABLE_LOGGING = 'false';
+
+    const writeResponse = await request(app)
+      .post('/api/analytics/visit')
+      .send({ path: '/disabled' });
+
+    expect(writeResponse.status).toBe(503);
+
+    const readResponse = await request(app)
+      .get('/api/admin/analytics/visits');
+
+    expect(readResponse.status).toBe(503);
+
+    process.env.ENABLE_LOGGING = 'true';
+  });
 });
