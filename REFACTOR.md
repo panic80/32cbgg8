@@ -8,13 +8,14 @@ _Last updated: 2025-08-19_
 - [x] Collapse duplicate chat utilities in `src/utils/chatUtils.{js,ts}` and migrate consumers to the typed version to eliminate dual maintenance and subtle divergence.
 - [x] Convert `src/api/travelInstructions.js` + `travelInstructions.d.ts` and `src/api/gemini.jsx` to TypeScript modules with shared fetch helpers so the network layer has compile-time validation.
 - [x] Promote environment/config loading in `server/main.js:1` to a reusable config module to decouple app bootstrap from configuration parsing.
+- [x] Retire unused UI prototypes and utilities (`BackButtonShowcase`, `Logo`, `SimpleIngestionProgress`, `LandingConceptPage`, `OPIPageConcept`, `OPIPage/FluentDesignView`, `bubbleExtractor`, `useRetry`, `server/travelData`).
 - [ ] Remove committed runtime artifacts (`*.log`, `public_html.backup`, `rag-service/venv/`, tarballs) or relocate them under a gitignored `backups/` directory to keep deploy diffs readable.
 - [ ] Add Vitest smoke coverage for `src/pages/ChatPage.tsx`, `src/components/TripPlanner.tsx`, and `src/pages/ConfigPage.tsx` before deep refactors to guard behaviour.
 
 ## Workstream A – React Client (UI Agent)
 - **Hotspots to restructure**
   - `src/pages/ConfigPage/index.tsx:1` (shrinking but still busy) mixes analytics, ingestion console, and model toggles—extract domain slices into subroutes/components (e.g. `ConfigLayout`, `AnalyticsPanel`, `IngestionQueue`, `ModelCatalog`). *(Model selection, ingestion, database, and logs tabs now live under `src/pages/ConfigPage/tabs/` with the page acting as an orchestrator.)*
-  - `src/pages/OPIPageConcept.jsx:1`, `src/pages/OPIPage/FluentDesignView.jsx:1`, `src/pages/OPIPage/ReimaginedOPIView.jsx:1`, `src/pages/LandingPage*.jsx` share large hero/section blocks—replace with data-driven section config and shared layout primitives.
+  - `src/pages/OPIPage/ReimaginedOPIView.jsx:1` and `src/pages/LandingPage*.jsx` share large hero/section blocks—replace with data-driven section config and shared layout primitives. *(Legacy prototypes `OPIPageConcept` and `OPIPage/FluentDesignView` have been removed.)*
   - `src/components/TripPlanner.tsx:1` (482 LOC) interleaves fetching, autocomplete management, and presentation—split hooks (`useTripPlan`, `useDistanceMatrix`) and move Google-maps adapters under `src/api/maps/`.
   - `src/pages/AdminToolsPage/*.jsx` replicate similar tab structures; consolidate under a single `AdminToolsShell` with lazy-loaded feature modules.
   - `src/pages/ChatPage.tsx:1` still holds orchestration logic (e.g. export helpers, streaming glue); finish extraction into `src/pages/ChatPage/utils` and create integration tests for the new hook boundaries.

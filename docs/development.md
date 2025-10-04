@@ -52,8 +52,7 @@ The project follows this structure:
 ├── package.json           # Project dependencies and scripts
 ├── public_html/           # Static files for main landing page
 ├── server/                # Server-side code
-│   ├── main.js            # Express gateway
-│   └── travelData.js      # Default travel data
+│   └── main.js            # Express gateway
 ├── src/                   # Frontend source code
 │   ├── api/               # API integration
 │   ├── components/        # UI components

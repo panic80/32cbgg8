@@ -73,7 +73,7 @@ Overall posture is solid: Helmet, CORS allowlists, admin gating, SSRF guardrails
 
 ### 11) SPA external links
 - Status: `target="_blank"` links mostly include `rel="noopener noreferrer"`. Keep consistent.
-- References: `src/pages/LandingPageV2.jsx:103–105`, `src/pages/LandingConceptPage.jsx:196`
+- Reference: `src/pages/LandingPageV2.jsx:103–105`
 
 ### 12) Front-end HTML injection
 - Status: `dangerouslySetInnerHTML` is used for static CSS text only. Keep it confined to static strings; never user input.
@@ -169,4 +169,3 @@ Overall posture is solid: Helmet, CORS allowlists, admin gating, SSRF guardrails
 - The existing SSRF guard (`validateIngestionUrl`) is robust—keep ingestion via the Node gateway.
 - Admin gating exists across routes; hardening around CSRF and brute force raises the bar materially.
 - Consider consolidating all rate limiting at Nginx for simplicity unless you add Redis‑backed app limits.
-
