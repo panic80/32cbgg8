@@ -221,9 +221,8 @@ describe('ConfigPage', () => {
     expect(screen.getByText('30 chunks')).toBeInTheDocument();
     expect(screen.getByText('example.com/handbook')).toBeInTheDocument();
 
-    const indexedSourcesRow = screen.getByText('Indexed sources:').parentElement;
-    expect(indexedSourcesRow).not.toBeNull();
-    expect(indexedSourcesRow).toHaveTextContent('2');
+    const totalSourcesLabel = screen.getByText('Total Sources');
+    expect(totalSourcesLabel.parentElement).toHaveTextContent('2');
 
     // Second source lacks a last ingested timestamp and should fall back to "Unknown"
     expect(screen.getAllByText('Unknown').length).toBeGreaterThanOrEqual(1);
@@ -312,7 +311,7 @@ describe('ConfigPage', () => {
           ? input.toString()
           : (input as any).url ?? input.toString();
 
-      if (url.startsWith('/api/admin/chat-logs')) {
+      if (url.startsWith('/api/admin/chat-logs?')) {
         return Promise.resolve({
           ok: true,
           json: async () => logsResponse,
@@ -389,7 +388,7 @@ describe('ConfigPage', () => {
         });
       }
 
-      if (url.startsWith('/api/admin/chat-logs')) {
+      if (url.startsWith('/api/admin/chat-logs?')) {
         return Promise.resolve({
           ok: true,
           json: async () => logsResponse,

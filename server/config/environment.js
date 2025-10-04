@@ -35,7 +35,11 @@ export const loadEnvironment = () => {
 
   hasLoaded = true;
 
-  loadSecureEnvFile();
+  if (process.env.SKIP_SECURE_ENV === 'true') {
+    console.warn('SKIP_SECURE_ENV is set. Secure environment file loading is disabled for this process.');
+  } else {
+    loadSecureEnvFile();
+  }
 
   const nodeEnv = process.env.NODE_ENV || 'development';
 

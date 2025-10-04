@@ -47,6 +47,11 @@ describe('server/main routes', () => {
     process.env.CONFIG_PANEL_USER = 'admin';
     process.env.CONFIG_PANEL_PASSWORD = 'buMeod98!!';
     process.env.ADMIN_API_TOKEN = 'test-admin-token';
+    process.env.SKIP_SECURE_ENV = 'true';
+    process.env.OPENAI_API_KEY = 'test-openai-key';
+    process.env.GEMINI_API_KEY = 'test-gemini-key';
+    process.env.ANTHROPIC_API_KEY = 'test-anthropic-key';
+    process.env.GOOGLE_MAPS_API_KEY = 'test-maps-key';
     const module = await import('../main.js');
     app = module.default;
   });

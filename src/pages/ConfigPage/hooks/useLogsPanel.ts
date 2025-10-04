@@ -51,7 +51,7 @@ export const useLogsPanel = (initialFilters: LogFilters) => {
     setError(null);
 
     try {
-      const response = await fetch(`/api/v2/logs?${query}`);
+      const response = await fetch(`/api/admin/chat-logs?${query}`);
       if (!response.ok) {
         if (response.status === 503) {
           setLogs([]);
@@ -62,14 +62,35 @@ export const useLogsPanel = (initialFilters: LogFilters) => {
       }
 
       const body = await response.json();
-      const rows: ChatLogEntry[] = Array.isArray(body?.rows) ? body.rows : [];
+      const rows: ChatLogEntry[] = Array.isArray(body?.data)
+        ? body.data
+        : Array.isArray(body?.rows)
+          ? body.rows
+          : [];
 
       setLogs(rows);
+
+      const baseOffset = Math.max(offset, 0);
+      const parsedLimit = Number(body?.pagination?.limit);
+      const limitFromResponse = Number.isFinite(parsedLimit) && parsedLimit > 0
+        ? parsedLimit
+        : LOGS_PAGE_SIZE;
+      const parsedOffset = Number(body?.pagination?.offset);
+      const offsetFromResponse = Number.isFinite(parsedOffset) && parsedOffset >= 0
+        ? parsedOffset
+        : baseOffset;
+      const hasMoreFromResponse = Boolean(body?.pagination?.hasMore);
+      const hasMore = hasMoreFromResponse || rows.length === limitFromResponse;
+      const parsedNextOffset = Number(body?.pagination?.nextOffset);
+      const nextOffsetFromResponse = Number.isFinite(parsedNextOffset) && parsedNextOffset >= 0
+        ? parsedNextOffset
+        : null;
+
       setPagination({
-        limit: LOGS_PAGE_SIZE,
-        offset: Math.max(offset, 0),
-        hasMore: Boolean(body?.hasMore) || rows.length === LOGS_PAGE_SIZE,
-        nextOffset: rows.length === LOGS_PAGE_SIZE ? Math.max(offset, 0) + LOGS_PAGE_SIZE : null,
+        limit: limitFromResponse,
+        offset: offsetFromResponse,
+        hasMore,
+        nextOffset: nextOffsetFromResponse ?? (hasMore ? offsetFromResponse + limitFromResponse : null),
       });
       setFilters(appliedFilters);
     } catch (err) {

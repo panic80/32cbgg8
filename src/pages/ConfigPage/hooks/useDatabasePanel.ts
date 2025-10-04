@@ -27,14 +27,21 @@ const normaliseSources = (list: any[]): DatabaseSource[] =>
   list
     .filter(Boolean)
     .map((item) => ({
-      id: item.id ?? item.source_id ?? `${normaliseString(item.label)}-${normaliseString(item.canonicalUrl)}`,
-      label: item.label ?? item.name ?? 'Untitled Source',
-      canonicalUrl: item.canonicalUrl ?? item.url ?? null,
+      id:
+        item.id ??
+        item.source_id ??
+        `${
+          normaliseString(item.label ?? item.title ?? item.name ?? '')
+        }-${
+          normaliseString(item.canonicalUrl ?? item.canonical_url ?? item.url ?? '')
+        }`,
+      label: item.label ?? item.title ?? item.name ?? 'Untitled Source',
+      canonicalUrl: item.canonicalUrl ?? item.canonical_url ?? item.url ?? null,
       chunkCount: typeof item.chunkCount === 'number' ? item.chunkCount : item.chunk_count ?? 0,
       documentCount: typeof item.documentCount === 'number' ? item.documentCount : item.document_count ?? 0,
       lastIngestedAt: item.lastIngestedAt ?? item.last_ingested_at ?? null,
-      searchText: normaliseString(item.label ?? item.name ?? '')
-        + normaliseString(item.canonicalUrl ?? item.url ?? ''),
+      searchText: normaliseString(item.label ?? item.title ?? item.name ?? '')
+        + normaliseString(item.canonicalUrl ?? item.canonical_url ?? item.url ?? ''),
     }))
     .filter((source) => Boolean(source.id));
 
@@ -136,6 +143,10 @@ const fetchDatabaseSources = async (): Promise<DatabaseSource[]> => {
     const payload = await response.json();
     if (Array.isArray(payload?.data)) {
       return normaliseSources(payload.data);
+    }
+
+    if (Array.isArray(payload?.items)) {
+      return normaliseSources(payload.items);
     }
 
     if (Array.isArray(payload)) {
