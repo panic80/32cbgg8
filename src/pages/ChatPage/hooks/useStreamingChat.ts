@@ -86,9 +86,21 @@ const streamingReducer = (state: StreamingState, action: StreamingAction): Strea
 const markdownPattern = /```|\n\s*#|\*\*|\n\s*[-*+]\s|\n\s*\d+[.)]\s|<[^>]+>/;
 
 const toSources = (eventSources: any[] = []): Source[] =>
-  eventSources.map(source => ({
+  eventSources.map((source, index) => ({
+    id:
+      source.id ||
+      source.reference ||
+      source.title ||
+      source.url ||
+      `stream-source-${index}`,
     text: source.content || source.text || '',
+    title: source.title,
+    url: source.url,
+    section: source.section,
+    page: source.page,
+    score: source.score,
     reference: source.source || source.reference || source.title || '',
+    metadata: source.metadata,
   }));
 
 const toFollowUps = (messageId: string, items: any[] = []): FollowUpQuestion[] =>

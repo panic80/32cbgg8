@@ -77,7 +77,14 @@
       "Bash(pm2 monit:*)",
       "Bash(cat:*)",
       "Bash(systemctl cat:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(git push:*)",
+      "Bash(lsof:*)",
+      "Bash(sudo -u nodeapp pm2:*)",
+      "Bash(echo \"CONFIG_PANEL_PASSWORD is: $CONFIG_PANEL_PASSWORD:+SET\")",
+      "Bash(echo \"Length: $#CONFIG_PANEL_PASSWORD\")",
+      "Bash(git add:*)",
+      "Bash(timeout:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

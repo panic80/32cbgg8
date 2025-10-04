@@ -7,7 +7,6 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Header, Query, Request
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
 import aiofiles
 
@@ -29,22 +28,9 @@ from app.models.query_history import (
     QueryHistoryEntry, QueryHistoryFilter, QueryStatistics, 
     QueryExportRequest
 )
+from app.api.security import verify_admin_bearer_token
 
-# Security
-security = HTTPBearer()
-router = APIRouter(prefix="/api/admin", tags=["admin"])
-
-
-class AdminAuth:
-    """Simple admin authentication."""
-    
-    @staticmethod
-    async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)) -> bool:
-        """Verify admin token."""
-        admin_token = os.getenv("ADMIN_API_TOKEN", "default-admin-token")
-        if credentials.credentials != admin_token:
-            raise HTTPException(status_code=403, detail="Invalid admin token")
-        return True
+router = APIRouter(prefix="/api/admin", tags=["admin"], dependencies=[Depends(verify_admin_bearer_token)])
 
 
 class IndexRebuildRequest(BaseModel):
@@ -114,7 +100,7 @@ startup_time = time.time()
 
 @router.get("/health", response_model=SystemStatus)
 async def get_system_health(
-    _: bool = Depends(AdminAuth.verify_token),
+    _: bool = Depends(verify_admin_bearer_token),
     document_store: DocumentStore = Depends(get_document_store),
     cache_service: CacheService = Depends(get_cache_service),
     vector_store: VectorStore = Depends(get_vector_store)
@@ -165,7 +151,7 @@ async def get_system_health(
 async def rebuild_index(
     request: IndexRebuildRequest,
     background_tasks: BackgroundTasks,
-    _: bool = Depends(AdminAuth.verify_token),
+    _: bool = Depends(verify_admin_bearer_token),
     document_store: DocumentStore = Depends(get_document_store),
     vector_store: VectorStore = Depends(get_vector_store)
 ) -> Dict[str, Any]:
@@ -227,7 +213,7 @@ async def rebuild_index(
 @router.post("/cache/manage")
 async def manage_cache(
     request: CacheManagementRequest,
-    _: bool = Depends(AdminAuth.verify_token),
+    _: bool = Depends(verify_admin_bearer_token),
     cache_service: CacheService = Depends(get_cache_service)
 ) -> Dict[str, Any]:
     """Manage cache operations."""
@@ -323,7 +309,7 @@ async def manage_cache(
 @router.post("/config/update")
 async def update_configuration(
     request: ConfigUpdateRequest,
-    _: bool = Depends(AdminAuth.verify_token)
+    _: bool = Depends(verify_admin_bearer_token)
 ) -> Dict[str, Any]:
     """Update system configuration (hot reload where possible)."""
     try:
@@ -382,7 +368,7 @@ async def update_configuration(
 async def create_backup(
     request: BackupRequest,
     background_tasks: BackgroundTasks,
-    _: bool = Depends(AdminAuth.verify_token),
+    _: bool = Depends(verify_admin_bearer_token),
     document_store: DocumentStore = Depends(get_document_store),
     vector_store: VectorStore = Depends(get_vector_store),
     cache_service: CacheService = Depends(get_cache_service)
@@ -477,7 +463,7 @@ async def create_backup(
 
 @router.get("/backups/list")
 async def list_backups(
-    _: bool = Depends(AdminAuth.verify_token)
+    _: bool = Depends(verify_admin_bearer_token)
 ) -> List[Dict[str, Any]]:
     """List available backups."""
     try:
@@ -520,7 +506,7 @@ async def list_backups(
 async def restore_backup(
     backup_id: str,
     background_tasks: BackgroundTasks,
-    _: bool = Depends(AdminAuth.verify_token)
+    _: bool = Depends(verify_admin_bearer_token)
 ) -> Dict[str, Any]:
     """Restore from backup."""
     try:
@@ -591,7 +577,7 @@ async def restore_backup(
 @router.get("/metrics/export")
 async def export_metrics(
     format: str = "prometheus",
-    _: bool = Depends(AdminAuth.verify_token)
+    _: bool = Depends(verify_admin_bearer_token)
 ) -> Any:
     """Export performance metrics."""
     try:
@@ -612,7 +598,7 @@ async def export_metrics(
 # async def run_evaluation(
 #     dataset_name: str,
 #     background_tasks: BackgroundTasks,
-#     _: bool = Depends(AdminAuth.verify_token),
+#     _: bool = Depends(verify_admin_bearer_token),
 #     document_store: DocumentStore = Depends(get_document_store),
 #     cache_service: CacheService = Depends(get_cache_service)
 # ) -> Dict[str, Any]:
@@ -688,7 +674,7 @@ async def export_metrics(
 async def tail_logs(
     lines: int = 100,
     level: Optional[str] = None,
-    _: bool = Depends(AdminAuth.verify_token)
+    _: bool = Depends(verify_admin_bearer_token)
 ) -> List[Dict[str, Any]]:
     """Get recent log entries."""
     try:
@@ -730,7 +716,7 @@ async def tail_logs(
 @router.post("/queries/history", response_model=List[QueryHistoryEntry])
 async def get_query_history(
     filters: QueryHistoryFilter,
-    _: bool = Depends(AdminAuth.verify_token)
+    _: bool = Depends(verify_admin_bearer_token)
 ) -> List[QueryHistoryEntry]:
     """Get query history with filtering and pagination."""
     try:
@@ -747,7 +733,7 @@ async def get_query_history(
 async def get_query_statistics(
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None,
-    _: bool = Depends(AdminAuth.verify_token)
+    _: bool = Depends(verify_admin_bearer_token)
 ) -> QueryStatistics:
     """Get aggregated query statistics."""
     try:
@@ -763,7 +749,7 @@ async def get_query_statistics(
 @router.delete("/queries/clear")
 async def clear_old_queries(
     days: int = Query(90, description="Delete queries older than this many days"),
-    _: bool = Depends(AdminAuth.verify_token)
+    _: bool = Depends(verify_admin_bearer_token)
 ) -> Dict[str, Any]:
     """Clear old queries from history."""
     try:
@@ -784,7 +770,7 @@ async def clear_old_queries(
 @router.post("/queries/export")
 async def export_queries(
     export_request: QueryExportRequest,
-    _: bool = Depends(AdminAuth.verify_token)
+    _: bool = Depends(verify_admin_bearer_token)
 ):
     """Export query history to CSV or JSON format."""
     try:
@@ -828,7 +814,7 @@ class RetrievalWarmupRequest(BaseModel):
 async def warmup_retrieval(
     req: RetrievalWarmupRequest,
     request: Request,
-    _: bool = Depends(AdminAuth.verify_token)
+    _: bool = Depends(verify_admin_bearer_token)
 ) -> Dict[str, Any]:
     """Prebuild retrieval pipeline, cache it, and warm BM25 corpus with optional queries."""
     try:
@@ -911,7 +897,7 @@ async def warmup_retrieval(
 @router.get("/queries/realtime")
 async def get_realtime_queries(
     minutes: int = Query(5, description="Get queries from last N minutes"),
-    _: bool = Depends(AdminAuth.verify_token)
+    _: bool = Depends(verify_admin_bearer_token)
 ) -> List[QueryHistoryEntry]:
     """Get real-time query activity from the last N minutes."""
     try:

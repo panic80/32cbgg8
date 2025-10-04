@@ -1,364 +1,80 @@
-# Refactoring Plan for ChatPage.tsx
-
-## Project Overview
-- **File**: `/var/www/cbthis/src/pages/ChatPage.tsx`
-- **Current Size**: 544 lines (post-initial extraction work)
-- **Target Size**: ~200 lines (main orchestration only)
-- **Remaining Extraction**: ~350 lines into modular components/hooks
-- **Risk Level**: Low (UI-only refactoring, no logic changes)
-
-## Additional Refactor Targets
-- Break out chat view-model concerns from `src/pages/ChatPage.tsx` (state windowing, scroll tracking, command palette) into focused hooks/components so the page is a thin orchestrator. ✅ Hooks extracted (`useScrollBehavior`, `useCommandPalette`, `useMessageOperations`, `useMessageWindow`) but streaming and export helpers still inline.
-- Restructure `src/pages/ChatPage/hooks/useStreamingChat.ts` so transport/parsing/state concerns are isolated (e.g., reducer + helpers) for easier testing and new SSE event support. ✅ Hook now uses a reducer + helper mappers; remaining follow-up is test coverage.
-- Consolidate `src/components/PlaceAutocomplete.tsx` with the shared `usePlaceAutocomplete` hook to eliminate duplicate debounce/fetch logic while preserving advanced Google Maps behavior.
-- Decompose `src/components/config/GlossaryConfig.tsx` into smaller subcomponents/hooks (list pane, editor form, import/export controls) to reduce rerenders and simplify maintenance.
-- Split the state machine and scoring utilities out of `src/components/SuggestionController.tsx` into dedicated hooks/modules to improve readability and reusability.
-- Convert `src/api/travelInstructions.js` to TypeScript (or add typed helpers) to replace the handwritten declaration file and catch API shape issues at compile time.
-- Reduce `src/App.jsx` responsibilities (remove unused state, move route prefetching into a hook, consolidate nested `Suspense`) so navigation shell stays maintainable.
-- Run a post-refactor cleanup pass (redundant/orphaned assets, backup files, stale feature toggles) to keep the tree lean once core extractions are finished.
-- Remove legacy hybrid search toggle plumbing from `useStreamingChat` if the feature is sunset.
-- Consolidate Google Places autocomplete implementations into one code path.
-- Extract ChatPage export helpers (Markdown/JSON) into utilities for reuse/testing.
-
-## Pre-Refactoring Setup
-- [x] Create backup: `cp src/pages/ChatPage.tsx src/pages/ChatPage.tsx.backup.20250815_233414`
-- [ ] Document current behavior and edge cases
-- [ ] Create test suite that captures ALL current functionality
-- [ ] Run baseline performance benchmark
-- [ ] Commit original state to version control
-
-## Test Suite Definition
-
-### Core Functionality Tests
-```bash
-# Run after EVERY step - no exceptions
-npm run test:refactor
-```
-
-### Manual Test Checklist (run every 10 steps)
-- [ ] Send message and receive response
-- [ ] SSE streaming works (no broken chunks)
-- [ ] Model toggle (FAST/SMART) persists
-- [ ] RAG toggle functions correctly
-- [ ] Follow-up questions clickable
-- [ ] Copy message to clipboard
-- [ ] Theme toggle works
-- [ ] Command palette opens (Cmd+K)
-- [ ] Help dialog displays
-- [ ] LocalStorage persistence verified
-
-### Automated Test Commands
-```bash
-# Build test (run after each step)
-npm run build 2>&1 | grep -E "(✓ built|Failed)" 
-
-# Type check (run after each step)
-npx tsc --noEmit 2>&1 | grep -E "(error|Error)" || echo "✅ No TypeScript errors"
-
-# Dev server test (run every 5 steps)
-timeout 10s npm run dev 2>&1 | grep -E "ready in|Error" || echo "✅ Dev server starts"
-
-# Full test suite (run at checkpoints)
-npm run build:production && echo "✅ Production build successful"
-```
-
-## Incremental Changes
-
-### Phase 1: Extract Utilities and Formatting (Lines 35-65)
-**Risk**: Low | **Time**: 15 minutes | **Dependencies**: None
-
-- [ ] **Step 1.1**: Create utils directory
-  - Command: `mkdir -p src/pages/ChatPage/utils`
-  - Test: `ls -la src/pages/ChatPage/utils`
-  - Verify: Directory exists
-  - Rollback: `rmdir src/pages/ChatPage/utils`
-
-- [ ] **Step 1.2**: Extract formatPlainTextToMarkdown function
-  - File: `src/pages/ChatPage/utils/formatting.ts`
-  - Lines: 35-65 from ChatPage.tsx
-  - Change: Create new file with function export
-  ```typescript
-  export const formatPlainTextToMarkdown = (text: string): string => {
-    // ... existing function body ...
-  };
-  ```
-  - Test: `npm run build 2>&1 | grep "✓ built"`
-  - Rollback: `rm src/pages/ChatPage/utils/formatting.ts`
-
-- [ ] **Step 1.3**: Import formatPlainTextToMarkdown in ChatPage.tsx
-  - File: ChatPage.tsx
-  - Line: Add after line 33
-  - Change: `import { formatPlainTextToMarkdown } from './ChatPage/utils/formatting';`
-  - Test: `npx tsc --noEmit`
-  - Rollback: Remove import line
-
-- [ ] **Step 1.4**: Remove inline formatPlainTextToMarkdown
-  - File: ChatPage.tsx
-  - Lines: 35-65
-  - Change: Delete function definition
-  - Test: `npm run build`
-  - Rollback: Restore from backup
-
-### Phase 2: Extract EmptyState Component (Completed)
-**Status**: ✅ `src/pages/ChatPage/components/EmptyState.tsx` owns the empty-state UI, including the categorized suggestions experiment.
-**Follow-up**: Retire the legacy view once the `USE_CATEGORIZED_VIEW` flag is no longer needed.
-
-### Phase 3: Extract ChatHeader Component (Completed)
-**Status**: ✅ Header UI lives in `src/pages/ChatPage/components/ChatHeader.tsx` with focused props for theme, model mode, exports, and quick actions.
-**Follow-up**: Consider memoising expensive dropdowns if rerenders become an issue.
-
-### CHECKPOINT A: Phase 1-3 Validation
-- [ ] Run full test suite: `npm run test:refactor`
-- [ ] Build production: `npm run build:production`
-- [ ] Manual test all toggles and buttons
-- [ ] Verify localStorage persistence
-- [ ] Check console for errors
-- [ ] Screenshot comparison with original
-
-### Phase 4: Extract ChatMessage Component (Lines 862-1026)
-**Risk**: High | **Time**: 45 minutes | **Dependencies**: Phases 1-3
-
-- [ ] **Step 4.1**: Create ChatMessage.tsx
-  - File: `src/pages/ChatPage/components/ChatMessage.tsx`
-  - Test: File exists
-  - Rollback: Delete file
-
-- [ ] **Step 4.2**: Define Message props interface
-  ```typescript
-  interface ChatMessageProps {
-    message: Message;
-    isCollapsed: boolean;
-    onToggleCollapse: () => void;
-    onCopy: () => void;
-    onRegenerate: () => void;
-    onVoice: () => void;
-    currentModel: string;
-    isLoading: boolean;
-  }
-  ```
-  - Test: TypeScript compilation
-  - Rollback: Clear interface
-
-- [ ] **Step 4.3**: Extract user message rendering
-  - Lines: 862-920 (user message branch)
-  - Move to ChatMessage.tsx
-  - Test: `npm run build`
-  - Rollback: Restore inline
-
-- [ ] **Step 4.4**: Extract assistant message rendering
-  - Lines: 921-1026 (assistant message branch)
-  - Merge with user rendering in ChatMessage.tsx
-  - Test: Send test message, verify rendering
-  - Rollback: Restore inline
-
-- [ ] **Step 4.5**: Import and use ChatMessage
-  - Replace message map with ChatMessage component
-  - Test: Full conversation flow
-  - Rollback: Restore inline rendering
-
-### Phase 5: Extract useStreamingChat Hook (Completed)
-**Status**: ✅ Refactored `useStreamingChat` with a reducer-driven state machine, helper mappers for sources/follow-ups, and a `setMessages` adapter that preserves existing consumers.
-**Follow-up**: Add unit coverage around SSE edge cases (metadata-only, missing `complete` events) and consider isolating network transport for easier mocking.
-
-### CHECKPOINT B: Phase 4-5 Validation
-- [ ] Full regression test suite
-- [ ] Performance benchmark comparison
-- [ ] Memory leak check
-- [ ] SSE streaming verification
-- [ ] Error handling test
-
-### Phase 6: Extract ChatInput Component (Completed)
-**Status**: ✅ `src/pages/ChatPage/components/ChatInput.tsx` manages the footer, inline command palette, and send controls behind props.
-**Follow-up**: Attachments feature flag remains off; plan separate story for upload UX once backend is ready.
-
-### Phase 7: Extract HelpDialog Component (Completed)
-**Status**: ✅ `src/pages/ChatPage/components/HelpDialog.tsx` encapsulates the shortcut primer with shared constants under `./constants`.
-**Follow-up**: Evaluate externalising help copy if marketing needs runtime edits.
-
-### Phase 8: Extract Remaining Hooks
-**Risk**: Low | **Time**: 30 minutes | **Dependencies**: Phases 1-7
-
-- [x] **Step 8.1**: Create useCommandPalette hook
-  - File: `src/pages/ChatPage/hooks/useCommandPalette.ts`
-  - Lines: 224-257 (keyboard handling)
-  - Test: Cmd+K works
-  - Rollback: Delete hook file
-
-- [x] **Step 8.2**: Create useScrollBehavior hook
-  - Extract auto-scroll logic
-  - Test: Scroll behavior
-  - Rollback: Restore inline
-
-- [x] **Step 8.3**: Create useMessageOperations hook
-  - Extract copy, regenerate functions
-  - Test: Operations work
-  - Rollback: Restore inline
-
-### Phase 9: Final Cleanup
-**Risk**: Low | **Time**: 15 minutes | **Dependencies**: All phases
-
-- [x] **Step 9.1**: Remove unused imports
-  - Analyze and remove unused imports
-  - Test: Build succeeds
-  - Rollback: Restore imports
-
-- [x] **Step 9.2**: Organize remaining code
-  - Group related state
-  - Test: Functionality unchanged
-  - Rollback: Restore organization
-
-- [x] **Step 9.3**: Add index.ts for exports
-  - Create barrel export file
-  - Test: Imports work
-  - Rollback: Delete index.ts
-
-### Phase 10: Redundant Code Audit (Planned)
-**Risk**: Low | **Time**: 45 minutes | **Dependencies**: Phase 9
-
-- [ ] **Step 10.1**: Map usage of ChatPage component variants and helpers
-  - Inspect `src/pages/ChatPage/components` for backups/alternate versions (e.g., `EmptyState.tsx.backup`, `HelpDialog` variants)
-  - Use `rg` to trace imports and runtime entry points
-  - Output findings list (keep/remove/merge) before edits
-
-- [ ] **Step 10.2**: Audit shared components/assets for orphaned code
-  - Scan `src/components`, `src/assets`, and public assets for unused exports
-  - Cross-reference with route definitions and tests
-  - Summarise candidates for removal/cleanup
-
-- [ ] **Step 10.3**: Consolidate findings into actionable cleanup tasks
-  - Decide on deletions vs feature-flag retention
-  - Plan required tests (`npm run build`, targeted Vitest suites)
-  - Document the intended changeset before modifying files
-
-### Phase 11: Legacy Hybrid Search Removal (Completed)
-**Risk**: Low | **Time**: 30 minutes | **Dependencies**: Phase 5
-
-- [x] **Step 11.1**: Confirm hybrid search feature status with stakeholders/documentation *(deprecated internally; safe to remove)*
-- [x] **Step 11.2**: Remove `useHybridSearch` wiring from `useStreamingChat` + ChatPage *(see commit removing toggle and request payload flag)*
-- [x] **Step 11.3**: Clean up localStorage keys/migrations and update release notes/tests *(legacy key removed on mount; Vitest + build rerun)*
-
-### Phase 12: Glossary Data Provider (Planned)
-**Risk**: Medium | **Time**: 60 minutes | **Dependencies**: Phase 10
-
-- [ ] **Step 12.1**: Outline shared data provider responsibilities (fetch, cache, invalidation)
-- [ ] **Step 12.2**: Implement provider + context, refactor `GlossaryModal`/`GlossaryTooltip`
-- [ ] **Step 12.3**: Add provider-focused tests and manual verification checklist
-
-### Phase 13: Autocomplete Consolidation (Completed)
-**Risk**: Medium | **Time**: 45 minutes | **Dependencies**: Phase 10
-
-- [x] **Step 13.1**: Compare `PlaceAutocomplete` vs `PlaceAutocompleteSimple` to identify required API surface *(advanced `PlaceAutocomplete` component unused; TripPlanner uses simple path + backend proxy)*
-- [x] **Step 13.2**: Merge implementations or add feature detection wrapper *(removed unused component to avoid duplicate logic; hook already handles server-backed predictions)*
-- [x] **Step 13.3**: Update TripPlanner + tests and remove redundancies *(TripPlanner unaffected; build/tests re-run to confirm)*
-
-### Phase 14: Export Helper Extraction (Planned)
-**Risk**: Low | **Time**: 30 minutes | **Dependencies**: Phase 5
-
-- [ ] **Step 14.1**: Move Markdown/JSON export helpers into `utils`
-- [ ] **Step 14.2**: Update ChatPage to consume helpers and cover with unit tests
-- [ ] **Step 14.3**: Review docs/Changelog for user-facing impact
-
-### CHECKPOINT C: Final Validation
-- [ ] Complete test suite execution
-- [ ] Performance metrics comparison
-- [ ] Bundle size analysis
-- [ ] Visual regression testing
-- [ ] Code coverage report
-- [ ] Manual testing all features
-
-## Emergency Procedures
-
-### Full Rollback
-```bash
-# Restore original file
-cp src/pages/ChatPage.tsx.backup.20250815_233414 src/pages/ChatPage.tsx
-
-# Remove all extracted files
-rm -rf src/pages/ChatPage/
-
-# Rebuild
-npm run build
-```
-
-### Partial Rollback to Checkpoint
-```bash
-# Checkpoint A (after Phase 3)
-git checkout [commit-hash-checkpoint-a]
-
-# Checkpoint B (after Phase 5)
-git checkout [commit-hash-checkpoint-b]
-
-# Checkpoint C (final)
-git checkout [commit-hash-checkpoint-c]
-```
-
-### Test Suite Restoration
-```bash
-# Run baseline tests
-npm run test:baseline
-
-# Verify original functionality
-npm run test:integration
-
-# Check for regressions
-npm run test:regression
-```
-
-## Success Criteria
-- [ ] All original tests pass (100%)
-- [ ] No performance regression >5%
-- [ ] Code coverage maintained or improved
-- [ ] No new warnings or errors
-- [ ] Bundle size within 5% of original
-- [ ] All manual test scenarios pass
-- [ ] No visual differences in UI
-- [ ] LocalStorage keys unchanged
-- [ ] API calls identical
-- [ ] SSE streaming unaffected
-
-## Time Estimates
-- **Total Estimated Time**: 4-6 hours
-- **Phase 1-3**: 1 hour
-- **Phase 4-5**: 2 hours
-- **Phase 6-8**: 1.5 hours
-- **Phase 9 & Testing**: 30 minutes
-
-## Risk Matrix
-| Phase | Risk | Impact | Mitigation |
-|-------|------|--------|------------|
-| 1-3 | Low | Minimal | Simple extractions |
-| 4 | High | Message rendering | Extensive testing |
-| 5 | High | Core chat function | Incremental extraction |
-| 6-7 | Medium | UI interaction | Component testing |
-| 8-9 | Low | Code organization | Easy rollback |
-
-## Post-Refactoring Checklist
-- [ ] Delete backup file after 1 week of stable operation
-- [ ] Document any discovered issues
-- [ ] Update team on refactoring completion
-- [ ] Create maintenance guide for new structure
-- [ ] Schedule code review session
-
-## Notes
-- Each step is designed to be atomic and independently testable
-- Never skip testing, even for "trivial" changes
-- If any test fails, stop immediately and investigate
-- Maintain a log of any unexpected behaviors
-- Consider pair programming for Phase 4-5 (high risk)
-
-## Command Reference
-```bash
-# Quick test after each step
-npm run build && echo "✅ Build OK" || echo "❌ Build Failed"
-
-# Full validation
-npm run test:refactor && npm run build:production
-
-# Emergency restore
-cp src/pages/ChatPage.tsx.backup.* src/pages/ChatPage.tsx
-```
-
----
-*Generated: 2025-08-15*
-*Estimated Completion: 4-6 hours*
-*Risk Level: Low-Medium with proper testing*
+# Refactoring Opportunity Tracker
+
+_Last updated: 2025-08-19_
+
+> Parallel review ran four focused "agents": UI/UX (React), Gateway (Express), Retrieval (Python), and Ops/Docs. Each block below captures that agent's findings and the actionable backlog we should execute or groom.
+
+## High-Impact Quick Wins
+- [x] Collapse duplicate chat utilities in `src/utils/chatUtils.{js,ts}` and migrate consumers to the typed version to eliminate dual maintenance and subtle divergence.
+- [x] Convert `src/api/travelInstructions.js` + `travelInstructions.d.ts` and `src/api/gemini.jsx` to TypeScript modules with shared fetch helpers so the network layer has compile-time validation.
+- [x] Promote environment/config loading in `server/main.js:1` to a reusable config module to decouple app bootstrap from configuration parsing.
+- [ ] Remove committed runtime artifacts (`*.log`, `public_html.backup`, `rag-service/venv/`, tarballs) or relocate them under a gitignored `backups/` directory to keep deploy diffs readable.
+- [ ] Add Vitest smoke coverage for `src/pages/ChatPage.tsx`, `src/components/TripPlanner.tsx`, and `src/pages/ConfigPage.tsx` before deep refactors to guard behaviour.
+
+## Workstream A – React Client (UI Agent)
+- **Hotspots to restructure**
+  - `src/pages/ConfigPage/index.tsx:1` (shrinking but still busy) mixes analytics, ingestion console, and model toggles—extract domain slices into subroutes/components (e.g. `ConfigLayout`, `AnalyticsPanel`, `IngestionQueue`, `ModelCatalog`). *(Model selection, ingestion, database, and logs tabs now live under `src/pages/ConfigPage/tabs/` with the page acting as an orchestrator.)*
+  - `src/pages/OPIPageConcept.jsx:1`, `src/pages/OPIPage/FluentDesignView.jsx:1`, `src/pages/OPIPage/ReimaginedOPIView.jsx:1`, `src/pages/LandingPage*.jsx` share large hero/section blocks—replace with data-driven section config and shared layout primitives.
+  - `src/components/TripPlanner.tsx:1` (482 LOC) interleaves fetching, autocomplete management, and presentation—split hooks (`useTripPlan`, `useDistanceMatrix`) and move Google-maps adapters under `src/api/maps/`.
+  - `src/pages/AdminToolsPage/*.jsx` replicate similar tab structures; consolidate under a single `AdminToolsShell` with lazy-loaded feature modules.
+  - `src/pages/ChatPage.tsx:1` still holds orchestration logic (e.g. export helpers, streaming glue); finish extraction into `src/pages/ChatPage/utils` and create integration tests for the new hook boundaries.
+- **Supporting refactors**
+  - [ ] Replace scattered `useState` + `localStorage` access with existing `useLocalStorage` hook and a centralized `StorageKeys` map in `src/constants`.
+  - [ ] Move command palette data, follow-up questions, and suggestion builders into dedicated modules to simplify memo dependencies.
+  - [ ] Introduce a typed API client in `src/api/index.ts` that wraps `fetch`/`axios` usage; update pages/components to consume it instead of importing server URLs directly.
+  - [ ] Normalize component styling by creating shared layout primitives (e.g., `Section`, `MetricCard`) under `src/components/ui` to reduce repeated Tailwind groupings across landing/admin pages.
+  - [ ] Audit `src/components` for dead exports (e.g., legacy `ChatInterface*`, unused CSS files) and remove or archive them alongside Storybook-like docs.
+  - [ ] Tighten bundle splitting: ensure heavy admin/config pages register with `React.lazy` plus route-level code-splitting hints (prefetch only chat essentials).
+  - [ ] Add `src/pages/ConfigPage` and `src/components/TripPlanner` story-driven tests in `src/__tests__/` or colocated test files before reorganizing UI logic.
+
+## Workstream B – Express Gateway (Gateway Agent)
+- **Structural debt**
+  - `server/main.js:1` (2,373 LOC) acts as bootstrapper, router, controller, and service. Extract into `server/app.js` (app factory), `server/routes/*`, and `server/controllers/*` so each endpoint calls a dedicated handler.
+  - SSE/chat streaming logic repeats across `/api/v2/chat`, `/api/v2/chat/stream`, `/api/v2/chat/rag`; consolidate into a streaming service module and share error handling + retry policies.
+  - Ingestion endpoints (`/api/rag/ingest`, `/api/v2/ingest`, `/api/v2/ingest/canada-ca`) share validation and logging—create schema validators (e.g., zod or custom) under `server/middleware/validators`.
+  - Environment bootstrap currently reads `/etc/cbthis/env` synchronously every start; move to `server/config/index.js` with memoized load order and unit tests.
+- **Operational improvements**
+  - [ ] Introduce a centralized logger (wrap `chatLogger`) and replace raw `console.*` calls across `server/main.js` and routes for consistent context.
+  - [ ] Surface proper HTTP status codes when upstream APIs fail (currently some fall back to 200 with error text).
+  - [ ] Add integration tests with Supertest (already listed in `devDependencies`) covering key routes before slicing files.
+  - [ ] Evaluate caching strategy in `server/services/cache.js:1`; ensure Redis connection lifecycle does not spawn unawaited intervals during tests.
+  - [ ] Tighten CORS/origin checks by moving the allowlist builder into config and unit testing private IP detection.
+  - [ ] Refactor Google Maps proxy routes to reside under `server/routes/maps.js` with shared parameter validation utilities.
+
+## Workstream C – RAG Service (Retrieval Agent)
+- **Pipeline modularity**
+  - `rag-service/app/pipelines/ingestion.py:1` (1,377 LOC) should be split into loader, normalizer, chunker, and persistence modules with dependency-injected services.
+  - `rag-service/app/api/chat.py:1` and `rag-service/app/api/admin.py:1` mix FastAPI routing and business logic; extract service layers and pydantic models under `app/services` and `app/schemas`.
+  - `rag-service/app/components/*` (e.g., `gated_retrieval_coordinator.py:1`, `adaptive_k_selector.py:1`) contain complex logic without tests—add unit tests covering retrieval heuristics before refactoring.
+- **Configurability & tooling**
+  - [ ] Consolidate multiple `requirements-*.txt` into a single `requirements` hierarchy or generate lock files to avoid drift between environments.
+  - [ ] Remove/ignore the checked-in `rag-service/venv/` and large backups (`chroma_db*`, logs) from source control; replace with scripted exports documented under `rag-service/docs/`.
+  - [ ] Introduce a shared logging configuration so ingestion scripts (`ingest_*`, `debug_*`) use the same log format and rotate outputs.
+  - [ ] Build CLI entry points (e.g., `python -m app.cli ingest --source ...`) to wrap the ad-hoc scripts in the repository root.
+  - [ ] Add contract tests ensuring the Express gateway and RAG API stay aligned (request/response schemas).
+
+## Workstream D – Tooling, Quality, and Observability (Ops Agent)
+- [ ] Replace the placeholder lint script in `package.json` with ESLint + Prettier, and wire it into CI before large-scale refactors.
+- [ ] Configure TypeScript project references (e.g., reuse `tsconfig.node.json`) to support incremental builds during module extraction.
+- [ ] Enable Vitest coverage thresholds in `vitest.config.js` and document expected minimums in `src/setupTests.js`.
+- [ ] Add smoke CI pipelines (build + lint + vitest + `npm run test:coverage`) to catch regressions from structural moves.
+- [ ] Document recommended test data/responses for SSE and ingestion endpoints in `docs/testing.md` (new file) to guide QA during refactors.
+- [ ] Ensure PM2/ecosystem scripts consume the refactored server entry (after splitting `server/main.js`).
+
+## Workstream E – Documentation & Knowledge Capture (Docs Agent)
+- [ ] Create or update architectural overviews in `docs/` that mirror the new module boundaries (React feature map, Express flow, RAG pipeline diagram).
+- [ ] Merge ad-hoc markdowns (`RAGFAST.md`, `FIXRAG.md`, `ANALYSIS.md`, etc.) into a curated `docs/rag/` index to reduce fragmentation.
+- [ ] Record migration steps for moving persistent assets out of the repo and into object storage/backups.
+- [ ] Refresh `DEPLOYMENT_CHECKLIST.md` to reflect any new build/test commands introduced by refactors.
+- [ ] Append a "refactor readiness" checklist to `SECUR_REVIEW.md` when security-sensitive modules (auth, ingestion) change.
+
+## Validation Guardrails
+- [ ] `npm run test:coverage` (React)
+- [ ] `npm run build` (React bundle integrity)
+- [ ] `npm run dev:server` smoke test after Express changes
+- [ ] `npm run health-check:local` and `curl` SSE endpoint sanity checks
+- [ ] `pytest` or `uvicorn` test suite inside `rag-service` (document command in `rag-service/README.md`)
+
+## Notes & References
+- Previous ChatPage extraction plan (2025-08-15) lives in this file's git history; outstanding tasks are folded into **Workstream A** items above.
+- Track progress using the checkboxes per workstream and update this document alongside major refactoring PRs.

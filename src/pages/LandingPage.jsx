@@ -73,6 +73,11 @@ export default function LandingPage() {
   const [showSCIPConfirmation, setShowSCIPConfirmation] = useState(false);
   const [isLinkCopied, setIsLinkCopied] = useState(false);
   const [isNavigatingToSCIP, setIsNavigatingToSCIP] = useState(false);
+  const [showPrivacyScrollIndicator, setShowPrivacyScrollIndicator] = useState(true);
+  const [showAboutScrollIndicator, setShowAboutScrollIndicator] = useState(true);
+
+  const privacyScrollRef = useRef(null);
+  const aboutScrollRef = useRef(null);
   
   console.log('Privacy modal state:', showPrivacyModal);
   
@@ -113,6 +118,12 @@ export default function LandingPage() {
     }).catch(err => {
       console.error('Failed to copy link:', err);
     });
+  };
+
+  const handleScroll = (e, setShowIndicator) => {
+    const element = e.target;
+    const isAtBottom = element.scrollHeight - element.scrollTop <= element.clientHeight + 10;
+    setShowIndicator(!isAtBottom);
   };
 
   return (
@@ -348,53 +359,20 @@ export default function LandingPage() {
 
             {/* Footer */}
             <footer className="mt-auto px-4 sm:px-6 lg:px-8 border-t border-[var(--border)]" role="contentinfo">
-              <div className="max-w-5xl mx-auto py-6">
-                {/* Mobile-optimized footer content */}
-                <div className="md:hidden">
-                  <nav className="flex justify-around my-2" aria-label="Footer Navigation">
+              <div className="max-w-5xl mx-auto py-4">
+                <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs sm:text-sm">
+                  <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2" aria-label="Footer Navigation">
                     <button
                       type="button"
                       onClick={handleAboutClick}
-                      className="inline-flex flex-col items-center text-[var(--text)] opacity-70 hover:opacity-100 hover:text-[var(--primary)] transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] rounded px-2 py-1"
-                    >
-                      <Info className="w-5 h-5" aria-hidden="true" />
-                      <span className="text-xs mt-1">About</span>
-                    </button>
-                    <a
-                      href="mailto:g8@sent.com?subject=Contacting%20from%20G8%20homepage"
-                      className="inline-flex flex-col items-center text-[var(--text)] opacity-70 hover:opacity-100 hover:text-[var(--primary)] transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] rounded px-2 py-1"
-                    >
-                      <Mail className="w-5 h-5" aria-hidden="true" />
-                      <span className="text-xs mt-1">Contact</span>
-                    </a>
-                    <button
-                      type="button"
-                      onClick={() => setShowPrivacyModal(true)}
-                      className="inline-flex flex-col items-center text-[var(--text)] opacity-70 hover:opacity-100 hover:text-[var(--primary)] transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] rounded px-2 py-1"
-                    >
-                      <ShieldCheck className="w-5 h-5" aria-hidden="true" />
-                      <span className="text-xs mt-1">Privacy</span>
-                    </button>
-                  </nav>
-                  <div className="text-center text-xs text-[var(--text)] opacity-50 mt-1">
-                    <p>{getCopyrightText()}</p>
-                  </div>
-                </div>
-                
-                {/* Desktop footer content */}
-                <div className="hidden md:block">
-                  <nav className="flex flex-wrap justify-center gap-4 sm:gap-6 lg:gap-8 mb-4" aria-label="Footer Navigation">
-                    <button
-                      type="button"
-                      onClick={handleAboutClick}
-                      className="inline-flex items-center space-x-2 text-[var(--text)] opacity-70 hover:opacity-100 hover:text-[var(--primary)] transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] rounded px-2 py-1 text-sm sm:text-base"
+                      className="inline-flex items-center gap-2 text-[var(--text)] opacity-70 hover:opacity-100 hover:text-[var(--primary)] transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] rounded px-2 py-1"
                     >
                       <Info className="w-4 h-4 sm:w-5 sm:h-5" aria-hidden="true" />
                       <span>About</span>
                     </button>
                     <a
                       href="mailto:g8@sent.com?subject=Contacting%20from%20G8%20homepage"
-                      className="inline-flex items-center space-x-2 text-[var(--text)] opacity-70 hover:opacity-100 hover:text-[var(--primary)] transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] rounded px-2 py-1 text-sm sm:text-base"
+                      className="inline-flex items-center gap-2 text-[var(--text)] opacity-70 hover:opacity-100 hover:text-[var(--primary)] transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] rounded px-2 py-1"
                     >
                       <Mail className="w-4 h-4 sm:w-5 sm:h-5" aria-hidden="true" />
                       <span>Contact</span>
@@ -402,16 +380,15 @@ export default function LandingPage() {
                     <button
                       type="button"
                       onClick={() => setShowPrivacyModal(true)}
-                      className="inline-flex items-center space-x-2 text-[var(--text)] opacity-70 hover:opacity-100 hover:text-[var(--primary)] transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] rounded px-2 py-1 text-sm sm:text-base"
+                      className="inline-flex items-center gap-2 text-[var(--text)] opacity-70 hover:opacity-100 hover:text-[var(--primary)] transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] rounded px-2 py-1"
                     >
                       <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" aria-hidden="true" />
-                      <span>Privacy Policy</span>
+                      <span>Privacy</span>
                     </button>
                   </nav>
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 text-xs sm:text-sm text-[var(--text)] opacity-50">
-                    <p>{getCopyrightText()}</p>
-                    <p>{getLastUpdatedText()}</p>
-                  </div>
+                  <span className="hidden sm:inline text-[var(--text)] opacity-30">|</span>
+                  <span className="text-[var(--text)] opacity-50">{getCopyrightText()}</span>
+                  <span className="text-[var(--text)] opacity-50">{getLastUpdatedText()}</span>
                 </div>
               </div>
             </footer>
@@ -422,11 +399,16 @@ export default function LandingPage() {
       {/* Modals */}
       {/* Privacy Modal */}
       <Dialog open={showPrivacyModal} onOpenChange={setShowPrivacyModal}>
-        <DialogContent className="max-w-[32rem]">
+        <DialogContent className="max-w-[32rem] max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>Privacy Policy</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 sm:space-y-6">
+          <div className="relative">
+            <div
+              ref={privacyScrollRef}
+              className="space-y-4 sm:space-y-6 overflow-y-auto max-h-[60vh] pr-2"
+              onScroll={(e) => handleScroll(e, setShowPrivacyScrollIndicator)}
+            >
             <h3 className="text-base sm:text-lg font-semibold">General Privacy Notice</h3>
             <p className="text-sm sm:text-base text-[var(--text)] leading-relaxed">
               We prioritize the protection of your personal information and are committed to maintaining your trust.
@@ -459,17 +441,29 @@ export default function LandingPage() {
                 Close
               </button>
             </div>
+            </div>
+            {/* Scroll indicator */}
+            {showPrivacyScrollIndicator && (
+              <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-[var(--background)] to-transparent pointer-events-none flex items-end justify-center pb-2">
+                <ChevronDown className="w-5 h-5 text-[var(--primary)] animate-bounce" />
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
 
       {/* About Modal */}
       <Dialog open={showAboutModal} onOpenChange={setShowAboutModal}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>About This Page</DialogTitle>
           </DialogHeader>
-          <div className="overflow-y-auto max-h-[calc(100vh-16rem)]">
+          <div className="relative">
+            <div
+              ref={aboutScrollRef}
+              className="overflow-y-auto max-h-[60vh] pr-2"
+              onScroll={(e) => handleScroll(e, setShowAboutScrollIndicator)}
+            >
             <h3 className="text-base sm:text-lg font-semibold mb-2 text-[var(--primary)]">
               32 CBG G8 Admin Hub
             </h3>
@@ -505,6 +499,13 @@ export default function LandingPage() {
                 Close
               </button>
             </div>
+            </div>
+            {/* Scroll indicator */}
+            {showAboutScrollIndicator && (
+              <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-[var(--background)] to-transparent pointer-events-none flex items-end justify-center pb-2">
+                <ChevronDown className="w-5 h-5 text-[var(--primary)] animate-bounce" />
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>

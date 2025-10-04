@@ -13,7 +13,7 @@ This application uses secure Linux environment variables to manage API keys and 
 ### RAG Service Secrets  
 - **Location**: `/etc/cbthis/rag-env`
 - **Permissions**: `600` (owner read/write only)
-- **Contains**: API keys for RAG service (OpenAI, Anthropic, Google) and the Fernet key (`RAG_ENCRYPTION_KEY`) used for query-log encryption
+- **Contains**: API keys for RAG service (OpenAI, Anthropic, Google), the admin bearer token (`ADMIN_API_TOKEN`), and the Fernet key (`RAG_ENCRYPTION_KEY`) used for query-log encryption
 - **Optional**: set `RAG_ENCRYPTION_KEY_PATH` to point at `/etc/cbthis/rag-encryption.key` if you prefer loading from disk instead of an env var
 
 ## Managing Secrets

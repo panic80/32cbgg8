@@ -331,7 +331,7 @@ export default function LandingPageTest() {
                 <li><strong className="text-[var(--primary)]">Policy Assistant</strong> – AI-powered chatbot providing instant guidance</li>
                 <li><strong className="text-[var(--primary)]">SCIP Portal</strong> – Direct access to claims submission platform</li>
                 <li><strong className="text-[var(--primary)]">OPI Contacts</strong> – Comprehensive directory of FSC and FMC personnel</li>
-                <li><strong className="text-[var(--primary)]">Performance Metrics</strong> – Analytics and monitoring dashboard</li>
+                <li><strong className="text-[var(--primary)]">Resources</strong> – Consolidated SOPs, guides, and templates for day-to-day administration</li>
               </ul>
               <h3 className="text-base sm:text-lg font-semibold mb-2">Disclaimer</h3>
               <p className="mb-3 sm:mb-4 text-sm sm:text-base text-[var(--text-secondary)]">

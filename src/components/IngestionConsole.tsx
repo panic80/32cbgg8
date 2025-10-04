@@ -14,11 +14,12 @@ interface LogEntry {
 
 interface IngestionConsoleProps {
   url: string;
+  progressEndpoint?: string;
   onComplete?: (success: boolean) => void;
   className?: string;
 }
 
-export default function IngestionConsole({ url, onComplete, className }: IngestionConsoleProps) {
+export default function IngestionConsole({ url, progressEndpoint, onComplete, className }: IngestionConsoleProps) {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [currentStep, setCurrentStep] = useState<string | null>(null);
@@ -32,8 +33,12 @@ export default function IngestionConsole({ url, onComplete, className }: Ingesti
     // Connect to SSE endpoint
     const connectToProgress = () => {
       addLog('info', 'Connecting to progress stream...');
-      
-      const es = new EventSource(`/api/rag/ingest/progress?url=${encodeURIComponent(url)}`);
+
+      const baseEndpoint = progressEndpoint ?? '/api/rag/ingest/progress';
+      const separator = baseEndpoint.includes('?') ? '&' : '?';
+      const eventSourceUrl = `${baseEndpoint}${separator}url=${encodeURIComponent(url)}`;
+
+      const es = new EventSource(eventSourceUrl);
       eventSourceRef.current = es;
 
       es.onopen = () => {
@@ -71,7 +76,7 @@ export default function IngestionConsole({ url, onComplete, className }: Ingesti
         eventSourceRef.current.close();
       }
     };
-  }, [url]);
+  }, [progressEndpoint, url]);
 
   useEffect(() => {
     // Auto-scroll to bottom when new logs are added

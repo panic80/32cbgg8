@@ -1,7 +1,7 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { existsSync, statSync, readFileSync } from 'fs';
+import { statSync } from 'fs';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -15,7 +15,6 @@ import mapsRoutes from './routes/maps.js';
 import createSourcesRoutes from './routes/sources.js';
 import createLogsRoutes from './routes/logs.js';
 import createPerformanceHandler from './routes/performance.js';
-import dotenv from 'dotenv';
 import { decodeUrlParams } from './utils/http.js';
 import { processContent } from './utils/html.js';
 import { setSseHeaders } from './utils/sse.js';
@@ -25,37 +24,11 @@ import rateLimit from 'express-rate-limit';
 import { PassThrough } from 'stream';
 import dns from 'node:dns/promises';
 import net from 'node:net';
+import { loadEnvironment } from './config/environment.js';
 
-// Load secure secrets first (if file exists)
-const secureEnvPath = '/etc/cbthis/env';
-if (existsSync(secureEnvPath)) {
-  try {
-    const secureEnv = readFileSync(secureEnvPath, 'utf8');
-    secureEnv.split('\n').forEach(line => {
-      // Skip comments and empty lines
-      if (line.startsWith('#') || !line.trim()) return;
-      
-      const [key, ...valueParts] = line.split('=');
-      if (key && valueParts.length > 0) {
-        process.env[key.trim()] = valueParts.join('=').trim();
-      }
-    });
-    console.log('Loaded secure environment variables from', secureEnvPath);
-  } catch (error) {
-    console.error('Failed to load secure environment variables:', error.message);
-  }
-} else {
-  console.warn('Secure environment file not found at', secureEnvPath);
-}
-
-// Load environment variables based on NODE_ENV
-const NODE_ENV = process.env.NODE_ENV || 'development';
-
-// Load environment-specific .env file (for non-sensitive config)
-dotenv.config({ path: `.env.${NODE_ENV}` });
-
-// Fallback to .env if environment-specific file doesn't exist
-dotenv.config();
+// Load environment variables
+const { nodeEnv: NODE_ENV } = loadEnvironment();
+process.env.NODE_ENV = NODE_ENV;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

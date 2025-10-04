@@ -7,7 +7,7 @@ import json
 import time
 import uuid
 from datetime import datetime
-from typing import AsyncGenerator, Iterable, List, Optional, Tuple
+from typing import AsyncGenerator, Iterable, List, Optional, Tuple, Dict
 
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
@@ -16,7 +16,7 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from app.api.chat import get_llm
 from app.core.config import settings
 from app.core.logging import get_logger
-from app.models.query import ChatRequest, Provider, Source
+from app.models.query import ChatRequest, Provider, Source, FollowUpRequest
 from app.pipelines.parallel_retrieval import create_parallel_pipeline
 from app.pipelines.query_optimizer import QueryOptimizer
 from app.components.result_processor import ResultProcessor
@@ -25,6 +25,7 @@ from app.services.llm_pool import llm_pool
 from app.services.query_logger import get_query_logger
 from app.models.query_history import QueryStatus
 from app.utils.metrics import compute_quality_metrics
+from app.api.chat import generate_followup
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -347,6 +348,7 @@ async def _run_streaming_flow(
     result_processor = ResultProcessor()
 
     retrieval_results: List[Tuple] = []
+    follow_up_questions_payload: List[Dict[str, Any]] = []
 
     optimized_query = chat_request.message
     try:
@@ -457,6 +459,22 @@ async def _run_streaming_flow(
     for key, value in quality_metrics.items():
         perf_monitor.record_value(key, value)
 
+    if chat_request.use_rag and full_response:
+        try:
+            followup_request = FollowUpRequest(
+                user_question=chat_request.message,
+                ai_response=full_response,
+                sources=sources,
+                max_questions=3,
+            )
+            followup_response = await generate_followup(request, followup_request)
+            follow_up_questions_payload = [q.model_dump() for q in followup_response.questions]
+        except Exception as exc:  # pragma: no cover - defensive logging
+            logger.warning("Failed to generate follow-up questions: %s", exc)
+
+    if follow_up_questions_payload:
+        yield f"data: {json.dumps({'type': 'metadata', 'follow_up_questions': follow_up_questions_payload})}\n\n"
+
     perf_monitor.increment_counter("successful_requests")
 
     yield f"data: {json.dumps({'type': 'complete', 'duration': total_latency_ms / 1000})}\n\n"
@@ -481,6 +499,7 @@ async def _run_streaming_flow(
                 "retrieval_count": retrieval_count,
                 "retrieval_ms": retrieval_time_ms,
                 "context_build_ms": context_time_ms,
+                "follow_up_count": len(follow_up_questions_payload),
             },
         )
     except Exception as log_exc:  # pragma: no cover - avoid breaking stream on logging

@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 
 from app.core.logging import get_logger
@@ -11,10 +11,11 @@ from app.models.documents import (
     DocumentSearchRequest,
     DocumentSearchResult,
 )
+from app.api.security import verify_admin_bearer_token
 
 logger = get_logger(__name__)
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(verify_admin_bearer_token)])
 
 
 class SourceSummaryResponse(BaseModel):
