@@ -114,13 +114,16 @@ describe('ConfigPage', () => {
     ConfigPage = (await import('@/pages/ConfigPage')).default;
   });
 
-  it('shows the default active model information', () => {
+  it('shows the default active model information', async () => {
     render(React.createElement(MemoryRouter, null, React.createElement(ConfigPage)));
 
-    const activeModelRow = screen.getByText(/Active Model:/).parentElement;
+    const activeModelLabel = await screen.findByText(/Active Model:/);
+    const activeModelRow = activeModelLabel.parentElement;
     expect(activeModelRow).not.toBeNull();
     expect(activeModelRow).toHaveTextContent('GPT-5 Mini');
-    expect(screen.getByText(/Model ID:/)).toHaveTextContent('gpt-5-mini');
+    await waitFor(() => {
+      expect(screen.getByText(/Model ID:/)).toHaveTextContent('gpt-5-mini');
+    });
   });
 
   it('surfaces unsaved changes when selecting a different model and persists on save', async () => {
