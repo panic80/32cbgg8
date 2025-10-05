@@ -189,7 +189,7 @@ export const useStreamingChat = ({
         const isTripPlannerMessage = messageText.startsWith('📋 **Trip Plan Request**');
         const userSelectedModel = localStorage.getItem('selectedLLMModel') || DEFAULT_MODEL_ID;
         const selectedModel = isTripPlannerMessage ? 'gpt-5-mini' : userSelectedModel;
-        const historyLimit = selectedModel === 'gpt-5-mini' ? 6 : 10;
+        const historyLimit = selectedModel === 'gpt-5-mini' ? 4 : 10;
         const selectedProvider = localStorage.getItem('selectedLLMProvider') || 'openai';
 
         if (!isTripPlannerMessage) {
@@ -198,6 +198,11 @@ export const useStreamingChat = ({
         }
 
         const endpoint = '/api/v2/chat/stream';
+        const smartHints =
+          selectedModel === 'gpt-5-mini'
+            ? { reasoningEffort: 'minimal', responseVerbosity: 'low' as const }
+            : {};
+
         const requestBody = JSON.stringify({
           message: currentInput,
           model: selectedModel,
@@ -209,6 +214,7 @@ export const useStreamingChat = ({
             role: msg.sender === 'user' ? 'user' : 'assistant',
             content: msg.content,
           })),
+          ...smartHints,
         });
 
         const response = await apiClient.request(endpoint, {

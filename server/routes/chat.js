@@ -335,6 +335,8 @@ const createChatRoutes = ({
       useRAG = true,
       shortAnswerMode = false,
       useHybridSearch = false,
+      reasoningEffort,
+      responseVerbosity,
     } = req.body;
 
     if (!message || typeof message !== 'string' || message.trim().length === 0) {
@@ -383,6 +385,8 @@ const createChatRoutes = ({
           include_sources: true,
           short_answer_mode: shortAnswerMode,
           use_hybrid_search: useHybridSearch,
+          ...(reasoningEffort ? { reasoning_effort: reasoningEffort } : {}),
+          ...(responseVerbosity ? { response_verbosity: responseVerbosity } : {}),
           ...(jurisdiction ? { jurisdiction } : {}),
         },
         {
@@ -472,6 +476,8 @@ const createChatRoutes = ({
               route: '/api/v2/chat/stream',
               sources: aggregatedSources,
               followUpQuestions: aggregatedFollowUps,
+              ...(reasoningEffort ? { reasoningEffort } : {}),
+              ...(responseVerbosity ? { responseVerbosity } : {}),
             },
           });
         }

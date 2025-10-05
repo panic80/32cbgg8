@@ -157,9 +157,13 @@ async def chat(request: Request, chat_request: ChatRequest) -> ChatResponse:
         logger.info("Creating LLM...")
         llm = await asyncio.to_thread(get_llm, chat_request.provider, chat_request.model)
         logger.info(f"LLM created: {type(llm)}")
-        
-        # Initialize query optimizer
-        query_optimizer = QueryOptimizer(llm)
+
+        resolved_model_name = getattr(getattr(llm, 'llm', llm), 'model_name', chat_request.model or '')
+        is_smart_gpt5 = (resolved_model_name or '').strip().lower() == 'gpt-5-mini'
+
+        # Initialize query optimizer (skip LLM-powered classification for Smart mode)
+        optimizer_llm = None if is_smart_gpt5 else llm
+        query_optimizer = QueryOptimizer(optimizer_llm)
         
         # Initialize result processor
         result_processor = ResultProcessor()
@@ -277,6 +281,16 @@ async def chat(request: Request, chat_request: ChatRequest) -> ChatResponse:
                     }
             # HYBRID_SEARCH_TOGGLE_END
 
+            if retriever_configs is None and is_smart_gpt5:
+                logger.info("Smart GPT-5 Mini detected - using streamlined vector retriever configuration")
+                retriever_configs = {
+                    "vector_similarity": {
+                        "type": "vector",
+                        "search_type": "similarity",
+                        "k": max(8, getattr(settings, "smart_mode_max_chunks", 4) * 2),
+                    }
+                }
+
             # Build a cache key for the pipeline
             provider_key = str(chat_request.provider)
             model_key = chat_request.model or "default"
@@ -294,7 +308,8 @@ async def chat(request: Request, chat_request: ChatRequest) -> ChatResponse:
                     llm=llm,
                     enable_unified=enable_unified,
                     # HYBRID_SEARCH_TOGGLE_START
-                    retriever_configs=retriever_configs  # Pass custom configs if hybrid search is enabled
+                    retriever_configs=retriever_configs,
+                    enable_reranker=not is_smart_gpt5,
                     # HYBRID_SEARCH_TOGGLE_END
                 )
                 if pipeline_cache is not None:
@@ -333,6 +348,10 @@ async def chat(request: Request, chat_request: ChatRequest) -> ChatResponse:
                     query=query,
                     k=settings.max_chunks_per_query
                 )
+                if is_smart_gpt5:
+                    smart_chunk_limit = getattr(settings, "smart_mode_max_chunks", 0)
+                    if smart_chunk_limit:
+                        results = results[:smart_chunk_limit]
                 retrieval_results = results
                 search_time_ms = (time.perf_counter() - retrieval_start) * 1000
                 perf_monitor.record_latency("search_latency_ms", search_time_ms)
@@ -433,6 +452,10 @@ async def chat(request: Request, chat_request: ChatRequest) -> ChatResponse:
                 sources.append(source)
             
             context = "\n".join(context_parts)
+            if is_smart_gpt5:
+                char_limit = getattr(settings, "smart_mode_context_char_limit", 0)
+                if char_limit and len(context) > char_limit:
+                    context = context[:char_limit]
             context_time_ms = (time.perf_counter() - context_build_start) * 1000
             perf_monitor.record_latency("context_build_latency_ms", context_time_ms)
             
@@ -552,7 +575,21 @@ Please inform the user that no relevant information is available in the current 
             invoke_kwargs["temperature"] = chat_request.temperature
             if chat_request.max_tokens:
                 invoke_kwargs["max_tokens"] = chat_request.max_tokens
-        
+
+        if str(chat_request.provider) == Provider.OPENAI.value:
+            if chat_request.reasoning_effort:
+                invoke_kwargs["reasoning"] = {"effort": chat_request.reasoning_effort}
+            verbosity_value = None
+            if chat_request.response_verbosity:
+                invoke_kwargs["text"] = {"verbosity": chat_request.response_verbosity}
+                if isinstance(chat_request.response_verbosity, str):
+                    verbosity_value = chat_request.response_verbosity.lower()
+            if chat_request.short_answer_mode or verbosity_value == "low":
+                max_tokens_hint = getattr(settings, "smart_mode_short_answer_max_tokens", 0)
+                if max_tokens_hint:
+                    current_limit = invoke_kwargs.get("max_tokens") or chat_request.max_tokens or max_tokens_hint
+                    invoke_kwargs["max_tokens"] = int(min(current_limit, max_tokens_hint))
+
         answer_start = time.perf_counter()
         response = await llm.ainvoke(messages, **invoke_kwargs)
         answer_time_ms = (time.perf_counter() - answer_start) * 1000

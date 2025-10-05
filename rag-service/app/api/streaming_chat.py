@@ -7,7 +7,7 @@ import json
 import time
 import uuid
 from datetime import datetime
-from typing import AsyncGenerator, Iterable, List, Optional, Tuple, Dict
+from typing import AsyncGenerator, Iterable, List, Optional, Tuple, Dict, Any
 
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
@@ -165,6 +165,9 @@ async def _create_retrieval_pipeline(vector_store_manager, app_state, llm_wrappe
     enable_unified = getattr(settings, "enable_unified_retrieval", False)
     retriever_configs = None
 
+    requested_model = (chat_request.model or "").strip().lower()
+    is_smart_gpt5 = requested_model == "gpt-5-mini"
+
     if _should_use_hybrid(chat_request):
         logger.info("Hybrid search enabled - configuring BM25 + Vector retrievers")
         retriever_configs = {
@@ -185,6 +188,16 @@ async def _create_retrieval_pipeline(vector_store_manager, app_state, llm_wrappe
                 "llm": llm_wrapper,
             }
 
+    if retriever_configs is None and is_smart_gpt5:
+        logger.info("Smart GPT-5 Mini detected - using streamlined vector retriever configuration")
+        retriever_configs = {
+            "vector_similarity": {
+                "type": "vector",
+                "search_type": "similarity",
+                "k": max(8, getattr(settings, "smart_mode_max_chunks", 4) * 2),
+            }
+        }
+
     pipeline_cache_store = getattr(app_state, "retrieval_pipeline_cache", None)
 
     provider_key = str(chat_request.provider)
@@ -202,6 +215,7 @@ async def _create_retrieval_pipeline(vector_store_manager, app_state, llm_wrappe
             llm=llm_wrapper,
             enable_unified=enable_unified,
             retriever_configs=retriever_configs,
+            enable_reranker=not is_smart_gpt5,
         )
         if pipeline_cache_store is not None:
             pipeline_cache_store[cache_key] = pipeline
@@ -344,7 +358,13 @@ async def _run_streaming_flow(
     if await request.is_disconnected():
         return
 
-    query_optimizer = QueryOptimizer(llm_wrapper)
+    provider_enum = _ensure_provider(chat_request.provider)
+    resolved_model_name = _resolve_model(provider_enum, chat_request.model)
+    requested_model = (chat_request.model or resolved_model_name or "").strip().lower()
+    is_smart_gpt5 = requested_model == "gpt-5-mini"
+
+    optimizer_llm = None if is_smart_gpt5 else llm_wrapper
+    query_optimizer = QueryOptimizer(optimizer_llm)
     result_processor = ResultProcessor()
 
     retrieval_results: List[Tuple] = []
@@ -377,6 +397,10 @@ async def _run_streaming_flow(
             query=optimized_query,
             k=getattr(settings, "max_chunks_per_query", 6),
         )
+        if is_smart_gpt5:
+            smart_chunk_limit = getattr(settings, "smart_mode_max_chunks", 0)
+            if smart_chunk_limit:
+                results = results[:smart_chunk_limit]
         retrieval_results = results
         retrieval_time_ms = (time.perf_counter() - retrieval_start) * 1000
         retrieval_count = len(results)
@@ -387,6 +411,10 @@ async def _run_streaming_flow(
         if results:
             context_build_start = time.perf_counter()
             context, sources = await _process_retrieval_results(result_processor, results, optimized_query)
+            if is_smart_gpt5:
+                char_limit = getattr(settings, "smart_mode_context_char_limit", 0)
+                if char_limit and len(context) > char_limit:
+                    context = context[:char_limit]
             context_time_ms = (time.perf_counter() - context_build_start) * 1000
             perf_monitor.record_latency("context_build_latency_ms", context_time_ms)
 
@@ -415,7 +443,24 @@ async def _run_streaming_flow(
     full_response_parts: List[str] = []
     token_usage_total: Optional[int] = None
 
-    async for chunk in llm.astream(messages):
+    stream_kwargs: Dict[str, Any] = {}
+    if provider_enum == Provider.OPENAI:
+        if chat_request.reasoning_effort:
+            stream_kwargs["reasoning"] = {"effort": chat_request.reasoning_effort}
+        verbosity_value = None
+        if chat_request.response_verbosity:
+            stream_kwargs["text"] = {"verbosity": chat_request.response_verbosity}
+            if isinstance(chat_request.response_verbosity, str):
+                verbosity_value = chat_request.response_verbosity.lower()
+        if chat_request.short_answer_mode or verbosity_value == "low":
+            max_tokens_hint = getattr(settings, "smart_mode_short_answer_max_tokens", 0)
+            if max_tokens_hint:
+                max_tokens_override = max_tokens_hint
+                if chat_request.max_tokens:
+                    max_tokens_override = min(chat_request.max_tokens, max_tokens_hint)
+                stream_kwargs["max_tokens"] = int(max_tokens_override)
+
+    async for chunk in llm.astream(messages, **stream_kwargs):
         if await request.is_disconnected():
             logger.info("Client disconnected during generation")
             raise asyncio.CancelledError
@@ -459,25 +504,38 @@ async def _run_streaming_flow(
     for key, value in quality_metrics.items():
         perf_monitor.record_value(key, value)
 
-    if chat_request.use_rag and full_response:
-        try:
-            followup_request = FollowUpRequest(
-                user_question=chat_request.message,
-                ai_response=full_response,
-                sources=sources,
-                max_questions=3,
-            )
-            followup_response = await generate_followup(request, followup_request)
-            follow_up_questions_payload = [q.model_dump() for q in followup_response.questions]
-        except Exception as exc:  # pragma: no cover - defensive logging
-            logger.warning("Failed to generate follow-up questions: %s", exc)
+    followup_task: Optional[asyncio.Task[List[Dict[str, Any]]]] = None
 
-    if follow_up_questions_payload:
-        yield f"data: {json.dumps({'type': 'metadata', 'follow_up_questions': follow_up_questions_payload})}\n\n"
+    if chat_request.use_rag and full_response:
+        async def _generate_followups() -> List[Dict[str, Any]]:
+            try:
+                followup_request = FollowUpRequest(
+                    user_question=chat_request.message,
+                    ai_response=full_response,
+                    sources=sources,
+                    max_questions=3,
+                )
+                followup_response = await generate_followup(request, followup_request)
+                return [q.model_dump() for q in followup_response.questions]
+            except Exception as exc:  # pragma: no cover - defensive logging
+                logger.warning("Failed to generate follow-up questions: %s", exc)
+                return []
+
+        followup_task = asyncio.create_task(_generate_followups())
 
     perf_monitor.increment_counter("successful_requests")
 
     yield f"data: {json.dumps({'type': 'complete', 'duration': total_latency_ms / 1000})}\n\n"
+
+    if followup_task:
+        try:
+            follow_up_questions_payload = await followup_task
+        except Exception as exc:  # pragma: no cover - defensive logging
+            logger.warning("Follow-up task failed: %s", exc)
+            follow_up_questions_payload = []
+
+        if follow_up_questions_payload:
+            yield f"data: {json.dumps({'type': 'metadata', 'follow_up_questions': follow_up_questions_payload})}\n\n"
 
     try:
         await query_logger.log_query(

@@ -71,6 +71,10 @@ class LLMPool:
         self.max_connections = settings.llm_pool_max_connections if hasattr(settings, 'llm_pool_max_connections') else max_connections
         self.max_idle_time = max_idle_time
         self.max_age = max_age
+
+        if self.min_connections < 1:
+            logger.info("LLM pool min_connections set below 1; forcing to 1 for warm cache support")
+            self.min_connections = 1
         
         # Pool storage: provider:model -> list of connections
         self._pools: Dict[str, List[LLMConnection]] = {}

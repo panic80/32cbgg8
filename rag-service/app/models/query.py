@@ -50,8 +50,18 @@ class ChatRequest(BaseModel):
     # HYBRID_SEARCH_TOGGLE_START - Remove this line to disable hybrid search
     use_hybrid_search: bool = Field(False, description="Enable hybrid BM25+Vector search for improved accuracy")
     # HYBRID_SEARCH_TOGGLE_END
-    
-    model_config = ConfigDict(use_enum_values=True)
+    reasoning_effort: Optional[str] = Field(
+        None,
+        description="Hint for OpenAI reasoning effort",
+        alias="reasoningEffort",
+    )
+    response_verbosity: Optional[str] = Field(
+        None,
+        description="Hint for OpenAI response verbosity",
+        alias="responseVerbosity",
+    )
+
+    model_config = ConfigDict(use_enum_values=True, populate_by_name=True)
 
 
 class ChatResponse(BaseModel):

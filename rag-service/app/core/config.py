@@ -73,6 +73,11 @@ class Settings(BaseSettings):
     retrieval_k: int = 20  # Increased from 5
     retrieval_fetch_k: int = 40  # Increased from 10
     retrieval_lambda_mult: float = 0.7  # Only used for MMR
+
+    # Smart mode tuning
+    smart_mode_max_chunks: int = 4  # Limit GPT-5 Mini to a handful of context chunks for speed
+    smart_mode_context_char_limit: int = 4000  # Trim Smart mode context of overly long prompts
+    smart_mode_short_answer_max_tokens: int = 600  # Cap max tokens when users request short answers
     
     # Caching Configuration
     redis_url: Optional[str] = "redis://localhost:6379"

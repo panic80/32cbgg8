@@ -388,7 +388,8 @@ def create_parallel_pipeline(
     vector_store_manager,
     llm: Optional[BaseLLM] = None,
     retriever_configs: Optional[Dict[str, Dict[str, Any]]] = None,
-    enable_unified: bool = None
+    enable_unified: bool = None,
+    enable_reranker: bool = True,
 ) -> ParallelRetrievalPipeline:
     """Create a parallel retrieval pipeline with default retrievers."""
     from app.pipelines.retriever_factory import HybridRetrieverFactory, RetrieverConfig, RetrieverMode
@@ -486,19 +487,25 @@ def create_parallel_pipeline(
             logger.error(f"Traceback: {traceback.format_exc()}")
     
     # Define weights based on retriever importance
-    weights = {
+    default_weights = {
         "vector_similarity": 0.4,
         "vector_mmr": 0.2,
         "bm25": 0.3,
         "multi_query": 0.1,
-        "unified": 0.5  # Give unified retriever higher weight if enabled
+        "unified": 0.5,
     }
+    if retrievers:
+        fallback_weight = 1.0 / len(retrievers)
+    else:
+        fallback_weight = 1.0
+    weights = {name: default_weights.get(name, fallback_weight) for name in retrievers.keys()}
     
-    # Create reranker
-    reranker = CrossEncoderReranker(
-        model_name="cross-encoder/ms-marco-MiniLM-L-6-v2",
-        device="cpu"
-    )
+    reranker = None
+    if enable_reranker:
+        reranker = CrossEncoderReranker(
+            model_name="cross-encoder/ms-marco-MiniLM-L-6-v2",
+            device="cpu"
+        )
     
     # Create table ranker for table-specific queries
     table_ranker = TableRanker()
