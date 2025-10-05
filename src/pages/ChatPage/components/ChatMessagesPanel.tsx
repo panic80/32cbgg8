@@ -38,6 +38,7 @@ interface ChatMessagesPanelProps {
   isAtBottom: boolean;
   showNewPill: boolean;
   scrollToBottom: () => void;
+  onModePillClick: () => void;
 }
 
 export const ChatMessagesPanel: React.FC<ChatMessagesPanelProps> = ({
@@ -67,8 +68,18 @@ export const ChatMessagesPanel: React.FC<ChatMessagesPanelProps> = ({
   isAtBottom,
   showNewPill,
   scrollToBottom,
-}) => (
-  <>
+  onModePillClick,
+}) => {
+  const typingShortAnswers = pendingMessage?.shortAnswerMode ?? shortAnswerMode;
+  const handleModePillKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onModePillClick();
+    }
+  };
+
+  return (
+    <>
     <ScrollArea ref={scrollAreaRef} className="flex-1 relative">
       {isInitialLoading ? (
         <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 pb-20 sm:pb-24 space-y-8">
@@ -129,6 +140,7 @@ export const ChatMessagesPanel: React.FC<ChatMessagesPanelProps> = ({
                     isLoading={isLoading}
                     isLatestMessage={messageIndex === combinedMessages.length - 1}
                     onFollowUpClick={onFollowUpClick}
+                    onModePillClick={onModePillClick}
                   />
                 </React.Fragment>
               );
@@ -147,13 +159,17 @@ export const ChatMessagesPanel: React.FC<ChatMessagesPanelProps> = ({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
               >
-                <div
+                <button
+                  type="button"
+                  onClick={onModePillClick}
+                  onKeyDown={handleModePillKeyDown}
                   className={cn(
-                    'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium',
+                    'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--primary)] transition-shadow',
                     modelMode === 'smart'
                       ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20'
                       : 'bg-green-500/10 text-green-500 border border-green-500/20',
                   )}
+                  aria-label="Open settings menu"
                 >
                   {modelMode === 'smart' ? (
                     <>
@@ -166,12 +182,18 @@ export const ChatMessagesPanel: React.FC<ChatMessagesPanelProps> = ({
                       <span>Fast Mode</span>
                     </>
                   )}
-                </div>
-                {(pendingMessage?.shortAnswerMode ?? shortAnswerMode) && (
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                </button>
+                {typingShortAnswers && (
+                  <button
+                    type="button"
+                    onClick={onModePillClick}
+                    onKeyDown={handleModePillKeyDown}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-500 border border-amber-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-amber-500"
+                    aria-label="Open settings menu"
+                  >
                     <Minimize2 size={12} />
                     <span>Short answers</span>
-                  </div>
+                  </button>
                 )}
                 <span className="text-xs text-[var(--text-secondary)]">
                   {modelMode === 'smart'
@@ -247,7 +269,8 @@ export const ChatMessagesPanel: React.FC<ChatMessagesPanelProps> = ({
         </button>
       </div>
     )}
-  </>
-);
+    </>
+  );
+};
 
 export default ChatMessagesPanel;

@@ -21,6 +21,8 @@ interface ChatHeaderProps {
   onExportMarkdown: () => void;
   onClearConversation: () => void;
   onInsertExample?: (text: string) => void;
+  menuOpen: boolean;
+  setMenuOpen: (value: boolean) => void;
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
@@ -34,6 +36,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   onExportMarkdown,
   onClearConversation,
   onInsertExample,
+  menuOpen,
+  setMenuOpen,
 }) => {
   const [showTripPlanner, setShowTripPlanner] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
@@ -99,6 +103,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
               onExportMarkdown={onExportMarkdown}
               onClearConversation={onClearConversation}
               hasWhatsNew={hasWhatsNew}
+              isOpen={menuOpen}
+              onOpenChange={setMenuOpen}
             />
           </motion.div>
         </div>

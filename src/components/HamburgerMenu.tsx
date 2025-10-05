@@ -35,6 +35,8 @@ interface HamburgerMenuProps {
   onExportMarkdown: () => void;
   onClearConversation: () => void;
   hasWhatsNew?: boolean;
+  isOpen?: boolean;
+  onOpenChange?: (value: boolean) => void;
 }
 
 type ToggleGroupOption = {
@@ -96,8 +98,21 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
   onExportMarkdown,
   onClearConversation,
   hasWhatsNew,
+  isOpen,
+  onOpenChange,
 }) => {
-  const [isOpen, setIsOpen] = React.useState(false);
+  const [internalOpen, setInternalOpen] = React.useState(false);
+  const controlled = typeof isOpen === 'boolean';
+  const open = controlled ? (isOpen as boolean) : internalOpen;
+  const setOpen = React.useCallback(
+    (value: boolean) => {
+      if (!controlled) {
+        setInternalOpen(value);
+      }
+      onOpenChange?.(value);
+    },
+    [controlled, onOpenChange],
+  );
 
   const toolsItems: MenuItem[] = [
     {
@@ -105,7 +120,7 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
       label: 'Travel Planner',
       icon: <Plane className="w-4 h-4" />,
       onClick: () => {
-        setIsOpen(false);
+        setOpen(false);
         onTripPlannerOpen();
       },
     },
@@ -114,7 +129,7 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
       label: "What's New",
       icon: <Sun className="w-4 h-4" />,
       onClick: () => {
-        setIsOpen(false);
+        setOpen(false);
         onWhatsNewOpen && onWhatsNewOpen();
       },
     },
@@ -126,7 +141,7 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
       label: 'How this chatbot works',
       icon: <Layers className="w-4 h-4" />,
       onClick: () => {
-        setIsOpen(false);
+        setOpen(false);
         onHowItWorksOpen && onHowItWorksOpen();
       },
     },
@@ -135,7 +150,7 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
       label: 'Help',
       icon: <HelpCircle className="w-4 h-4" />,
       onClick: () => {
-        setIsOpen(false);
+        setOpen(false);
         onHelpOpen();
       },
     },
@@ -208,7 +223,7 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
   ];
 
   return (
-    <Sheet open={isOpen} onOpenChange={setIsOpen}>
+    <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
@@ -336,7 +351,7 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
 
                   if (item.type === 'link') {
                     return (
-                      <Link key={itemIndex} to={item.href || '/'} onClick={() => setIsOpen(false)}>
+                      <Link key={itemIndex} to={item.href || '/'} onClick={() => setOpen(false)}>
                         <motion.div
                           className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-[var(--background-secondary)] transition-colors"
                           whileHover={{ x: 2 }}

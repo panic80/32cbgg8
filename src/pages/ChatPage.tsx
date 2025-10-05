@@ -44,6 +44,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
     const savedModel = localStorage.getItem('selectedLLMModel');
     return savedModel === 'gpt-5-mini' ? 'smart' : 'fast';
   });
+  const [menuOpen, setMenuOpen] = useState(false);
   const [conversationId, setConversationId] = useState<string>('');
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -277,6 +278,8 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
             onExportMarkdown={exportMarkdown}
             onClearConversation={clearConversation}
             onInsertExample={(q) => setInput(q)}
+            menuOpen={menuOpen}
+            setMenuOpen={setMenuOpen}
           />
 
           <ChatMessagesPanel
@@ -306,6 +309,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
             isAtBottom={isAtBottom}
             showNewPill={showNewPill}
             scrollToBottom={scrollToBottom}
+            onModePillClick={() => setMenuOpen(true)}
           />
 
           {/* Enhanced Input Area */}

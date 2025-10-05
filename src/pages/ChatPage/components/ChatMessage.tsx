@@ -26,6 +26,7 @@ interface ChatMessageProps {
   isLoading: boolean;
   isLatestMessage: boolean;
   onFollowUpClick: (question: string) => void;
+  onModePillClick: () => void;
 }
 
 const ChatMessageInner: React.FC<ChatMessageProps> = ({
@@ -42,6 +43,7 @@ const ChatMessageInner: React.FC<ChatMessageProps> = ({
   isLoading,
   isLatestMessage,
   onFollowUpClick,
+  onModePillClick,
 }) => {
   const prefersReducedMotion = useReducedMotion();
   const [showSources, setShowSources] = useState(false);
@@ -50,6 +52,13 @@ const ChatMessageInner: React.FC<ChatMessageProps> = ({
     shouldTruncate && isCollapsed ? message.content.slice(0, 400) + '...' : message.content;
   const isAssistant = message.sender === 'assistant';
   const isUser = message.sender === 'user';
+  const messageShortAnswerMode = message.shortAnswerMode ?? shortAnswerMode;
+  const handleModePillKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onModePillClick();
+    }
+  };
 
   return (
     <motion.div
@@ -156,13 +165,17 @@ const ChatMessageInner: React.FC<ChatMessageProps> = ({
                   animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 }}
                 >
-                  <div
+                  <button
+                    type="button"
+                    onClick={onModePillClick}
+                    onKeyDown={handleModePillKeyDown}
                     className={cn(
-                      'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium',
+                      'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--primary)] transition-shadow',
                       modelMode === 'smart'
                         ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20'
                         : 'bg-green-500/10 text-green-500 border border-green-500/20',
                     )}
+                    aria-label="Open settings menu"
                   >
                     {modelMode === 'smart' ? (
                       <>
@@ -175,12 +188,18 @@ const ChatMessageInner: React.FC<ChatMessageProps> = ({
                         <span>Fast Mode</span>
                       </>
                     )}
-                  </div>
-                  {shortAnswerMode && (
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                  </button>
+                  {messageShortAnswerMode && (
+                    <button
+                      type="button"
+                      onClick={onModePillClick}
+                      onKeyDown={handleModePillKeyDown}
+                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-500 border border-amber-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-amber-500"
+                      aria-label="Open settings menu"
+                    >
                       <Minimize2 size={12} />
                       <span>Short answers</span>
-                    </div>
+                    </button>
                   )}
                   <span className="text-xs text-[var(--text-secondary)]">
                     {modelMode === 'smart'
