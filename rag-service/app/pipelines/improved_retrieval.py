@@ -176,29 +176,29 @@ class ImprovedRetrievalPipeline:
             base_retrievers.append(self.retrievers["bm25"])
             weights.append(0.35)
         
-        if "smart_chunk" in self.retrievers:
-        
-        if "class_a" in self.retrievers:
-        
-        if "restriction" in self.retrievers:
-            base_retrievers.append(self.retrievers["restriction"])
-            weights.append(0.15)
-            base_retrievers.append(self.retrievers["class_a"])
-        
-        if "restriction" in self.retrievers:
-            base_retrievers.append(self.retrievers["restriction"])
-            weights.append(0.15)
-            weights.append(0.15)
-        
-        if "restriction" in self.retrievers:
-            base_retrievers.append(self.retrievers["restriction"])
-            weights.append(0.15)
-            base_retrievers.append(self.retrievers["smart_chunk"])
-            weights.append(0.10)
-        
+        additional_weights = {
+            "smart_chunk": 0.1,
+            "class_a": 0.1,
+            "restriction": 0.1,
+        }
+
+        for key, weight in additional_weights.items():
+            retriever = self.retrievers.get(key)
+            if retriever:
+                base_retrievers.append(retriever)
+                weights.append(weight)
+
         # Normalize weights
         total_weight = sum(weights)
-        weights = [w / total_weight for w in weights]
+        if not base_retrievers or total_weight == 0:
+            logger.warning("No base retrievers available for ensemble; using vector retriever only")
+            fallback = self.retrievers.get("vector")
+            if not fallback:
+                raise RuntimeError("Vector retriever missing; cannot build ensemble")
+            base_retrievers = [fallback]
+            weights = [1.0]
+        else:
+            weights = [w / total_weight for w in weights]
         
         # Create content-boosted ensemble
         ensemble_retriever = ContentBoostedEnsembleRetriever(

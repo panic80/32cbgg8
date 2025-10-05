@@ -11,7 +11,7 @@ from langchain_core.callbacks import CallbackManagerForRetrieverRun
 from langchain_core.vectorstores import VectorStore
 from langchain_core.language_models import BaseLLM
 from langchain.storage import InMemoryStore
-from langchain.storage._lc_store import create_kv_docstore
+from langchain.storage.kvstore import create_kv_docstore
 from langchain.retrievers.multi_vector import MultiVectorRetriever
 
 from app.core.logging import get_logger

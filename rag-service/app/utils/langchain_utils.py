@@ -18,8 +18,8 @@ from langchain_core.exceptions import (
     LangChainException,
     OutputParserException
 )
-from langchain_openai.chat_models.base import ChatOpenAI
-from langchain_google_genai.chat_models import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_anthropic import ChatAnthropic
 from openai import RateLimitError, APIError, APITimeoutError
 from httpx import TimeoutException, ConnectError

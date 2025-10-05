@@ -7,7 +7,7 @@ retrieval with advanced fusion strategies including Reciprocal Rank Fusion (RRF)
 import re
 import numpy as np
 from typing import Any, Dict, List, Optional, Tuple, Union
-from langchain.schema import Document
+from langchain_core.documents import Document
 from collections import defaultdict
 import logging
 

@@ -9,7 +9,7 @@ import re
 from typing import Any, Dict, List, Optional, Set, Tuple
 from datetime import datetime, timedelta
 import spacy
-from langchain.schema import BaseMessage
+from langchain_core.messages import BaseMessage
 import logging
 
 

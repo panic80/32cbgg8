@@ -8,9 +8,10 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 from datetime import datetime, timedelta
 from collections import deque, defaultdict
 import numpy as np
-from langchain.schema import BaseMessage, Document
+from langchain_core.messages import BaseMessage
+from langchain_core.documents import Document
 from langchain.memory import ConversationSummaryMemory
-from langchain.embeddings.base import Embeddings
+from langchain_core.embeddings import Embeddings
 import logging
 
 logger = logging.getLogger(__name__)

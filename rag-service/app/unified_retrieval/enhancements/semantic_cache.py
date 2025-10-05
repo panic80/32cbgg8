@@ -11,8 +11,8 @@ import numpy as np
 from datetime import datetime, timedelta
 import hashlib
 import redis
-from langchain.embeddings.base import Embeddings
-from langchain.schema import Document
+from langchain_core.embeddings import Embeddings
+from langchain_core.documents import Document
 import logging
 
 logger = logging.getLogger(__name__)

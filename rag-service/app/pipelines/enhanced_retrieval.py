@@ -9,7 +9,6 @@ from langchain_core.documents import Document
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from langgraph.graph import StateGraph, END
-from langchain_community.chat_models import ChatOpenAI
 
 from app.core.logging import get_logger
 from app.core.config import settings
