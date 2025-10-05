@@ -15,6 +15,8 @@ import {
   Grid3x3,
   LayoutList,
   Star,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import '../styles/landing.css';
 import '../styles/sticky-footer.css';
@@ -31,6 +33,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
+import { useTheme } from '@/context/ThemeContext';
 
 // Import reimagined component
 import ReimaginedOPIView from './OPIPage/ReimaginedOPIView';
@@ -39,6 +42,7 @@ import { forceScrollToTop, forceScrollToTopDeferred } from '@/utils/scroll';
 export default function OPIPageTest() {
   const location = useLocation();
   const topRef = useRef(null);
+  const { theme, toggleTheme } = useTheme();
   const [contactView, setContactView] = useState('all');
   const [selectedUnit, setSelectedUnit] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -262,12 +266,23 @@ export default function OPIPageTest() {
                     </span>
                   </div>
                 </div>
-                <Badge
-                  variant="secondary"
-                  className="hidden sm:inline-flex bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
-                >
-                  Beta
-                </Badge>
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={toggleTheme}
+                    className="h-11 w-11 rounded-lg border-2 shadow-md hover:shadow-lg transition-all duration-200 bg-[var(--card)] hover:bg-[var(--accent)] hover:border-[var(--accent-foreground)]"
+                    aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                  >
+                    {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                  </Button>
+                  <Badge
+                    variant="secondary"
+                    className="hidden sm:inline-flex bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
+                  >
+                    Beta
+                  </Badge>
+                </div>
               </div>
             </header>
 

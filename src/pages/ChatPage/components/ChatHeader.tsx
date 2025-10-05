@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Brain, Zap, Layers } from 'lucide-react';
+import { Brain, Zap, Layers, Sun, Moon } from 'lucide-react';
 import { EnhancedBackButton } from '@/components/ui/enhanced-back-button';
 import { TripPlanner } from '@/components/TripPlanner';
 import { HelpDialog } from '@/pages/ChatPage/components/HelpDialog';
@@ -9,6 +9,7 @@ import HowItWorksModal from '@/pages/ChatPage/components/HowItWorksModal';
 import { WHATS_NEW_VERSION } from '@/pages/ChatPage/constants/whatsNew';
 import { HamburgerMenu } from '@/components/HamburgerMenu';
 import LogoImage from '@/components/LogoImage';
+import { Button } from '@/components/ui/button';
 
 interface ChatHeaderProps {
   theme: string;
@@ -93,6 +94,19 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             animate={prefersReducedMotion ? undefined : { opacity: 1, x: 0 }}
             transition={{ delay: 0.3 }}
           >
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={toggleTheme}
+              className="h-11 w-11 rounded-lg border-2 shadow-md hover:shadow-lg transition-all duration-200 bg-[var(--card)] hover:bg-[var(--accent)] hover:border-[var(--accent-foreground)]"
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {theme === 'dark' ? (
+                <Sun className="h-5 w-5" />
+              ) : (
+                <Moon className="h-5 w-5" />
+              )}
+            </Button>
             <HamburgerMenu
               theme={theme}
               toggleTheme={toggleTheme}

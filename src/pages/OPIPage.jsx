@@ -7,6 +7,8 @@ import {
   Building2 as Building,
   Info,
   ShieldCheck,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import '../styles/landing.css';
 import '../styles/sticky-footer.css';
@@ -20,6 +22,7 @@ import { EnhancedBackButton } from '@/components/ui/enhanced-back-button';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { useTheme } from '@/context/ThemeContext';
 
 // Import ReimaginedOPIView
 import ReimaginedOPIView from './OPIPage/ReimaginedOPIView';
@@ -28,6 +31,7 @@ import { forceScrollToTop, forceScrollToTopDeferred } from '@/utils/scroll';
 export default function OPIPage() {
   const location = useLocation();
   const topRef = useRef(null);
+  const { theme, toggleTheme } = useTheme();
   const [contactView, setContactView] = useState('all');
   const [selectedUnit, setSelectedUnit] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -252,6 +256,17 @@ export default function OPIPage() {
                       Contact Directory
                     </span>
                   </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={toggleTheme}
+                    className="h-11 w-11 rounded-lg border-2 shadow-md hover:shadow-lg transition-all duration-200 bg-[var(--card)] hover:bg-[var(--accent)] hover:border-[var(--accent-foreground)]"
+                    aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                  >
+                    {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                  </Button>
                 </div>
               </div>
             </header>

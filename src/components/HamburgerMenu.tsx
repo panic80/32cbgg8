@@ -285,13 +285,13 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
       </SheetTrigger>
       <SheetContent
         side="right"
-        className="w-[300px] sm:w-[350px] p-0 border-l border-[var(--border)]"
+        className="flex h-full w-[300px] flex-col overflow-hidden border-l border-[var(--border)] p-0 sm:w-[350px]"
       >
         <SheetHeader className="px-6 py-4 border-b border-[var(--border)]">
           <SheetTitle className="text-xl font-bold">Menu</SheetTitle>
         </SheetHeader>
 
-        <div className="flex flex-col overflow-y-auto overscroll-contain pb-[max(env(safe-area-inset-bottom),1rem)] h-[calc(100dvh-4rem)]">
+        <div className="flex-1 overflow-y-auto overscroll-contain pb-[max(env(safe-area-inset-bottom),1rem)]">
           {menuSections.map((section, sectionIndex) => (
             <div key={section.title} className="px-6 py-4">
               <h3 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-3">
