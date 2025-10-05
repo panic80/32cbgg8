@@ -27,6 +27,7 @@ interface ChatMessageProps {
   isLatestMessage: boolean;
   onFollowUpClick: (question: string) => void;
   onModePillClick: () => void;
+  onShortAnswerPillClick: () => void;
 }
 
 const ChatMessageInner: React.FC<ChatMessageProps> = ({
@@ -44,6 +45,7 @@ const ChatMessageInner: React.FC<ChatMessageProps> = ({
   isLatestMessage,
   onFollowUpClick,
   onModePillClick,
+  onShortAnswerPillClick,
 }) => {
   const prefersReducedMotion = useReducedMotion();
   const [showSources, setShowSources] = useState(false);
@@ -57,6 +59,12 @@ const ChatMessageInner: React.FC<ChatMessageProps> = ({
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
       onModePillClick();
+    }
+  };
+  const handleShortPillKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onShortAnswerPillClick();
     }
   };
 
@@ -192,8 +200,8 @@ const ChatMessageInner: React.FC<ChatMessageProps> = ({
                   {messageShortAnswerMode && (
                     <button
                       type="button"
-                      onClick={onModePillClick}
-                      onKeyDown={handleModePillKeyDown}
+                      onClick={onShortAnswerPillClick}
+                      onKeyDown={handleShortPillKeyDown}
                       className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-500 border border-amber-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-amber-500"
                       aria-label="Open settings menu"
                     >
@@ -362,6 +370,8 @@ export const ChatMessage = React.memo(ChatMessageInner, (prev, next) => {
     prev.isLatestMessage === next.isLatestMessage &&
     prev.currentModel === next.currentModel &&
     prev.modelMode === next.modelMode &&
-    prev.shortAnswerMode === next.shortAnswerMode
+    prev.shortAnswerMode === next.shortAnswerMode &&
+    prev.onModePillClick === next.onModePillClick &&
+    prev.onShortAnswerPillClick === next.onShortAnswerPillClick
   );
 });

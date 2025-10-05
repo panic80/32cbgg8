@@ -45,6 +45,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
     return savedModel === 'gpt-5-mini' ? 'smart' : 'fast';
   });
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuHighlight, setMenuHighlight] = useState<'none' | 'model' | 'short'>('none');
   const [conversationId, setConversationId] = useState<string>('');
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -134,6 +135,30 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
 
   // Handle model mode changes
   useModelMode(modelMode, setCurrentModel);
+
+  const triggerMenu = useCallback(
+    (highlight: 'model' | 'short') => {
+      setMenuHighlight(highlight);
+      setMenuOpen(true);
+    },
+    [],
+  );
+
+  const handleModePillClick = useCallback(() => triggerMenu('model'), [triggerMenu]);
+  const handleShortAnswerPillClick = useCallback(() => triggerMenu('short'), [triggerMenu]);
+
+  useEffect(() => {
+    if (!menuOpen && menuHighlight !== 'none') {
+      setMenuHighlight('none');
+    }
+  }, [menuOpen, menuHighlight]);
+
+  useEffect(() => {
+    if (menuHighlight !== 'none') {
+      const timer = setTimeout(() => setMenuHighlight('none'), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [menuHighlight]);
 
   // Handle disclaimer display
   const { showDisclaimer, setShowDisclaimer } = useDisclaimer();
@@ -280,6 +305,8 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
             onInsertExample={(q) => setInput(q)}
             menuOpen={menuOpen}
             setMenuOpen={setMenuOpen}
+            highlightModelMode={menuHighlight === 'model'}
+            highlightShortAnswers={menuHighlight === 'short'}
           />
 
           <ChatMessagesPanel
@@ -309,7 +336,8 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
             isAtBottom={isAtBottom}
             showNewPill={showNewPill}
             scrollToBottom={scrollToBottom}
-            onModePillClick={() => setMenuOpen(true)}
+            onModePillClick={handleModePillClick}
+            onShortAnswerPillClick={handleShortAnswerPillClick}
           />
 
           {/* Enhanced Input Area */}

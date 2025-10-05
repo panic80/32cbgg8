@@ -100,6 +100,8 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
   hasWhatsNew,
   isOpen,
   onOpenChange,
+  highlightModelMode = false,
+  highlightShortAnswers = false,
 }) => {
   const [internalOpen, setInternalOpen] = React.useState(false);
   const controlled = typeof isOpen === 'boolean';
@@ -283,8 +285,17 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
               <div className="space-y-2">
                 {section.items.map((item, itemIndex) => {
                   if (item.type === 'toggle-group') {
+                    const isModelToggle = item.label === 'Model Mode';
+                    const highlight = isModelToggle && highlightModelMode;
                     return (
-                      <div key={itemIndex} className="space-y-2">
+                      <div
+                        key={itemIndex}
+                        className={cn(
+                          'space-y-2',
+                          highlight &&
+                            'outline outline-2 outline-offset-2 outline-[var(--primary)] animate-pulse rounded-lg p-2 bg-[var(--primary)]/5',
+                        )}
+                      >
                         <div className="flex items-center gap-2 text-sm font-medium">
                           {item.icon}
                           <span>{item.label}</span>
@@ -313,8 +324,16 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
                   }
 
                   if (item.type === 'switch') {
+                    const highlight = item.label === 'Short Answers' && highlightShortAnswers;
                     return (
-                      <div key={itemIndex} className="flex items-center justify-between py-2">
+                      <div
+                        key={itemIndex}
+                        className={cn(
+                          'flex items-center justify-between py-2',
+                          highlight &&
+                            'outline outline-2 outline-offset-2 outline-amber-500 animate-pulse rounded-lg px-2 bg-amber-500/10',
+                        )}
+                      >
                         <div className="flex items-center gap-3">
                           {item.icon}
                           <div>

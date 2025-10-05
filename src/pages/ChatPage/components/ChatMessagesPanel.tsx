@@ -39,6 +39,7 @@ interface ChatMessagesPanelProps {
   showNewPill: boolean;
   scrollToBottom: () => void;
   onModePillClick: () => void;
+  onShortAnswerPillClick: () => void;
 }
 
 export const ChatMessagesPanel: React.FC<ChatMessagesPanelProps> = ({
@@ -69,12 +70,19 @@ export const ChatMessagesPanel: React.FC<ChatMessagesPanelProps> = ({
   showNewPill,
   scrollToBottom,
   onModePillClick,
+  onShortAnswerPillClick,
 }) => {
   const typingShortAnswers = pendingMessage?.shortAnswerMode ?? shortAnswerMode;
   const handleModePillKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
       onModePillClick();
+    }
+  };
+  const handleShortPillKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onShortAnswerPillClick();
     }
   };
 
@@ -141,6 +149,7 @@ export const ChatMessagesPanel: React.FC<ChatMessagesPanelProps> = ({
                     isLatestMessage={messageIndex === combinedMessages.length - 1}
                     onFollowUpClick={onFollowUpClick}
                     onModePillClick={onModePillClick}
+                    onShortAnswerPillClick={onShortAnswerPillClick}
                   />
                 </React.Fragment>
               );
@@ -186,8 +195,8 @@ export const ChatMessagesPanel: React.FC<ChatMessagesPanelProps> = ({
                 {typingShortAnswers && (
                   <button
                     type="button"
-                    onClick={onModePillClick}
-                    onKeyDown={handleModePillKeyDown}
+                    onClick={onShortAnswerPillClick}
+                    onKeyDown={handleShortPillKeyDown}
                     className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-500 border border-amber-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-amber-500"
                     aria-label="Open settings menu"
                   >
@@ -269,7 +278,7 @@ export const ChatMessagesPanel: React.FC<ChatMessagesPanelProps> = ({
         </button>
       </div>
     )}
-    </>
+  </>
   );
 };
 

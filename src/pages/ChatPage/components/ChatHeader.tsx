@@ -23,6 +23,8 @@ interface ChatHeaderProps {
   onInsertExample?: (text: string) => void;
   menuOpen: boolean;
   setMenuOpen: (value: boolean) => void;
+  highlightModelMode: boolean;
+  highlightShortAnswers: boolean;
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
@@ -38,6 +40,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   onInsertExample,
   menuOpen,
   setMenuOpen,
+  highlightModelMode,
+  highlightShortAnswers,
 }) => {
   const [showTripPlanner, setShowTripPlanner] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
@@ -105,6 +109,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
               hasWhatsNew={hasWhatsNew}
               isOpen={menuOpen}
               onOpenChange={setMenuOpen}
+              highlightModelMode={highlightModelMode}
+              highlightShortAnswers={highlightShortAnswers}
             />
           </motion.div>
         </div>
