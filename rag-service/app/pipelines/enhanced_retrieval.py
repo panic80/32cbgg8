@@ -49,7 +49,7 @@ class RetrievalState(TypedDict):
 
 class EnhancedRetrievalPipeline:
     """Advanced retrieval pipeline with LangGraph orchestration."""
-    
+
     def __init__(
         self,
         retriever: WeightedEnsembleRetriever,
@@ -81,7 +81,90 @@ class EnhancedRetrievalPipeline:
         
         # Answer synthesizer
         self.answer_synthesizer = self._create_answer_synthesizer()
-    
+
+    async def _invoke_json_prompt(
+        self,
+        prompt: ChatPromptTemplate,
+        llm: Any,
+        **inputs: Any
+    ) -> Dict[str, Any]:
+        """Execute a prompt expecting JSON output using the retryable LLM."""
+        parser = JsonOutputParser()
+        messages = prompt.format_messages(**inputs)
+        response = await llm.ainvoke(messages)
+        content = self._extract_text_content(response)
+        return parser.parse(content)
+
+    @staticmethod
+    def _extract_text_content(response: Any) -> str:
+        """Normalize LangChain/LLM responses into a plain string."""
+        if response is None:
+            return ""
+
+        content = getattr(response, "content", response)
+
+        if isinstance(content, str):
+            return content
+
+        if isinstance(content, list):
+            parts: List[str] = []
+            for block in content:
+                if isinstance(block, str):
+                    parts.append(block)
+                elif isinstance(block, dict):
+                    text_value = block.get("text") or block.get("content")
+                    if isinstance(text_value, str):
+                        parts.append(text_value)
+                    elif text_value is not None:
+                        parts.append(json.dumps(text_value))
+                else:
+                    text_attr = getattr(block, "text", None)
+                    if isinstance(text_attr, str):
+                        parts.append(text_attr)
+                    else:
+                        parts.append(str(block))
+            return "".join(parts)
+
+        text_attr = getattr(content, "text", None)
+        if isinstance(text_attr, str):
+            return text_attr
+
+        return str(content)
+
+    @staticmethod
+    def _serialize_document(doc: Document) -> Dict[str, Any]:
+        """Convert a LangChain document into a JSON-serializable dict."""
+        serialized_metadata: Dict[str, Any] = {}
+        for key, value in (doc.metadata or {}).items():
+            try:
+                json.dumps(value)
+                serialized_metadata[key] = value
+            except (TypeError, ValueError):
+                serialized_metadata[key] = str(value)
+
+        return {
+            "page_content": doc.page_content,
+            "metadata": serialized_metadata
+        }
+
+    @classmethod
+    def _serialize_documents(cls, docs: List[Document]) -> List[Dict[str, Any]]:
+        """Serialize a list of documents for caching."""
+        return [cls._serialize_document(doc) for doc in docs]
+
+    @staticmethod
+    def _deserialize_documents(data: List[Dict[str, Any]]) -> List[Document]:
+        """Rehydrate cached document payloads back into LangChain documents."""
+        documents: List[Document] = []
+        for item in data or []:
+            documents.append(
+                Document(
+                    page_content=item.get("page_content", ""),
+                    metadata=item.get("metadata", {}) or {}
+                )
+            )
+        return documents
+
     def _build_workflow(self) -> StateGraph:
         """Build the LangGraph workflow."""
         workflow = StateGraph(RetrievalState)
@@ -192,20 +275,21 @@ class EnhancedRetrievalPipeline:
             async with self.llm_pool.acquire(Provider.OPENAI, "gpt-4o-mini") as llm:
                 # Log the prompt template
                 self.logger.debug(f"Query classifier prompt template: {self.query_classifier}")
-                
-                # Create the chain - use the underlying LLM from RetryableLLM wrapper
-                chain = self.query_classifier | llm.llm | JsonOutputParser()
-                
-                # Log what we're passing to the chain
-                invoke_params = {"query": state["query"]}
-                self.logger.debug(f"Invoking chain with params: {invoke_params}")
-                
+
                 try:
-                    result = await chain.ainvoke(invoke_params)
+                    # Log what we're passing to the chain
+                    invoke_params = {"query": state["query"]}
+                    self.logger.debug(f"Invoking chain with params: {invoke_params}")
+
+                    result = await self._invoke_json_prompt(
+                        self.query_classifier,
+                        llm,
+                        **invoke_params
+                    )
                 except Exception as chain_error:
                     self.logger.error(f"Chain invocation error: {chain_error}", exc_info=True)
                     raise
-                
+
                 self.logger.debug(f"Classification result: {result}")
                 
                 # result["type"] is already a string like "simple", just validate it's a valid enum value
@@ -238,20 +322,22 @@ class EnhancedRetrievalPipeline:
                 self.logger.debug(f"Expanding query. Type: {state['query_type']}")
                 
                 async with self.llm_pool.acquire(Provider.OPENAI, "gpt-4o-mini") as llm:
-                    chain = self.query_expander | llm.llm | JsonOutputParser()
-                    
                     invoke_params = {
                         "query": state["query"],
                         "query_type": state["query_type"]
                     }
                     self.logger.debug(f"Expanding with params: {invoke_params}")
-                    
+
                     try:
-                        result = await chain.ainvoke(invoke_params)
+                        result = await self._invoke_json_prompt(
+                            self.query_expander,
+                            llm,
+                            **invoke_params
+                        )
                     except Exception as chain_error:
                         self.logger.error(f"Expansion chain error: {chain_error}", exc_info=True)
                         raise
-                    
+
                     state["expanded_queries"] = result.get("sub_queries", [state["query"]])
                     self.logger.info(f"Expanded query into {len(state['expanded_queries'])} sub-queries")
             else:
@@ -291,24 +377,29 @@ class EnhancedRetrievalPipeline:
                 state["metadata"]["value_patterns"] = value_patterns
                 state["metadata"]["table_keywords"] = rewritten_result.get("table_keywords", [])
             
+            # Ensure we always have at least the original query to search with
+            if not state["expanded_queries"]:
+                state["expanded_queries"] = [state["query"]]
+
             # Retrieve for each query
             for query in state["expanded_queries"]:
                 # Check cache first
                 if self.cache_service:
                     cached = await self.cache_service.get(f"retrieval:{query}")
                     if cached:
-                        all_docs.extend(cached)
+                        cached_docs = self._deserialize_documents(cached)
+                        all_docs.extend(cached_docs)
                         continue
-                
-                # Retrieve documents
-                docs = await self.retriever._aget_relevant_documents(query)
+
+                # Retrieve documents using the public async API
+                docs = await self.retriever.aget_relevant_documents(query)
                 all_docs.extend(docs)
-                
+
                 # Cache results
                 if self.cache_service and docs:
                     await self.cache_service.set(
                         f"retrieval:{query}",
-                        docs,
+                        self._serialize_documents(docs),
                         ttl=300
                     )
             
@@ -424,20 +515,17 @@ class EnhancedRetrievalPipeline:
             self.logger.debug(f"Using model: {model}")
             
             async with self.llm_pool.acquire(Provider.OPENAI, model) as llm:
-                chain = self.answer_synthesizer | llm.llm
-                
-                invoke_params = {
-                    "context": context,
-                    "query": state["query"]
-                }
-                
                 try:
-                    response = await chain.ainvoke(invoke_params)
+                    messages = self.answer_synthesizer.format_messages(
+                        context=context,
+                        query=state["query"]
+                    )
+                    response = await llm.ainvoke(messages)
                 except Exception as chain_error:
                     self.logger.error(f"Synthesis chain error: {chain_error}", exc_info=True)
                     raise
-                
-                state["synthesized_answer"] = response.content
+
+                state["synthesized_answer"] = self._extract_text_content(response)
             
             # Extract sources
             state["sources"] = [
@@ -472,7 +560,7 @@ class EnhancedRetrievalPipeline:
             
             # Try broader search
             broader_query = f"{state['query']} travel instructions policy"
-            docs = await self.retriever._aget_relevant_documents(broader_query)
+            docs = await self.retriever.aget_relevant_documents(broader_query)
             
             # Combine with original results
             all_docs = state["retrieved_documents"] + docs

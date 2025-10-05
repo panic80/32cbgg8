@@ -559,47 +559,47 @@ Please inform the user that no relevant information is available in the current 
         # Generate response
         logger.info(f"Generating response with {chat_request.provider}")
         
-        # Build kwargs based on model type
-        invoke_kwargs = {}
-        if hasattr(llm, "model_name"):
-            model_name = llm.model_name
-            is_o_series = (model_name and (
-                model_name.startswith('o3') or 
-                model_name.startswith('o4') or
-                model_name == 'o1' or
-                model_name == 'o1-mini'
-            ))
-            if not is_o_series:
-                # Only add temperature for non-O-series models
-                invoke_kwargs["temperature"] = chat_request.temperature
-                if chat_request.max_tokens:
-                    invoke_kwargs["max_tokens"] = chat_request.max_tokens
-        else:
-            # For non-OpenAI models, include temperature
-            invoke_kwargs["temperature"] = chat_request.temperature
-            if chat_request.max_tokens:
-                invoke_kwargs["max_tokens"] = chat_request.max_tokens
+        # Build kwargs (temperature disabled for stability with latest OpenAI models)
+        invoke_kwargs: Dict[str, Any] = {}
+        underlying_llm = getattr(llm, "llm", llm)
+        model_name = getattr(underlying_llm, "model_name", resolved_model_name)
+        model_name_lower = (model_name or "").strip().lower()
+        is_openai_provider = str(chat_request.provider) == Provider.OPENAI.value
 
-        if str(chat_request.provider) == Provider.OPENAI.value:
-            if chat_request.reasoning_effort:
-                invoke_kwargs["reasoning"] = {"effort": chat_request.reasoning_effort}
-            verbosity_value = None
-            if chat_request.response_verbosity:
-                invoke_kwargs["text"] = {"verbosity": chat_request.response_verbosity}
-                if isinstance(chat_request.response_verbosity, str):
-                    verbosity_value = chat_request.response_verbosity.lower()
-            if chat_request.short_answer_mode or verbosity_value == "low":
-                max_tokens_hint = getattr(settings, "smart_mode_short_answer_max_tokens", 0)
-                if max_tokens_hint:
-                    current_limit = invoke_kwargs.get("max_tokens") or chat_request.max_tokens or max_tokens_hint
-                    invoke_kwargs["max_tokens"] = int(min(current_limit, max_tokens_hint))
+        if chat_request.max_tokens:
+            invoke_kwargs["max_tokens"] = chat_request.max_tokens
+
+        if is_openai_provider and model_name_lower.startswith("o") and chat_request.reasoning_effort:
+            invoke_kwargs["reasoning"] = {"effort": chat_request.reasoning_effort}
+
+        verbosity_value = None
+        if is_openai_provider and chat_request.response_verbosity:
+            if model_name_lower.startswith("o"):
+                invoke_kwargs.setdefault("reasoning", {})["verbosity"] = chat_request.response_verbosity
+            else:
+                logger.debug(
+                    "Skipping response_verbosity for non-reasoning model %s",
+                    model_name,
+                )
+            if isinstance(chat_request.response_verbosity, str):
+                verbosity_value = chat_request.response_verbosity.lower()
+
+        if chat_request.max_tokens and invoke_kwargs.get("max_tokens") is None:
+            invoke_kwargs["max_tokens"] = chat_request.max_tokens
+
+        logger.info(
+            "LLM invoke kwargs for provider=%s model=%s kwargs=%s",
+            str(chat_request.provider),
+            model_name,
+            invoke_kwargs,
+        )
 
         answer_start = time.perf_counter()
         response = await llm.ainvoke(messages, **invoke_kwargs)
         answer_time_ms = (time.perf_counter() - answer_start) * 1000
         perf_monitor.record_latency("answer_generation_latency_ms", answer_time_ms)
         perf_monitor.record_latency("llm_latency_ms", answer_time_ms)
-        
+
         # Handle response content - it might be a string or a list of content blocks (for thinking mode)
         if isinstance(response.content, str):
             response_text = response.content
@@ -616,7 +616,10 @@ Please inform the user that no relevant information is available in the current 
                     response_text += block
         else:
             response_text = str(response.content)
-        
+
+        if not response_text.strip():
+            logger.warning("Empty response content for provider=%s model=%s raw=%s", chat_request.provider, model_name, repr(response))
+
         # DIAGNOSTIC: Log response analysis
         logger.info(f"[RESPONSE_DIAG] Response length: {len(response_text)}")
         logger.info(f"[RESPONSE_DIAG] Response contains pipe chars: {'|' in response_text}")

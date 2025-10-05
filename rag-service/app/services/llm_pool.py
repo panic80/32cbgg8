@@ -185,21 +185,19 @@ class LLMPool:
             else:
                 llm = ChatOpenAI(
                     api_key=settings.openai_api_key,
-                    model=model,
-                    temperature=0.7
+                    model=model
                 )
             return RetryableLLM(llm)
-            
+
         elif provider == Provider.GOOGLE:
             if not settings.google_api_key:
                 raise ValueError("Google API key not configured")
             llm = ChatGoogleGenerativeAI(
                 google_api_key=settings.google_api_key,
-                model=model,
-                temperature=0.7
+                model=model
             )
             return RetryableLLM(llm)
-            
+
         elif provider == Provider.ANTHROPIC:
             if not settings.anthropic_api_key:
                 raise ValueError("Anthropic API key not configured")
@@ -208,18 +206,14 @@ class LLMPool:
             if model == "claude-sonnet-4-20250514":
                 # Note: thinking mode requires direct Anthropic API usage
                 # LangChain's ChatAnthropic doesn't support thinking parameter yet
-                logger.info(f"Claude Sonnet 4 detected in pool - using temperature=1.0")
-                temperature = 1.0
-            else:
-                temperature = 0.7
-            
+                logger.info("Claude Sonnet 4 detected in pool - using default client configuration")
+
             llm = ChatAnthropic(
                 api_key=settings.anthropic_api_key,
-                model=model,
-                temperature=temperature
+                model=model
             )
             return RetryableLLM(llm)
-            
+
         else:
             raise ValueError(f"Unsupported provider: {provider}")
     

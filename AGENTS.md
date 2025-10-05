@@ -8,6 +8,13 @@ The Vite/React client lives under `src/` with feature folders (`components/`, `p
 
 Use `npm run dev` to start the Vite client on 3001 and `npm run dev:server` for the Express gateway on 3000; `npm run dev:full` runs both. `npm run build` creates the production bundle in `dist/`; `npm run preview` serves the built assets; `npm start` boots Express against the build. Run `npm run test`, `npm run test:watch`, or `npm run test:coverage` to execute Vitest, with coverage required before hand-off. Deployment helpers (`npm run deploy:*`, `npm run rollback:*`) wrap the PM2 flows in `scripts/`.
 
+### Production Rebuild & Restart
+
+1. `npm run build` (from `/var/www/cbthis`) to regenerate the Vite bundle.
+2. `sudo systemctl restart rag-service.service` to reload the FastAPI/uvicorn RAG backend.
+3. `npm run reload` (PM2 reload for `cf-travel-bot`) so Express picks up the new `dist/` assets.
+4. Optional verification: `systemctl status rag-service.service --no-pager` and `pm2 status`.
+
 ## Coding Style & Naming Conventions
 
 Keep two-space indentation, functional React components, and Tailwind utility groupings. Use PascalCase for components, camelCase for utilities, and `useX` prefixes for hooks. Extend shared types from `src/types/`. The lint script is a stub—run Prettier/ESLint locally and keep import ordering stable.

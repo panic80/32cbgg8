@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import time
 import uuid
 from datetime import datetime
@@ -88,34 +89,57 @@ def _resolve_model(provider: Provider, requested_model: Optional[str]) -> str:
     return "default"
 
 
+def _coerce_to_text(payload: Any) -> str:
+    """Safely coerce OpenAI streaming payload structures into plain text."""
+    if payload is None:
+        return ""
+
+    if isinstance(payload, str):
+        return payload
+
+    if isinstance(payload, (int, float)):
+        return str(payload)
+
+    # Handle mapping-like payloads
+    if isinstance(payload, dict):
+        # Prefer common text-bearing keys
+        for key in ("text", "output_text", "content", "delta", "message"):
+            if key in payload:
+                text_value = _coerce_to_text(payload[key])
+                if text_value:
+                    return text_value
+        # Fallback: iterate values
+        fragments = [_coerce_to_text(value) for value in payload.values()]
+        return "".join(fragment for fragment in fragments if fragment)
+
+    # Handle objects with helpful attributes (LangChain/OpenAI delta classes)
+    for attr in ("content", "text", "output_text", "delta", "message"):
+        if hasattr(payload, attr):
+            text_value = _coerce_to_text(getattr(payload, attr))
+            if text_value:
+                return text_value
+
+    if hasattr(payload, "additional_kwargs"):
+        # Message-like payload with no textual delta yet
+        return ""
+
+    # Handle iterable collections (lists/tuples of blocks)
+    if isinstance(payload, Iterable):
+        fragments = [_coerce_to_text(item) for item in payload]
+        return "".join(fragment for fragment in fragments if fragment)
+
+    return ""
+
+
 def _extract_chunk_text(chunk) -> str:
     """Extract textual content from a LangChain chunk object."""
     if chunk is None:
         return ""
 
-    # ChatGenerationChunk commonly exposes .message
-    message = getattr(chunk, "message", None)
-    if message is not None:
-        content = getattr(message, "content", "")
-        if isinstance(content, str):
-            return content
-        if isinstance(content, Iterable):
-            return "".join(str(part) for part in content)
-
-    content = getattr(chunk, "content", None)
-    if isinstance(content, str):
-        return content
-    if isinstance(content, Iterable):
-        return "".join(str(part) for part in content)
-
-    delta = getattr(chunk, "delta", None)
-    if isinstance(delta, str):
-        return delta
-
     if isinstance(chunk, str):
         return chunk
 
-    return ""
+    return _coerce_to_text(chunk)
 
 
 def _extract_token_usage_from_chunk(chunk) -> Optional[int]:
@@ -447,26 +471,38 @@ async def _run_streaming_flow(
     token_usage_total: Optional[int] = None
 
     stream_kwargs: Dict[str, Any] = {}
+    underlying_llm = getattr(llm, "llm", llm)
+    model_name = getattr(underlying_llm, "model_name", requested_model)
+    model_name_lower = (model_name or "").strip().lower()
+
     if provider_enum == Provider.OPENAI:
-        if chat_request.reasoning_effort:
+        if model_name_lower.startswith("o") and chat_request.reasoning_effort:
             stream_kwargs["reasoning"] = {"effort": chat_request.reasoning_effort}
         verbosity_value = None
         if chat_request.response_verbosity:
-            stream_kwargs["text"] = {"verbosity": chat_request.response_verbosity}
+            if model_name_lower.startswith("o"):
+                stream_kwargs.setdefault("reasoning", {})["verbosity"] = chat_request.response_verbosity
+            else:
+                logger.debug("Skipping response_verbosity for non-reasoning model %s", model_name)
             if isinstance(chat_request.response_verbosity, str):
                 verbosity_value = chat_request.response_verbosity.lower()
-        if chat_request.short_answer_mode or verbosity_value == "low":
-            max_tokens_hint = getattr(settings, "smart_mode_short_answer_max_tokens", 0)
-            if max_tokens_hint:
-                max_tokens_override = max_tokens_hint
-                if chat_request.max_tokens:
-                    max_tokens_override = min(chat_request.max_tokens, max_tokens_hint)
-                stream_kwargs["max_tokens"] = int(max_tokens_override)
+        if chat_request.max_tokens:
+            stream_kwargs["max_tokens"] = int(chat_request.max_tokens)
 
+    chunk_debug_counter = 0
     async for chunk in llm.astream(messages, **stream_kwargs):
         if await request.is_disconnected():
             logger.info("Client disconnected during generation")
             raise asyncio.CancelledError
+
+        if (
+            provider_enum == Provider.OPENAI
+            and requested_model == "gpt-5-mini"
+            and chunk_debug_counter < 5
+            and logger.isEnabledFor(logging.DEBUG)
+        ):
+            logger.debug("[STREAM_CHUNK_DEBUG] %s", repr(chunk))
+            chunk_debug_counter += 1
 
         token_text = _extract_chunk_text(chunk)
         if not token_text:
