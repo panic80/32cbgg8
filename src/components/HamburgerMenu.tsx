@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import {
   Menu,
@@ -115,6 +115,21 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
     },
     [controlled, onOpenChange],
   );
+
+  const modelSectionRef = useRef<HTMLDivElement | null>(null);
+  const shortSectionRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (open && highlightModelMode && modelSectionRef.current) {
+      modelSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [open, highlightModelMode]);
+
+  useEffect(() => {
+    if (open && highlightShortAnswers && shortSectionRef.current) {
+      shortSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [open, highlightShortAnswers]);
 
   const toolsItems: MenuItem[] = [
     {
@@ -287,14 +302,31 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
                   if (item.type === 'toggle-group') {
                     const isModelToggle = item.label === 'Model Mode';
                     const highlight = isModelToggle && highlightModelMode;
+                    const glowColour = 'rgba(59,130,246,0.45)';
                     return (
-                      <div
+                      <motion.div
                         key={itemIndex}
+                        ref={isModelToggle ? modelSectionRef : undefined}
                         className={cn(
-                          'space-y-2',
-                          highlight &&
-                            'outline outline-2 outline-offset-2 outline-[var(--primary)] animate-pulse rounded-lg p-2 bg-[var(--primary)]/5',
+                          'space-y-2 rounded-lg',
+                          highlight && 'bg-[var(--primary)]/5',
                         )}
+                        animate={
+                          highlight
+                            ? {
+                                boxShadow: [
+                                  '0 0 0 0 rgba(0,0,0,0)',
+                                  `0 0 0 12px ${glowColour}`,
+                                  '0 0 0 0 rgba(0,0,0,0)',
+                                ],
+                                scale: [1, 1.03, 1],
+                              }
+                            : {
+                                boxShadow: '0 0 0 0 rgba(0,0,0,0)',
+                                scale: 1,
+                              }
+                        }
+                        transition={highlight ? { duration: 1.1, repeat: 1 } : undefined}
                       >
                         <div className="flex items-center gap-2 text-sm font-medium">
                           {item.icon}
@@ -319,20 +351,37 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
                             </button>
                           ))}
                         </div>
-                      </div>
+                      </motion.div>
                     );
                   }
 
                   if (item.type === 'switch') {
                     const highlight = item.label === 'Short Answers' && highlightShortAnswers;
+                    const glowColour = 'rgba(217,119,6,0.55)';
                     return (
-                      <div
+                      <motion.div
                         key={itemIndex}
+                        ref={item.label === 'Short Answers' ? shortSectionRef : undefined}
                         className={cn(
-                          'flex items-center justify-between py-2',
-                          highlight &&
-                            'outline outline-2 outline-offset-2 outline-amber-500 animate-pulse rounded-lg px-2 bg-amber-500/10',
+                          'flex items-center justify-between py-2 rounded-lg px-2',
+                          highlight && 'bg-amber-500/10',
                         )}
+                        animate={
+                          highlight
+                            ? {
+                                boxShadow: [
+                                  '0 0 0 0 rgba(0,0,0,0)',
+                                  `0 0 0 12px ${glowColour}`,
+                                  '0 0 0 0 rgba(0,0,0,0)',
+                                ],
+                                scale: [1, 1.04, 1],
+                              }
+                            : {
+                                boxShadow: '0 0 0 0 rgba(0,0,0,0)',
+                                scale: 1,
+                              }
+                        }
+                        transition={highlight ? { duration: 1.1, repeat: 1 } : undefined}
                       >
                         <div className="flex items-center gap-3">
                           {item.icon}
@@ -346,7 +395,7 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
                           </div>
                         </div>
                         <Switch checked={item.value} onCheckedChange={item.onChange} />
-                      </div>
+                      </motion.div>
                     );
                   }
 
