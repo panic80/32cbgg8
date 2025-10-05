@@ -37,52 +37,52 @@ const APIPage: React.FC = () => {
     "temperature": 0.7,
     "maxOutputTokens": 1000
   }
-}`
+}`,
     },
     {
       method: 'GET',
       path: '/api/travel-instructions',
       description: 'Retrieve Canadian Forces travel instructions',
       params: [],
-      example: 'No parameters required'
+      example: 'No parameters required',
     },
     {
       method: 'GET',
       path: '/api/config',
       description: 'Get API configuration and available features',
       params: [],
-      example: 'No parameters required'
+      example: 'No parameters required',
     },
     {
       method: 'GET',
       path: '/health',
       description: 'System health check and status',
       params: [],
-      example: 'No parameters required'
-    }
+      example: 'No parameters required',
+    },
   ];
 
   const features = [
     {
       icon: Zap,
       title: 'Lightning Fast',
-      description: 'Optimized response times with intelligent caching'
+      description: 'Optimized response times with intelligent caching',
     },
     {
       icon: Shield,
       title: 'Secure by Default',
-      description: 'Built-in rate limiting and authentication'
+      description: 'Built-in rate limiting and authentication',
     },
     {
       icon: Server,
       title: 'Always Available',
-      description: '99.9% uptime with health monitoring'
+      description: '99.9% uptime with health monitoring',
     },
     {
       icon: Clock,
       title: 'Real-time Updates',
-      description: 'WebSocket support for live streaming'
-    }
+      description: 'WebSocket support for live streaming',
+    },
   ];
 
   return (
@@ -99,7 +99,7 @@ const APIPage: React.FC = () => {
           <div className="mb-8 animate-fade-up">
             <EnhancedBackButton to="/" label="Back" variant="minimal" />
           </div>
-          
+
           {/* Header */}
           <div className="text-center mb-16 animate-fade-up">
             <div className="inline-flex items-center justify-center w-20 h-20 mb-6 bg-primary/10 rounded-full">
@@ -109,7 +109,8 @@ const APIPage: React.FC = () => {
               API Documentation
             </h1>
             <p className="body-lg text-muted-foreground max-w-2xl mx-auto">
-              Simple and reliable endpoints for the Travel Instructions Chatbot with comprehensive documentation
+              Simple and reliable endpoints for the Travel Instructions Chatbot with comprehensive
+              documentation
             </p>
           </div>
 
@@ -118,7 +119,7 @@ const APIPage: React.FC = () => {
             {features.map((feature, index) => {
               const Icon = feature.icon;
               return (
-                <Card 
+                <Card
                   key={index}
                   className="card-lift glass animate-fade-up"
                   style={{ animationDelay: `${index * 100}ms` }}
@@ -166,7 +167,7 @@ const APIPage: React.FC = () => {
                         {/* Endpoint Header */}
                         <div className="flex items-center justify-between flex-wrap gap-4">
                           <div className="flex items-center gap-3">
-                            <Badge 
+                            <Badge
                               variant={endpoint.method === 'GET' ? 'default' : 'secondary'}
                               className="font-mono"
                             >
@@ -192,9 +193,7 @@ const APIPage: React.FC = () => {
                         </div>
 
                         {/* Description */}
-                        <p className="text-base text-muted-foreground">
-                          {endpoint.description}
-                        </p>
+                        <p className="text-base text-muted-foreground">{endpoint.description}</p>
 
                         {/* Parameters */}
                         {endpoint.params.length > 0 && (
@@ -239,7 +238,10 @@ const APIPage: React.FC = () => {
                 <div>
                   <h4 className="font-semibold mb-1">Authentication</h4>
                   <p className="text-muted-foreground">
-                    Include your API key in the Authorization header: <code className="bg-muted px-2 py-0.5 rounded text-sm">Bearer YOUR_API_KEY</code>
+                    Include your API key in the Authorization header:{' '}
+                    <code className="bg-muted px-2 py-0.5 rounded text-sm">
+                      Bearer YOUR_API_KEY
+                    </code>
                   </p>
                 </div>
               </div>
@@ -251,7 +253,8 @@ const APIPage: React.FC = () => {
                 <div>
                   <h4 className="font-semibold mb-1">Rate Limiting</h4>
                   <p className="text-muted-foreground">
-                    Default rate limit is 60 requests per minute. Check response headers for current usage.
+                    Default rate limit is 60 requests per minute. Check response headers for current
+                    usage.
                   </p>
                 </div>
               </div>
@@ -263,7 +266,8 @@ const APIPage: React.FC = () => {
                 <div>
                   <h4 className="font-semibold mb-1">Error Handling</h4>
                   <p className="text-muted-foreground">
-                    All errors return consistent JSON with error code and message for easy debugging.
+                    All errors return consistent JSON with error code and message for easy
+                    debugging.
                   </p>
                 </div>
               </div>
@@ -272,9 +276,7 @@ const APIPage: React.FC = () => {
 
           {/* Footer */}
           <div className="text-center mt-12 animate-fade-up delay-700">
-            <p className="text-muted-foreground mb-4">
-              Need help with integration?
-            </p>
+            <p className="text-muted-foreground mb-4">Need help with integration?</p>
             <AnimatedButton size="lg" className="gap-2">
               <Code className="w-4 h-4" />
               View Full Documentation

@@ -2,7 +2,7 @@
 
 **Date**: August 29, 2025  
 **Status**: ✅ **SUCCESSFULLY DEPLOYED TO PRODUCTION**  
-**Rollout**: 10% A/B Testing Active  
+**Rollout**: 10% A/B Testing Active
 
 ---
 
@@ -15,6 +15,7 @@ The retrieval optimization system has been successfully deployed to production w
 ### A/B Testing Validation
 
 **Test Query 1: "meal allowance" (Hash: 0.060 → GATED)**
+
 ```json
 {
   "type": "gated_retrieval_complete",
@@ -29,9 +30,10 @@ The retrieval optimization system has been successfully deployed to production w
 ```
 
 **Test Query 2: "travel" (Hash: 0.990 → LEGACY)**
+
 ```json
 {
-  "type": "retrieval_complete", 
+  "type": "retrieval_complete",
   "duration": 4.633,
   "count": 7
 }
@@ -39,7 +41,7 @@ The retrieval optimization system has been successfully deployed to production w
 
 ✅ **A/B Testing Working**: Queries consistently route to correct pipeline based on MD5 hash  
 ✅ **Gated Retrieval Active**: Optimization events visible in response  
-✅ **Legacy Fallback**: Non-gated queries use established pipeline  
+✅ **Legacy Fallback**: Non-gated queries use established pipeline
 
 ### Service Health Status
 
@@ -53,25 +55,25 @@ The retrieval optimization system has been successfully deployed to production w
 
 ### Configuration Applied
 
-| Setting | Value | Description |
-|---------|--------|-------------|
-| `RAG_ENABLE_GATED_RETRIEVAL` | `true` | Master feature flag |
-| `RAG_GATED_RETRIEVAL_ROLLOUT_PERCENTAGE` | `0.1` | 10% A/B testing |
-| `RAG_VECTOR_RETRIEVER_TIMEOUT` | `0.15` | 150ms timeout |
-| `RAG_BM25_RETRIEVER_TIMEOUT` | `0.20` | 200ms timeout |
-| `RAG_DELAYED_STREAMING_ENABLED` | `true` | Streaming optimizations |
-| `RAG_RRF_K` | `60` | Recall-preserving RRF |
-| `RAG_ENABLE_DEDUPLICATION` | `true` | Conservative dedup (0.82) |
-| `RAG_ENABLE_L2_RETRIEVAL_CACHE` | `true` | 7-day TTL cache |
+| Setting                                  | Value  | Description               |
+| ---------------------------------------- | ------ | ------------------------- |
+| `RAG_ENABLE_GATED_RETRIEVAL`             | `true` | Master feature flag       |
+| `RAG_GATED_RETRIEVAL_ROLLOUT_PERCENTAGE` | `0.1`  | 10% A/B testing           |
+| `RAG_VECTOR_RETRIEVER_TIMEOUT`           | `0.15` | 150ms timeout             |
+| `RAG_BM25_RETRIEVER_TIMEOUT`             | `0.20` | 200ms timeout             |
+| `RAG_DELAYED_STREAMING_ENABLED`          | `true` | Streaming optimizations   |
+| `RAG_RRF_K`                              | `60`   | Recall-preserving RRF     |
+| `RAG_ENABLE_DEDUPLICATION`               | `true` | Conservative dedup (0.82) |
+| `RAG_ENABLE_L2_RETRIEVAL_CACHE`          | `true` | 7-day TTL cache           |
 
 ### Observed Performance
 
-| Metric | Gated Pipeline | Legacy Pipeline | Notes |
-|--------|----------------|-----------------|--------|
-| **Retrieval Time** | ~7.9s | ~4.6s | Gated includes optimization overhead |
-| **Document Count** | 13 docs | 7 docs | Gated retrieves more comprehensively |
-| **Optimization Events** | ✅ Present | ❌ None | Clear differentiation |
-| **Error Rate** | 0% | 0% | No degradation |
+| Metric                  | Gated Pipeline | Legacy Pipeline | Notes                                |
+| ----------------------- | -------------- | --------------- | ------------------------------------ |
+| **Retrieval Time**      | ~7.9s          | ~4.6s           | Gated includes optimization overhead |
+| **Document Count**      | 13 docs        | 7 docs          | Gated retrieves more comprehensively |
+| **Optimization Events** | ✅ Present     | ❌ None         | Clear differentiation                |
+| **Error Rate**          | 0%             | 0%              | No degradation                       |
 
 ## 🏗️ Implementation Architecture
 
@@ -79,10 +81,10 @@ The retrieval optimization system has been successfully deployed to production w
 
 1. **✅ A/B Testing Framework**
    - Hash-based consistent user assignment
-   - 10% rollout percentage 
+   - 10% rollout percentage
    - Logging of assignment decisions
 
-2. **✅ Gated Retrieval Pipeline** 
+2. **✅ Gated Retrieval Pipeline**
    - Optimized timeouts per retriever type
    - Enhanced metrics collection
    - Fallback to legacy pipeline on errors
@@ -115,14 +117,14 @@ if use_gated_retrieval:
 
 ### A/B Hash Distribution Testing
 
-| Query | Hash | Percentage | Assignment | ✅ Verified |
-|-------|------|------------|------------|-------------|
-| "test" | 0.890 | 89.0% | LEGACY | ✅ |
-| "hello" | 0.540 | 54.0% | LEGACY | ✅ |
-| "meal allowance" | 0.060 | 6.0% | GATED | ✅ |
-| "travel" | 0.990 | 99.0% | LEGACY | ✅ |
-| "toronto" | 0.560 | 56.0% | LEGACY | ✅ |
-| "deployment" | 0.000 | 0.0% | GATED | ✅ |
+| Query            | Hash  | Percentage | Assignment | ✅ Verified |
+| ---------------- | ----- | ---------- | ---------- | ----------- |
+| "test"           | 0.890 | 89.0%      | LEGACY     | ✅          |
+| "hello"          | 0.540 | 54.0%      | LEGACY     | ✅          |
+| "meal allowance" | 0.060 | 6.0%       | GATED      | ✅          |
+| "travel"         | 0.990 | 99.0%      | LEGACY     | ✅          |
+| "toronto"        | 0.560 | 56.0%      | LEGACY     | ✅          |
+| "deployment"     | 0.000 | 0.0%       | GATED      | ✅          |
 
 ### Component Integration Testing
 
@@ -135,8 +137,9 @@ if use_gated_retrieval:
 ## 🔧 Optimization Components Status
 
 ### Core Components (Implemented & Tested)
+
 - **✅ RRF Merger** (`app/components/rrf_merger.py`) - Reciprocal Rank Fusion
-- **✅ Deduplicator** (`app/components/deduplicator.py`) - Conservative duplicate removal  
+- **✅ Deduplicator** (`app/components/deduplicator.py`) - Conservative duplicate removal
 - **✅ L2 Retrieval Cache** (`app/services/retrieval_cache.py`) - Result caching
 - **✅ Uncertainty Scorer** (`app/components/uncertainty_scorer.py`) - Query analysis
 - **✅ BM25 Gating** (`app/components/bm25_gating.py`) - Smart BM25 activation
@@ -146,6 +149,7 @@ if use_gated_retrieval:
 - **✅ Delayed Streaming** (`app/components/delayed_head_streaming.py`) - Optimized response timing
 
 ### Integration Status
+
 - **✅ Configuration**: All parameters integrated into `app/core/config.py`
 - **⚠️ Advanced Components**: Temporarily simplified for stable deployment
 - **✅ A/B Testing**: Full integration with hash-based assignment
@@ -153,27 +157,32 @@ if use_gated_retrieval:
 
 ## 🚀 Production Deployment Strategy
 
-### Current Status: Stage 1 ✅ 
+### Current Status: Stage 1 ✅
+
 **10% Rollout Active** - Initial validation phase
 
 ### Next Steps
 
 #### Stage 2: 25% Rollout (After 24h validation)
+
 ```bash
 python3 scripts/rollback_retrieval.py enable --percentage 0.25
 ```
 
-#### Stage 3: 50% Rollout (After 48h total)  
+#### Stage 3: 50% Rollout (After 48h total)
+
 ```bash
 python3 scripts/rollback_retrieval.py enable --percentage 0.5
 ```
 
 #### Stage 4: 100% Rollout (After 72h total)
+
 ```bash
 python3 scripts/rollback_retrieval.py enable --percentage 1.0
 ```
 
 ### Success Criteria for Each Stage
+
 - ✅ **Accuracy**: F1 score within ±1% of baseline
 - ✅ **Performance**: P50 latency improvements observed
 - ✅ **Reliability**: No increase in error rates
@@ -182,6 +191,7 @@ python3 scripts/rollback_retrieval.py enable --percentage 1.0
 ## 🔄 Rollback Capabilities
 
 ### Emergency Rollback
+
 ```bash
 # Immediate rollback to legacy pipeline
 python3 scripts/rollback_retrieval.py disable
@@ -189,6 +199,7 @@ sudo systemctl restart rag-service
 ```
 
 ### Status Monitoring
+
 ```bash
 # Check current configuration
 python3 scripts/rollback_retrieval.py status
@@ -198,14 +209,16 @@ journalctl -f -u rag-service | grep -E "A/B test|gated|optimization"
 ```
 
 ### Rollback Triggers
+
 - F1 score drops >1% from baseline
-- P95 latency increases >30% 
+- P95 latency increases >30%
 - Error rate increases >5%
 - Service becomes unresponsive
 
 ## 📈 Monitoring & Observability
 
 ### Key Metrics to Track
+
 - **A/B Assignment Rate**: Should maintain ~10% gated queries
 - **Gated Pipeline Performance**: Retrieval time, document count
 - **Legacy Pipeline Baseline**: Ensure no degradation
@@ -213,6 +226,7 @@ journalctl -f -u rag-service | grep -E "A/B test|gated|optimization"
 - **User Experience**: Response quality and speed
 
 ### Monitoring Commands
+
 ```bash
 # Service health
 curl -X GET http://localhost:8000/api/v1/health
@@ -229,12 +243,14 @@ python3 scripts/rollback_retrieval.py status
 ## 📝 Lessons Learned
 
 ### Deployment Challenges Overcome
+
 1. **Import Errors**: Fixed `StreamingStrategy` → `StreamingDecision` naming mismatch
-2. **Parameter Mismatches**: Simplified component integration for stable deployment  
+2. **Parameter Mismatches**: Simplified component integration for stable deployment
 3. **Port Conflicts**: Resolved multiple uvicorn processes competing for port 8000
 4. **Environment Loading**: Added secure environment file to systemd service config
 
 ### Best Practices Applied
+
 1. **Gradual Rollout**: Started with 10% to minimize risk
 2. **Consistent A/B Testing**: Hash-based assignment ensures user consistency
 3. **Comprehensive Monitoring**: Multiple verification layers and metrics
@@ -244,6 +260,7 @@ python3 scripts/rollback_retrieval.py status
 ## 🎯 Success Metrics
 
 ### Deployment Success ✅
+
 - **✅ Zero Downtime**: Service remained available throughout deployment
 - **✅ A/B Testing**: Working correctly with 10% assignment rate
 - **✅ Performance**: Optimization events visible in gated queries
@@ -251,24 +268,28 @@ python3 scripts/rollback_retrieval.py status
 - **✅ Rollback Ready**: Emergency procedures tested and functional
 
 ### Performance Targets
+
 - **Target P50**: <250ms (measurement in progress)
-- **Target P95**: <500ms (measurement in progress)  
+- **Target P95**: <500ms (measurement in progress)
 - **Cache Hit Rate**: >40% (L2 cache active)
 - **Accuracy**: F1 score within ±1% (monitoring active)
 
 ## 📁 Related Files
 
 ### Configuration Files
+
 - `/var/www/cbthis/rag-service/.env` - Production environment variables
 - `/var/www/cbthis/rag-service/app/core/config.py` - Application configuration
 - `/etc/systemd/system/rag-service.service` - Service definition
 
-### Optimization Components  
+### Optimization Components
+
 - `/var/www/cbthis/rag-service/app/components/` - All optimization components
 - `/var/www/cbthis/rag-service/app/tests/` - Comprehensive test suite
 - `/var/www/cbthis/rag-service/scripts/rollback_retrieval.py` - Rollback management
 
 ### Documentation
+
 - `/var/www/cbthis/rag-service/RETRIEVAL_OPTIMIZATION_PLAN.md` - Master plan (completed)
 - `/var/www/cbthis/rag-service/DEPLOYMENT_GUIDE.md` - Deployment procedures
 - `/var/www/cbthis/rag-service/RESULTS.md` - This file
@@ -278,7 +299,7 @@ python3 scripts/rollback_retrieval.py status
 The retrieval optimization deployment has been **completed successfully**. The system is now running in production with:
 
 - ✅ **10% A/B Testing Active** - Hash-based consistent assignment working
-- ✅ **All Optimization Components Deployed** - Ready for gradual scaling  
+- ✅ **All Optimization Components Deployed** - Ready for gradual scaling
 - ✅ **Zero Service Disruption** - Seamless integration with legacy fallback
 - ✅ **Comprehensive Monitoring** - Full observability and rollback capability
 - ✅ **Production Ready** - Stable, tested, and ready for scaling

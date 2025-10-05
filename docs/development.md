@@ -39,6 +39,7 @@ npm run dev
 ```
 
 This will start:
+
 - The main server on port 3000
 - The Vite development server with HMR
 

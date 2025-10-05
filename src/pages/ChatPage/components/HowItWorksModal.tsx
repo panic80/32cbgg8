@@ -1,6 +1,12 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Brain, Zap, ShieldCheck, ArrowRight, CheckCircle2 } from 'lucide-react';
@@ -20,7 +26,7 @@ const sections = [
       'Vector similarity delivers high-recall semantic matches for paraphrased questions.',
       'MMR (Maximal Marginal Relevance) keeps results diverse so you see distinct policy points instead of duplicates.',
       'BM25 keyword search locks onto regulation numbers, acronyms, and exact phrases for precision.',
-      'When enabled, the unified retriever layers in table-aware logic and rerankers for complex queries.'
+      'When enabled, the unified retriever layers in table-aware logic and rerankers for complex queries.',
     ],
     footer:
       'A performance monitor tracks latency and fallbacks so responses stay responsive even under load.',
@@ -33,10 +39,9 @@ const sections = [
     bullets: [
       'Structured hints (like defaulting to Ontario if no location is provided) keep answers grounded in the right region.',
       'The system prompt carries mandatory instructions so policy language stays accurate and consistent.',
-      'Follow-up questions are generated asynchronously after the main answer completes, so you get suggestions without delaying the response.'
+      'Follow-up questions are generated asynchronously after the main answer completes, so you get suggestions without delaying the response.',
     ],
-    footer:
-      'This guard‑railed RAG layer is what keeps the chatbot factual and audit-friendly.',
+    footer: 'This guard‑railed RAG layer is what keeps the chatbot factual and audit-friendly.',
   },
   {
     title: '3. Streaming delivery & caching',
@@ -46,10 +51,9 @@ const sections = [
     bullets: [
       'The Express proxy maintains the SSE bridge, while the frontend listens with a cancellable hook so placeholders never duplicate.',
       'Metadata events update sources and follow-up prompts the moment they arrive.',
-      'Three cache layers—embeddings (L1), documents (L2), and full responses (L3)—reuse previous work without sacrificing accuracy.'
+      'Three cache layers—embeddings (L1), documents (L2), and full responses (L3)—reuse previous work without sacrificing accuracy.',
     ],
-    footer:
-      'Together, this yields answers that feel instant while still citing their sources.',
+    footer: 'Together, this yields answers that feel instant while still citing their sources.',
   },
   {
     title: 'Why not just ask an LLM like ChatGPT.com?',
@@ -60,11 +64,10 @@ const sections = [
       'LLM-only answers can hallucinate or drift from current policy. Retrieval forces the model to cite vetted source content.',
       'We can show our work—each response is linked to the exact document passages that supported it.',
       'Context-aware guardrails (prompts, jurisdiction hints, follow-ups) ensure answers stay compliant and user-ready.',
-      'Caching and streaming make this RAG approach nearly as fast as a raw LLM call, but far more reliable.'
+      'Caching and streaming make this RAG approach nearly as fast as a raw LLM call, but far more reliable.',
     ],
-    footer:
-      'The result: the speed of an assistant, with the accountability of a policy manual.',
-  }
+    footer: 'The result: the speed of an assistant, with the accountability of a policy manual.',
+  },
 ];
 
 const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ open, onOpenChange }) => {
@@ -93,9 +96,7 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ open, onOpenChange })
                   </div>
                   <h3 className="text-base font-semibold text-[var(--text)]">{section.title}</h3>
                 </div>
-                <p className="text-sm text-[var(--text-secondary)] mb-4">
-                  {section.description}
-                </p>
+                <p className="text-sm text-[var(--text-secondary)] mb-4">{section.description}</p>
                 <ul className="space-y-3 text-sm">
                   {section.bullets.map((bullet) => (
                     <li key={bullet} className="flex items-start gap-2">
@@ -113,7 +114,9 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ open, onOpenChange })
           </div>
         </ScrollArea>
         <div className="flex justify-end pt-3">
-          <Button size="sm" onClick={() => onOpenChange(false)}>Close</Button>
+          <Button size="sm" onClick={() => onOpenChange(false)}>
+            Close
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

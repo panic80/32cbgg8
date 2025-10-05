@@ -8,8 +8,8 @@ interface CategorizedSuggestionsProps {
   onSuggestionClick: (title: string) => void;
 }
 
-export const CategorizedSuggestions: React.FC<CategorizedSuggestionsProps> = ({ 
-  onSuggestionClick 
+export const CategorizedSuggestions: React.FC<CategorizedSuggestionsProps> = ({
+  onSuggestionClick,
 }) => {
   const [activeTab, setActiveTab] = useState(CATEGORIZED_SUGGESTIONS[0]?.id || '');
 
@@ -56,9 +56,8 @@ export const CategorizedSuggestions: React.FC<CategorizedSuggestionsProps> = ({
     .variant-b [data-state="active"][role="tab"]::after { background: linear-gradient(90deg, var(--primary), var(--primary-hover)); }
   `;
 
-
   const renderQuestionGrid = (questions: any[]) => (
-    <motion.div 
+    <motion.div
       className="grid grid-cols-1 sm:grid-cols-2 gap-4"
       initial="hidden"
       animate="visible"
@@ -67,9 +66,9 @@ export const CategorizedSuggestions: React.FC<CategorizedSuggestionsProps> = ({
         visible: {
           opacity: 1,
           transition: {
-            staggerChildren: 0.1
-          }
-        }
+            staggerChildren: 0.1,
+          },
+        },
       }}
     >
       {questions.map((item, index) => (
@@ -77,7 +76,7 @@ export const CategorizedSuggestions: React.FC<CategorizedSuggestionsProps> = ({
           key={`${item.title}-${index}`}
           variants={{
             hidden: { y: 20, opacity: 0 },
-            visible: { y: 0, opacity: 1 }
+            visible: { y: 0, opacity: 1 },
           }}
           whileHover={{ scale: 1.02, y: -2 }}
           whileTap={{ scale: 0.98 }}
@@ -108,7 +107,7 @@ export const CategorizedSuggestions: React.FC<CategorizedSuggestionsProps> = ({
   return (
     <div className={`w-full max-w-4xl mx-auto ${variant === 'B' ? 'variant-b' : 'variant-a'}`}>
       <style dangerouslySetInnerHTML={{ __html: tabStyles }} />
-      <motion.h2 
+      <motion.h2
         className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 gradient-text text-center"
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -125,14 +124,16 @@ export const CategorizedSuggestions: React.FC<CategorizedSuggestionsProps> = ({
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="w-full mb-6 h-auto">
             {CATEGORIZED_SUGGESTIONS.map((category) => (
-              <TabsTrigger 
-                key={category.id} 
+              <TabsTrigger
+                key={category.id}
                 value={category.id}
                 className="flex flex-col items-center gap-1 p-3 text-xs sm:text-sm rounded-md transition-all duration-200"
               >
                 <span className="text-lg">{category.icon}</span>
                 <span className="hidden sm:inline">{category.label}</span>
-                <span className="sm:hidden">{category.shortLabel ?? category.label.split(' ')[0]}</span>
+                <span className="sm:hidden">
+                  {category.shortLabel ?? category.label.split(' ')[0]}
+                </span>
               </TabsTrigger>
             ))}
           </TabsList>

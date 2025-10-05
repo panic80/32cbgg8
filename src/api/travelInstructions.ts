@@ -84,7 +84,7 @@ export const setCachedData = async (content: string): Promise<void> => {
           content,
           timestamp: Date.now(),
         },
-        CACHE_CONFIG.CACHE_KEY
+        CACHE_CONFIG.CACHE_KEY,
       );
 
       request.onerror = () => reject(request.error ?? new Error('Failed to write to IndexedDB'));
@@ -119,7 +119,9 @@ export const fetchWithRetry = async (apiUrl: string, maxRetries = 3): Promise<Re
           });
         }
 
-        console.warn(`Retry attempt ${maxRetries - retries + 1}: Server responded with ${error.status}`);
+        console.warn(
+          `Retry attempt ${maxRetries - retries + 1}: Server responded with ${error.status}`,
+        );
         retries -= 1;
 
         if (retries <= 0) {
@@ -222,7 +224,9 @@ export const fetchTravelInstructions = async (): Promise<string> => {
         console.error('Error fetching from API:', error);
 
         if (error instanceof ChatError && error.type === ChatErrorType.ENDPOINT_NOT_FOUND) {
-          console.warn('Travel instructions API endpoint not found. Ensure the server is running on port 3003');
+          console.warn(
+            'Travel instructions API endpoint not found. Ensure the server is running on port 3003',
+          );
         }
 
         if (error instanceof ChatError) {

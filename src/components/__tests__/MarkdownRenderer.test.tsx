@@ -6,7 +6,7 @@ import { MarkdownRenderer } from '@/components/ui/markdown-renderer';
 describe('MarkdownRenderer', () => {
   it('renders plain text when encountering acronyms', () => {
     const { container } = render(
-      <MarkdownRenderer>{'CAF members rely on official CAF guidance.'}</MarkdownRenderer>
+      <MarkdownRenderer>{'CAF members rely on official CAF guidance.'}</MarkdownRenderer>,
     );
 
     const paragraph = container.querySelector('p');

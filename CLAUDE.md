@@ -5,16 +5,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Development Commands
 
 ### Primary Development
+
 - `npm run dev` - Start frontend development server (port 3001)
 - `npm run dev:server` - Start backend Express server (port 3000)
 - `npm run dev:full` - Start both servers concurrently
 - `./start-dev.sh` - Development script with cleanup
 
 ### RAG Service (Python)
+
 - `cd rag-service && uvicorn app.main:app --reload --port 8000` - Start RAG service
 - `cd rag-service && ./setup.sh` - Initial setup for RAG service
 
 ### Building & Testing
+
 - `npm run build` - Production build
 - `npm run build:staging` - Staging build with staging environment
 - `npm run build:production` - Production build with production environment
@@ -25,6 +28,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run typecheck` - Run TypeScript type checking
 
 ### Health Checks & Deployment
+
 - `npm run health-check:local` - Verify local services
 - `npm run deploy:staging:script` - Deploy to staging
 - `npm run deploy:production:script` - Deploy to production
@@ -40,12 +44,14 @@ This is a Canadian Forces Travel Instructions Chatbot with a multi-service archi
 **RAG Service**: Python/FastAPI with LangChain for document retrieval and citation
 
 ### Service Ports
+
 - Frontend dev server: 3001
 - Express backend: 3000
 - RAG service: 8000
 - Redis cache: 6379
 
 ### Key Directories
+
 - `/src/` - React frontend code
 - `/server/` - Express.js backend
 - `/rag-service/` - Python RAG service with LangChain
@@ -56,6 +62,7 @@ This is a Canadian Forces Travel Instructions Chatbot with a multi-service archi
 Environment files: `.env`, `.env.development`, `.env.staging`, `.env.production`
 
 Critical environment variables:
+
 - `GEMINI_API_KEY` - Google Gemini API key
 - `OPENAI_API_KEY` - OpenAI API key
 - `ANTHROPIC_API_KEY` - Anthropic API key
@@ -75,6 +82,7 @@ Critical environment variables:
 Test files location: `src/**/*.{test,spec}.{js,jsx,ts,tsx}`
 
 ### Running Tests
+
 - `npm run test` - Run all tests once
 - `npm run test:watch` - Run tests in watch mode
 - `npm run test:coverage` - Generate coverage report

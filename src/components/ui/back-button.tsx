@@ -49,26 +49,21 @@ export const BackButton: React.FC<BackButtonProps> = ({
         'group flex items-center gap-2 transition-all duration-200',
         'hover:bg-muted/80 hover:shadow-sm',
         'focus-visible:ring-2 focus-visible:ring-primary',
-        className
+        className,
       )}
       ripple
       aria-label={`${label} - Navigate to previous page`}
     >
-      <ArrowLeft 
+      <ArrowLeft
         className={cn(
           'transition-transform duration-200 ease-out',
           'group-hover:-translate-x-1',
           size === 'sm' && 'h-4 w-4',
           size === 'default' && 'h-5 w-5',
-          size === 'lg' && 'h-6 w-6'
+          size === 'lg' && 'h-6 w-6',
         )}
       />
-      <span className={cn(
-        'font-medium',
-        iconOnlyMobile && 'hidden sm:inline-block'
-      )}>
-        {label}
-      </span>
+      <span className={cn('font-medium', iconOnlyMobile && 'hidden sm:inline-block')}>{label}</span>
     </AnimatedButton>
   );
 };
@@ -91,9 +86,7 @@ export const PageHeaderWithBack: React.FC<{
         {children}
       </div>
       <h1 className="h1 text-fluid-4xl font-bold text-foreground mb-2">{title}</h1>
-      {description && (
-        <p className="body-lg text-muted-foreground">{description}</p>
-      )}
+      {description && <p className="body-lg text-muted-foreground">{description}</p>}
     </div>
   );
 };

@@ -40,5 +40,5 @@ All other retriever components are actively used:
 ## Recommended Next Steps
 
 1. Delete `app/components/table_multi_vector_retriever.py`
-2. Clean up backup files (*.backup_*) in the components directory
+2. Clean up backup files (\_.backup\_\_) in the components directory
 3. Consider implementing the TableMultiVectorRetriever functionality if table-specific retrieval becomes necessary in the future

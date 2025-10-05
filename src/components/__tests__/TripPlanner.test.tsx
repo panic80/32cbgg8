@@ -10,7 +10,9 @@ vi.mock('@/components/ui/sheet', () => ({
   SheetDescription: ({ children }: { children: React.ReactNode }) => <p>{children}</p>,
   SheetHeader: ({ children }: { children: React.ReactNode }) => <header>{children}</header>,
   SheetTitle: ({ children }: { children: React.ReactNode }) => <h2>{children}</h2>,
-  SheetTrigger: ({ children }: { children: React.ReactNode }) => <button type="button">{children}</button>,
+  SheetTrigger: ({ children }: { children: React.ReactNode }) => (
+    <button type="button">{children}</button>
+  ),
 }));
 
 vi.mock('@/components/ui/select', () => ({
@@ -32,7 +34,15 @@ vi.mock('@/components/ui/calendar', () => ({
 }));
 
 vi.mock('@/components/PlaceAutocompleteSimple', () => ({
-  PlaceAutocompleteSimple: ({ value, onChange, placeholder }: { value: string; onChange: (next: string) => void; placeholder?: string }) => (
+  PlaceAutocompleteSimple: ({
+    value,
+    onChange,
+    placeholder,
+  }: {
+    value: string;
+    onChange: (next: string) => void;
+    placeholder?: string;
+  }) => (
     <input
       data-testid="autocomplete"
       value={value}
@@ -43,7 +53,13 @@ vi.mock('@/components/PlaceAutocompleteSimple', () => ({
 }));
 
 vi.mock('@/components/ui/checkbox', () => ({
-  Checkbox: ({ checked, onCheckedChange }: { checked?: boolean; onCheckedChange?: (next: boolean) => void }) => (
+  Checkbox: ({
+    checked,
+    onCheckedChange,
+  }: {
+    checked?: boolean;
+    onCheckedChange?: (next: boolean) => void;
+  }) => (
     <input
       data-testid="checkbox"
       type="checkbox"

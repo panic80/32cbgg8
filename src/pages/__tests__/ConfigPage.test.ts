@@ -36,9 +36,7 @@ vi.mock('@/components/IngestionConsole', () => {
   return {
     __esModule: true,
     default: ({ url }: { url: string }) =>
-      url
-        ? React.createElement('div', { 'data-testid': 'ingestion-console' }, url)
-        : null,
+      url ? React.createElement('div', { 'data-testid': 'ingestion-console' }, url) : null,
   };
 });
 
@@ -58,11 +56,7 @@ vi.mock('@/components/ui/tabs', () => {
       onValueChange?.(next);
     };
 
-    return React.createElement(
-      TabsContext.Provider,
-      { value: { active, setActive } },
-      children
-    );
+    return React.createElement(TabsContext.Provider, { value: { active, setActive } }, children);
   };
 
   const TabsList = ({ children, ...rest }: any) =>
@@ -83,7 +77,7 @@ vi.mock('@/components/ui/tabs', () => {
         onClick: () => setActive(value),
         ...rest,
       },
-      children
+      children,
     );
   };
 
@@ -181,11 +175,12 @@ describe('ConfigPage', () => {
     };
 
     (fetchMock as any).mockImplementation((input: RequestInfo | URL) => {
-      const url = typeof input === 'string'
-        ? input
-        : input instanceof URL
-          ? input.toString()
-          : (input as any).url ?? input.toString();
+      const url =
+        typeof input === 'string'
+          ? input
+          : input instanceof URL
+            ? input.toString()
+            : ((input as any).url ?? input.toString());
 
       if (url === '/api/v2/sources/stats') {
         return Promise.resolve({
@@ -216,7 +211,10 @@ describe('ConfigPage', () => {
     });
 
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith('/api/v2/sources?page=1&page_size=100', expect.anything());
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/v2/sources?page=1&page_size=100',
+        expect.anything(),
+      );
     });
 
     expect(await screen.findByText('Handbook Overview')).toBeInTheDocument();
@@ -233,11 +231,12 @@ describe('ConfigPage', () => {
 
   it('clears ingestion progress when the ingest request fails', async () => {
     (fetchMock as any).mockImplementation((input: RequestInfo | URL) => {
-      const url = typeof input === 'string'
-        ? input
-        : input instanceof URL
-          ? input.toString()
-          : (input as any).url ?? input.toString();
+      const url =
+        typeof input === 'string'
+          ? input
+          : input instanceof URL
+            ? input.toString()
+            : ((input as any).url ?? input.toString());
 
       if (url === '/api/v2/ingest') {
         return Promise.resolve({
@@ -308,11 +307,12 @@ describe('ConfigPage', () => {
     };
 
     (fetchMock as any).mockImplementation((input: RequestInfo | URL) => {
-      const url = typeof input === 'string'
-        ? input
-        : input instanceof URL
-          ? input.toString()
-          : (input as any).url ?? input.toString();
+      const url =
+        typeof input === 'string'
+          ? input
+          : input instanceof URL
+            ? input.toString()
+            : ((input as any).url ?? input.toString());
 
       if (url.startsWith('/api/admin/chat-logs?')) {
         return Promise.resolve({
@@ -333,14 +333,20 @@ describe('ConfigPage', () => {
 
     await waitFor(() => {
       const calls = fetchMock.mock.calls as Array<[RequestInfo | URL]>;
-      expect(calls.some(([requestUrl]) => {
-        const urlString = typeof requestUrl === 'string'
-          ? requestUrl
-          : requestUrl instanceof URL
-            ? requestUrl.toString()
-            : (requestUrl as any).url ?? requestUrl.toString();
-        return typeof urlString === 'string' && urlString.startsWith('/api/admin/chat-logs?limit=20&offset=0');
-      })).toBe(true);
+      expect(
+        calls.some(([requestUrl]) => {
+          const urlString =
+            typeof requestUrl === 'string'
+              ? requestUrl
+              : requestUrl instanceof URL
+                ? requestUrl.toString()
+                : ((requestUrl as any).url ?? requestUrl.toString());
+          return (
+            typeof urlString === 'string' &&
+            urlString.startsWith('/api/admin/chat-logs?limit=20&offset=0')
+          );
+        }),
+      ).toBe(true);
     });
 
     expect(await screen.findByText('How do I submit my travel claim?')).toBeInTheDocument();
@@ -378,11 +384,12 @@ describe('ConfigPage', () => {
     };
 
     (fetchMock as any).mockImplementation((input: RequestInfo | URL) => {
-      const url = typeof input === 'string'
-        ? input
-        : input instanceof URL
-          ? input.toString()
-          : (input as any).url ?? input.toString();
+      const url =
+        typeof input === 'string'
+          ? input
+          : input instanceof URL
+            ? input.toString()
+            : ((input as any).url ?? input.toString());
 
       if (url.startsWith('/api/admin/analytics/visits')) {
         return Promise.resolve({

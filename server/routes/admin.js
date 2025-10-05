@@ -3,11 +3,7 @@ import { Router } from 'express';
 const toStringOrUndefined = (value) =>
   typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
 
-const createAdminRoutes = ({
-  rateLimiter,
-  performanceHandler,
-  chatLogger,
-}) => {
+const createAdminRoutes = ({ rateLimiter, performanceHandler, chatLogger }) => {
   const router = Router();
 
   console.log('Registering /api/admin/performance route');

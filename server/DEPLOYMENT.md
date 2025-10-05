@@ -35,6 +35,7 @@ The following security enhancements have been implemented to make the applicatio
 ## Deployment Instructions
 
 ### Prerequisites
+
 - Hostinger VPS with Node.js 18+ installed
 - Domain name configured with DNS pointing to the VPS
 - SSH access to the server
@@ -136,7 +137,7 @@ server {
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
         proxy_cache_bypass $http_upgrade;
-        
+
         # Additional rate limiting at Nginx level
         limit_req zone=api burst=10 nodelay;
         limit_req_status 429;

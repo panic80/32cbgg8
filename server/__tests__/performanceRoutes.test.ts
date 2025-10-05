@@ -13,7 +13,12 @@ describe('performance routes', () => {
     };
 
     const app = express();
-    app.get('/api/admin/performance', noopAdminAuth, noopRateLimiter, createPerformanceHandler({ service: mockService }));
+    app.get(
+      '/api/admin/performance',
+      noopAdminAuth,
+      noopRateLimiter,
+      createPerformanceHandler({ service: mockService }),
+    );
 
     const response = await request(app).get('/api/admin/performance');
 
@@ -28,7 +33,12 @@ describe('performance routes', () => {
     };
 
     const app = express();
-    app.get('/api/admin/performance', noopAdminAuth, noopRateLimiter, createPerformanceHandler({ service: mockService }));
+    app.get(
+      '/api/admin/performance',
+      noopAdminAuth,
+      noopRateLimiter,
+      createPerformanceHandler({ service: mockService }),
+    );
 
     const response = await request(app).get('/api/admin/performance');
 
@@ -42,7 +52,12 @@ describe('performance routes', () => {
     };
 
     const app = express();
-    app.get('/api/admin/performance', noopAdminAuth, noopRateLimiter, createPerformanceHandler({ service: mockService }));
+    app.get(
+      '/api/admin/performance',
+      noopAdminAuth,
+      noopRateLimiter,
+      createPerformanceHandler({ service: mockService }),
+    );
 
     await request(app).get('/api/admin/performance?forceRefresh=true');
 

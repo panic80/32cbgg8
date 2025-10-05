@@ -326,7 +326,16 @@ const createChatRoutes = ({
   });
 
   router.post('/api/v2/chat/stream', rateLimiter, async (req, res) => {
-    const { message, model, provider, chatHistory, conversationId, useRAG = true, shortAnswerMode = false, useHybridSearch = false } = req.body;
+    const {
+      message,
+      model,
+      provider,
+      chatHistory,
+      conversationId,
+      useRAG = true,
+      shortAnswerMode = false,
+      useHybridSearch = false,
+    } = req.body;
 
     if (!message || typeof message !== 'string' || message.trim().length === 0) {
       return res.status(400).json({
@@ -345,12 +354,18 @@ const createChatRoutes = ({
       });
 
       const recentHistoryText = Array.isArray(chatHistory)
-        ? chatHistory.slice(-5).map((h) => (h && typeof h.content === 'string' ? h.content : '')).join(' \n ')
+        ? chatHistory
+            .slice(-5)
+            .map((h) => (h && typeof h.content === 'string' ? h.content : ''))
+            .join(' \n ')
         : '';
       const combinedText = `${message}\n${recentHistoryText}`.toLowerCase();
-      const locationRegex = /\b(ontario|canada|alberta|british columbia|manitoba|saskatchewan|qu[eé]bec|nova scotia|new brunswick|newfoundland|labrador|prince edward island|pei|yukon|nunavut|northwest territories|toronto|ottawa|vancouver|calgary|edmonton|montreal|winnipeg|regina|halifax|saint john|st\.?\s*john'?s|charlottetown)\b/;
+      const locationRegex =
+        /\b(ontario|canada|alberta|british columbia|manitoba|saskatchewan|qu[eé]bec|nova scotia|new brunswick|newfoundland|labrador|prince edward island|pei|yukon|nunavut|northwest territories|toronto|ottawa|vancouver|calgary|edmonton|montreal|winnipeg|regina|halifax|saint john|st\.?\s*john'?s|charlottetown)\b/;
       const hasExplicitLocation = locationRegex.test(combinedText);
-      const jurisdiction = hasExplicitLocation ? undefined : { region: 'Ontario', country: 'Canada' };
+      const jurisdiction = hasExplicitLocation
+        ? undefined
+        : { region: 'Ontario', country: 'Canada' };
 
       const ragServiceUrl = DEFAULT_RAG_SERVICE_URL;
       const ragStreamTimeout = parseInt(process.env.RAG_STREAM_TIMEOUT || '120000', 10);
@@ -429,7 +444,12 @@ const createChatRoutes = ({
             }
           } catch (parseError) {
             if (data !== '') {
-              console.error('Error parsing SSE event:', parseError, 'Data:', data.substring(0, 100));
+              console.error(
+                'Error parsing SSE event:',
+                parseError,
+                'Data:',
+                data.substring(0, 100),
+              );
             }
           }
         }

@@ -5,6 +5,7 @@ This directory contains scripts for automating deployment, health checks, and ro
 ## Scripts Overview
 
 ### 1. `deploy.sh` - Deployment Script
+
 Handles full deployment to staging or production environments.
 
 ```bash
@@ -21,6 +22,7 @@ npm run deploy:production:script
 ```
 
 **Features:**
+
 - Automated testing before deployment
 - Environment-specific builds
 - Atomic deployments with symlinks
@@ -28,6 +30,7 @@ npm run deploy:production:script
 - Release cleanup (keeps last 3-5 releases)
 
 ### 2. `health-check.sh` - Health Monitoring
+
 Comprehensive health check with detailed reporting.
 
 ```bash
@@ -46,6 +49,7 @@ npm run health-check:production
 ```
 
 **Features:**
+
 - HTTP endpoint validation
 - JSON response parsing
 - System resource monitoring
@@ -53,6 +57,7 @@ npm run health-check:production
 - Configurable timeouts and retries
 
 ### 3. `rollback.sh` - Emergency Rollback
+
 Quick rollback to previous releases.
 
 ```bash
@@ -69,6 +74,7 @@ npm run rollback:production:script
 ```
 
 **Features:**
+
 - Safe rollback with backup creation
 - Release validation
 - Automatic health checks after rollback
@@ -80,6 +86,7 @@ npm run rollback:production:script
 ### Required Environment Variables
 
 For production deployments, ensure these variables are set:
+
 - `SSH_PRIVATE_KEY` - Path to SSH private key
 - Server access via SSH key authentication
 
@@ -121,8 +128,8 @@ module.exports = {
       cwd: '/home/user/apps/cf-travel-bot/current',
       env: {
         NODE_ENV: 'production',
-        PORT: 3000
-      }
+        PORT: 3000,
+      },
     },
     {
       name: 'cf-travel-bot-staging',
@@ -130,11 +137,11 @@ module.exports = {
       cwd: '/home/user/apps/cf-travel-bot-staging/current',
       env: {
         NODE_ENV: 'staging',
-        PORT: 3001
-      }
-    }
-  ]
-}
+        PORT: 3001,
+      },
+    },
+  ],
+};
 ```
 
 ## CI/CD Integration
@@ -154,6 +161,7 @@ These scripts are designed to work with GitHub Actions. See `.github/workflows/d
 ### Common Issues
 
 1. **Permission Denied**
+
    ```bash
    chmod +x scripts/*.sh
    ```
@@ -176,6 +184,7 @@ These scripts are designed to work with GitHub Actions. See `.github/workflows/d
 ### Debug Mode
 
 Run scripts with debug output:
+
 ```bash
 bash -x ./scripts/deploy.sh staging ubuntu server.com
 ```
@@ -183,6 +192,7 @@ bash -x ./scripts/deploy.sh staging ubuntu server.com
 ### Manual Recovery
 
 If automated rollback fails:
+
 ```bash
 # Connect to server
 ssh user@server
@@ -208,8 +218,8 @@ pm2 reload cf-travel-bot-prod
 ## Monitoring
 
 Scripts provide detailed logging and status reporting. Monitor deployments through:
+
 - GitHub Actions workflow logs
 - Server application logs (`pm2 logs`)
 - Health check endpoints
 - PM2 monitoring (`pm2 monit`)
- 

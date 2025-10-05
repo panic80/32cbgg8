@@ -32,12 +32,7 @@ import RouteSkeleton from './components/RouteSkeleton';
 function App() {
   // Use global theme context
   const { theme, toggleTheme } = useTheme();
-  const prefetchTargets = useMemo(
-    () => [
-      () => import('./pages/ChatPage'),
-    ],
-    []
-  );
+  const prefetchTargets = useMemo(() => [() => import('./pages/ChatPage')], []);
 
   useRoutePrefetch(prefetchTargets);
   useMobileFlag();
@@ -46,8 +41,11 @@ function App() {
     <Router>
       <VisitAnalyticsListener />
       <ScrollToTop />
-      <div id="app-scroll-root" className="w-screen min-h-screen overflow-x-hidden overflow-y-auto m-0 p-0 max-w-[100vw]">
-        <Toaster 
+      <div
+        id="app-scroll-root"
+        className="w-screen min-h-screen overflow-x-hidden overflow-y-auto m-0 p-0 max-w-[100vw]"
+      >
+        <Toaster
           position="top-right"
           toastOptions={{
             style: {
@@ -57,7 +55,7 @@ function App() {
             },
           }}
         />
-        <Suspense fallback={<RouteSkeleton /> }>
+        <Suspense fallback={<RouteSkeleton />}>
           <Routes>
             <Route path="/" element={<LandingPageTest />} />
             <Route path="/opi" element={<OPIPage />} />
@@ -69,16 +67,22 @@ function App() {
             <Route path="/home-v2" element={<LandingPageV2 />} />
             <Route path="/landing-test" element={<LandingPage />} />
             <Route path="/faq" element={<FAQPage />} />
-            <Route path="/coming-soon-1" element={
-              <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Coming Soon</h1>
-              </div>
-            } />
-            <Route path="/coming-soon-2" element={
-              <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Coming Soon</h1>
-              </div>
-            } />
+            <Route
+              path="/coming-soon-1"
+              element={
+                <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
+                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Coming Soon</h1>
+                </div>
+              }
+            />
+            <Route
+              path="/coming-soon-2"
+              element={
+                <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
+                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Coming Soon</h1>
+                </div>
+              }
+            />
             <Route path="/loading-debug" element={<LoadingDebugPage />} />
             <Route path="/ui-showcase" element={<UIShowcase />} />
             <Route path="/admin/performance" element={<PerformanceDashboard />} />

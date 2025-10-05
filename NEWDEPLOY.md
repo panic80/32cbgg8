@@ -3,6 +3,7 @@
 ## Server Information
 
 ### VPS Specifications
+
 - **Provider**: Hostinger VPS
 - **IP Address**: 46.202.177.230
 - **Domain**: 32cbgg8.com
@@ -13,6 +14,7 @@
 - **Current Usage**: ~14% disk, ~1GB RAM used
 
 ### Pre-installed Software
+
 - **Node.js**: v20.18.3
 - **npm**: 11.1.0
 - **Python**: 3.12.3
@@ -21,11 +23,13 @@
 - **SSL**: Let's Encrypt certificates already configured
 
 ### Missing Components
+
 - **Redis**: Not installed (required for caching)
 - **Container runtime**: None installed (deployment relies on PM2/systemd)
 - **Python venv**: Needs setup for RAG service
 
 ### Current Deployment Status
+
 - **Existing deployment**: `/home/root/apps/cf-travel-bot/current` (PM2 managed)
 - **Old deployment**: `/var/www/32cbgg8.com` (outdated)
 - **Nginx**: Configured and running with SSL
@@ -106,6 +110,7 @@ apt install -y python3-venv python3-dev build-essential
 ### Phase 3: Deploy Application Files
 
 #### Option A: Using Git (Recommended)
+
 ```bash
 cd /var/www
 git clone https://github.com/yourusername/cbthis.git
@@ -113,6 +118,7 @@ cd cbthis
 ```
 
 #### Option B: Using SCP from local machine
+
 ```bash
 # From your local machine
 cd /Users/mattermost/Projects/32cbgg8/cbthis
@@ -434,6 +440,7 @@ htop
 ## Post-Deployment Tasks
 
 ### 1. Setup Log Rotation
+
 ```bash
 cat > /etc/logrotate.d/cbthis << 'EOF'
 /var/log/cbthis/*.log {
@@ -454,6 +461,7 @@ EOF
 ```
 
 ### 2. Setup Monitoring
+
 ```bash
 # Install monitoring tools
 apt install -y htop iotop nethogs
@@ -465,6 +473,7 @@ pm2 set pm2-logrotate:retain 7
 ```
 
 ### 3. Security Hardening
+
 ```bash
 # Install fail2ban
 apt install -y fail2ban
@@ -488,6 +497,7 @@ systemctl restart fail2ban
 ### Common Issues and Solutions
 
 1. **RAG Service Won't Start**
+
 ```bash
 # Check Python environment
 /var/www/cbthis/rag-service/venv/bin/python --version
@@ -498,6 +508,7 @@ journalctl -u cbthis-rag -n 50
 ```
 
 2. **PM2 Process Crashes**
+
 ```bash
 # Check PM2 logs
 pm2 logs cf-travel-bot --lines 100
@@ -507,6 +518,7 @@ pm2 restart cf-travel-bot
 ```
 
 3. **502 Bad Gateway**
+
 ```bash
 # Check if services are running
 netstat -tlnp | grep -E ':3000|:8000'
@@ -515,6 +527,7 @@ tail -f /var/log/nginx/32cbgg8.com.error.log
 ```
 
 4. **Redis Connection Issues**
+
 ```bash
 # Test Redis connection
 redis-cli ping

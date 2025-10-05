@@ -15,7 +15,9 @@ export default function LandingPageV2() {
     if (typeof navigator === 'undefined') return false;
     const ua = navigator.userAgent || '';
     const platform = navigator.platform || '';
-    return /iPhone|iPad|iPod/i.test(ua) || (platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    return (
+      /iPhone|iPad|iPod/i.test(ua) || (platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    );
   }, []);
 
   const handleAskSubmit = (e) => {
@@ -35,12 +37,23 @@ export default function LandingPageV2() {
             <span className="lpv2-brand-text">32 CBG G8</span>
           </Link>
           <nav className="lpv2-nav" aria-label="Primary">
-            <Link to="/chat" className="lpv2-nav-link">Chat</Link>
-            <a href={SITE_CONFIG.SCIP_PORTAL_URL} target={isIOS ? undefined : "_blank"} rel={isIOS ? undefined : "noopener noreferrer"} className="lpv2-nav-link">
+            <Link to="/chat" className="lpv2-nav-link">
+              Chat
+            </Link>
+            <a
+              href={SITE_CONFIG.SCIP_PORTAL_URL}
+              target={isIOS ? undefined : '_blank'}
+              rel={isIOS ? undefined : 'noopener noreferrer'}
+              className="lpv2-nav-link"
+            >
               SCIP <ExternalLink size={14} aria-hidden="true" />
             </a>
-            <Link to="/opi" className="lpv2-nav-link">OPI</Link>
-            <Link to="/faq" className="lpv2-nav-link">FAQ</Link>
+            <Link to="/opi" className="lpv2-nav-link">
+              OPI
+            </Link>
+            <Link to="/faq" className="lpv2-nav-link">
+              FAQ
+            </Link>
           </nav>
           <button
             type="button"
@@ -57,10 +70,17 @@ export default function LandingPageV2() {
       <main className="lpv2-main" role="main">
         <section className="lpv2-hero" aria-labelledby="lpv2-hero-title">
           <div className="lpv2-hero-inner">
-            <h1 id="lpv2-hero-title" className="lpv2-hero-title">32 CBG G8 Administration Hub</h1>
+            <h1 id="lpv2-hero-title" className="lpv2-hero-title">
+              32 CBG G8 Administration Hub
+            </h1>
             <p className="lpv2-hero-sub">Ask policy questions, submit claims, find contacts.</p>
 
-            <form className="lpv2-ask" onSubmit={handleAskSubmit} role="search" aria-label="Ask policy">
+            <form
+              className="lpv2-ask"
+              onSubmit={handleAskSubmit}
+              role="search"
+              aria-label="Ask policy"
+            >
               <input
                 type="text"
                 className="lpv2-ask-input"
@@ -76,10 +96,38 @@ export default function LandingPageV2() {
             </form>
 
             <div className="lpv2-chips" role="list">
-              <button type="button" className="lpv2-chip" onClick={() => quickAsk('What are the current mileage rates under CFTDTI?')} role="listitem">Mileage rates</button>
-              <button type="button" className="lpv2-chip" onClick={() => quickAsk('What are the meal per diem rates (CFTDTI)?')} role="listitem">Per diem</button>
-              <button type="button" className="lpv2-chip" onClick={() => quickAsk('How do I request a travel advance?')} role="listitem">Travel advance</button>
-              <button type="button" className="lpv2-chip" onClick={() => quickAsk('What receipt documentation do I need for travel claims?')} role="listitem">Receipts needed</button>
+              <button
+                type="button"
+                className="lpv2-chip"
+                onClick={() => quickAsk('What are the current mileage rates under CFTDTI?')}
+                role="listitem"
+              >
+                Mileage rates
+              </button>
+              <button
+                type="button"
+                className="lpv2-chip"
+                onClick={() => quickAsk('What are the meal per diem rates (CFTDTI)?')}
+                role="listitem"
+              >
+                Per diem
+              </button>
+              <button
+                type="button"
+                className="lpv2-chip"
+                onClick={() => quickAsk('How do I request a travel advance?')}
+                role="listitem"
+              >
+                Travel advance
+              </button>
+              <button
+                type="button"
+                className="lpv2-chip"
+                onClick={() => quickAsk('What receipt documentation do I need for travel claims?')}
+                role="listitem"
+              >
+                Receipts needed
+              </button>
             </div>
 
             <div className="lpv2-cards" role="group" aria-label="Primary actions">
@@ -87,7 +135,12 @@ export default function LandingPageV2() {
                 <MessageSquare size={18} />
                 <span>Policy Assistant</span>
               </Link>
-              <a href={SITE_CONFIG.SCIP_PORTAL_URL} target={isIOS ? undefined : "_blank"} rel={isIOS ? undefined : "noopener noreferrer"} className="lpv2-card">
+              <a
+                href={SITE_CONFIG.SCIP_PORTAL_URL}
+                target={isIOS ? undefined : '_blank'}
+                rel={isIOS ? undefined : 'noopener noreferrer'}
+                className="lpv2-card"
+              >
                 <FileText size={18} />
                 <span>SCIP Portal</span>
                 <ExternalLink size={14} aria-hidden="true" />
@@ -100,13 +153,19 @@ export default function LandingPageV2() {
 
             <div className="lpv2-inline-meta">
               <div className="lpv2-links-inline">
-                <a href={SITE_CONFIG.CFTDTI_URL} target="_blank" rel="noopener noreferrer">CFTDTI</a>
+                <a href={SITE_CONFIG.CFTDTI_URL} target="_blank" rel="noopener noreferrer">
+                  CFTDTI
+                </a>
                 <span className="sep">•</span>
-                <a href={SITE_CONFIG.NJC_TRAVEL_URL} target="_blank" rel="noopener noreferrer">NJC Travel</a>
+                <a href={SITE_CONFIG.NJC_TRAVEL_URL} target="_blank" rel="noopener noreferrer">
+                  NJC Travel
+                </a>
                 <span className="sep">•</span>
                 <Link to="/privacy">Privacy</Link>
               </div>
-              <p className="lpv2-trust">Unofficial resource. Verify via official channels. {lastUpdated}</p>
+              <p className="lpv2-trust">
+                Unofficial resource. Verify via official channels. {lastUpdated}
+              </p>
             </div>
           </div>
         </section>
@@ -114,10 +173,16 @@ export default function LandingPageV2() {
 
       <footer className="lpv2-footer" role="contentinfo">
         <div className="lpv2-footer-inner">
-          <div className="lpv2-footer-text">Unofficial site. Not affiliated with DND or CAF. Use at your discretion.</div>
+          <div className="lpv2-footer-text">
+            Unofficial site. Not affiliated with DND or CAF. Use at your discretion.
+          </div>
           <div className="lpv2-footer-links">
-            <Link to="/privacy" className="lpv2-footer-link">Privacy</Link>
-            <a href={`mailto:${SITE_CONFIG.CONTACT_EMAIL}`} className="lpv2-footer-link">Contact</a>
+            <Link to="/privacy" className="lpv2-footer-link">
+              Privacy
+            </Link>
+            <a href={`mailto:${SITE_CONFIG.CONTACT_EMAIL}`} className="lpv2-footer-link">
+              Contact
+            </a>
             <span className="lpv2-footer-link muted">{lastUpdated}</span>
           </div>
         </div>

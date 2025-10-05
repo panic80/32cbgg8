@@ -123,12 +123,14 @@ Total tokens used: 650
 ### Encryption Configuration
 
 The system uses these settings from `app/core/config.py`:
+
 - `enable_query_logging: bool = True` - Enable/disable logging
 - `encrypt_query_logs: bool = True` - Enable/disable encryption
 - `query_retention_days: int = 90` - How long to keep logs
 - `anonymize_query_logs: bool = False` - Hash queries for privacy
 
 Environment variables:
+
 - `RAG_ENCRYPTION_KEY` - Base64 encoded encryption key
 - `RAG_ENABLE_QUERY_LOGGING` - Enable/disable logging
 - `RAG_ENCRYPT_QUERY_LOGS` - Enable/disable encryption
@@ -137,33 +139,34 @@ Environment variables:
 
 ### query_history Table
 
-| Column | Type | Description |
-|--------|------|-------------|
-| id | TEXT | Unique query identifier |
-| timestamp | DATETIME | When query was made |
-| user_query | TEXT | Query text (shows `[ENCRYPTED-v1]` when encrypted) |
-| user_query_hash | TEXT | SHA256 hash for searching |
-| user_query_encrypted | TEXT | Encrypted query data |
-| user_query_encryption_version | TEXT | Encryption version used |
-| provider | TEXT | LLM provider (openai, google, anthropic) |
-| model | TEXT | Model name used |
-| use_rag | BOOLEAN | Whether RAG was enabled |
-| response_preview | TEXT | First 500 chars of response |
-| response_encrypted | TEXT | Full encrypted response |
-| response_encryption_version | TEXT | Response encryption version |
-| sources_count | INTEGER | Number of RAG sources used |
-| processing_time | REAL | Total time in seconds |
-| tokens_used | INTEGER | Tokens consumed |
-| conversation_id | TEXT | Conversation context ID |
-| status | TEXT | success, error, timeout, cancelled |
-| error_message | TEXT | Error details if failed |
-| metadata | TEXT | JSON metadata |
-| encryption_metadata | TEXT | Encryption details |
-| created_at | DATETIME | Database insertion time |
+| Column                        | Type     | Description                                        |
+| ----------------------------- | -------- | -------------------------------------------------- |
+| id                            | TEXT     | Unique query identifier                            |
+| timestamp                     | DATETIME | When query was made                                |
+| user_query                    | TEXT     | Query text (shows `[ENCRYPTED-v1]` when encrypted) |
+| user_query_hash               | TEXT     | SHA256 hash for searching                          |
+| user_query_encrypted          | TEXT     | Encrypted query data                               |
+| user_query_encryption_version | TEXT     | Encryption version used                            |
+| provider                      | TEXT     | LLM provider (openai, google, anthropic)           |
+| model                         | TEXT     | Model name used                                    |
+| use_rag                       | BOOLEAN  | Whether RAG was enabled                            |
+| response_preview              | TEXT     | First 500 chars of response                        |
+| response_encrypted            | TEXT     | Full encrypted response                            |
+| response_encryption_version   | TEXT     | Response encryption version                        |
+| sources_count                 | INTEGER  | Number of RAG sources used                         |
+| processing_time               | REAL     | Total time in seconds                              |
+| tokens_used                   | INTEGER  | Tokens consumed                                    |
+| conversation_id               | TEXT     | Conversation context ID                            |
+| status                        | TEXT     | success, error, timeout, cancelled                 |
+| error_message                 | TEXT     | Error details if failed                            |
+| metadata                      | TEXT     | JSON metadata                                      |
+| encryption_metadata           | TEXT     | Encryption details                                 |
+| created_at                    | DATETIME | Database insertion time                            |
 
 ## Exporting Data
 
 ### Export to CSV
+
 ```bash
 python -c "
 from app.services.query_logger import get_query_logger
@@ -187,6 +190,7 @@ asyncio.run(export())
 ```
 
 ### Export to JSON
+
 ```bash
 python -c "
 from app.services.query_logger import get_query_logger
@@ -214,11 +218,13 @@ asyncio.run(export())
 ### No Queries Showing Up
 
 1. Check if logging is enabled:
+
    ```bash
    ./venv/bin/python -c "from app.core.config import settings; print(f'Logging enabled: {settings.enable_query_logging}')"
    ```
 
 2. Check database exists:
+
    ```bash
    ls -la chroma_db/query_history.db
    ```
@@ -231,6 +237,7 @@ asyncio.run(export())
 ### Decryption Errors
 
 1. Verify encryption key exists:
+
    ```bash
    ./venv/bin/python app/utils/manage_encryption.py info
    ```
@@ -266,8 +273,8 @@ from collections import Counter
 # Analyze query patterns
 conn = sqlite3.connect('chroma_db/query_history.db')
 cursor = conn.execute("""
-    SELECT user_query_encrypted, user_query_encryption_version, metadata 
-    FROM query_history 
+    SELECT user_query_encrypted, user_query_encryption_version, metadata
+    FROM query_history
     WHERE status = 'success' AND use_rag = 1
 """)
 
@@ -295,7 +302,7 @@ for topic, count in topic_counts.most_common(10):
 
 ## Security Considerations
 
-1. **Encryption Keys**: 
+1. **Encryption Keys**:
    - Store keys securely (use environment variables in production)
    - Rotate keys periodically
    - Never commit keys to version control

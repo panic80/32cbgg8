@@ -17,7 +17,10 @@ export interface RequestOptions extends RequestInit {
 }
 
 const parseErrorPayload = async (response: Response) => {
-  const headerGetter = typeof response.headers?.get === 'function' ? response.headers.get.bind(response.headers) : null;
+  const headerGetter =
+    typeof response.headers?.get === 'function'
+      ? response.headers.get.bind(response.headers)
+      : null;
   const contentType = headerGetter ? headerGetter('content-type') || '' : '';
   try {
     if (contentType.includes('application/json')) {
@@ -32,7 +35,10 @@ const parseErrorPayload = async (response: Response) => {
   return undefined;
 };
 
-export const request = async (input: RequestInfo | URL, init: RequestOptions = {}): Promise<Response> => {
+export const request = async (
+  input: RequestInfo | URL,
+  init: RequestOptions = {},
+): Promise<Response> => {
   const headers = new Headers(init.headers as HeadersInit | undefined);
   if (!headers.has('Accept')) {
     headers.set('Accept', 'application/json');
@@ -42,14 +48,11 @@ export const request = async (input: RequestInfo | URL, init: RequestOptions = {
 
   if (!response.ok) {
     const data = init.parseErrorResponse === false ? undefined : await parseErrorPayload(response);
-    throw new ApiError(
-      `Request failed with status ${response.status}`,
-      {
-        status: response.status,
-        statusText: response.statusText,
-        data,
-      },
-    );
+    throw new ApiError(`Request failed with status ${response.status}`, {
+      status: response.status,
+      statusText: response.statusText,
+      data,
+    });
   }
 
   return response;
@@ -86,7 +89,10 @@ export const postJson = async <TResponse, TBody = unknown>(
   return response.json() as Promise<TResponse>;
 };
 
-export const deleteJson = async <T>(input: RequestInfo | URL, init: RequestOptions = {}): Promise<T> => {
+export const deleteJson = async <T>(
+  input: RequestInfo | URL,
+  init: RequestOptions = {},
+): Promise<T> => {
   return postJson<T>(input, undefined, { ...init, method: 'DELETE' });
 };
 

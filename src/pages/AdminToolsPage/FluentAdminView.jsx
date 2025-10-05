@@ -1,10 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
-import { 
-  ChevronRight,
-  ExternalLink,
-  Sparkles
-} from 'lucide-react';
+import { ChevronRight, ExternalLink, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Fluent Card Component for each admin tool section
@@ -14,11 +10,11 @@ const FluentToolCard = ({ tool, delay = 0 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
-  
+
   // Reveal highlight effect
   const revealX = useTransform(mouseX, (value) => value - 150);
   const revealY = useTransform(mouseY, (value) => value - 150);
-  
+
   const handleMouseMove = (e) => {
     const rect = cardRef.current?.getBoundingClientRect();
     if (rect) {
@@ -34,11 +30,11 @@ const FluentToolCard = ({ tool, delay = 0 }) => {
       ref={cardRef}
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ 
+      transition={{
         delay,
-        type: "spring",
+        type: 'spring',
         stiffness: 300,
-        damping: 30
+        damping: 30,
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -46,25 +42,27 @@ const FluentToolCard = ({ tool, delay = 0 }) => {
       className="relative"
     >
       {/* Acrylic Card */}
-      <div className={cn(
-        "relative overflow-hidden rounded-2xl",
-        "bg-[var(--card)]/80",
-        "backdrop-blur-xl backdrop-saturate-150",
-        "border border-[var(--border)]/30",
-        "shadow-lg hover:shadow-2xl transition-all duration-300"
-      )}>
+      <div
+        className={cn(
+          'relative overflow-hidden rounded-2xl',
+          'bg-[var(--card)]/80',
+          'backdrop-blur-xl backdrop-saturate-150',
+          'border border-[var(--border)]/30',
+          'shadow-lg hover:shadow-2xl transition-all duration-300',
+        )}
+      >
         {/* Reveal Highlight */}
         <motion.div
           className="absolute inset-0 opacity-0 pointer-events-none"
           style={{
             background: `radial-gradient(300px circle at ${revealX}px ${revealY}px, rgba(var(--primary-rgb), 0.1), transparent)`,
             opacity: isHovered ? 1 : 0,
-            transition: 'opacity 0.2s'
+            transition: 'opacity 0.2s',
           }}
         />
-        
+
         {/* Card Header */}
-        <div 
+        <div
           className="relative z-10 p-6 sm:p-8 cursor-pointer"
           onClick={() => setIsExpanded(!isExpanded)}
         >
@@ -75,12 +73,14 @@ const FluentToolCard = ({ tool, delay = 0 }) => {
             transition={{ delay: delay + 0.1 }}
             className="mb-6"
           >
-            <div className={cn(
-              "w-16 h-16 rounded-2xl flex items-center justify-center",
-              "bg-[var(--primary)]",
-              "shadow-lg",
-              isHovered && "shadow-[var(--primary)]/30"
-            )}>
+            <div
+              className={cn(
+                'w-16 h-16 rounded-2xl flex items-center justify-center',
+                'bg-[var(--primary)]',
+                'shadow-lg',
+                isHovered && 'shadow-[var(--primary)]/30',
+              )}
+            >
               <Icon className="w-8 h-8 text-white" />
             </div>
           </motion.div>
@@ -93,16 +93,11 @@ const FluentToolCard = ({ tool, delay = 0 }) => {
           >
             <h3 className="text-xl font-semibold mb-2 text-[var(--text)] flex items-center justify-between">
               {tool.title}
-              <motion.div
-                animate={{ rotate: isExpanded ? 90 : 0 }}
-                transition={{ duration: 0.2 }}
-              >
+              <motion.div animate={{ rotate: isExpanded ? 90 : 0 }} transition={{ duration: 0.2 }}>
                 <ChevronRight className="w-5 h-5" />
               </motion.div>
             </h3>
-            <p className="text-[var(--text-secondary)]">
-              {tool.description}
-            </p>
+            <p className="text-[var(--text-secondary)]">{tool.description}</p>
           </motion.div>
         </div>
 
@@ -110,7 +105,7 @@ const FluentToolCard = ({ tool, delay = 0 }) => {
         <motion.div
           initial={false}
           animate={{ height: isExpanded ? 'auto' : 0 }}
-          transition={{ duration: 0.3, ease: "easeInOut" }}
+          transition={{ duration: 0.3, ease: 'easeInOut' }}
           className="overflow-hidden"
         >
           <div className="px-6 pb-6 sm:px-8 sm:pb-8 border-t border-[var(--border)]/20">
@@ -119,15 +114,15 @@ const FluentToolCard = ({ tool, delay = 0 }) => {
                 <motion.a
                   key={idx}
                   href={link.url}
-                  target={link.external ? "_blank" : undefined}
-                  rel={link.external ? "noopener noreferrer" : undefined}
+                  target={link.external ? '_blank' : undefined}
+                  rel={link.external ? 'noopener noreferrer' : undefined}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: isExpanded ? 1 : 0, x: isExpanded ? 0 : -20 }}
                   transition={{ delay: isExpanded ? idx * 0.05 : 0 }}
                   className={cn(
-                    "flex items-center justify-between p-3 rounded-lg",
-                    "hover:bg-[var(--background-secondary)] transition-colors",
-                    "text-sm text-[var(--text)]"
+                    'flex items-center justify-between p-3 rounded-lg',
+                    'hover:bg-[var(--background-secondary)] transition-colors',
+                    'text-sm text-[var(--text)]',
                   )}
                 >
                   <span>{link.name}</span>
@@ -175,9 +170,7 @@ export default function FluentAdminView({ adminTools = [] }) {
           >
             <div className="flex items-center justify-center gap-3 mb-4">
               <Sparkles className="w-10 h-10 text-[var(--primary)]" />
-              <h1 className="text-4xl font-bold text-[var(--text)]">
-                Administrative Resources
-              </h1>
+              <h1 className="text-4xl font-bold text-[var(--text)]">Administrative Resources</h1>
             </div>
             <p className="text-[var(--text-secondary)] max-w-2xl mx-auto">
               Essential tools, procedures, and documentation for efficient unit administration
@@ -191,11 +184,7 @@ export default function FluentAdminView({ adminTools = [] }) {
             className="grid gap-6 md:grid-cols-2"
           >
             {adminTools.map((tool, index) => (
-              <FluentToolCard
-                key={tool.id}
-                tool={tool}
-                delay={index * 0.1}
-              />
+              <FluentToolCard key={tool.id} tool={tool} delay={index * 0.1} />
             ))}
           </motion.div>
 
@@ -206,14 +195,16 @@ export default function FluentAdminView({ adminTools = [] }) {
             transition={{ delay: 0.5 }}
             className="mt-12 text-center"
           >
-            <div className={cn(
-              "inline-flex items-center gap-2 px-6 py-3 rounded-full",
-              "bg-[var(--card)]/60 backdrop-blur-md",
-              "border border-[var(--border)]/30",
-              "text-sm text-[var(--text-secondary)]"
-            )}>
+            <div
+              className={cn(
+                'inline-flex items-center gap-2 px-6 py-3 rounded-full',
+                'bg-[var(--card)]/60 backdrop-blur-md',
+                'border border-[var(--border)]/30',
+                'text-sm text-[var(--text-secondary)]',
+              )}
+            >
               <span>Need help finding something?</span>
-              <a 
+              <a
                 href="mailto:g8@sent.com?subject=Admin%20Tools%20Help"
                 className="text-[var(--primary)] hover:underline font-medium"
               >

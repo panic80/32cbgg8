@@ -3,16 +3,19 @@
 ## [1.4.1] - 2025-09-05
 
 ### Added
+
 - Admin warmup endpoint to prebuild retrieval pipelines and BM25 corpus:
   - `POST /api/v1/api/admin/warmup/retrieval` with provider/model/hybrid options and optional warmup queries.
 - Retrieval pipeline caching in memory keyed by provider/model/hybrid for faster TTFT after first build.
 
 ### Changed
+
 - Enabled true hybrid retrieval (BM25 + Vector) in the active pipeline by providing a real corpus to BM25 (loaded from Chroma once and cached).
 - Automatic BM25 corpus refresh and retrieval pipeline cache invalidation after ingest/purge so hybrid stays up to date.
 - Retrieval-only endpoint fix: added missing settings import in `app/services/document_store.py`.
 
 ### Notes
+
 - Hybrid toggle in chat explicitly builds BM25 + Vector; current default pipeline also includes BM25 unless configured otherwise.
 - Warmup endpoint returns `bm25_corpus_docs` and caches the pipeline using the same key scheme as chat, ensuring first user request is fast.
 
@@ -26,11 +29,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 #### Major Refactoring - ChatPage Component
+
 - **Comprehensive Refactoring**: Complete modularization of ChatPage.tsx following REFACTOR.md plan
   - Original file: 1,349 lines → Final: 438 lines (67.5% reduction)
   - Created 12 new modular files for better maintainability
   - All functionality preserved with improved separation of concerns
-  
 - **New Components Extracted**:
   - `EmptyState` - Welcome screen with suggestion cards (136 lines)
   - `ChatHeader` - Complete header with logo and toggles (181 lines)
@@ -73,6 +76,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ```
 
 ### Technical Improvements
+
 - **Code Quality**: Better separation of concerns with single responsibility principle
 - **Maintainability**: Each component/hook now handles one specific aspect
 - **Reusability**: Components and hooks can be reused across the application
@@ -85,6 +89,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 #### FAST/SMART Model Toggle
+
 - **Visual Toggle**: Added toggle button in chat interface header to switch between FAST (GPT-4.1-mini) and SMART (GPT-5-mini) modes
   - Files modified: `src/pages/ChatPage.tsx`, `src/constants/models.ts`
   - FAST mode: Lightning bolt (Zap) icon with muted colors for quick responses
@@ -96,6 +101,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 #### UI Improvements
+
 - **Hybrid Search Toggle**: Temporarily hidden (commented out) but preserved for easy re-enabling
   - Code remains intact between `HYBRID_SEARCH_TOGGLE_START/END` markers
   - Can be restored by uncommenting lines 702-739 in ChatPage.tsx
@@ -111,8 +117,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Technical Details
 
 #### Frontend Components
+
 - **New Icons**: Added `Brain` icon from lucide-react for SMART mode indicator
-- **State Management**: 
+- **State Management**:
+
   ```typescript
   const [modelMode, setModelMode] = useState<'fast' | 'smart'>(() => {
     const savedModel = localStorage.getItem('selectedLLMModel');
@@ -122,7 +130,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Golden Yellow Styling**: SMART mode button uses primary brand color
   ```css
-  bg-[rgb(212,175,55,0.2)] hover:bg-[rgb(212,175,55,0.3)] 
+  bg-[rgb(212,175,55,0.2)] hover:bg-[rgb(212,175,55,0.3)]
   text-[#d4af37] border-[rgb(212,175,55,0.3)]
   ```
 
@@ -131,6 +139,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 #### Hybrid Search Toggle Feature
+
 - **Visual Toggle**: Added toggle button in chat interface header to switch between Vector-only and Hybrid (BM25+Vector) search modes
   - Files modified: `src/pages/ChatPage.tsx`
   - Green indicator when hybrid search is active
@@ -145,6 +154,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Default configuration: 70% vector weight, 30% BM25 weight
 
 #### Performance Analysis Documentation
+
 - **RAGFAST.md**: Comprehensive performance analysis document
   - Root cause analysis of 4x performance difference between GPT-4.1-mini and GPT-5-mini
   - Discovery of LLM multiplication effect in RAG pipeline
@@ -156,12 +166,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 #### Model Configuration Insights
+
 - Documented GPT-5-mini requirements:
   - Requires `max_tokens=8192` parameter
   - Does not support `temperature` parameter
   - Uses different inference pipeline at OpenAI
 
 #### RAG Pipeline Understanding
+
 - Identified critical performance bottlenecks:
   - Query embedding with text-embedding-3-large (3072 dimensions) on every search
   - LLM-based reranking processing documents in batches of 5
@@ -171,8 +183,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Technical Details
 
 #### Frontend Components
+
 - **New Icons**: Added `Layers` icon from lucide-react for hybrid search indicator
-- **State Management**: 
+- **State Management**:
   ```typescript
   const [useHybridSearch, setUseHybridSearch] = useState(() => {
     const saved = localStorage.getItem('useHybridSearch');
@@ -181,6 +194,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ```
 
 #### Backend Configuration
+
 - **Hybrid Retriever Setup**:
   ```python
   retriever_configs = {
@@ -190,6 +204,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ```
 
 #### Performance Metrics
+
 - **GPT-4.1-mini Pipeline**: ~1600ms total (200ms classification + 800ms reranking + 400ms synthesis)
 - **GPT-5-mini Pipeline**: ~6400ms total (800ms classification + 3200ms reranking + 1600ms synthesis)
 - **Optimization Potential**: 67% latency reduction for GPT-5-mini with proposed optimizations
@@ -207,7 +222,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Infrastructure
 
-- **Service Management**: 
+- **Service Management**:
   - RAG service runs under systemd (`rag-service.service`)
   - Express backend managed by PM2 (`cf-travel-bot` in cluster mode)
   - Both services configured for automatic restart on failure
@@ -221,6 +236,7 @@ _Note: Previous versions not documented. This changelog starts from version 1.3.
 ## Version Summary
 
 ### Version 1.4.0 Highlights
+
 - 🔨 **Major Refactoring**: ChatPage.tsx reduced from 1,349 to 438 lines (67.5% reduction)
 - 📦 **12 New Modules**: Created reusable components, hooks, and utilities
 - 🏗️ **Better Architecture**: Improved separation of concerns and maintainability
@@ -228,18 +244,21 @@ _Note: Previous versions not documented. This changelog starts from version 1.3.
 - 🚀 **Future-Ready**: Modular structure enables easier testing and feature additions
 
 ### Version 1.3.1 Highlights
+
 - ⚡ **FAST/SMART Toggle**: Quick switching between GPT-4.1-mini (FAST) and GPT-5-mini (SMART) modes
 - 🎨 **Golden UI Accent**: SMART mode features premium golden yellow branding
 - 🔄 **Dynamic Model Display**: Footer automatically updates to show current model
 - 👁️ **Improved Readability**: Enhanced tooltip text visibility
 
 ### Version 1.3.0 Highlights
+
 - ✅ **Hybrid Search**: Toggle between Vector-only and BM25+Vector search
 - 📊 **Performance Analysis**: Comprehensive documentation of LLM performance characteristics
 - 🚀 **Optimization Ready**: Clear path to 67% latency reduction for GPT-5-mini
 - 🔧 **Easy Rollback**: All features marked with removal comments for quick rollback
 
 ### Upgrade Instructions
+
 1. Pull latest changes
 2. Run `npm run build` to build frontend
 3. Restart services:
@@ -248,7 +267,9 @@ _Note: Previous versions not documented. This changelog starts from version 1.3.
 4. Toggle hybrid search in UI to test
 
 ### Rollback Instructions
+
 To remove hybrid search feature:
+
 1. Delete code between `HYBRID_SEARCH_TOGGLE_START` and `HYBRID_SEARCH_TOGGLE_END` comments
 2. Rebuild and restart services
 

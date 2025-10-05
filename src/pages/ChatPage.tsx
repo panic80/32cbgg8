@@ -23,7 +23,6 @@ import { exportConversationAsMarkdown } from '@/utils/exportConversation';
 import { ChatCommandPalette } from './ChatPage/components/ChatCommandPalette';
 import { ChatMessagesPanel } from './ChatPage/components/ChatMessagesPanel';
 
-
 interface ChatPageProps {
   theme?: string;
   toggleTheme?: () => void;
@@ -82,16 +81,17 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
   }, []);
 
   // Use streaming chat hook
-  const { messages, setMessages, pendingMessage, isLoading, retrievalStatus, handleStreamingChat } = useStreamingChat({
-    conversationId,
-    setConversationId,
-    setCurrentModel,
-    DEFAULT_MODEL_ID,
-    useRAG,
-    shortAnswerMode,
-    modelMode
-  });
-  
+  const { messages, setMessages, pendingMessage, isLoading, retrievalStatus, handleStreamingChat } =
+    useStreamingChat({
+      conversationId,
+      setConversationId,
+      setCurrentModel,
+      DEFAULT_MODEL_ID,
+      useRAG,
+      shortAnswerMode,
+      modelMode,
+    });
+
   const {
     combinedMessages,
     visibleMessages,
@@ -111,12 +111,13 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
     } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.search]);
-  
+
   // Motion values removed to fix flickering issue
-  
+
   // Use theme from props or fall back to local detection for standalone usage
-  const theme = propTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-  
+  const theme =
+    propTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+
   // Simulate initial loading
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -124,10 +125,10 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
     }, 600);
     return () => clearTimeout(timer);
   }, []);
-  
+
   // Apply theme changes
   useTheme(theme, propTheme);
-  
+
   // Mouse movement handler removed to fix flickering issue
 
   // Handle model mode changes
@@ -137,31 +138,28 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
   const { showDisclaimer, setShowDisclaimer } = useDisclaimer();
 
   // Use provided toggle function or create a no-op if not provided
-  const toggleTheme = propToggleTheme || (() => {
-    
-  });
+  const toggleTheme = propToggleTheme || (() => {});
 
-  const {
-    isAtBottom,
-    showNewPill,
-    scrollToBottom,
-  } = useScrollBehavior({
+  const { isAtBottom, showNewPill, scrollToBottom } = useScrollBehavior({
     scrollAreaRef,
     messages,
   });
 
-  const handleSendMessage = useCallback(async (messageText?: string) => {
-    const messageToSend = messageText || input.trim();
-    if (!messageToSend || isLoading) return;
-    
-    if (!messageText) setInput(''); // Only clear input if not from follow-up question
-    
-    // Scroll to bottom when user sends a message
-    setTimeout(scrollToBottom, 100);
-    
-    // Use the streaming chat hook
-    await handleStreamingChat(messageToSend);
-  }, [input, isLoading, handleStreamingChat]);
+  const handleSendMessage = useCallback(
+    async (messageText?: string) => {
+      const messageToSend = messageText || input.trim();
+      if (!messageToSend || isLoading) return;
+
+      if (!messageText) setInput(''); // Only clear input if not from follow-up question
+
+      // Scroll to bottom when user sends a message
+      setTimeout(scrollToBottom, 100);
+
+      // Use the streaming chat hook
+      await handleStreamingChat(messageToSend);
+    },
+    [input, isLoading, handleStreamingChat],
+  );
 
   const {
     commandOpen,
@@ -178,15 +176,18 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
     setShowHelpDialog,
   });
 
-  const handleSuggestionSelect = useCallback((title: string) => {
-    setInput(title);
-    handleSendMessage(title);
-    setInput('');
-  }, [handleSendMessage]);
+  const handleSuggestionSelect = useCallback(
+    (title: string) => {
+      setInput(title);
+      handleSendMessage(title);
+      setInput('');
+    },
+    [handleSendMessage],
+  );
 
   // Toggle message collapse
   const toggleMessageCollapse = useCallback((messageId: string) => {
-    setCollapsedMessages(prev => {
+    setCollapsedMessages((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(messageId)) {
         newSet.delete(messageId);
@@ -196,7 +197,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
       return newSet;
     });
   }, []);
-  
+
   // Handle voice input
   const handleVoiceInput = useCallback(() => {
     setIsRecording(!isRecording);
@@ -210,16 +211,22 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
     }
   }, [isRecording]);
 
-  const handleFollowUpClick = useCallback((question: string) => {
-    setInput(question);
-    handleSendMessage(question);
-    setInput("");
-  }, [handleSendMessage]);
+  const handleFollowUpClick = useCallback(
+    (question: string) => {
+      setInput(question);
+      handleSendMessage(question);
+      setInput('');
+    },
+    [handleSendMessage],
+  );
 
-  const handleTripPlanSubmit = useCallback((tripPlan: string) => {
-    // Send the trip plan as a message
-    handleSendMessage(tripPlan);
-  }, [handleSendMessage]);
+  const handleTripPlanSubmit = useCallback(
+    (tripPlan: string) => {
+      // Send the trip plan as a message
+      handleSendMessage(tripPlan);
+    },
+    [handleSendMessage],
+  );
 
   const handleAcceptDisclaimer = useCallback(() => {
     // Just close the modal - visit count is already tracked
@@ -234,7 +241,6 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
     toast.success('Exported as Markdown');
   }, [conversationId, messages]);
 
-
   const clearConversation = useCallback(() => {
     setMessages([]);
     setConversationId('');
@@ -244,16 +250,12 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
   return (
     <TooltipProvider>
       {/* Disclaimer Modal */}
-      <DisclaimerModal 
-        open={showDisclaimer}
-        onAccept={handleAcceptDisclaimer}
-      />
-      
-      <div className="flex h-screen bg-[var(--background)] text-[var(--text)] relative overflow-x-hidden overflow-y-hidden">
+      <DisclaimerModal open={showDisclaimer} onAccept={handleAcceptDisclaimer} />
 
+      <div className="flex h-screen bg-[var(--background)] text-[var(--text)] relative overflow-x-hidden overflow-y-hidden">
         {/* Static Background Elements (motion removed to fix flickering) */}
         <BackgroundEffects />
-        
+
         {/* Command Palette */}
         <ChatCommandPalette
           open={commandOpen}
@@ -305,8 +307,6 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
             scrollToBottom={scrollToBottom}
           />
 
-          
-
           {/* Enhanced Input Area */}
           <ChatInput
             input={input}
@@ -320,7 +320,6 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
             setShowInlineCommand={setShowInlineCommand}
             commands={inlineCommandOptions}
             currentModel={currentModel}
-            
           />
         </div>
       </div>

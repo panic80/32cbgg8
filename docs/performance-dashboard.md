@@ -18,25 +18,25 @@ The performance dashboard provides near real-time visibility into the retrieval-
 
 ## Metrics Overview
 
-| Category  | Metric                  | Description                                      | Target (P75 / Mean) |
-|-----------|-------------------------|--------------------------------------------------|---------------------|
-| Latency   | Answer Time             | Full request latency                             | ≤ 2.5s P75          |
-|           | Search Time             | Retrieval pipeline duration                       | ≤ 500ms P75         |
-|           | Retrieval Assembly      | Context build + serialization                     | ≤ 300ms P75         |
-|           | First Token             | Streaming first token latency                     | ≤ 1s P75            |
-| Quality   | Context Coverage        | Share of answers with supporting context          | ≥ 90% mean          |
-|           | Hallucination Rate      | Responses with missing evidence (heuristic)       | ≤ 5% mean           |
-|           | Error Rate              | Failed requests vs total                          | ≤ 1% mean           |
-| Throughput| Requests Per Minute     | Recent volume snapshot                            | —                   |
+| Category   | Metric              | Description                                 | Target (P75 / Mean) |
+| ---------- | ------------------- | ------------------------------------------- | ------------------- |
+| Latency    | Answer Time         | Full request latency                        | ≤ 2.5s P75          |
+|            | Search Time         | Retrieval pipeline duration                 | ≤ 500ms P75         |
+|            | Retrieval Assembly  | Context build + serialization               | ≤ 300ms P75         |
+|            | First Token         | Streaming first token latency               | ≤ 1s P75            |
+| Quality    | Context Coverage    | Share of answers with supporting context    | ≥ 90% mean          |
+|            | Hallucination Rate  | Responses with missing evidence (heuristic) | ≤ 5% mean           |
+|            | Error Rate          | Failed requests vs total                    | ≤ 1% mean           |
+| Throughput | Requests Per Minute | Recent volume snapshot                      | —                   |
 
 `PerformanceMonitor` retains the latest 1,000 samples per metric; percentiles and recent sparkline data are returned with each response.
 
 ## Configuration
 
-| Variable                        | Default | Description |
-|--------------------------------|---------|-------------|
-| `RAG_METRICS_TIMEOUT_MS`       | 7000 ms | Gateway timeout for the RAG metrics call. |
-| `PERFORMANCE_METRICS_CACHE_MS` | 5000 ms | Gateway cache TTL before refetching metrics. |
+| Variable                       | Default | Description                                                  |
+| ------------------------------ | ------- | ------------------------------------------------------------ |
+| `RAG_METRICS_TIMEOUT_MS`       | 7000 ms | Gateway timeout for the RAG metrics call.                    |
+| `PERFORMANCE_METRICS_CACHE_MS` | 5000 ms | Gateway cache TTL before refetching metrics.                 |
 | `RAG_METRICS_TOKEN`            | —       | Optional bearer token forwarded to the RAG metrics endpoint. |
 
 ## Usage

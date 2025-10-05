@@ -7,11 +7,13 @@ This guide provides solutions to common issues that may arise during development
 ### Gemini API Not Responding
 
 **Symptoms**:
+
 - "Unable to generate response" error messages
 - Empty or incomplete AI responses
 - Network errors in console
 
 **Possible Causes**:
+
 1. Invalid API key
 2. Rate limiting
 3. Network connectivity issues
@@ -20,10 +22,11 @@ This guide provides solutions to common issues that may arise during development
 **Solutions**:
 
 1. **Verify API Key**:
+
    ```bash
    # Check environment variable (server-side only)
    echo $GEMINI_API_KEY
-   
+
    # Verify key format (should start with 'AIza')
    ```
 
@@ -48,11 +51,13 @@ This guide provides solutions to common issues that may arise during development
 ### Express Gateway Not Starting
 
 **Symptoms**:
+
 - Connection refused errors
 - "Cannot reach server" messages
 - Server exits immediately after starting
 
 **Possible Causes**:
+
 1. Port conflicts
 2. Missing dependencies
 3. Environment configuration issues
@@ -60,10 +65,11 @@ This guide provides solutions to common issues that may arise during development
 **Solutions**:
 
 1. **Check for Port Conflicts**:
+
    ```bash
    # Check if the gateway port is already in use
    lsof -i :3000
-   
+
    # Kill processes if needed
    kill -9 <PID>
    ```
@@ -73,10 +79,11 @@ This guide provides solutions to common issues that may arise during development
    - Ensure Node.js version is 18+
 
 3. **Check Server Logs**:
+
    ```bash
    # In development
    npm run dev -- --verbose
-   
+
    # In production
    pm2 logs
    ```
@@ -84,6 +91,7 @@ This guide provides solutions to common issues that may arise during development
 ### Server Crashes in Production
 
 **Symptoms**:
+
 - 502 Bad Gateway errors
 - PM2 reports process died
 - Application unavailable
@@ -91,15 +99,17 @@ This guide provides solutions to common issues that may arise during development
 **Solutions**:
 
 1. **Check System Resources**:
+
    ```bash
    # Check memory usage
    free -m
-   
+
    # Check disk space
    df -h
    ```
 
 2. **Review PM2 Logs**:
+
    ```bash
    pm2 logs --lines 100
    ```
@@ -118,6 +128,7 @@ This guide provides solutions to common issues that may arise during development
 ### Build Failures
 
 **Symptoms**:
+
 - Build process fails
 - TypeScript errors
 - Missing dependencies
@@ -125,19 +136,21 @@ This guide provides solutions to common issues that may arise during development
 **Solutions**:
 
 1. **Clean and Rebuild**:
+
    ```bash
    # Remove build artifacts
    rm -rf dist
    rm -rf node_modules/.vite
-   
+
    # Reinstall dependencies
    npm ci
-   
+
    # Rebuild
    npm run build
    ```
 
 2. **Check TypeScript Errors**:
+
    ```bash
    npx tsc --noEmit
    ```
@@ -150,6 +163,7 @@ This guide provides solutions to common issues that may arise during development
 ### Chat Interface Not Working
 
 **Symptoms**:
+
 - Messages not sending
 - No responses from AI
 - UI elements missing or broken
@@ -170,18 +184,21 @@ This guide provides solutions to common issues that may arise during development
 ### Stale Data Persisting
 
 **Symptoms**:
+
 - Old content continues to display after updates
 - Changes not reflecting
 
 **Solutions**:
 
 1. **Clear Client-Side Cache**:
+
    ```javascript
    // Run in browser console
    indexedDB.deleteDatabase('travel-instructions-cache');
    ```
 
 2. **Clear Server Cache**:
+
    ```bash
    # Restart the Express gateway
    pm2 restart cf-travel-bot
@@ -198,6 +215,7 @@ This guide provides solutions to common issues that may arise during development
 ### Nginx Configuration Problems
 
 **Symptoms**:
+
 - 502 Bad Gateway errors
 - CORS errors
 - Redirects not working
@@ -205,11 +223,13 @@ This guide provides solutions to common issues that may arise during development
 **Solutions**:
 
 1. **Verify Nginx Configuration**:
+
    ```bash
    sudo nginx -t
    ```
 
 2. **Check Nginx Logs**:
+
    ```bash
    sudo tail -f /var/log/nginx/error.log
    ```
@@ -222,6 +242,7 @@ This guide provides solutions to common issues that may arise during development
 ### SSL Certificate Issues
 
 **Symptoms**:
+
 - Browser security warnings
 - Certificate errors
 - Mixed content warnings
@@ -229,11 +250,13 @@ This guide provides solutions to common issues that may arise during development
 **Solutions**:
 
 1. **Check Certificate Status**:
+
    ```bash
    sudo certbot certificates
    ```
 
 2. **Renew Certificates**:
+
    ```bash
    sudo certbot renew --dry-run
    sudo certbot renew
@@ -249,6 +272,7 @@ This guide provides solutions to common issues that may arise during development
 For debugging in development:
 
 1. **Enable Verbose Logging**:
+
    ```bash
    # Set environment variable
    DEBUG=app:* npm run dev
@@ -264,19 +288,21 @@ For debugging in development:
 For debugging in production:
 
 1. **Enable Temporary Debug Mode**:
+
    ```bash
    # Edit ecosystem.config.cjs to add DEBUG env var
    pm2 reload ecosystem.config.cjs
    ```
 
 2. **Check All Log Sources**:
+
    ```bash
    # Application logs
    pm2 logs
-   
+
    # Nginx logs
    sudo tail -f /var/log/nginx/error.log
-   
+
    # System logs
    sudo journalctl -u nginx
    sudo journalctl -u pm2-root
@@ -287,17 +313,19 @@ For debugging in production:
 If you've tried everything above:
 
 1. **Perform a Clean Restart**:
+
    ```bash
    # Stop all services
    pm2 stop all
    sudo service nginx stop
-   
+
    # Start services in order
    pm2 start ecosystem.config.cjs
    sudo service nginx start
    ```
 
 2. **Verify System Time**:
+
    ```bash
    date
    # If incorrect, sync NTP
@@ -305,6 +333,7 @@ If you've tried everything above:
    ```
 
 3. **Check System Resource Limits**:
+
    ```bash
    ulimit -a
    ```

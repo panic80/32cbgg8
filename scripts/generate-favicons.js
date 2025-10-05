@@ -19,7 +19,7 @@ const sizes = [
   { size: 48, name: 'favicon-48x48.png' },
   { size: 180, name: 'apple-touch-icon.png' },
   { size: 192, name: 'icon-192.png' },
-  { size: 512, name: 'icon-512.png' }
+  { size: 512, name: 'icon-512.png' },
 ];
 
 async function generateIcons() {
@@ -27,10 +27,7 @@ async function generateIcons() {
     // Generate PNG files for each size
     for (const { size, name } of sizes) {
       console.log(`Generating ${name} (${size}x${size})...`);
-      await sharp(svgBuffer)
-        .resize(size, size)
-        .png()
-        .toFile(path.join(publicPath, name));
+      await sharp(svgBuffer).resize(size, size).png().toFile(path.join(publicPath, name));
     }
 
     // Generate ICO file with multiple sizes
@@ -38,8 +35,10 @@ async function generateIcons() {
     console.log('\nTo generate favicon.ico, you need to install png-to-ico:');
     console.log('npm install -g png-to-ico');
     console.log('Then run:');
-    console.log('png-to-ico public/favicon-16x16.png public/favicon-32x32.png public/favicon-48x48.png > public/favicon.ico');
-    
+    console.log(
+      'png-to-ico public/favicon-16x16.png public/favicon-32x32.png public/favicon-48x48.png > public/favicon.ico',
+    );
+
     console.log('\nAll PNG icons generated successfully!');
   } catch (error) {
     console.error('Error generating icons:', error);

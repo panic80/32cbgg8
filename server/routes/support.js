@@ -33,12 +33,14 @@ const createSupportRoutes = ({
             return [];
           }
           const questions = JSON.parse(jsonMatch[0]);
-          return questions.map((q, idx) => ({
-            id: `followup-${Date.now()}-${idx}`,
-            question: typeof q === 'string' ? q : q?.question ?? '',
-            category: q?.category || 'related',
-            confidence: q?.confidence || 0.7,
-          })).filter((q) => q.question.trim().length > 0);
+          return questions
+            .map((q, idx) => ({
+              id: `followup-${Date.now()}-${idx}`,
+              question: typeof q === 'string' ? q : (q?.question ?? ''),
+              category: q?.category || 'related',
+              confidence: q?.confidence || 0.7,
+            }))
+            .filter((q) => q.question.trim().length > 0);
         } catch (error) {
           console.error('Failed to parse follow-up questions:', error);
           return [];
@@ -210,7 +212,11 @@ const createSupportRoutes = ({
 
       const cachedData = cache ? await cache.get('travel-instructions') : null;
       if (cachedData) {
-        console.log('Serving stale cache due to error, cache age:', Date.now() - cachedData.timestamp, 'ms');
+        console.log(
+          'Serving stale cache due to error, cache age:',
+          Date.now() - cachedData.timestamp,
+          'ms',
+        );
         res.setHeader('Cache-Control', 'max-age=0, must-revalidate');
         if (cachedData.etag) {
           res.setHeader('ETag', `W/"${cachedData.etag}-stale"`);

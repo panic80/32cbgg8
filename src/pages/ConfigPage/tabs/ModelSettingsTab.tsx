@@ -31,7 +31,7 @@ export const ModelSettingsTab: React.FC<ModelSettingsTabProps> = ({
 }) => {
   const providerModels = React.useMemo(
     () => models.filter((model) => model.provider === tempSelectedProvider),
-    [models, tempSelectedProvider]
+    [models, tempSelectedProvider],
   );
 
   return (
@@ -40,11 +40,15 @@ export const ModelSettingsTab: React.FC<ModelSettingsTabProps> = ({
         <CardHeader>
           <CardTitle>LLM Model Selection</CardTitle>
           <CardDescription>
-            Choose your preferred AI model for the chat assistant. Different models offer varying capabilities and performance.
+            Choose your preferred AI model for the chat assistant. Different models offer varying
+            capabilities and performance.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <Tabs value={tempSelectedProvider} onValueChange={(value) => onProviderChange(value as ModelProvider)}>
+          <Tabs
+            value={tempSelectedProvider}
+            onValueChange={(value) => onProviderChange(value as ModelProvider)}
+          >
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="openai">OpenAI</TabsTrigger>
               <TabsTrigger value="google">Google</TabsTrigger>
@@ -58,7 +62,9 @@ export const ModelSettingsTab: React.FC<ModelSettingsTabProps> = ({
                   <div
                     key={model.id}
                     className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                      isSelected ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
+                      isSelected
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border hover:border-primary/50'
                     }`}
                     onClick={() => onModelChange(model.id)}
                   >
@@ -80,7 +86,9 @@ export const ModelSettingsTab: React.FC<ModelSettingsTabProps> = ({
           {hasUnsavedChanges && (
             <div className="flex gap-2 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
               <div className="flex-1">
-                <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">You have unsaved changes</p>
+                <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                  You have unsaved changes
+                </p>
                 <p className="text-xs text-yellow-600 dark:text-yellow-300">
                   Save your changes to apply the new model selection.
                 </p>
@@ -98,14 +106,16 @@ export const ModelSettingsTab: React.FC<ModelSettingsTabProps> = ({
 
           <div className="mt-6 p-4 bg-muted rounded-lg">
             <p className="text-sm text-muted-foreground">
-              <strong>Active Model:</strong> {models.find((model) => model.id === selectedModel)?.name || 'None selected'}
+              <strong>Active Model:</strong>{' '}
+              {models.find((model) => model.id === selectedModel)?.name || 'None selected'}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               Model ID: <code className="px-1 py-0.5 bg-background rounded">{selectedModel}</code>
             </p>
             {hasUnsavedChanges && (
               <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-2">
-                <strong>Selected:</strong> {models.find((model) => model.id === tempSelectedModel)?.name} (not saved)
+                <strong>Selected:</strong>{' '}
+                {models.find((model) => model.id === tempSelectedModel)?.name} (not saved)
               </p>
             )}
           </div>

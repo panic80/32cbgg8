@@ -6,7 +6,7 @@ if (!global.indexedDB) {
   global.indexedDB = {
     open: vi.fn(),
     deleteDatabase: vi.fn(),
-    cmp: vi.fn()
+    cmp: vi.fn(),
   };
 }
 
@@ -19,7 +19,7 @@ if (!global.fetch) {
 global.ResizeObserver = vi.fn().mockImplementation(() => ({
   observe: vi.fn(),
   unobserve: vi.fn(),
-  disconnect: vi.fn()
+  disconnect: vi.fn(),
 }));
 
 // Mock env variables
@@ -31,12 +31,12 @@ window.matchMedia = vi.fn().mockImplementation((query) => ({
   removeListener: vi.fn(),
   addEventListener: vi.fn(),
   removeEventListener: vi.fn(),
-  dispatchEvent: vi.fn()
+  dispatchEvent: vi.fn(),
 }));
 
 // Mock the import.meta.env
 vi.stubGlobal('import.meta', {
   env: {
-    DEV: true
-  }
+    DEV: true,
+  },
 });

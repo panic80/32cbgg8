@@ -31,18 +31,18 @@ const normaliseSources = (list: any[]): DatabaseSource[] =>
       id:
         item.id ??
         item.source_id ??
-        `${
-          normaliseString(item.label ?? item.title ?? item.name ?? '')
-        }-${
-          normaliseString(item.canonicalUrl ?? item.canonical_url ?? item.url ?? '')
-        }`,
+        `${normaliseString(item.label ?? item.title ?? item.name ?? '')}-${normaliseString(
+          item.canonicalUrl ?? item.canonical_url ?? item.url ?? '',
+        )}`,
       label: item.label ?? item.title ?? item.name ?? 'Untitled Source',
       canonicalUrl: item.canonicalUrl ?? item.canonical_url ?? item.url ?? null,
-      chunkCount: typeof item.chunkCount === 'number' ? item.chunkCount : item.chunk_count ?? 0,
-      documentCount: typeof item.documentCount === 'number' ? item.documentCount : item.document_count ?? 0,
+      chunkCount: typeof item.chunkCount === 'number' ? item.chunkCount : (item.chunk_count ?? 0),
+      documentCount:
+        typeof item.documentCount === 'number' ? item.documentCount : (item.document_count ?? 0),
       lastIngestedAt: item.lastIngestedAt ?? item.last_ingested_at ?? null,
-      searchText: normaliseString(item.label ?? item.title ?? item.name ?? '')
-        + normaliseString(item.canonicalUrl ?? item.canonical_url ?? item.url ?? ''),
+      searchText:
+        normaliseString(item.label ?? item.title ?? item.name ?? '') +
+        normaliseString(item.canonicalUrl ?? item.canonical_url ?? item.url ?? ''),
     }))
     .filter((source) => Boolean(source.id));
 
@@ -58,14 +58,20 @@ const fetchDatabaseStats = async (): Promise<DatabaseStats> => {
     const data = await apiClient.getJson<any>('/api/v2/sources/stats');
     if (data) {
       return {
-        totalDocuments: typeof data.total_documents === 'number' ? data.total_documents : data.totalDocuments ?? 0,
-        totalChunks: typeof data.total_chunks === 'number' ? data.total_chunks : data.totalChunks ?? 0,
-        totalSources: typeof data.total_sources === 'number' ? data.total_sources : data.totalSources ?? 0,
-        lastIngestedAt: typeof data.last_ingested_at === 'string'
-          ? data.last_ingested_at
-          : typeof data.lastIngestedAt === 'string'
-            ? data.lastIngestedAt
-            : null,
+        totalDocuments:
+          typeof data.total_documents === 'number'
+            ? data.total_documents
+            : (data.totalDocuments ?? 0),
+        totalChunks:
+          typeof data.total_chunks === 'number' ? data.total_chunks : (data.totalChunks ?? 0),
+        totalSources:
+          typeof data.total_sources === 'number' ? data.total_sources : (data.totalSources ?? 0),
+        lastIngestedAt:
+          typeof data.last_ingested_at === 'string'
+            ? data.last_ingested_at
+            : typeof data.lastIngestedAt === 'string'
+              ? data.lastIngestedAt
+              : null,
       };
     }
   } catch (error) {
@@ -82,11 +88,12 @@ const fetchDatabaseStats = async (): Promise<DatabaseStats> => {
   try {
     const countData = await apiClient.getJson<any>('/api/v2/sources/count');
     const count = typeof countData.count === 'number' ? countData.count : 0;
-    const totalSources = typeof countData.total_sources === 'number'
-      ? countData.total_sources
-      : typeof countData.totalSources === 'number'
-        ? countData.totalSources
-        : 0;
+    const totalSources =
+      typeof countData.total_sources === 'number'
+        ? countData.total_sources
+        : typeof countData.totalSources === 'number'
+          ? countData.totalSources
+          : 0;
 
     return {
       totalDocuments: count,
@@ -104,7 +111,8 @@ const fetchDatabaseStats = async (): Promise<DatabaseStats> => {
     const healthData = await apiClient.getJson<any>('/health?checkRag=true');
     const vectorStore = healthData?.ragService?.components?.vector_store;
     if (vectorStore) {
-      const documentCount = typeof vectorStore.document_count === 'number' ? vectorStore.document_count : 0;
+      const documentCount =
+        typeof vectorStore.document_count === 'number' ? vectorStore.document_count : 0;
       return {
         totalDocuments: documentCount,
         totalChunks: documentCount,
@@ -147,7 +155,7 @@ const fetchDatabaseSources = async (): Promise<DatabaseSource[]> => {
 };
 
 export const useDatabasePanel = (
-  formatDateDisplay: (value: string | null, includeTime?: boolean) => string | null
+  formatDateDisplay: (value: string | null, includeTime?: boolean) => string | null,
 ) => {
   const [stats, setStats] = useState<DatabaseStats | null>(null);
   const [sources, setSources] = useState<DatabaseSource[]>([]);
@@ -168,7 +176,9 @@ export const useDatabasePanel = (
       setSources(nextSources);
     } catch (refreshError) {
       console.error('Failed to refresh database metrics', refreshError);
-      setError(refreshError instanceof Error ? refreshError.message : 'Failed to load database metrics');
+      setError(
+        refreshError instanceof Error ? refreshError.message : 'Failed to load database metrics',
+      );
       setSources([]);
     } finally {
       setIsLoading(false);
@@ -191,7 +201,7 @@ export const useDatabasePanel = (
 
   const lastIngestedLabel = useMemo(
     () => formatDateDisplay(stats?.lastIngestedAt ?? null, true),
-    [stats?.lastIngestedAt, formatDateDisplay]
+    [stats?.lastIngestedAt, formatDateDisplay],
   );
 
   const handleSearchChange = useCallback((value: string) => {

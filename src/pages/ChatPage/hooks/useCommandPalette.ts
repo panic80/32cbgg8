@@ -26,36 +26,38 @@ export const useCommandPalette = ({
       return commands;
     }
     const lowerFilter = commandFilter.toLowerCase();
-    return commands.filter((cmd) =>
-      cmd.command.toLowerCase().startsWith(lowerFilter)
-    );
+    return commands.filter((cmd) => cmd.command.toLowerCase().startsWith(lowerFilter));
   }, [commandFilter, commands]);
 
-  const handleInputChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
-    const value = event.target.value;
-    setInput(value);
+  const handleInputChange = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      const value = event.target.value;
+      setInput(value);
 
-    if (value.startsWith('/') && value.length > 1) {
-      const lower = value.toLowerCase();
-      const matches = commands.filter((cmd) =>
-        cmd.command.toLowerCase().startsWith(lower)
-      );
-      setShowInlineCommand(matches.length > 0);
-      setCommandFilter(lower);
-      setSelectedCommandIndex(0);
-    } else {
-      setShowInlineCommand(false);
-      setCommandFilter('');
-      setSelectedCommandIndex(0);
-    }
-  }, [commands, setInput]);
+      if (value.startsWith('/') && value.length > 1) {
+        const lower = value.toLowerCase();
+        const matches = commands.filter((cmd) => cmd.command.toLowerCase().startsWith(lower));
+        setShowInlineCommand(matches.length > 0);
+        setCommandFilter(lower);
+        setSelectedCommandIndex(0);
+      } else {
+        setShowInlineCommand(false);
+        setCommandFilter('');
+        setSelectedCommandIndex(0);
+      }
+    },
+    [commands, setInput],
+  );
 
-  const handleKeyPress = useCallback((event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter' && !event.shiftKey && !showInlineCommand) {
-      event.preventDefault();
-      onSubmit();
-    }
-  }, [onSubmit, showInlineCommand]);
+  const handleKeyPress = useCallback(
+    (event: KeyboardEvent<HTMLInputElement>) => {
+      if (event.key === 'Enter' && !event.shiftKey && !showInlineCommand) {
+        event.preventDefault();
+        onSubmit();
+      }
+    },
+    [onSubmit, showInlineCommand],
+  );
 
   useEffect(() => {
     if (!showInlineCommand) {

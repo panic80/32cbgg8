@@ -20,9 +20,9 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         dispatch({ type: 'SET_TRAVEL_INSTRUCTIONS', instructions });
       } catch (error) {
         console.error('Failed to load travel instructions:', error);
-        dispatch({ 
-          type: 'SET_NETWORK_ERROR', 
-          error: 'Failed to load travel instructions. Please try again later.'
+        dispatch({
+          type: 'SET_NETWORK_ERROR',
+          error: 'Failed to load travel instructions. Please try again later.',
         });
       }
     };
@@ -38,14 +38,10 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const contextValue: ExtendedChatContextType = {
     ...state,
     dispatch,
-    generateMessageId
+    generateMessageId,
   };
 
-  return (
-    <ChatContext.Provider value={contextValue}>
-      {children}
-    </ChatContext.Provider>
-  );
+  return <ChatContext.Provider value={contextValue}>{children}</ChatContext.Provider>;
 };
 
 export const useChatContext = () => {
@@ -58,46 +54,67 @@ export const useChatContext = () => {
 
 export const useChat = () => {
   const context = useChatContext();
-  
-  const addMessage = useCallback((message: Omit<Message, 'id' | 'timestamp'>) => {
-    const fullMessage: Message = {
-      ...message,
-      id: context.generateMessageId(),
-      timestamp: Date.now(),
-      sender: message.sender,
-      text: message.text
-    };
-    context.dispatch({ type: 'ADD_MESSAGE', message: fullMessage });
-    return fullMessage.id;
-  }, [context]);
 
-  const updateMessage = useCallback((messageId: string, updates: Partial<Message>) => {
-    context.dispatch({ type: 'UPDATE_MESSAGE', messageId, updates });
-  }, [context]);
+  const addMessage = useCallback(
+    (message: Omit<Message, 'id' | 'timestamp'>) => {
+      const fullMessage: Message = {
+        ...message,
+        id: context.generateMessageId(),
+        timestamp: Date.now(),
+        sender: message.sender,
+        text: message.text,
+      };
+      context.dispatch({ type: 'ADD_MESSAGE', message: fullMessage });
+      return fullMessage.id;
+    },
+    [context],
+  );
+
+  const updateMessage = useCallback(
+    (messageId: string, updates: Partial<Message>) => {
+      context.dispatch({ type: 'UPDATE_MESSAGE', messageId, updates });
+    },
+    [context],
+  );
 
   const clearChat = useCallback(() => {
     context.dispatch({ type: 'CLEAR_CHAT' });
   }, [context]);
 
-  const setTheme = useCallback((theme: 'light' | 'dark') => {
-    context.dispatch({ type: 'SET_THEME', theme });
-  }, [context]);
+  const setTheme = useCallback(
+    (theme: 'light' | 'dark') => {
+      context.dispatch({ type: 'SET_THEME', theme });
+    },
+    [context],
+  );
 
-  const setFontSize = useCallback((fontSize: number) => {
-    context.dispatch({ type: 'SET_FONT_SIZE', fontSize });
-  }, [context]);
+  const setFontSize = useCallback(
+    (fontSize: number) => {
+      context.dispatch({ type: 'SET_FONT_SIZE', fontSize });
+    },
+    [context],
+  );
 
-  const setShowAvatars = useCallback((showAvatars: boolean) => {
-    context.dispatch({ type: 'SET_SHOW_AVATARS', showAvatars });
-  }, [context]);
+  const setShowAvatars = useCallback(
+    (showAvatars: boolean) => {
+      context.dispatch({ type: 'SET_SHOW_AVATARS', showAvatars });
+    },
+    [context],
+  );
 
-  const setSimplifyMode = useCallback((isSimplifyMode: boolean) => {
-    context.dispatch({ type: 'SET_SIMPLIFY_MODE', isSimplifyMode });
-  }, [context]);
+  const setSimplifyMode = useCallback(
+    (isSimplifyMode: boolean) => {
+      context.dispatch({ type: 'SET_SIMPLIFY_MODE', isSimplifyMode });
+    },
+    [context],
+  );
 
-  const setNetworkError = useCallback((error: string | null) => {
-    context.dispatch({ type: 'SET_NETWORK_ERROR', error });
-  }, [context]);
+  const setNetworkError = useCallback(
+    (error: string | null) => {
+      context.dispatch({ type: 'SET_NETWORK_ERROR', error });
+    },
+    [context],
+  );
 
   return {
     state: context,
@@ -109,7 +126,7 @@ export const useChat = () => {
       setFontSize,
       setShowAvatars,
       setSimplifyMode,
-      setNetworkError
-    }
+      setNetworkError,
+    },
   };
 };

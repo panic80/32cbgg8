@@ -17,9 +17,9 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
   onRegenerate,
   onVoice,
   isLoading,
-  onFeedback
+  onFeedback,
 }) => (
-  <motion.div 
+  <motion.div
     className="flex items-center gap-2 mt-3 opacity-0 group-hover:opacity-100"
     initial={{ opacity: 0, y: 10 }}
     animate={{ opacity: 0 }}
@@ -29,9 +29,9 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
     <Tooltip>
       <TooltipTrigger asChild>
         <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => onFeedback?.('up')}
             className="h-8 px-2 hover:bg-[var(--background-secondary)] text-[var(--text)]"
             aria-label="Thumbs up"
@@ -47,9 +47,9 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
     <Tooltip>
       <TooltipTrigger asChild>
         <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => onFeedback?.('down')}
             className="h-8 px-2 hover:bg-[var(--background-secondary)] text-[var(--text)]"
             aria-label="Thumbs down"
@@ -65,9 +65,9 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
     <Tooltip>
       <TooltipTrigger asChild>
         <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={onCopy}
             className="h-8 px-2 hover:bg-[var(--background-secondary)] text-[var(--text)] relative overflow-hidden"
             aria-label="Copy message"
@@ -83,16 +83,16 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
     <Tooltip>
       <TooltipTrigger asChild>
         <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={onRegenerate}
             className="h-8 px-2 hover:bg-[var(--background-secondary)] text-[var(--text)] relative overflow-hidden"
             aria-label="Regenerate response"
           >
             <motion.div
               animate={{ rotate: isLoading ? 360 : 0 }}
-              transition={{ duration: 1, repeat: isLoading ? Infinity : 0, ease: "linear" }}
+              transition={{ duration: 1, repeat: isLoading ? Infinity : 0, ease: 'linear' }}
             >
               <RefreshCw size={14} />
             </motion.div>
@@ -106,9 +106,9 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
     <Tooltip>
       <TooltipTrigger asChild>
         <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={onVoice}
             className="h-8 px-2 hover:bg-[var(--background-secondary)] text-[var(--text)]"
             aria-label="Read aloud"

@@ -30,10 +30,10 @@ export const MobileChatHeader: React.FC<MobileChatHeaderProps> = ({
   return (
     <motion.header
       className={cn(
-        "fixed top-0 left-0 right-0 z-40",
-        "bg-background/95 backdrop-blur-lg border-b border-border",
-        "transition-transform duration-300 ease-in-out",
-        className
+        'fixed top-0 left-0 right-0 z-40',
+        'bg-background/95 backdrop-blur-lg border-b border-border',
+        'transition-transform duration-300 ease-in-out',
+        className,
       )}
       initial={{ y: 0 }}
       animate={{ y: isVisible ? 0 : -100 }}
@@ -45,16 +45,11 @@ export const MobileChatHeader: React.FC<MobileChatHeaderProps> = ({
         {/* Left section */}
         <div className="flex items-center gap-2">
           {onBack && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onBack}
-              className="h-10 w-10 rounded-full"
-            >
+            <Button variant="ghost" size="icon" onClick={onBack} className="h-10 w-10 rounded-full">
               <ChevronLeft size={20} />
             </Button>
           )}
-          
+
           {onMenu && (
             <Button
               variant="ghost"
@@ -65,13 +60,11 @@ export const MobileChatHeader: React.FC<MobileChatHeaderProps> = ({
               <Menu size={20} />
             </Button>
           )}
-          
+
           {/* Title section */}
           <div className="flex-1">
             <h1 className="text-lg font-semibold truncate">{title}</h1>
-            {subtitle && (
-              <p className="text-xs text-muted-foreground truncate">{subtitle}</p>
-            )}
+            {subtitle && <p className="text-xs text-muted-foreground truncate">{subtitle}</p>}
           </div>
         </div>
 

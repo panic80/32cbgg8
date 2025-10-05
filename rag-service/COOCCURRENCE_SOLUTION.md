@@ -7,6 +7,7 @@ This implementation provides a truly generic solution for retrieving specific va
 ## How It Works
 
 ### Core Principle
+
 The co-occurrence indexer treats all content uniformly as a graph of co-occurring terms within proximity windows. It doesn't make assumptions about document structure - instead, it indexes relationships between terms based on how close they appear to each other.
 
 ### Key Components
@@ -22,7 +23,7 @@ The co-occurrence indexer treats all content uniformly as a graph of co-occurrin
    - Supports hybrid retrieval combining co-occurrence with vector search
    - Handles exact phrase matching and boosting
 
-3. **Integration** 
+3. **Integration**
    - Integrated into ingestion pipeline (`app/pipelines/ingestion.py`)
    - Integrated into retrieval pipeline (`app/pipelines/retrieval.py`)
    - Automatically indexes new documents during ingestion
@@ -43,12 +44,14 @@ The co-occurrence indexer treats all content uniformly as a graph of co-occurrin
 ### Testing
 
 Run the comprehensive test suite:
+
 ```bash
 cd rag-service
 python test_cooccurrence_retrieval.py
 ```
 
 This tests various document formats:
+
 - Markdown tables
 - Prose text
 - JSON structures
@@ -58,6 +61,7 @@ This tests various document formats:
 ### Query Examples
 
 The solution handles these previously problematic queries:
+
 - "Ontario kilometric rate" → Finds documents where "Ontario" and "kilometric rate" appear near each other
 - "Ontario $0.57" → Connects province name with its rate value
 - "Yukon $0.615" → Finds the specific rate for Yukon
@@ -66,6 +70,7 @@ The solution handles these previously problematic queries:
 ## Algorithm Details
 
 ### Proximity Scoring
+
 ```python
 distance_weights = {
     0: 1.0,    # Same position (exact match)
@@ -79,9 +84,10 @@ distance_weights = {
 ```
 
 ### Multi-Scale Indexing
+
 - **Line level**: Terms on the same line (tables, lists)
 - **Sentence level**: Within ~5 tokens
-- **Paragraph level**: Within ~20 tokens  
+- **Paragraph level**: Within ~20 tokens
 - **Section level**: Within ~100 tokens
 - **Document level**: Same document
 
@@ -96,8 +102,8 @@ distance_weights = {
 ## Performance Considerations
 
 - **Index Size**: Grows with vocabulary size and document count
-- **Build Time**: O(n*w) where n is total tokens and w is window size
-- **Query Time**: O(k*m) where k is query terms and m is average edges per term
+- **Build Time**: O(n\*w) where n is total tokens and w is window size
+- **Query Time**: O(k\*m) where k is query terms and m is average edges per term
 - **Memory**: Stores edges, positions, and context samples
 
 ## Future Enhancements

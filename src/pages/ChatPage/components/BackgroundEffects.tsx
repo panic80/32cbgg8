@@ -2,7 +2,7 @@ import React from 'react';
 
 export const BackgroundEffects = () => (
   <div className="absolute inset-0 pointer-events-none overflow-hidden">
-    <div 
+    <div
       className="absolute w-[600px] h-[600px] rounded-full blur-3xl opacity-20"
       style={{
         background: `radial-gradient(circle at center, var(--primary) 0%, transparent 70%)`,
@@ -10,7 +10,7 @@ export const BackgroundEffects = () => (
         top: '-10%',
       }}
     />
-    <div 
+    <div
       className="absolute w-[600px] h-[600px] rounded-full blur-3xl opacity-20"
       style={{
         background: `radial-gradient(circle at center, var(--primary) 0%, transparent 70%)`,

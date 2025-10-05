@@ -105,7 +105,7 @@ server {
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
         proxy_cache_bypass $http_upgrade;
-        
+
         # Additional rate limiting at Nginx level
         limit_req zone=api burst=10 nodelay;
         limit_req_status 429;

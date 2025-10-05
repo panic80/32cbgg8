@@ -2,9 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { EnhancedBackButton } from '@/components/ui/enhanced-back-button';
 import { toast } from 'sonner';
-import {
-  Brain, Globe, Trash2, FileText
-} from 'lucide-react';
+import { Brain, Globe, Trash2, FileText } from 'lucide-react';
 import { ModelSettingsTab } from './tabs/ModelSettingsTab';
 import { IngestionTab } from './tabs/IngestionTab';
 import { DatabaseTab } from './tabs/DatabaseTab';
@@ -39,15 +37,18 @@ export default function ConfigPage() {
     savePreferences,
     resetPreferences,
   } = useModelPreferences(MODELS, DEFAULT_MODEL_ID, DEFAULT_PROVIDER);
-  
+
   // Database management state
   const [isPurging, setIsPurging] = useState(false);
   const { activityLog, appendActivityLog } = useActivityLog();
   const [showActivityLog, setShowActivityLog] = useState(false);
 
-  const addActivityLogEntry = useCallback((action: string, details: string) => {
-    appendActivityLog(action, details);
-  }, [appendActivityLog]);
+  const addActivityLogEntry = useCallback(
+    (action: string, details: string) => {
+      appendActivityLog(action, details);
+    },
+    [appendActivityLog],
+  );
 
   const formatDateDisplay = useCallback((value: string | null, includeTime = false) => {
     if (!value) return null;
@@ -184,13 +185,19 @@ export default function ConfigPage() {
     }
   }, [activeTab, loadVisitSummary, visitSummaryInitialized, visitSummaryLoading]);
 
-  const handleProviderChange = useCallback((provider: ModelProvider) => {
-    selectProvider(provider);
-  }, [selectProvider]);
+  const handleProviderChange = useCallback(
+    (provider: ModelProvider) => {
+      selectProvider(provider);
+    },
+    [selectProvider],
+  );
 
-  const handleModelChange = useCallback((modelId: string) => {
-    selectModel(modelId);
-  }, [selectModel]);
+  const handleModelChange = useCallback(
+    (modelId: string) => {
+      selectModel(modelId);
+    },
+    [selectModel],
+  );
 
   const handleSaveModel = useCallback(() => {
     const savedModel = savePreferences();
@@ -211,7 +218,7 @@ export default function ConfigPage() {
 
   const handlePurgeDatabase = async () => {
     setIsPurging(true);
-    
+
     try {
       await apiClient.postJson<void>('/api/v2/database/purge', undefined, {
         headers: {
@@ -228,9 +235,10 @@ export default function ConfigPage() {
       await refreshDatabaseMetrics();
     } catch (error) {
       if (error instanceof ApiError) {
-        const message = typeof (error.data as any)?.message === 'string'
-          ? (error.data as any).message
-          : error.statusText || error.message;
+        const message =
+          typeof (error.data as any)?.message === 'string'
+            ? (error.data as any).message
+            : error.statusText || error.message;
         toast.error(message || 'Failed to purge database');
       } else if (error instanceof Error) {
         toast.error(error.message || 'Failed to purge database');
@@ -245,19 +253,19 @@ export default function ConfigPage() {
 
   const exportDatabaseStats = () => {
     if (!databaseStats) return;
-    
+
     const exportData = {
       exportDate: new Date().toISOString(),
       statistics: {
         totalDocuments: databaseStats.totalDocuments,
         totalChunks: databaseStats.totalChunks,
         totalSources: databaseStats.totalSources,
-        databaseUsage: `${databaseUsagePercentage.toFixed(2)}%`
+        databaseUsage: `${databaseUsagePercentage.toFixed(2)}%`,
       },
       sources: databaseSources,
-      activityLog: activityLog
+      activityLog: activityLog,
     };
-    
+
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -267,7 +275,7 @@ export default function ConfigPage() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    
+
     toast.success('Database statistics exported');
     addActivityLogEntry('Stats Exported', 'Database statistics exported to JSON');
   };
@@ -283,13 +291,15 @@ export default function ConfigPage() {
         <div className="absolute top-0 right-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-float-slow" />
         <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl animate-float-slow delay-1000" />
       </div>
-      
+
       <div className="container mx-auto py-8 px-4 relative z-10">
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">
             <EnhancedBackButton to="/chat" label="Back to Chat" variant="minimal" />
           </div>
-          <h1 className="h1 text-fluid-4xl font-bold text-foreground mb-2 bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent animate-fade-up">Configuration</h1>
+          <h1 className="h1 text-fluid-4xl font-bold text-foreground mb-2 bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent animate-fade-up">
+            Configuration
+          </h1>
           <p className="body-lg text-muted-foreground animate-fade-up delay-100">
             Configure your chat assistant settings.
           </p>
@@ -392,7 +402,6 @@ export default function ConfigPage() {
               onPreviousPage={handleLogsPreviousPage}
             />
           </TabsContent>
-
         </Tabs>
       </div>
     </div>

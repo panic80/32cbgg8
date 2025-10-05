@@ -16,7 +16,8 @@ export const useMobileKeyboard = () => {
   });
 
   // Detect if the device is mobile
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || 
+  const isMobile =
+    /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
     (window.matchMedia && window.matchMedia('(max-width: 768px)').matches);
 
   useEffect(() => {
@@ -28,7 +29,7 @@ export const useMobileKeyboard = () => {
     const handleViewportChange = () => {
       const currentHeight = window.innerHeight;
       const heightDifference = lastHeight - currentHeight;
-      
+
       // Clear any existing timer
       clearTimeout(keyboardTimer);
 
@@ -38,7 +39,7 @@ export const useMobileKeyboard = () => {
           isKeyboardVisible: true,
           keyboardHeight: heightDifference,
         });
-        
+
         // Update CSS custom property for keyboard height
         document.documentElement.style.setProperty('--keyboard-height', `${heightDifference}px`);
         document.body.classList.add('keyboard-visible');
@@ -62,18 +63,21 @@ export const useMobileKeyboard = () => {
     // Visual Viewport API (more reliable on modern browsers)
     if ('visualViewport' in window && window.visualViewport) {
       const viewport = window.visualViewport;
-      
+
       const handleViewportUpdate = () => {
-        const keyboardHeight = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
+        const keyboardHeight = Math.max(
+          0,
+          window.innerHeight - viewport.height - viewport.offsetTop,
+        );
         const isVisible = keyboardHeight > 20; // Lower threshold for better detection
-        
+
         setKeyboardState({
           isKeyboardVisible: isVisible,
           keyboardHeight: keyboardHeight,
         });
-        
+
         document.documentElement.style.setProperty('--keyboard-height', `${keyboardHeight}px`);
-        
+
         // Also update body class for CSS hooks
         if (isVisible) {
           document.body.classList.add('keyboard-visible');
@@ -86,7 +90,7 @@ export const useMobileKeyboard = () => {
 
       viewport.addEventListener('resize', handleViewportUpdate);
       viewport.addEventListener('scroll', handleViewportUpdate);
-      
+
       return () => {
         viewport.removeEventListener('resize', handleViewportUpdate);
         viewport.removeEventListener('scroll', handleViewportUpdate);
@@ -95,12 +99,12 @@ export const useMobileKeyboard = () => {
     } else {
       // Fallback for older browsers
       window.addEventListener('resize', handleViewportChange);
-      
+
       // Also listen for focus/blur on inputs as additional signals
       const handleFocus = () => {
         setTimeout(handleViewportChange, 300);
       };
-      
+
       const handleBlur = () => {
         setTimeout(() => {
           setKeyboardState({
@@ -115,7 +119,7 @@ export const useMobileKeyboard = () => {
 
       document.addEventListener('focusin', handleFocus);
       document.addEventListener('focusout', handleBlur);
-      
+
       return () => {
         window.removeEventListener('resize', handleViewportChange);
         document.removeEventListener('focusin', handleFocus);
@@ -126,27 +130,30 @@ export const useMobileKeyboard = () => {
   }, [isMobile]);
 
   // Scroll input into view when keyboard opens
-  const scrollInputIntoView = useCallback((element: HTMLElement | null) => {
-    if (!element || !keyboardState.isKeyboardVisible) return;
+  const scrollInputIntoView = useCallback(
+    (element: HTMLElement | null) => {
+      if (!element || !keyboardState.isKeyboardVisible) return;
 
-    setTimeout(() => {
-      // For iOS, we need to handle this differently
-      if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-        // Use a more conservative approach for iOS
-        element.scrollIntoView({ 
-          behavior: 'smooth', 
-          block: 'end',
-          inline: 'nearest' 
-        });
-      } else {
-        element.scrollIntoView({ 
-          behavior: 'smooth', 
-          block: 'center',
-          inline: 'nearest' 
-        });
-      }
-    }, 300);
-  }, [keyboardState.isKeyboardVisible]);
+      setTimeout(() => {
+        // For iOS, we need to handle this differently
+        if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+          // Use a more conservative approach for iOS
+          element.scrollIntoView({
+            behavior: 'smooth',
+            block: 'end',
+            inline: 'nearest',
+          });
+        } else {
+          element.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+            inline: 'nearest',
+          });
+        }
+      }, 300);
+    },
+    [keyboardState.isKeyboardVisible],
+  );
 
   // Force close keyboard
   const closeKeyboard = useCallback(() => {

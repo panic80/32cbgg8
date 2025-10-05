@@ -10,4 +10,3 @@ export const setSseHeaders = (res, extraHeaders = {}) => {
   };
   res.writeHead(200, { ...base, ...extraHeaders });
 };
-

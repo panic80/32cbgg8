@@ -1,7 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Progress } from './ui/progress';
-import { CheckCircle2, Circle, Loader2, AlertCircle, FileText, Split, Brain, Database } from 'lucide-react';
+import {
+  CheckCircle2,
+  Circle,
+  Loader2,
+  AlertCircle,
+  FileText,
+  Split,
+  Brain,
+  Database,
+} from 'lucide-react';
 import { cn } from '../lib/utils';
 
 interface IngestionStep {
@@ -33,7 +42,12 @@ const stepIcons: Record<string, React.ReactNode> = {
   storing: <Database className="h-4 w-4" />,
 };
 
-export default function IngestionProgress({ isOpen, onClose, url, operationId }: IngestionProgressProps) {
+export default function IngestionProgress({
+  isOpen,
+  onClose,
+  url,
+  operationId,
+}: IngestionProgressProps) {
   const [steps, setSteps] = useState<IngestionStep[]>([
     { id: 'loading', name: 'Loading document', status: 'pending' },
     { id: 'splitting', name: 'Splitting into chunks', status: 'pending' },
@@ -75,46 +89,52 @@ export default function IngestionProgress({ isOpen, onClose, url, operationId }:
   const handleProgressUpdate = (data: any) => {
     switch (data.type) {
       case 'step_start':
-        setSteps(prev => prev.map(step => 
-          step.id === data.stepId 
-            ? { ...step, status: 'in_progress', startTime: Date.now(), message: data.message }
-            : step
-        ));
+        setSteps((prev) =>
+          prev.map((step) =>
+            step.id === data.stepId
+              ? { ...step, status: 'in_progress', startTime: Date.now(), message: data.message }
+              : step,
+          ),
+        );
         break;
 
       case 'step_progress':
-        setSteps(prev => prev.map(step => 
-          step.id === data.stepId 
-            ? { 
-                ...step, 
-                progress: data.progress, 
-                message: data.message,
-                details: data.details 
-              }
-            : step
-        ));
+        setSteps((prev) =>
+          prev.map((step) =>
+            step.id === data.stepId
+              ? {
+                  ...step,
+                  progress: data.progress,
+                  message: data.message,
+                  details: data.details,
+                }
+              : step,
+          ),
+        );
         break;
 
       case 'step_complete':
-        setSteps(prev => prev.map(step => 
-          step.id === data.stepId 
-            ? { 
-                ...step, 
-                status: 'completed', 
-                endTime: Date.now(),
-                message: data.message,
-                progress: 100 
-              }
-            : step
-        ));
+        setSteps((prev) =>
+          prev.map((step) =>
+            step.id === data.stepId
+              ? {
+                  ...step,
+                  status: 'completed',
+                  endTime: Date.now(),
+                  message: data.message,
+                  progress: 100,
+                }
+              : step,
+          ),
+        );
         break;
 
       case 'step_error':
-        setSteps(prev => prev.map(step => 
-          step.id === data.stepId 
-            ? { ...step, status: 'error', message: data.message }
-            : step
-        ));
+        setSteps((prev) =>
+          prev.map((step) =>
+            step.id === data.stepId ? { ...step, status: 'error', message: data.message } : step,
+          ),
+        );
         setError(data.message);
         break;
 
@@ -190,12 +210,14 @@ export default function IngestionProgress({ isOpen, onClose, url, operationId }:
                   <div className="mt-0.5">{getStepIcon(step)}</div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <p className={cn(
-                        "text-sm font-medium",
-                        step.status === 'completed' && "text-green-600",
-                        step.status === 'error' && "text-red-600",
-                        step.status === 'in_progress' && "text-blue-600"
-                      )}>
+                      <p
+                        className={cn(
+                          'text-sm font-medium',
+                          step.status === 'completed' && 'text-green-600',
+                          step.status === 'error' && 'text-red-600',
+                          step.status === 'in_progress' && 'text-blue-600',
+                        )}
+                      >
                         {step.name}
                       </p>
                       {step.startTime && (
@@ -204,33 +226,38 @@ export default function IngestionProgress({ isOpen, onClose, url, operationId }:
                         </span>
                       )}
                     </div>
-                    
+
                     {step.message && (
                       <p className="text-xs text-muted-foreground mt-1">{step.message}</p>
                     )}
-                    
+
                     {step.details && (
                       <div className="flex gap-4 mt-1 text-xs text-muted-foreground">
                         {step.details.current !== undefined && step.details.total !== undefined && (
-                          <span>{step.details.current} / {step.details.total}</span>
+                          <span>
+                            {step.details.current} / {step.details.total}
+                          </span>
                         )}
                         {step.details.rate !== undefined && (
-                          <span>{formatRate(step.details.rate, 
-                            step.id === 'embedding' ? 'embeddings/s' : 
-                            step.id === 'splitting' ? 'chunks/s' : 
-                            'docs/s'
-                          )}</span>
+                          <span>
+                            {formatRate(
+                              step.details.rate,
+                              step.id === 'embedding'
+                                ? 'embeddings/s'
+                                : step.id === 'splitting'
+                                  ? 'chunks/s'
+                                  : 'docs/s',
+                            )}
+                          </span>
                         )}
                       </div>
                     )}
-                    
+
                     {step.status === 'in_progress' && step.progress !== undefined && (
                       <Progress value={step.progress} className="h-1 mt-2" />
                     )}
                   </div>
-                  <div className="text-muted-foreground">
-                    {stepIcons[step.id]}
-                  </div>
+                  <div className="text-muted-foreground">{stepIcons[step.id]}</div>
                 </div>
               </div>
             ))}

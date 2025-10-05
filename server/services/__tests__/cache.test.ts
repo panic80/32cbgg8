@@ -11,29 +11,32 @@ describe('CacheService', () => {
 
     vi.restoreAllMocks();
 
-    vi.spyOn(global, 'setInterval').mockImplementation((handler: TimerHandler, timeout?: number, ...args: any[]) => {
-      const timer = realSetInterval(handler, timeout, ...args);
-      if (typeof (timer as NodeJS.Timeout).unref === 'function') {
-        (timer as NodeJS.Timeout).unref();
-      }
-      timers.push(timer as NodeJS.Timeout);
-      return timer as unknown as ReturnType<typeof setInterval>;
-    });
+    vi.spyOn(global, 'setInterval').mockImplementation(
+      (handler: TimerHandler, timeout?: number, ...args: any[]) => {
+        const timer = realSetInterval(handler, timeout, ...args);
+        if (typeof (timer as NodeJS.Timeout).unref === 'function') {
+          (timer as NodeJS.Timeout).unref();
+        }
+        timers.push(timer as NodeJS.Timeout);
+        return timer as unknown as ReturnType<typeof setInterval>;
+      },
+    );
   });
 
   afterEach(async () => {
-    timers.forEach(timer => clearInterval(timer));
+    timers.forEach((timer) => clearInterval(timer));
     timers.length = 0;
     (setInterval as unknown as { mockRestore?: () => void }).mockRestore?.();
     vi.restoreAllMocks();
   });
 
-  const createCache = () => new CacheService({
-    redisEnabled: false,
-    enableLogging: false,
-    defaultTTL: 200,
-    memoryCleanupInterval: 5000,
-  });
+  const createCache = () =>
+    new CacheService({
+      redisEnabled: false,
+      enableLogging: false,
+      defaultTTL: 200,
+      memoryCleanupInterval: 5000,
+    });
 
   it('stores, retrieves, and removes values in memory cache when Redis is disabled', async () => {
     const cache = createCache();

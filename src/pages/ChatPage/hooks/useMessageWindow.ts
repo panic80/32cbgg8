@@ -16,24 +16,25 @@ export const useMessageWindow = ({
 }: UseMessageWindowOptions) => {
   const [visibleCount, setVisibleCount] = useState(initialVisible);
 
-  const combinedMessages = useMemo(() => (
-    pendingMessage ? [...messages, pendingMessage] : messages
-  ), [messages, pendingMessage]);
+  const combinedMessages = useMemo(
+    () => (pendingMessage ? [...messages, pendingMessage] : messages),
+    [messages, pendingMessage],
+  );
 
   const startIndex = useMemo(
     () => Math.max(0, combinedMessages.length - visibleCount),
-    [combinedMessages, visibleCount]
+    [combinedMessages, visibleCount],
   );
 
   const visibleMessages = useMemo(
     () => combinedMessages.slice(startIndex),
-    [combinedMessages, startIndex]
+    [combinedMessages, startIndex],
   );
 
   const canShowMore = combinedMessages.length > visibleCount;
 
   const showMore = useCallback(() => {
-    setVisibleCount(count => Math.min(combinedMessages.length, count + pageSize));
+    setVisibleCount((count) => Math.min(combinedMessages.length, count + pageSize));
   }, [combinedMessages.length, pageSize]);
 
   const reset = useCallback(() => {

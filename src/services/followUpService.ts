@@ -5,7 +5,7 @@ interface FollowUpGenerationParams {
   userQuestion: string;
   aiResponse: string;
   sources?: Source[];
-  conversationHistory?: Array<{ role: 'user' | 'assistant', content: string }>;
+  conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>;
 }
 
 interface FollowUpResponse {
@@ -16,30 +16,38 @@ interface FollowUpResponse {
  * Generate contextual follow-up questions using the dedicated follow-up endpoint
  */
 export const generateFollowUpQuestions = async (
-  params: FollowUpGenerationParams
+  params: FollowUpGenerationParams,
 ): Promise<FollowUpQuestion[]> => {
   const { userQuestion, aiResponse, sources = [], conversationHistory = [] } = params;
 
   try {
     // Call the dedicated follow-up endpoint
-    const data = await apiClient.postJson<FollowUpResponse>('/api/v2/followup', {
-      userQuestion,
-      aiResponse,
-      sources,
-      conversationHistory,
-      model: localStorage.getItem('selectedLLMModel') || 'gpt-4',
-      provider: localStorage.getItem('selectedLLMProvider') || 'openai',
-    }, {
-      headers: {
-        'Content-Type': 'application/json',
+    const data = await apiClient.postJson<FollowUpResponse>(
+      '/api/v2/followup',
+      {
+        userQuestion,
+        aiResponse,
+        sources,
+        conversationHistory,
+        model: localStorage.getItem('selectedLLMModel') || 'gpt-4',
+        provider: localStorage.getItem('selectedLLMProvider') || 'openai',
       },
-    });
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      },
+    );
 
     return data?.followUpQuestions || [];
-
   } catch (error) {
     if (error instanceof ApiError) {
-      console.error('Error generating follow-up questions:', error.status, error.statusText, error.data);
+      console.error(
+        'Error generating follow-up questions:',
+        error.status,
+        error.statusText,
+        error.data,
+      );
     } else {
       console.error('Error generating follow-up questions:', error);
     }
@@ -55,15 +63,20 @@ const createFollowUpPrompt = (
   userQuestion: string,
   aiResponse: string,
   sources: Source[],
-  conversationHistory: Array<{ role: 'user' | 'assistant', content: string }>
+  conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }>,
 ): string => {
-  const sourceContext = sources.length > 0 
-    ? `\n\nSources referenced: ${sources.map(s => s.reference || 'Document').join(', ')}`
-    : '';
+  const sourceContext =
+    sources.length > 0
+      ? `\n\nSources referenced: ${sources.map((s) => s.reference || 'Document').join(', ')}`
+      : '';
 
-  const historyContext = conversationHistory.length > 0
-    ? `\n\nRecent conversation context:\n${conversationHistory.slice(-4).map(h => `${h.role}: ${h.content.substring(0, 100)}...`).join('\n')}`
-    : '';
+  const historyContext =
+    conversationHistory.length > 0
+      ? `\n\nRecent conversation context:\n${conversationHistory
+          .slice(-4)
+          .map((h) => `${h.role}: ${h.content.substring(0, 100)}...`)
+          .join('\n')}`
+      : '';
 
   return `You are a helpful assistant specialized in generating contextual follow-up questions. Based on the conversation below, generate 2-3 relevant follow-up questions that would help the user continue learning or get more specific information.
 
@@ -111,13 +124,14 @@ const parseFollowUpQuestions = (response: string): FollowUpQuestion[] => {
     const parsed = JSON.parse(jsonMatch[0]);
     const questions = parsed.questions || [];
 
-    return questions.map((q: any, index: number) => ({
-      id: `followup-${Date.now()}-${index}`,
-      question: q.question || '',
-      category: q.category || 'related',
-      confidence: q.confidence || 0.7
-    })).filter((q: FollowUpQuestion) => q.question.trim().length > 0);
-
+    return questions
+      .map((q: any, index: number) => ({
+        id: `followup-${Date.now()}-${index}`,
+        question: q.question || '',
+        category: q.category || 'related',
+        confidence: q.confidence || 0.7,
+      }))
+      .filter((q: FollowUpQuestion) => q.question.trim().length > 0);
   } catch (error) {
     console.error('Error parsing follow-up questions:', error);
     // Try to extract questions from plain text as fallback
@@ -148,7 +162,7 @@ const extractQuestionsFromText = (text: string): FollowUpQuestion[] => {
           id: `followup-text-${Date.now()}-${index}`,
           question: cleanQuestion,
           category: 'related',
-          confidence: 0.6
+          confidence: 0.6,
         });
       }
     }
@@ -163,7 +177,7 @@ const extractQuestionsFromText = (text: string): FollowUpQuestion[] => {
 const generateFallbackQuestions = (
   userQuestion: string,
   aiResponse: string,
-  sources: Source[]
+  sources: Source[],
 ): FollowUpQuestion[] => {
   const fallbackQuestions: FollowUpQuestion[] = [];
 
@@ -177,7 +191,7 @@ const generateFallbackQuestions = (
       id: 'fallback-travel-1',
       question: 'What documentation is required for this type of travel?',
       category: 'practical',
-      confidence: 0.5
+      confidence: 0.5,
     });
   }
 
@@ -186,7 +200,7 @@ const generateFallbackQuestions = (
       id: 'fallback-claim-1',
       question: 'What is the timeline for submitting this claim?',
       category: 'practical',
-      confidence: 0.5
+      confidence: 0.5,
     });
   }
 
@@ -195,7 +209,7 @@ const generateFallbackQuestions = (
       id: 'fallback-allowance-1',
       question: 'Are there any restrictions or conditions for this allowance?',
       category: 'clarification',
-      confidence: 0.5
+      confidence: 0.5,
     });
   }
 
@@ -206,14 +220,14 @@ const generateFallbackQuestions = (
         id: 'fallback-generic-1',
         question: 'Can you provide more specific examples?',
         category: 'clarification',
-        confidence: 0.4
+        confidence: 0.4,
       },
       {
         id: 'fallback-generic-2',
         question: 'What are the next steps I should take?',
         category: 'practical',
-        confidence: 0.4
-      }
+        confidence: 0.4,
+      },
     );
   }
 
@@ -221,5 +235,5 @@ const generateFallbackQuestions = (
 };
 
 export default {
-  generateFollowUpQuestions
+  generateFollowUpQuestions,
 };

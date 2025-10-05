@@ -7,10 +7,7 @@ interface UseScrollBehaviorOptions {
   messages: Message[];
 }
 
-export const useScrollBehavior = ({
-  scrollAreaRef,
-  messages,
-}: UseScrollBehaviorOptions) => {
+export const useScrollBehavior = ({ scrollAreaRef, messages }: UseScrollBehaviorOptions) => {
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [showNewPill, setShowNewPill] = useState(false);
   const suppressPillRef = useRef(false);
@@ -24,7 +21,9 @@ export const useScrollBehavior = ({
   }, []);
 
   const scrollToBottom = useCallback(() => {
-    const viewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
+    const viewport = scrollAreaRef.current?.querySelector(
+      '[data-radix-scroll-area-viewport]',
+    ) as HTMLElement | null;
     if (!viewport) return;
 
     suppressPillRef.current = true;
@@ -53,7 +52,9 @@ export const useScrollBehavior = ({
   }, [clearTimer]);
 
   useEffect(() => {
-    const viewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
+    const viewport = scrollAreaRef.current?.querySelector(
+      '[data-radix-scroll-area-viewport]',
+    ) as HTMLElement | null;
     if (!viewport) return undefined;
 
     let ticking = false;

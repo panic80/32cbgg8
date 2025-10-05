@@ -43,7 +43,7 @@ const mapSamples = (raw: unknown): MetricSample[] => {
 };
 
 const mapMetric = (raw: unknown): MetricStats => {
-  const source = (raw && typeof raw === 'object') ? (raw as Record<string, unknown>) : {};
+  const source = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
 
   return {
     count: toNumber(source.count),
@@ -61,7 +61,7 @@ const mapMetric = (raw: unknown): MetricStats => {
 };
 
 const mapErrorRate = (raw: unknown): ErrorRateSummary => {
-  const source = (raw && typeof raw === 'object') ? (raw as Record<string, unknown>) : {};
+  const source = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
   return {
     totalRequests: toNumber(source.total_requests ?? source.totalRequests),
     failedRequests: toNumber(source.failed_requests ?? source.failedRequests),
@@ -122,7 +122,9 @@ export interface FetchPerformanceOptions {
   forceRefresh?: boolean;
 }
 
-export async function fetchPerformanceMetrics(options: FetchPerformanceOptions = {}): Promise<PerformanceMetrics> {
+export async function fetchPerformanceMetrics(
+  options: FetchPerformanceOptions = {},
+): Promise<PerformanceMetrics> {
   const { signal, forceRefresh = false } = options;
   const query = forceRefresh ? '?forceRefresh=true' : '';
   let payload: any;
@@ -133,7 +135,10 @@ export async function fetchPerformanceMetrics(options: FetchPerformanceOptions =
     });
   } catch (error) {
     if (error instanceof ApiError) {
-      const detail = typeof (error.data as any)?.message === 'string' ? (error.data as any).message : error.statusText;
+      const detail =
+        typeof (error.data as any)?.message === 'string'
+          ? (error.data as any).message
+          : error.statusText;
       throw new Error(`Failed to load performance metrics (${error.status}): ${detail}`);
     }
     throw error;

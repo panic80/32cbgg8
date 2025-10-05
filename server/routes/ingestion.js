@@ -118,18 +118,26 @@ const createIngestionRoutes = ({
     }
   };
 
-  router.post('/api/rag/ingest', requireAdminAuth, rateLimiter, (req, res) => forwardIngestionRequest({ req, res }));
-  router.post('/api/v2/ingest', requireAdminAuth, rateLimiter, (req, res) => forwardIngestionRequest({ req, res }));
+  router.post('/api/rag/ingest', requireAdminAuth, rateLimiter, (req, res) =>
+    forwardIngestionRequest({ req, res }),
+  );
+  router.post('/api/v2/ingest', requireAdminAuth, rateLimiter, (req, res) =>
+    forwardIngestionRequest({ req, res }),
+  );
 
   router.post('/api/v2/ingest/canada-ca', requireAdminAuth, rateLimiter, async (req, res) => {
     try {
-      const response = await axios.post(`${DEFAULT_RAG_SERVICE_URL}/api/v1/ingest/canada-ca`, {}, {
-        timeout: 300000,
-        headers: {
-          'Content-Type': 'application/json',
-          ...getRagAuthHeaders(),
+      const response = await axios.post(
+        `${DEFAULT_RAG_SERVICE_URL}/api/v1/ingest/canada-ca`,
+        {},
+        {
+          timeout: 300000,
+          headers: {
+            'Content-Type': 'application/json',
+            ...getRagAuthHeaders(),
+          },
         },
-      });
+      );
 
       return res.json(response.data);
     } catch (error) {

@@ -22,7 +22,8 @@ export const WHATS_NEW_BY_DATE: WhatsNewDateGroup[] = [
       {
         icon: <FileText className="w-4 h-4" />,
         text: 'DOA Matrix and DOA Policy ingested',
-        description: 'Both documents are now part of the retrieval set so the chatbot can reference the latest guidance.',
+        description:
+          'Both documents are now part of the retrieval set so the chatbot can reference the latest guidance.',
       },
     ],
   },

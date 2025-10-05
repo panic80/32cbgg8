@@ -91,7 +91,7 @@ class CustomFilterStrategy(BaseStrategy):
             required_inputs=["documents"],
             **kwargs
         )
-    
+
     async def execute(self, context: RetrievalContext) -> RetrievalContext:
         # Custom filtering logic
         filtered_docs = [
@@ -129,37 +129,37 @@ register_plugin(MyRetrievalPlugin())
 ### Retriever Configuration
 
 ```yaml
-name: "my_retriever"
-description: "Description of the retriever"
-preset: "semantic"  # simple, semantic, hybrid, multi_query, contextual, citation, custom
-strategy_preset: "full_pipeline"  # basic, enhanced_query, filtered, scored, full_pipeline
+name: 'my_retriever'
+description: 'Description of the retriever'
+preset: 'semantic' # simple, semantic, hybrid, multi_query, contextual, citation, custom
+strategy_preset: 'full_pipeline' # basic, enhanced_query, filtered, scored, full_pipeline
 
 # Vector store configuration
 vector_stores:
-  - type: "chroma"
-    collection_name: "documents"
-    embedding_model: "text-embedding-ada-002"
+  - type: 'chroma'
+    collection_name: 'documents'
+    embedding_model: 'text-embedding-ada-002'
     connection_params:
-      host: "localhost"
+      host: 'localhost'
       port: 8000
 
 # Strategy configurations
 query_enhancement:
-  method: "llm_expansion"
+  method: 'llm_expansion'
   expand_acronyms: true
   add_synonyms: true
-  language_model: "gpt-3.5-turbo"
+  language_model: 'gpt-3.5-turbo'
 
 filtering:
   metadata_filters:
-    status: "active"
-    language: "en"
+    status: 'active'
+    language: 'en'
   date_range:
-    start: "2023-01-01"
-    end: "2024-12-31"
+    start: '2023-01-01'
+    end: '2024-12-31'
 
 scoring:
-  method: "similarity"
+  method: 'similarity'
   weights:
     similarity: 0.8
     recency: 0.2
@@ -174,42 +174,42 @@ max_retries: 3
 cache:
   enabled: true
   ttl: 3600
-  backend: "memory"  # or "redis"
+  backend: 'memory' # or "redis"
 
 # Monitoring
 monitoring:
   enabled: true
-  log_level: "INFO"
+  log_level: 'INFO'
   performance_tracking: true
 ```
 
 ### Pipeline Configuration
 
 ```yaml
-name: "custom_pipeline"
+name: 'custom_pipeline'
 strategies:
-  - strategy_class: "app.unified_retrieval.strategies.query.QueryEnhancementStrategy"
-    strategy_type: "query_enhancement"
+  - strategy_class: 'app.unified_retrieval.strategies.query.QueryEnhancementStrategy'
+    strategy_type: 'query_enhancement'
     enabled: true
     order: 1
     config:
-      method: "llm_expansion"
-      
-  - strategy_class: "app.unified_retrieval.strategies.retrieval.VectorStoreStrategy"
-    strategy_type: "retrieval"
+      method: 'llm_expansion'
+
+  - strategy_class: 'app.unified_retrieval.strategies.retrieval.VectorStoreStrategy'
+    strategy_type: 'retrieval'
     enabled: true
     order: 2
-    parallel_group: "retrieval_group"
+    parallel_group: 'retrieval_group'
     config:
       top_k: 20
-      
-  - strategy_class: "app.unified_retrieval.strategies.retrieval.BM25Strategy"
-    strategy_type: "retrieval"
+
+  - strategy_class: 'app.unified_retrieval.strategies.retrieval.BM25Strategy'
+    strategy_type: 'retrieval'
     enabled: true
     order: 2
-    parallel_group: "retrieval_group"
+    parallel_group: 'retrieval_group'
     config:
-      index_name: "bm25_index"
+      index_name: 'bm25_index'
 ```
 
 ## Migration Guide

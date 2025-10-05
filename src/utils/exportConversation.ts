@@ -19,10 +19,7 @@ const triggerDownload = (blob: Blob, filename: string) => {
 
 const escapeCodeFence = (content: string) => content.replace(/```/g, '\\`\\`\\`');
 
-export const exportConversationAsMarkdown = (
-  messages: Message[],
-  conversationId: string,
-) => {
+export const exportConversationAsMarkdown = (messages: Message[], conversationId: string) => {
   const lines: string[] = [];
   lines.push(`# Conversation${conversationId ? ` ${conversationId}` : ''}`);
   lines.push('');
@@ -39,10 +36,7 @@ export const exportConversationAsMarkdown = (
   triggerDownload(blob, buildFilename(conversationId, 'md'));
 };
 
-export const exportConversationAsJSON = (
-  messages: Message[],
-  conversationId: string,
-) => {
+export const exportConversationAsJSON = (messages: Message[], conversationId: string) => {
   const payload: SerializableConversation = {
     conversationId,
     messages,

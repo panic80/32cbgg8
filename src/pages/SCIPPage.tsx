@@ -7,17 +7,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Progress } from '../components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
 import { Skeleton, SkeletonText, SkeletonCard } from '../components/ui/skeleton';
-import { 
-  FileText, 
-  Shield, 
-  Clock, 
-  CheckCircle, 
-  AlertCircle, 
+import {
+  FileText,
+  Shield,
+  Clock,
+  CheckCircle,
+  AlertCircle,
   Info,
   Download,
   Upload,
   RefreshCw,
-  Lock
+  Lock,
 } from 'lucide-react';
 
 const SCIPPage: React.FC = () => {
@@ -36,29 +36,29 @@ const SCIPPage: React.FC = () => {
       description: 'Public information - No restrictions',
       color: 'bg-green-500',
       icon: CheckCircle,
-      examples: ['Public announcements', 'General policies', 'Public-facing documents']
+      examples: ['Public announcements', 'General policies', 'Public-facing documents'],
     },
     {
       level: 'SCID Level 2',
       description: 'Internal use only - Limited distribution',
       color: 'bg-yellow-500',
       icon: AlertCircle,
-      examples: ['Internal memos', 'Draft policies', 'Working documents']
+      examples: ['Internal memos', 'Draft policies', 'Working documents'],
     },
     {
       level: 'SCID Level 3',
       description: 'Confidential - Restricted access',
       color: 'bg-orange-500',
       icon: Shield,
-      examples: ['Personnel records', 'Financial data', 'Strategic plans']
+      examples: ['Personnel records', 'Financial data', 'Strategic plans'],
     },
     {
       level: 'SCID Level 4',
       description: 'Secret - Highly restricted',
       color: 'bg-red-500',
       icon: Lock,
-      examples: ['Classified operations', 'Sensitive intelligence', 'Critical infrastructure']
-    }
+      examples: ['Classified operations', 'Sensitive intelligence', 'Critical infrastructure'],
+    },
   ];
 
   const features = [
@@ -66,26 +66,26 @@ const SCIPPage: React.FC = () => {
       title: 'Automated Classification',
       description: 'AI-powered document classification based on content analysis',
       icon: FileText,
-      status: 'active'
+      status: 'active',
     },
     {
       title: 'Real-time Monitoring',
       description: 'Continuous monitoring of document access and distribution',
       icon: Clock,
-      status: 'active'
+      status: 'active',
     },
     {
       title: 'Compliance Tracking',
       description: 'Ensure adherence to SCIP policies and regulations',
       icon: Shield,
-      status: 'coming-soon'
+      status: 'coming-soon',
     },
     {
       title: 'Audit Trail',
       description: 'Complete audit history for all classified documents',
       icon: CheckCircle,
-      status: 'active'
-    }
+      status: 'active',
+    },
   ];
 
   const simulateProcessing = () => {
@@ -110,7 +110,7 @@ const SCIPPage: React.FC = () => {
           <div className="mb-8 animate-fade-up">
             <EnhancedBackButton to="/" label="Back" variant="minimal" />
           </div>
-          
+
           {/* Header */}
           <div className="text-center mb-12 animate-fade-up">
             <div className="inline-flex items-center justify-center w-20 h-20 mb-6 bg-red-500/10 rounded-full">
@@ -120,8 +120,8 @@ const SCIPPage: React.FC = () => {
               SCIP Interface
             </h1>
             <p className="body-lg text-muted-foreground max-w-3xl mx-auto">
-              Security Classification and Information Protection system for managing classified documents 
-              and ensuring compliance with security protocols
+              Security Classification and Information Protection system for managing classified
+              documents and ensuring compliance with security protocols
             </p>
           </div>
 
@@ -130,7 +130,8 @@ const SCIPPage: React.FC = () => {
             <AlertCircle className="h-4 w-4 text-orange-600" />
             <AlertTitle>Security Notice</AlertTitle>
             <AlertDescription>
-              This interface handles classified information. All actions are logged and monitored for security compliance.
+              This interface handles classified information. All actions are logged and monitored
+              for security compliance.
             </AlertDescription>
           </Alert>
 
@@ -149,46 +150,42 @@ const SCIPPage: React.FC = () => {
               <div>
                 <h2 className="h3 text-2xl mb-6">Security Classification Levels</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {isLoading ? (
-                    [...Array(4)].map((_, i) => (
-                      <SkeletonCard key={i} />
-                    ))
-                  ) : (
-                    scidCategories.map((category, index) => {
-                      const Icon = category.icon;
-                      return (
-                        <Card 
-                          key={index}
-                          className="card-lift glass border-border/50 animate-fade-up"
-                          style={{ animationDelay: `${index * 100}ms` }}
-                        >
-                          <CardHeader>
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <div className={`w-3 h-3 rounded-full ${category.color}`} />
-                                <CardTitle className="text-lg">{category.level}</CardTitle>
+                  {isLoading
+                    ? [...Array(4)].map((_, i) => <SkeletonCard key={i} />)
+                    : scidCategories.map((category, index) => {
+                        const Icon = category.icon;
+                        return (
+                          <Card
+                            key={index}
+                            className="card-lift glass border-border/50 animate-fade-up"
+                            style={{ animationDelay: `${index * 100}ms` }}
+                          >
+                            <CardHeader>
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div className={`w-3 h-3 rounded-full ${category.color}`} />
+                                  <CardTitle className="text-lg">{category.level}</CardTitle>
+                                </div>
+                                <Icon className="w-5 h-5 text-muted-foreground" />
                               </div>
-                              <Icon className="w-5 h-5 text-muted-foreground" />
-                            </div>
-                            <CardDescription>{category.description}</CardDescription>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="space-y-2">
-                              <p className="text-sm font-medium">Examples:</p>
-                              <ul className="text-sm text-muted-foreground space-y-1">
-                                {category.examples.map((example, i) => (
-                                  <li key={i} className="flex items-center gap-2">
-                                    <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full" />
-                                    {example}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      );
-                    })
-                  )}
+                              <CardDescription>{category.description}</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="space-y-2">
+                                <p className="text-sm font-medium">Examples:</p>
+                                <ul className="text-sm text-muted-foreground space-y-1">
+                                  {category.examples.map((example, i) => (
+                                    <li key={i} className="flex items-center gap-2">
+                                      <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full" />
+                                      {example}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
                 </div>
               </div>
 
@@ -199,7 +196,7 @@ const SCIPPage: React.FC = () => {
                   {features.map((feature, index) => {
                     const Icon = feature.icon;
                     return (
-                      <Card 
+                      <Card
                         key={index}
                         className="glass animate-fade-up"
                         style={{ animationDelay: `${(index + 4) * 100}ms` }}
@@ -255,8 +252,8 @@ const SCIPPage: React.FC = () => {
                           {processingStatus === 'processing' ? 'Analyzing...' : 'Complete'}
                         </span>
                       </div>
-                      <Progress 
-                        value={processingStatus === 'processing' ? 60 : 100} 
+                      <Progress
+                        value={processingStatus === 'processing' ? 60 : 100}
                         className="h-2"
                       />
                       {processingStatus === 'complete' && (
@@ -316,14 +313,17 @@ const SCIPPage: React.FC = () => {
               <Card className="glass">
                 <CardHeader>
                   <CardTitle>Security Reports</CardTitle>
-                  <CardDescription>
-                    Generate and download compliance reports
-                  </CardDescription>
+                  <CardDescription>Generate and download compliance reports</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {['Monthly Security Audit', 'Access Control Report', 'Classification Summary', 'Compliance Report'].map((report, index) => (
-                      <div 
+                    {[
+                      'Monthly Security Audit',
+                      'Access Control Report',
+                      'Classification Summary',
+                      'Compliance Report',
+                    ].map((report, index) => (
+                      <div
                         key={index}
                         className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                       >

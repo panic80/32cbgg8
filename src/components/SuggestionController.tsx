@@ -27,7 +27,7 @@ type SuggestionAction =
   | { type: 'CANCEL_TIMER' };
 
 const initialState: SuggestionState = {
-  phase: 'smart',  // Start with smart actions visible immediately
+  phase: 'smart', // Start with smart actions visible immediately
   isVisible: true,
   timerId: null,
 };
@@ -36,22 +36,22 @@ function suggestionReducer(state: SuggestionState, action: SuggestionAction): Su
   switch (action.type) {
     case 'VIEWPORT_ENTER':
       return { ...state, isVisible: true };
-    
+
     case 'VIEWPORT_EXIT':
       return { ...state, isVisible: false, timerId: null };
-    
+
     case 'SHOW_SMART_ACTIONS':
       return { ...state, phase: 'smart', timerId: null };
-    
+
     case 'SHOW_ALL':
       return { ...state, phase: 'full' };
-    
+
     case 'HIDE_ALL':
       return { ...state, phase: 'hidden' };
-    
+
     case 'CANCEL_TIMER':
       return { ...state, timerId: null };
-    
+
     default:
       return state;
   }
@@ -67,9 +67,9 @@ interface SuggestionControllerProps {
 
 // Smart action selection algorithm with confidence + diversity scoring
 function selectSmartActions(
-  suggestions: FollowUpQuestion[], 
+  suggestions: FollowUpQuestion[],
   maxCount = 3,
-  isLatestMessage = false
+  isLatestMessage = false,
 ): FollowUpQuestion[] {
   if (!suggestions || suggestions.length === 0) return [];
   if (suggestions.length <= maxCount) return suggestions;
@@ -77,12 +77,12 @@ function selectSmartActions(
   // Dynamic diversity weighting based on suggestion count
   const DIVERSITY_THRESHOLD = 8;
   const maxDiversityWeight = 0.3;
-  const diversityWeight = maxDiversityWeight * 
-    (1 / (1 + Math.exp(-(suggestions.length - DIVERSITY_THRESHOLD) / 3)));
+  const diversityWeight =
+    maxDiversityWeight * (1 / (1 + Math.exp(-(suggestions.length - DIVERSITY_THRESHOLD) / 3)));
 
   // Filter for high-quality candidates
-  const candidates = suggestions.filter(s => 
-    (s.confidence || 0) > 0.6 && (s.groundingScore || 0) > 0.3
+  const candidates = suggestions.filter(
+    (s) => (s.confidence || 0) > 0.6 && (s.groundingScore || 0) > 0.3,
   );
 
   if (candidates.length === 0) {
@@ -96,8 +96,8 @@ function selectSmartActions(
   const usedCategories = new Set<string>();
 
   // Sort by confidence
-  const sortedCandidates = [...candidates].sort((a, b) => 
-    (b.confidence || 0) - (a.confidence || 0)
+  const sortedCandidates = [...candidates].sort(
+    (a, b) => (b.confidence || 0) - (a.confidence || 0),
   );
 
   // Always pick the highest confidence one first
@@ -112,28 +112,28 @@ function selectSmartActions(
   // Score remaining candidates
   const remaining = sortedCandidates.slice(1);
   while (selection.length < maxCount && remaining.length > 0) {
-    const scored = remaining.map(s => {
+    const scored = remaining.map((s) => {
       const baseScore = s.confidence || 0;
-      const diversityBonus = (s.category && !usedCategories.has(s.category)) ? diversityWeight : 0;
+      const diversityBonus = s.category && !usedCategories.has(s.category) ? diversityWeight : 0;
       const recencyBonus = isLatestMessage ? 0.1 : 0; // Small boost for latest message
-      
+
       return {
         ...s,
-        score: baseScore + diversityBonus + recencyBonus
+        score: baseScore + diversityBonus + recencyBonus,
       };
     });
 
     scored.sort((a, b) => b.score - a.score);
     const best = scored[0];
-    
+
     if (best) {
       selection.push(best);
       if (best.category) {
         usedCategories.add(best.category);
       }
-      
+
       // Remove selected item from remaining
-      const index = remaining.findIndex(s => s.id === best.id);
+      const index = remaining.findIndex((s) => s.id === best.id);
       if (index > -1) {
         remaining.splice(index, 1);
       }
@@ -165,9 +165,9 @@ const SuggestionController: React.FC<SuggestionControllerProps> = ({
   const timerRef = useRef<number | null>(null);
 
   // Smart actions selection
-  const smartActions = useMemo(() => 
-    selectSmartActions(questions, 3, isLatestMessage), 
-    [questions, isLatestMessage]
+  const smartActions = useMemo(
+    () => selectSmartActions(questions, 3, isLatestMessage),
+    [questions, isLatestMessage],
   );
 
   // Intersection observer for viewport tracking - DISABLED to keep questions visible
@@ -209,7 +209,7 @@ const SuggestionController: React.FC<SuggestionControllerProps> = ({
   //   if (state.isVisible && state.phase === 'hidden' && smartActions.length > 0) {
   //     // Start timer for smart actions
   //     const delay = calculateDelay(100); // TODO: Get actual word count from message
-      
+
   //     timerRef.current = window.setTimeout(() => {
   //       dispatch({ type: 'SHOW_SMART_ACTIONS' });
   //     }, delay);
@@ -262,7 +262,7 @@ const SuggestionController: React.FC<SuggestionControllerProps> = ({
 
   //   // Listen for global events that should cancel timers
   //   window.addEventListener('suggestion-cancel-timers', handleUserInteraction);
-    
+
   //   return () => {
   //     window.removeEventListener('suggestion-cancel-timers', handleUserInteraction);
   //   };
@@ -275,7 +275,7 @@ const SuggestionController: React.FC<SuggestionControllerProps> = ({
   return (
     <div
       ref={observerRef}
-      className={cn("mt-4 mb-4", className)}
+      className={cn('mt-4 mb-4', className)}
       style={{ minHeight: state.phase !== 'hidden' ? '40px' : '0px' }}
     >
       {/* ARIA live region for accessibility */}
@@ -291,13 +291,18 @@ const SuggestionController: React.FC<SuggestionControllerProps> = ({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
             className="space-y-3 p-3 rounded-lg bg-gray-50/50 dark:bg-gray-800/30 border border-gray-200/50 dark:border-gray-700/50"
           >
             {/* Smart action chips - subtle and non-protruding */}
             {/* Suggested follow-up questions label */}
             <div className="flex items-center gap-2 mb-2">
-              <motion.div whileHover={{ rotate: 15 }} transition={{ type: "spring", stiffness: 300 }}><HelpCircle size={14} className="text-gray-500 dark:text-gray-400" /></motion.div>
+              <motion.div
+                whileHover={{ rotate: 15 }}
+                transition={{ type: 'spring', stiffness: 300 }}
+              >
+                <HelpCircle size={14} className="text-gray-500 dark:text-gray-400" />
+              </motion.div>
               <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
                 Suggested follow-up questions
               </span>
@@ -339,16 +344,16 @@ const SuggestionController: React.FC<SuggestionControllerProps> = ({
           <motion.div
             key="full-view"
             initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
+            animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.4, ease: "easeInOut" }}
+            transition={{ duration: 0.4, ease: 'easeInOut' }}
           >
             <FollowUpQuestions
               questions={questions}
               onQuestionClick={onQuestionClick}
               className="mt-0"
             />
-            
+
             {/* Collapse button */}
             <motion.div
               initial={{ opacity: 0 }}

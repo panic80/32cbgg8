@@ -44,82 +44,80 @@ const isDevelopment = process.env.NODE_ENV === 'development';
 const isProduction = process.env.NODE_ENV === 'production';
 
 // Configure Helmet with enhanced security headers
-app.use(helmet({
-  crossOriginEmbedderPolicy: false, // Disable COEP to allow Google Maps API
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: [
-        "'self'",
-        "'unsafe-inline'", // Required for inline styles in React components
-        "https://fonts.googleapis.com"
-      ],
-      scriptSrc: [
-        "'self'",
-        "'unsafe-inline'", // Required for inline scripts in index.html
-        "'unsafe-eval'", // Required for some React development tools
-        "https://fonts.googleapis.com",
-        "https://maps.googleapis.com", // Google Maps API
-        "https://maps.gstatic.com" // Google Maps static content
-      ],
-      scriptSrcAttr: ["'unsafe-inline'"], // Allow inline event handlers
-      fontSrc: [
-        "'self'",
-        "https://fonts.gstatic.com",
-        "https://r2cdn.perplexity.ai"
-      ],
-      imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: [
-        "'self'",
-        "https://api.openai.com",
-        "https://api.anthropic.com",
-        "https://generativelanguage.googleapis.com", // Gemini API
-        "https://maps.googleapis.com", // Google Maps API
-        "https://maps.gstatic.com", // Google Maps static content
-        "wss:", // For WebSocket connections if needed
-        isDevelopment ? "http://localhost:*" : ""
-      ].filter(Boolean),
-      frameSrc: ["'none'"],
-      objectSrc: ["'none'"],
-      mediaSrc: ["'none'"],
-      childSrc: ["'none'"],
-      formAction: ["'self'"],
-      upgradeInsecureRequests: isProduction ? [] : null,
-      blockAllMixedContent: isProduction ? [] : null
+app.use(
+  helmet({
+    crossOriginEmbedderPolicy: false, // Disable COEP to allow Google Maps API
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: [
+          "'self'",
+          "'unsafe-inline'", // Required for inline styles in React components
+          'https://fonts.googleapis.com',
+        ],
+        scriptSrc: [
+          "'self'",
+          "'unsafe-inline'", // Required for inline scripts in index.html
+          "'unsafe-eval'", // Required for some React development tools
+          'https://fonts.googleapis.com',
+          'https://maps.googleapis.com', // Google Maps API
+          'https://maps.gstatic.com', // Google Maps static content
+        ],
+        scriptSrcAttr: ["'unsafe-inline'"], // Allow inline event handlers
+        fontSrc: ["'self'", 'https://fonts.gstatic.com', 'https://r2cdn.perplexity.ai'],
+        imgSrc: ["'self'", 'data:', 'https:'],
+        connectSrc: [
+          "'self'",
+          'https://api.openai.com',
+          'https://api.anthropic.com',
+          'https://generativelanguage.googleapis.com', // Gemini API
+          'https://maps.googleapis.com', // Google Maps API
+          'https://maps.gstatic.com', // Google Maps static content
+          'wss:', // For WebSocket connections if needed
+          isDevelopment ? 'http://localhost:*' : '',
+        ].filter(Boolean),
+        frameSrc: ["'none'"],
+        objectSrc: ["'none'"],
+        mediaSrc: ["'none'"],
+        childSrc: ["'none'"],
+        formAction: ["'self'"],
+        upgradeInsecureRequests: isProduction ? [] : null,
+        blockAllMixedContent: isProduction ? [] : null,
+      },
     },
-  },
-  hsts: isProduction ? {
-    maxAge: 31536000, // 1 year
-    includeSubDomains: true,
-    preload: true
-  } : false,
-  frameguard: {
-    action: 'deny' // Prevent clickjacking
-  },
-  noSniff: true, // X-Content-Type-Options: nosniff
-  xssFilter: true, // X-XSS-Protection: 1; mode=block (legacy but still useful)
-  referrerPolicy: {
-    policy: 'strict-origin-when-cross-origin'
-  },
-  permittedCrossDomainPolicies: false,
-  dnsPrefetchControl: {
-    allow: false
-  },
-  ieNoOpen: true,
-  originAgentCluster: true
-}));
+    hsts: isProduction
+      ? {
+          maxAge: 31536000, // 1 year
+          includeSubDomains: true,
+          preload: true,
+        }
+      : false,
+    frameguard: {
+      action: 'deny', // Prevent clickjacking
+    },
+    noSniff: true, // X-Content-Type-Options: nosniff
+    xssFilter: true, // X-XSS-Protection: 1; mode=block (legacy but still useful)
+    referrerPolicy: {
+      policy: 'strict-origin-when-cross-origin',
+    },
+    permittedCrossDomainPolicies: false,
+    dnsPrefetchControl: {
+      allow: false,
+    },
+    ieNoOpen: true,
+    originAgentCluster: true,
+  }),
+);
 
 // Configure CORS with environment-specific settings
-const allowedOrigins = isDevelopment ? [
-  'http://localhost:3000',
-  'http://localhost:3001',
-  'http://localhost:5173',
-  process.env.FRONTEND_URL
-].filter(Boolean) : [
-  'https://32cbgg8.com',
-  'https://www.32cbgg8.com',
-  process.env.FRONTEND_URL
-].filter(Boolean);
+const allowedOrigins = isDevelopment
+  ? [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://localhost:5173',
+      process.env.FRONTEND_URL,
+    ].filter(Boolean)
+  : ['https://32cbgg8.com', 'https://www.32cbgg8.com', process.env.FRONTEND_URL].filter(Boolean);
 
 const allowedOriginsSet = new Set(allowedOrigins);
 
@@ -132,7 +130,7 @@ const buildSseCorsHeaders = (originHeader) => {
     return {
       'Access-Control-Allow-Origin': originHeader,
       'Access-Control-Allow-Credentials': 'true',
-      Vary: 'Origin'
+      Vary: 'Origin',
     };
   }
 
@@ -196,13 +194,17 @@ const validateIngestionUrl = async (rawUrl) => {
   }
 
   if (!['http:', 'https:'].includes(parsed.protocol)) {
-    throw Object.assign(new Error('Only HTTP and HTTPS ingestion URLs are allowed'), { statusCode: 400 });
+    throw Object.assign(new Error('Only HTTP and HTTPS ingestion URLs are allowed'), {
+      statusCode: 400,
+    });
   }
 
   const hostname = parsed.hostname.toLowerCase();
   const disallowedHostnames = new Set(['localhost', '127.0.0.1', '::1']);
   if (disallowedHostnames.has(hostname)) {
-    throw Object.assign(new Error('Ingestion URL may not target local addresses'), { statusCode: 400 });
+    throw Object.assign(new Error('Ingestion URL may not target local addresses'), {
+      statusCode: 400,
+    });
   }
 
   const ipType = net.isIP(hostname);
@@ -219,36 +221,44 @@ const validateIngestionUrl = async (rawUrl) => {
   }
 
   if (addresses.some(isAddressDisallowed)) {
-    throw Object.assign(new Error('Ingestion URL resolves to a private or disallowed address'), { statusCode: 400 });
+    throw Object.assign(new Error('Ingestion URL resolves to a private or disallowed address'), {
+      statusCode: 400,
+    });
   }
 
   return parsed.toString();
 };
 
-app.use(cors({
-  origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      console.warn(`CORS: Blocked request from origin: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  exposedHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining', 'X-RateLimit-Reset'],
-  maxAge: 86400 // Cache preflight requests for 24 hours
-}));
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        console.warn(`CORS: Blocked request from origin: ${origin}`);
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    exposedHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining', 'X-RateLimit-Reset'],
+    maxAge: 86400, // Cache preflight requests for 24 hours
+  }),
+);
 
 // Serve static files EARLY in the middleware chain
 // This ensures favicon.ico and other static files are served before any route handlers
-let distPath = existsSync(path.join(__dirname, '..', 'dist')) ? path.join(__dirname, '..', 'dist') : null;
+let distPath = existsSync(path.join(__dirname, '..', 'dist'))
+  ? path.join(__dirname, '..', 'dist')
+  : null;
 
-const adminAuthEnabled = typeof process.env.CONFIG_PANEL_PASSWORD === 'string' && process.env.CONFIG_PANEL_PASSWORD.length > 0;
+const adminAuthEnabled =
+  typeof process.env.CONFIG_PANEL_PASSWORD === 'string' &&
+  process.env.CONFIG_PANEL_PASSWORD.length > 0;
 if (!adminAuthEnabled) {
   throw new Error('CONFIG_PANEL_PASSWORD must be set before starting the server.');
 }
@@ -262,9 +272,14 @@ const adminAuthUser = process.env.CONFIG_PANEL_USER || 'admin';
 const getRagAuthHeaders = () => ({ Authorization: `Bearer ${adminApiToken}` });
 
 const requiresConfigAuth = (pathname = '') => {
-  return pathname === '/config' || pathname.startsWith('/config/') ||
-    pathname === '/chat/config' || pathname.startsWith('/chat/config/') ||
-    pathname === '/landing-test' || pathname.startsWith('/landing-test/');
+  return (
+    pathname === '/config' ||
+    pathname.startsWith('/config/') ||
+    pathname === '/chat/config' ||
+    pathname.startsWith('/chat/config/') ||
+    pathname === '/landing-test' ||
+    pathname.startsWith('/landing-test/')
+  );
 };
 
 const requireAdminAuth = (req, res, next) => {
@@ -283,7 +298,10 @@ const requireAdminAuth = (req, res, next) => {
         const providedUser = decoded.slice(0, separatorIndex);
         const providedPassword = decoded.slice(separatorIndex + 1);
 
-        if (providedUser === adminAuthUser && providedPassword === process.env.CONFIG_PANEL_PASSWORD) {
+        if (
+          providedUser === adminAuthUser &&
+          providedPassword === process.env.CONFIG_PANEL_PASSWORD
+        ) {
           return next();
         }
       }
@@ -295,7 +313,7 @@ const requireAdminAuth = (req, res, next) => {
   res.setHeader('WWW-Authenticate', 'Basic realm="Config", charset="UTF-8"');
   return res.status(401).json({
     error: 'Unauthorized',
-    message: 'Administrator credentials required to access this resource.'
+    message: 'Administrator credentials required to access this resource.',
   });
 };
 
@@ -324,7 +342,7 @@ app.use((req, res, next) => {
 });
 
 if (distPath) {
-  console.log("Serving static files early from:", distPath);
+  console.log('Serving static files early from:', distPath);
   app.use((req, res, next) => {
     if (requiresConfigAuth(req.path) && adminAuthEnabled) {
       return requireAdminAuth(req, res, () => {
@@ -340,7 +358,7 @@ if (distPath) {
               res.setHeader('Content-Type', 'image/png');
               res.setHeader('Cache-Control', 'public, max-age=604800');
             }
-          }
+          },
         })(req, res, next);
       });
     }
@@ -357,7 +375,7 @@ if (distPath) {
           res.setHeader('Content-Type', 'image/png');
           res.setHeader('Cache-Control', 'public, max-age=604800');
         }
-      }
+      },
     })(req, res, next);
   });
 }
@@ -365,17 +383,18 @@ if (distPath) {
 // Additional security headers not covered by Helmet
 app.use((req, res, next) => {
   // Permissions Policy (formerly Feature Policy)
-  res.setHeader('Permissions-Policy', 
-    'accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()'
+  res.setHeader(
+    'Permissions-Policy',
+    'accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()',
   );
-  
+
   // Additional CORS headers for better security
   if (isProduction) {
     res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
     res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
     res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
   }
-  
+
   next();
 });
 
@@ -390,37 +409,40 @@ if (enableRequestLogging) {
 
 // Parse JSON request bodies with increased limit
 app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({
-  extended: true,
-  limit: '10mb',
-  parameterLimit: 10000
-}));
+app.use(
+  express.urlencoded({
+    extended: true,
+    limit: '10mb',
+    parameterLimit: 10000,
+  }),
+);
 
 // Environment-based configuration
 const config = {
   maxRetries: parseInt(process.env.MAX_RETRIES) || 3,
   requestTimeout: parseInt(process.env.REQUEST_TIMEOUT) || 10000, // 10 seconds
   retryDelay: parseInt(process.env.RETRY_DELAY) || 1000, // 1 second in milliseconds
-  
+
   // Cache configuration
   cacheEnabled: process.env.ENABLE_CACHE === 'true',
   cacheTTL: parseInt(process.env.CACHE_TTL) || 3600000, // 1 hour in milliseconds
   cacheCleanupInterval: parseInt(process.env.CACHE_CLEANUP_INTERVAL) || 300000, // 5 minutes
-  
-  // Rate limiting configuration  
+
+  // Rate limiting configuration
   rateLimitEnabled: process.env.ENABLE_RATE_LIMIT === 'true',
   rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX) || 60, // 60 requests per minute
   rateLimitWindow: parseInt(process.env.RATE_LIMIT_WINDOW) || 60000, // 1 minute in milliseconds
-  
+
   // Logging configuration
   loggingEnabled: process.env.ENABLE_LOGGING === 'true',
   logLevel: process.env.LOG_LEVEL || 'debug',
   logDir: process.env.LOG_DIR || './logs',
-  
-  // External services
-  canadaCaUrl: process.env.CANADA_CA_URL || 'https://www.canada.ca/en/department-national-defence/services/benefits-military/pay-pension-benefits/benefits/canadian-forces-temporary-duty-travel-instructions.html'
-};
 
+  // External services
+  canadaCaUrl:
+    process.env.CANADA_CA_URL ||
+    'https://www.canada.ca/en/department-national-defence/services/benefits-military/pay-pension-benefits/benefits/canadian-forces-temporary-duty-travel-instructions.html',
+};
 
 console.log('Server configuration:', {
   nodeEnv: NODE_ENV,
@@ -428,22 +450,25 @@ console.log('Server configuration:', {
   cacheEnabled: config.cacheEnabled,
   rateLimitEnabled: config.rateLimitEnabled,
   loggingEnabled: config.loggingEnabled,
-  logLevel: config.logLevel
+  logLevel: config.logLevel,
 });
 
 // Initialize unified cache service with Redis and in-memory fallback
-const cache = config.cacheEnabled ? new CacheService({
-  redisUrl: process.env.REDIS_URL || "redis://default:" + process.env.REDIS_PASSWORD + "@localhost:6379",
-  redisEnabled: config.cacheEnabled,
-  defaultTTL: config.cacheTTL,
-  memoryCleanupInterval: config.cacheCleanupInterval,
-  enableLogging: config.loggingEnabled
-}) : null;
+const cache = config.cacheEnabled
+  ? new CacheService({
+      redisUrl:
+        process.env.REDIS_URL ||
+        'redis://default:' + process.env.REDIS_PASSWORD + '@localhost:6379',
+      redisEnabled: config.cacheEnabled,
+      defaultTTL: config.cacheTTL,
+      memoryCleanupInterval: config.cacheCleanupInterval,
+      enableLogging: config.loggingEnabled,
+    })
+  : null;
 
 // Rate limiting setup (conditionally enabled)
 const rateLimitBuckets = config.rateLimitEnabled ? new Map() : null;
 let rateLimitSweepCursor = 0;
-
 
 // Initialize AI clients
 let geminiClient = null;
@@ -452,10 +477,7 @@ let anthropicClient = null;
 
 // Helper function to check if API key is valid (not a placeholder)
 const isValidApiKey = (key) => {
-  return key && 
-         !key.includes('your-') && 
-         !key.includes('-key-here') && 
-         key.length > 10;
+  return key && !key.includes('your-') && !key.includes('-key-here') && key.length > 10;
 };
 
 const resolveGeminiApiKey = () => {
@@ -465,7 +487,9 @@ const resolveGeminiApiKey = () => {
   }
 
   if (isValidApiKey(process.env.VITE_GEMINI_API_KEY)) {
-    console.warn('VITE_GEMINI_API_KEY is deprecated. Migrate to GEMINI_API_KEY to keep credentials server-side.');
+    console.warn(
+      'VITE_GEMINI_API_KEY is deprecated. Migrate to GEMINI_API_KEY to keep credentials server-side.',
+    );
     return process.env.VITE_GEMINI_API_KEY;
   }
 
@@ -483,7 +507,7 @@ if (geminiApiKey) {
 
 if (isValidApiKey(process.env.OPENAI_API_KEY)) {
   openaiClient = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY
+    apiKey: process.env.OPENAI_API_KEY,
   });
   console.log('OpenAI API client initialized');
 } else {
@@ -492,7 +516,7 @@ if (isValidApiKey(process.env.OPENAI_API_KEY)) {
 
 if (isValidApiKey(process.env.ANTHROPIC_API_KEY)) {
   anthropicClient = new Anthropic({
-    apiKey: process.env.ANTHROPIC_API_KEY
+    apiKey: process.env.ANTHROPIC_API_KEY,
   });
   console.log('Anthropic API client initialized');
 } else {
@@ -510,11 +534,9 @@ if (isValidApiKey(process.env.GOOGLE_MAPS_API_KEY)) {
 
 // Helper function to check if a model is an O-series reasoning model
 const isOSeriesModel = (model) => {
-  return model && (
-    model.startsWith('o3') || 
-    model.startsWith('o4') ||
-    model === 'o1' ||
-    model === 'o1-mini'
+  return (
+    model &&
+    (model.startsWith('o3') || model.startsWith('o4') || model === 'o1' || model === 'o1-mini')
   );
 };
 
@@ -522,23 +544,23 @@ const isOSeriesModel = (model) => {
 const buildOpenAIParams = (model, messages) => {
   const baseParams = {
     model: model,
-    messages: messages
+    messages: messages,
   };
-  
+
   const isOSeries = isOSeriesModel(model);
   console.log(`Building OpenAI params for model: ${model}, isOSeries: ${isOSeries}`);
-  
+
   if (isOSeries) {
     // O-series models only support max_completion_tokens
     return {
       ...baseParams,
-      max_completion_tokens: 8192
+      max_completion_tokens: 8192,
     };
   } else {
     // Standard models support traditional parameters
     return {
       ...baseParams,
-      temperature: 0.7
+      temperature: 0.7,
     };
   }
 };
@@ -564,7 +586,7 @@ const rateLimiter = (req, res, next) => {
   if (!bucket || bucket.expiresAt <= now) {
     rateLimitBuckets.set(clientIP, {
       count: 1,
-      expiresAt: now + windowMs
+      expiresAt: now + windowMs,
     });
     rateLimitSweepCursor++;
     if (rateLimitSweepCursor >= 500) {
@@ -585,13 +607,13 @@ const rateLimiter = (req, res, next) => {
         clientIP,
         path: req.path,
         requestCount: bucket.count,
-        windowMs
+        windowMs,
       });
     }
     res.setHeader('Retry-After', retryAfterSeconds);
     return res.status(429).json({
       error: 'Rate limit exceeded',
-      retryAfter: retryAfterSeconds
+      retryAfter: retryAfterSeconds,
     });
   }
 
@@ -659,17 +681,18 @@ app.get('/health', async (req, res) => {
   // Get cache stats
   const cacheStats = cache ? cache.getStats() : null;
   const cacheHealth = cache ? cache.getHealth() : { status: 'disabled' };
-  
+
   // Try to get travel instructions cache info
   const travelInstructionsCache = cache ? await cache.get('travel-instructions') : null;
-  const cacheAge = travelInstructionsCache && travelInstructionsCache.timestamp
-    ? Math.floor((Date.now() - travelInstructionsCache.timestamp) / 1000) + 's'
-    : 'not cached';
-  
+  const cacheAge =
+    travelInstructionsCache && travelInstructionsCache.timestamp
+      ? Math.floor((Date.now() - travelInstructionsCache.timestamp) / 1000) + 's'
+      : 'not cached';
+
   // Basic memory usage information
   const memoryUsage = process.memoryUsage();
   const formatMemory = (bytes) => `${Math.round(bytes / 1024 / 1024)} MB`;
-    
+
   // Format uptime
   const uptime = process.uptime();
   let uptimeStr;
@@ -680,12 +703,14 @@ app.get('/health', async (req, res) => {
   } else {
     uptimeStr = `${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m`;
   }
-  
+
   // Rate limiting stats
   const activeClients = apiRequestCounts ? apiRequestCounts.size : 0;
-  const clientsAtLimit = apiRequestCounts ? Array.from(apiRequestCounts.entries())
-    .filter(([_, count]) => count >= config.rateLimitMax).length : 0;
-    
+  const clientsAtLimit = apiRequestCounts
+    ? Array.from(apiRequestCounts.entries()).filter(([_, count]) => count >= config.rateLimitMax)
+        .length
+    : 0;
+
   // Check RAG service health
   let ragHealth = { status: 'unknown' };
   if (process.env.RAG_SERVICE_URL || req.query.checkRag === 'true') {
@@ -697,7 +722,7 @@ app.get('/health', async (req, res) => {
       ragHealth = { status: 'unhealthy', error: error.message };
     }
   }
-  
+
   // For detailed health checks, add API connectivity test
   const healthData = {
     status: 'healthy',
@@ -706,37 +731,42 @@ app.get('/health', async (req, res) => {
     memory: {
       rss: formatMemory(memoryUsage.rss),
       heapTotal: formatMemory(memoryUsage.heapTotal),
-      heapUsed: formatMemory(memoryUsage.heapUsed)
+      heapUsed: formatMemory(memoryUsage.heapUsed),
     },
-    cache: config.cacheEnabled ? {
-      enabled: true,
-      status: cacheHealth.status,
-      redis: cacheHealth.redis,
-      memory: cacheHealth.memory,
-      performance: cacheHealth.performance,
-      stats: cacheStats ? {
-        totalHits: cacheStats.combined.totalHits,
-        totalMisses: cacheStats.combined.totalMisses,
-        hitRate: cacheStats.combined.hitRate
-      } : null,
-      travelInstructions: {
-        cached: !!travelInstructionsCache,
-        age: cacheAge,
-        size: travelInstructionsCache && travelInstructionsCache.content
-          ? `${Math.round(travelInstructionsCache.content.length / 1024)} KB` 
-          : '0'
-      }
-    } : { enabled: false },
+    cache: config.cacheEnabled
+      ? {
+          enabled: true,
+          status: cacheHealth.status,
+          redis: cacheHealth.redis,
+          memory: cacheHealth.memory,
+          performance: cacheHealth.performance,
+          stats: cacheStats
+            ? {
+                totalHits: cacheStats.combined.totalHits,
+                totalMisses: cacheStats.combined.totalMisses,
+                hitRate: cacheStats.combined.hitRate,
+              }
+            : null,
+          travelInstructions: {
+            cached: !!travelInstructionsCache,
+            age: cacheAge,
+            size:
+              travelInstructionsCache && travelInstructionsCache.content
+                ? `${Math.round(travelInstructionsCache.content.length / 1024)} KB`
+                : '0',
+          },
+        }
+      : { enabled: false },
     rateLimiting: {
       enabled: config.rateLimitEnabled,
       activeClients,
       clientsAtLimit,
       limit: config.rateLimitMax,
-      window: `${config.rateLimitWindow / 1000}s`
+      window: `${config.rateLimitWindow / 1000}s`,
     },
     environment: process.env.NODE_ENV || 'production',
     ragService: ragHealth,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   };
 
   const publicHealthData = { ...healthData };
@@ -755,7 +785,7 @@ app.get('/health', async (req, res) => {
 // API configuration endpoint with environment-specific settings
 app.get('/api/config', (req, res) => {
   const isProduction = process.env.NODE_ENV === 'production';
-  
+
   // Safe configuration that doesn't expose sensitive info
   const responseConfig = {
     version: '1.0.0',
@@ -764,19 +794,19 @@ app.get('/api/config', (req, res) => {
     features: {
       aiChat: true,
       travelInstructions: true,
-      rateLimit: config.rateLimitMax
+      rateLimit: config.rateLimitMax,
     },
     models: {
       default: 'gpt-4.1-mini',
       providers: {
         google: !!geminiClient,
         openai: !!openaiClient,
-        anthropic: !!anthropicClient
-      }
+        anthropic: !!anthropicClient,
+      },
     },
     caching: {
       enabled: config.cacheEnabled,
-      duration: Math.floor(config.cacheTTL / 1000 / 60) + ' minutes'
+      duration: Math.floor(config.cacheTTL / 1000 / 60) + ' minutes',
     },
     // Public-facing URLs and endpoints
     api: {
@@ -790,22 +820,22 @@ app.get('/api/config', (req, res) => {
       ingestCanada: '/api/v2/ingest/canada-ca',
       sources: '/api/v2/sources',
       sourcesStats: '/api/v2/sources/stats',
-      health: '/health'
+      health: '/health',
     },
     // RAG service info
     rag: {
       enabled: !!process.env.RAG_SERVICE_URL,
-      serviceUrl: process.env.RAG_SERVICE_URL || 'http://localhost:8000'
+      serviceUrl: process.env.RAG_SERVICE_URL || 'http://localhost:8000',
     },
     // Client-side configuration
     client: {
       retryEnabled: true,
       maxRetries: config.maxRetries,
-      retryDelay: config.retryDelay
+      retryDelay: config.retryDelay,
     },
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   };
-  
+
   // Return the safe config
   res.json(responseConfig);
 });
@@ -819,7 +849,7 @@ app.get('/api/deployment-info', requireAdminAuth, (req, res) => {
     processUptime: Math.floor(process.uptime()),
     memoryUsage: process.memoryUsage(),
     // Try to read package.json version
-    version: '1.0.0'
+    version: '1.0.0',
   };
 
   // Try to get build info from dist directory
@@ -837,7 +867,7 @@ app.get('/api/deployment-info', requireAdminAuth, (req, res) => {
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
-  
+
   res.json(buildInfo);
 });
 
@@ -845,11 +875,11 @@ app.get('/api/deployment-info', requireAdminAuth, (req, res) => {
 app.post('/api/clear-cache', (req, res) => {
   // This endpoint helps with cache busting by providing a new timestamp
   const cacheBreaker = Date.now();
-  
+
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
-  
+
   res.json({
     message: 'Cache busting initiated',
     timestamp: new Date().toISOString(),
@@ -857,8 +887,8 @@ app.post('/api/clear-cache', (req, res) => {
     buildTime: process.env.BUILD_TIMESTAMP,
     instructions: {
       manual: 'Press Ctrl+F5 (or Cmd+Shift+R on Mac) to force reload',
-      programmatic: `Add ?v=${cacheBreaker} to URLs to bypass cache`
-    }
+      programmatic: `Add ?v=${cacheBreaker} to URLs to bypass cache`,
+    },
   });
 });
 
@@ -871,7 +901,7 @@ const possiblePaths = [
   path.join(__dirname, '..', 'public_html'),
   path.join(__dirname, '..', 'dist'),
   path.join(process.cwd(), 'public_html'),
-  path.join(process.cwd(), 'dist')
+  path.join(process.cwd(), 'dist'),
 ];
 
 // Find the first existing directory
@@ -893,8 +923,8 @@ for (const testPath of possiblePaths) {
 }
 // Serve static files from dist directory
 if (distPath) {
-  console.log("Serving static files from:", distPath);
-  
+  console.log('Serving static files from:', distPath);
+
   // Add explicit favicon handling with correct MIME types
   app.use((req, res, next) => {
     if (req.path === '/favicon.ico') {
@@ -909,7 +939,7 @@ if (distPath) {
     }
     next();
   });
-  
+
   app.use(express.static(distPath));
 }
 
@@ -921,7 +951,7 @@ const possiblePublicPaths = [
   path.join(process.cwd(), 'dist', 'landing'),
   // Additional fallback paths
   path.join(__dirname, 'public_html', 'landing'),
-  path.join(__dirname, 'dist', 'landing')
+  path.join(__dirname, 'dist', 'landing'),
 ];
 
 let landingPath = null;
@@ -942,18 +972,21 @@ for (const testPath of possiblePublicPaths) {
 
 if (landingPath) {
   // Serve landing page files with proper MIME types
-  app.use('/landing', express.static(landingPath, {
-    setHeaders: (res, filePath) => {
-      if (filePath.endsWith('.css')) {
-        res.setHeader('Content-Type', 'text/css');
-      } else if (filePath.endsWith('.js')) {
-        res.setHeader('Content-Type', 'application/javascript');
-      } else if (filePath.endsWith('.html')) {
-        res.setHeader('Content-Type', 'text/html');
-      }
-    }
-  }));
-  
+  app.use(
+    '/landing',
+    express.static(landingPath, {
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.css')) {
+          res.setHeader('Content-Type', 'text/css');
+        } else if (filePath.endsWith('.js')) {
+          res.setHeader('Content-Type', 'application/javascript');
+        } else if (filePath.endsWith('.html')) {
+          res.setHeader('Content-Type', 'text/html');
+        }
+      },
+    }),
+  );
+
   // Explicit route for landing page
   app.get('/landing', (req, res) => {
     const indexPath = path.join(landingPath, 'index.html');
@@ -970,49 +1003,49 @@ if (landingPath) {
 // Handle React app routes (catch-all for client-side routing)
 // This must come after specific routes but before the 404 handler
 app.get('*', (req, res, next) => {
-    // Skip API routes and landing routes
-    if (req.path.startsWith('/api/') || req.path.startsWith('/landing')) {
-        return next();
-    }
-    
-    // Serve React app for all other routes
-    if (distPath) {
-        res.sendFile(path.join(distPath, 'index.html'));
-    } else {
-        return next(); // Let 404 handler take over
-    }
+  // Skip API routes and landing routes
+  if (req.path.startsWith('/api/') || req.path.startsWith('/landing')) {
+    return next();
+  }
+
+  // Serve React app for all other routes
+  if (distPath) {
+    res.sendFile(path.join(distPath, 'index.html'));
+  } else {
+    return next(); // Let 404 handler take over
+  }
 });
 
 // Enhanced 404 error handler with helpful suggestions
 app.use((req, res) => {
   const requestedUrl = req.url;
   let suggestions = [];
-  
+
   // Check if URL might be close to a valid endpoint and suggest alternatives
   if (requestedUrl.includes('gemini') || requestedUrl.includes('chat')) {
     suggestions.push('/api/gemini/generateContent', '/api/v2/chat');
   }
-  
+
   if (requestedUrl.includes('travel') || requestedUrl.includes('instructions')) {
     suggestions.push('/api/travel-instructions');
   }
-  
+
   if (requestedUrl.includes('health') || requestedUrl.includes('status')) {
     suggestions.push('/health');
   }
-  
+
   if (requestedUrl.includes('config') || requestedUrl.includes('settings')) {
     suggestions.push('/api/config');
   }
-  
+
   // If it looks like an API request, provide JSON response
   if (requestedUrl.startsWith('/api/')) {
     const response = {
       error: 'Not Found',
       message: `Cannot ${req.method} ${req.url}`,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
-    
+
     // Add suggestions if available
     if (suggestions.length > 0) {
       response.suggestions = suggestions;
@@ -1021,19 +1054,35 @@ app.use((req, res) => {
       // Generic suggestion
       response.message += '. Try /api/config for available endpoints.';
     }
-    
+
     return res.status(404).json(response);
   }
-  
+
   // Check if this is a request for a static file
-  const staticFileExtensions = ['.ico', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.css', '.js', '.json', '.woff', '.woff2', '.ttf', '.eot'];
-  const hasStaticExtension = staticFileExtensions.some(ext => req.path.toLowerCase().endsWith(ext));
-  
+  const staticFileExtensions = [
+    '.ico',
+    '.png',
+    '.jpg',
+    '.jpeg',
+    '.gif',
+    '.svg',
+    '.css',
+    '.js',
+    '.json',
+    '.woff',
+    '.woff2',
+    '.ttf',
+    '.eot',
+  ];
+  const hasStaticExtension = staticFileExtensions.some((ext) =>
+    req.path.toLowerCase().endsWith(ext),
+  );
+
   if (hasStaticExtension) {
     // For static files, return proper 404
     return res.status(404).send('File not found');
   }
-  
+
   // For non-API, non-static requests, serve the React app if available (which will handle its own 404)
   if (distPath) {
     res.sendFile(path.join(distPath, 'index.html'));
@@ -1054,36 +1103,37 @@ app.use((err, req, res, next) => {
     body: req.body ? JSON.stringify(req.body).substring(0, 1000) : undefined,
     headers: {
       'user-agent': req.headers['user-agent'],
-      'content-type': req.headers['content-type']
+      'content-type': req.headers['content-type'],
     },
     error: {
       message: err.message,
       stack: process.env.NODE_ENV === 'production' ? undefined : err.stack,
       code: err.code,
-      statusCode: err.statusCode || err.status
+      statusCode: err.statusCode || err.status,
     },
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   };
-  
+
   // Log the error with structured data
   console.error('Global error handler:', JSON.stringify(errorDetails, null, 2));
   if (chatLogger && config.loggingEnabled) {
     // Fallback to available logger method
     chatLogger.log(errorDetails);
   }
-  
+
   // Determine status code
   const statusCode = err.statusCode || err.status || 500;
-  
+
   // Send appropriate response based on content type
   if (req.path.startsWith('/api/')) {
     res.status(statusCode).json({
       error: statusCode === 500 ? 'Internal Server Error' : err.message,
-      message: process.env.NODE_ENV === 'production' 
-        ? 'An unexpected error occurred. Please try again later.' 
-        : err.message,
+      message:
+        process.env.NODE_ENV === 'production'
+          ? 'An unexpected error occurred. Please try again later.'
+          : err.message,
       errorId,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   } else {
     // For non-API routes, send a simple error page

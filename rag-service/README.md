@@ -58,22 +58,26 @@ RAG_RETRIEVAL_K=5
 ### Running Locally
 
 1. Create a virtual environment:
+
 ```bash
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
 2. Install dependencies:
+
 ```bash
 pip install -r requirements.txt
 ```
 
 3. Start Redis (optional):
+
 ```bash
 redis-server
 ```
 
 4. Run the service:
+
 ```bash
 uvicorn app.main:app --reload --port 8000
 ```
@@ -81,14 +85,17 @@ uvicorn app.main:app --reload --port 8000
 ## API Endpoints
 
 ### Health Check
+
 - `GET /api/v1/health` - Service health status
 - `GET /api/v1/ready` - Readiness check
 
 ### Chat
+
 - `POST /api/v1/chat` - Chat with RAG support
 - `POST /api/v1/followup` - Generate follow-up questions
 
 ### Document Ingestion
+
 - `POST /api/v1/ingest` - Ingest document from URL or content
 - `POST /api/v1/ingest/file` - Upload and ingest file
 - `POST /api/v1/ingest/batch` - Ingest multiple documents
@@ -96,6 +103,7 @@ uvicorn app.main:app --reload --port 8000
 - `DELETE /api/v1/documents/{document_id}` - Delete a document
 
 ### Source Management
+
 - `GET /api/v1/sources` - List indexed sources
 - `GET /api/v1/sources/{document_id}` - Get specific source
 - `POST /api/v1/sources/search` - Search sources
@@ -139,7 +147,7 @@ app.post('/api/v2/chat/rag', async (req, res) => {
   const response = await fetch('http://localhost:8000/api/v1/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(req.body)
+    body: JSON.stringify(req.body),
   });
   const data = await response.json();
   res.json(data);

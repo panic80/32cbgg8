@@ -24,9 +24,14 @@ const StageIndicator: React.FC<StageIndicatorProps> = ({ currentStage, stage, la
   };
 
   const status = getStatus();
-  const Icon = status === 'completed' ? CheckCircle : 
-               status === 'error' ? AlertCircle : 
-               status === 'active' ? Loader2 : null;
+  const Icon =
+    status === 'completed'
+      ? CheckCircle
+      : status === 'error'
+        ? AlertCircle
+        : status === 'active'
+          ? Loader2
+          : null;
 
   return (
     <div className="stage-indicator-container">
@@ -63,7 +68,7 @@ const LoadingScreen: React.FC = () => {
     { stage: 'url-scanning' as LoadingStage, label: 'Scanning URL' },
     { stage: 'parsing' as LoadingStage, label: 'Parsing Content' },
     { stage: 'validation' as LoadingStage, label: 'Validating Data' },
-    { stage: 'complete' as LoadingStage, label: 'Complete' }
+    { stage: 'complete' as LoadingStage, label: 'Complete' },
   ];
 
   return (
@@ -83,14 +88,11 @@ const LoadingScreen: React.FC = () => {
 
         <h2 className="loading-title h3 text-2xl">Processing URL</h2>
         <p className="loading-message body-base">{state.message}</p>
-        
+
         {/* Progress bar with shimmer effect */}
         <div className="loading-bar-container">
           <div className="loading-bar">
-            <div
-              className="loading-bar-fill"
-              style={{ width: `${state.progress}%` }}
-            />
+            <div className="loading-bar-fill" style={{ width: `${state.progress}%` }} />
             <div className="loading-bar-shimmer" />
           </div>
           <span className="loading-percentage">{Math.round(state.progress)}%</span>
@@ -100,12 +102,7 @@ const LoadingScreen: React.FC = () => {
         {(showDetails || state.error) && (
           <div className="loading-stages animate-fade-up">
             {stages.map(({ stage, label }) => (
-              <StageIndicator
-                key={stage}
-                currentStage={state.stage}
-                stage={stage}
-                label={label}
-              />
+              <StageIndicator key={stage} currentStage={state.stage} stage={stage} label={label} />
             ))}
           </div>
         )}

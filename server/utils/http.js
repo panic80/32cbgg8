@@ -11,7 +11,7 @@ export const decodeUrlParams = (params) => {
   for (const [key, value] of Object.entries(params)) {
     if (Array.isArray(value)) {
       result[key] = value.map((item) =>
-        typeof item === 'string' ? decodeURIComponent(item.replace(/\+/g, ' ')) : item
+        typeof item === 'string' ? decodeURIComponent(item.replace(/\+/g, ' ')) : item,
       );
     } else if (typeof value === 'string') {
       result[key] = decodeURIComponent(value.replace(/\+/g, ' '));
@@ -23,4 +23,3 @@ export const decodeUrlParams = (params) => {
   }
   return result;
 };
-

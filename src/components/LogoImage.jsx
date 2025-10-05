@@ -7,7 +7,7 @@ const LogoImageBase = ({ className = '', size = 'md', fitParent = false }) => {
     sm: { width: 60, height: 72 },
     md: { width: 100, height: 120 },
     lg: { width: 150, height: 180 },
-    xl: { width: 200, height: 240 }
+    xl: { width: 200, height: 240 },
   };
 
   const { width, height } = sizes[size] || sizes.md;
@@ -24,7 +24,7 @@ const LogoImageBase = ({ className = '', size = 'md', fitParent = false }) => {
           height: '100%',
           width: 'auto',
           maxHeight: '100%',
-          display: 'block'
+          display: 'block',
         }}
       />
     );

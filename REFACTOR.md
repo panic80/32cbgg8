@@ -5,6 +5,7 @@ _Last updated: 2025-08-19_
 > Parallel review ran four focused "agents": UI/UX (React), Gateway (Express), Retrieval (Python), and Ops/Docs. Each block below captures that agent's findings and the actionable backlog we should execute or groom.
 
 ## High-Impact Quick Wins
+
 - [x] Collapse duplicate chat utilities in `src/utils/chatUtils.{js,ts}` and migrate consumers to the typed version to eliminate dual maintenance and subtle divergence.
 - [x] Convert `src/api/travelInstructions.js` + `travelInstructions.d.ts` and `src/api/gemini.jsx` to TypeScript modules with shared fetch helpers so the network layer has compile-time validation.
 - [x] Promote environment/config loading in `server/main.js:1` to a reusable config module to decouple app bootstrap from configuration parsing.
@@ -13,12 +14,13 @@ _Last updated: 2025-08-19_
 - [x] Add Vitest smoke coverage for `src/pages/ChatPage.tsx`, `src/components/TripPlanner.tsx`, and `src/pages/ConfigPage.tsx` before deep refactors to guard behaviour.
 
 ## Workstream A – React Client (UI Agent)
+
 - **Hotspots to restructure**
-  - `src/pages/ConfigPage/index.tsx:1` (shrinking but still busy) mixes analytics, ingestion console, and model toggles—extract domain slices into subroutes/components (e.g. `ConfigLayout`, `AnalyticsPanel`, `IngestionQueue`, `ModelCatalog`). *(Model selection, ingestion, database, and logs tabs now live under `src/pages/ConfigPage/tabs/` with the page acting as an orchestrator.)*
-  - `src/pages/OPIPage/ReimaginedOPIView.jsx:1` and `src/pages/LandingPage*.jsx` share large hero/section blocks—replace with data-driven section config and shared layout primitives. *(Legacy prototypes `OPIPageConcept` and `OPIPage/FluentDesignView` have been removed.)*
+  - `src/pages/ConfigPage/index.tsx:1` (shrinking but still busy) mixes analytics, ingestion console, and model toggles—extract domain slices into subroutes/components (e.g. `ConfigLayout`, `AnalyticsPanel`, `IngestionQueue`, `ModelCatalog`). _(Model selection, ingestion, database, and logs tabs now live under `src/pages/ConfigPage/tabs/` with the page acting as an orchestrator.)_
+  - `src/pages/OPIPage/ReimaginedOPIView.jsx:1` and `src/pages/LandingPage*.jsx` share large hero/section blocks—replace with data-driven section config and shared layout primitives. _(Legacy prototypes `OPIPageConcept` and `OPIPage/FluentDesignView` have been removed.)_
   - `src/components/TripPlanner.tsx:1` (482 LOC) interleaves fetching, autocomplete management, and presentation—split hooks (`useTripPlan`, `useDistanceMatrix`) and move Google-maps adapters under `src/api/maps/`.
   - `src/pages/AdminToolsPage/*.jsx` replicate similar tab structures; consolidate under a single `AdminToolsShell` with lazy-loaded feature modules.
-  - `src/pages/ChatPage.tsx:1` still holds orchestration logic (e.g. export helpers, streaming glue); finish extraction into `src/pages/ChatPage/utils` and create integration tests for the new hook boundaries. *(Command palette/dialog logic and the scrolling message panel now live in dedicated components to shrink the top-level file.)*
+  - `src/pages/ChatPage.tsx:1` still holds orchestration logic (e.g. export helpers, streaming glue); finish extraction into `src/pages/ChatPage/utils` and create integration tests for the new hook boundaries. _(Command palette/dialog logic and the scrolling message panel now live in dedicated components to shrink the top-level file.)_
 - **Supporting refactors**
   - [ ] Replace scattered `useState` + `localStorage` access with existing `useLocalStorage` hook and a centralized `StorageKeys` map in `src/constants`.
   - [ ] Move command palette data, follow-up questions, and suggestion builders into dedicated modules to simplify memo dependencies.
@@ -29,6 +31,7 @@ _Last updated: 2025-08-19_
   - [ ] Add `src/pages/ConfigPage` and `src/components/TripPlanner` story-driven tests in `src/__tests__/` or colocated test files before reorganizing UI logic.
 
 ## Workstream B – Express Gateway (Gateway Agent)
+
 - **Structural debt**
   - `server/main.js:1` (2,373 LOC) acts as bootstrapper, router, controller, and service. Extract into `server/app.js` (app factory), `server/routes/*`, and `server/controllers/*` so each endpoint calls a dedicated handler.
     - ✅ Initial extraction complete: core app setup now lives in `server/app.js` with `server/main.js` handling startup/shutdown only.
@@ -47,6 +50,7 @@ _Last updated: 2025-08-19_
   - [ ] Refactor Google Maps proxy routes to reside under `server/routes/maps.js` with shared parameter validation utilities.
 
 ## Workstream C – RAG Service (Retrieval Agent)
+
 - **Pipeline modularity**
   - `rag-service/app/pipelines/ingestion.py:1` (1,377 LOC) should be split into loader, normalizer, chunker, and persistence modules with dependency-injected services.
   - `rag-service/app/api/chat.py:1` and `rag-service/app/api/admin.py:1` mix FastAPI routing and business logic; extract service layers and pydantic models under `app/services` and `app/schemas`.
@@ -59,6 +63,7 @@ _Last updated: 2025-08-19_
   - [ ] Add contract tests ensuring the Express gateway and RAG API stay aligned (request/response schemas).
 
 ## Workstream D – Tooling, Quality, and Observability (Ops Agent)
+
 - [ ] Replace the placeholder lint script in `package.json` with ESLint + Prettier, and wire it into CI before large-scale refactors.
 - [ ] Configure TypeScript project references (e.g., reuse `tsconfig.node.json`) to support incremental builds during module extraction.
 - [ ] Enable Vitest coverage thresholds in `vitest.config.js` and document expected minimums in `src/setupTests.js`.
@@ -67,6 +72,7 @@ _Last updated: 2025-08-19_
 - [ ] Ensure PM2/ecosystem scripts consume the refactored server entry (after splitting `server/main.js`).
 
 ## Workstream E – Documentation & Knowledge Capture (Docs Agent)
+
 - [ ] Create or update architectural overviews in `docs/` that mirror the new module boundaries (React feature map, Express flow, RAG pipeline diagram).
 - [ ] Merge ad-hoc markdowns (`RAGFAST.md`, `FIXRAG.md`, `ANALYSIS.md`, etc.) into a curated `docs/rag/` index to reduce fragmentation.
 - [ ] Record migration steps for moving persistent assets out of the repo and into object storage/backups.
@@ -74,6 +80,7 @@ _Last updated: 2025-08-19_
 - [ ] Append a "refactor readiness" checklist to `SECUR_REVIEW.md` when security-sensitive modules (auth, ingestion) change.
 
 ## Validation Guardrails
+
 - [ ] `npm run test:coverage` (React)
 - [ ] `npm run build` (React bundle integrity)
 - [ ] `npm run dev:server` smoke test after Express changes
@@ -81,5 +88,6 @@ _Last updated: 2025-08-19_
 - [ ] `pytest` or `uvicorn` test suite inside `rag-service` (document command in `rag-service/README.md`)
 
 ## Notes & References
+
 - Previous ChatPage extraction plan (2025-08-15) lives in this file's git history; outstanding tasks are folded into **Workstream A** items above.
 - Track progress using the checkboxes per workstream and update this document alongside major refactoring PRs.

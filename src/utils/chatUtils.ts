@@ -39,10 +39,7 @@ export const formatText = (text: string): string => {
 /**
  * Parse structured API responses into a reusable shape for the UI.
  */
-export const parseApiResponse = (
-  text: string,
-  isSimplified = false
-): ParsedChatResponse => {
+export const parseApiResponse = (text: string, isSimplified = false): ParsedChatResponse => {
   if (!text) {
     throw new Error('Invalid response format from API');
   }
@@ -188,7 +185,7 @@ export const scrollToBottom = (container: HTMLElement | null): void => {
 /** Debounce helper to limit function invocation rate. */
 export const debounce = <F extends (...args: unknown[]) => void>(
   func: F,
-  waitFor: number
+  waitFor: number,
 ): ((...args: Parameters<F>) => void) => {
   let timeout: ReturnType<typeof setTimeout> | null = null;
 

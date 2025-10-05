@@ -23,7 +23,9 @@ export const useIngestionController = ({
   const [forceRefresh, setForceRefresh] = useState(false);
   const [showIngestionProgress, setShowIngestionProgress] = useState(false);
   const [currentIngestionUrl, setCurrentIngestionUrl] = useState('');
-  const [ingestionProgressEndpoint, setIngestionProgressEndpoint] = useState<string | null>(DEFAULT_PROGRESS_ENDPOINT);
+  const [ingestionProgressEndpoint, setIngestionProgressEndpoint] = useState<string | null>(
+    DEFAULT_PROGRESS_ENDPOINT,
+  );
   const { ingestionHistory, recordHistoryEntry, clearIngestionHistory } = useIngestionHistory();
 
   const resetIngestionProgress = useCallback(() => {
@@ -63,34 +65,39 @@ export const useIngestionController = ({
         { submit: '/api/rag/ingest', progress: '/api/rag/ingest/progress' },
       ] as const;
 
-      let targetUsed: typeof ingestionTargets[number] | null = null;
+      let targetUsed: (typeof ingestionTargets)[number] | null = null;
       let lastError: string | null = null;
       let responseData: any = null;
       let responseOk = false;
 
       for (const target of ingestionTargets) {
         try {
-          responseData = await apiClient.postJson(target.submit, {
-            url: normalizedUrl,
-            type: 'web',
-            forceRefresh,
-            metadata: {
-              source: 'manual_ingestion',
-              ingested_from: 'config_page',
+          responseData = await apiClient.postJson(
+            target.submit,
+            {
+              url: normalizedUrl,
+              type: 'web',
+              forceRefresh,
+              metadata: {
+                source: 'manual_ingestion',
+                ingested_from: 'config_page',
+              },
             },
-          }, {
-            headers: {
-              'Content-Type': 'application/json',
+            {
+              headers: {
+                'Content-Type': 'application/json',
+              },
             },
-          });
+          );
           responseOk = true;
           targetUsed = target;
           break;
         } catch (error) {
           if (error instanceof ApiError) {
-            const message = typeof (error.data as any)?.message === 'string'
-              ? (error.data as any).message
-              : error.statusText || error.message;
+            const message =
+              typeof (error.data as any)?.message === 'string'
+                ? (error.data as any).message
+                : error.statusText || error.message;
             lastError = message;
             responseData = error.data;
             if (error.status === 404) {
@@ -161,7 +168,15 @@ export const useIngestionController = ({
     } finally {
       setIsIngesting(false);
     }
-  }, [activeTab, forceRefresh, onActivityLog, recordHistoryEntry, refreshDatabaseMetrics, resetIngestionProgress, urlInput]);
+  }, [
+    activeTab,
+    forceRefresh,
+    onActivityLog,
+    recordHistoryEntry,
+    refreshDatabaseMetrics,
+    resetIngestionProgress,
+    urlInput,
+  ]);
 
   return {
     urlInput,

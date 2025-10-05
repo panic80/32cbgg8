@@ -11,37 +11,40 @@ interface UseUrlParserResult {
 export const useUrlParser = (): UseUrlParserResult => {
   const { state, dispatch } = useLoading();
 
-  const parseUrl = useCallback(async (url: string): Promise<ParsedUrlResult | undefined> => {
-    dispatch({ type: 'RESET' });
-    
-    return new Promise((resolve) => {
-      UrlParser.parseUrl(
-        url,
-        (stage, message) => {
-          dispatch({
-            type: 'SET_STAGE',
-            payload: { stage, message }
-          });
-        },
-        (error) => {
-          dispatch({ type: 'SET_ERROR', payload: error });
-          resolve(undefined);
-        },
-        (result) => {
-          dispatch({
-            type: 'SET_STAGE',
-            payload: { stage: 'complete', message: 'URL processing complete' }
-          });
-          resolve(result);
-        }
-      );
-    });
-  }, [dispatch]);
+  const parseUrl = useCallback(
+    async (url: string): Promise<ParsedUrlResult | undefined> => {
+      dispatch({ type: 'RESET' });
+
+      return new Promise((resolve) => {
+        UrlParser.parseUrl(
+          url,
+          (stage, message) => {
+            dispatch({
+              type: 'SET_STAGE',
+              payload: { stage, message },
+            });
+          },
+          (error) => {
+            dispatch({ type: 'SET_ERROR', payload: error });
+            resolve(undefined);
+          },
+          (result) => {
+            dispatch({
+              type: 'SET_STAGE',
+              payload: { stage: 'complete', message: 'URL processing complete' },
+            });
+            resolve(result);
+          },
+        );
+      });
+    },
+    [dispatch],
+  );
 
   return {
     parseUrl,
     isLoading: state.isLoading,
-    error: state.error
+    error: state.error,
   };
 };
 

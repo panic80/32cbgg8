@@ -12,7 +12,15 @@ const createAnalyticsRoutes = ({ rateLimiter, chatLogger }) => {
       });
     }
 
-    const { path: visitPath, referrer, sessionId, locale, title, viewport, metadata } = req.body || {};
+    const {
+      path: visitPath,
+      referrer,
+      sessionId,
+      locale,
+      title,
+      viewport,
+      metadata,
+    } = req.body || {};
     const p = typeof visitPath === 'string' ? visitPath.trim() : '';
     const cleanMetadata = metadata && typeof metadata === 'object' ? metadata : undefined;
 

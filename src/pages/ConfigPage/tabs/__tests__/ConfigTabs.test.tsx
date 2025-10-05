@@ -15,8 +15,18 @@ import {
 } from '../../types';
 
 const models: LLMModel[] = [
-  { id: 'openai-model', name: 'OpenAI Model', provider: 'openai', description: 'OpenAI test model' },
-  { id: 'google-model', name: 'Google Model', provider: 'google', description: 'Google test model' },
+  {
+    id: 'openai-model',
+    name: 'OpenAI Model',
+    provider: 'openai',
+    description: 'OpenAI test model',
+  },
+  {
+    id: 'google-model',
+    name: 'Google Model',
+    provider: 'google',
+    description: 'Google test model',
+  },
 ];
 
 describe('Config tabs', () => {
@@ -37,7 +47,7 @@ describe('Config tabs', () => {
         onModelChange={handleModelChange}
         onSave={handleSave}
         onReset={handleReset}
-      />
+      />,
     );
 
     const modelTiles = screen.getAllByText('OpenAI Model');
@@ -74,7 +84,7 @@ describe('Config tabs', () => {
         progressEndpoint={null}
         onProgressComplete={onProgressComplete}
         ingestionHistory={[historyEntry]}
-      />
+      />,
     );
 
     expect(screen.getByText(historyEntry.url)).toBeInTheDocument();
@@ -130,7 +140,7 @@ describe('Config tabs', () => {
         activityLog={[]}
         showActivityLog={false}
         onToggleActivityLog={onToggleLog}
-      />
+      />,
     );
 
     const overviewCard = screen.getByText('Database Overview').closest('div');
@@ -188,7 +198,7 @@ describe('Config tabs', () => {
         onRefreshLogs={onRefreshLogs}
         onNextPage={onNextPage}
         onPreviousPage={onPreviousPage}
-      />
+      />,
     );
 
     fireEvent.change(screen.getByLabelText(/search questions/i), { target: { value: 'meal' } });

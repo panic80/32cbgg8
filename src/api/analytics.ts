@@ -61,22 +61,28 @@ export async function fetchVisitSummary(filters: VisitSummaryFilters = {}): Prom
   }
 
   const query = params.toString();
-  const url = query.length > 0 ? `/api/admin/analytics/visits?${query}` : '/api/admin/analytics/visits';
+  const url =
+    query.length > 0 ? `/api/admin/analytics/visits?${query}` : '/api/admin/analytics/visits';
 
   try {
-    const data = await apiClient.getJson<{ data?: VisitSummary }>(url, { parseErrorResponse: true });
+    const data = await apiClient.getJson<{ data?: VisitSummary }>(url, {
+      parseErrorResponse: true,
+    });
 
-    return data?.data ?? {
-      totalVisits: 0,
-      firstVisit: null,
-      lastVisit: null,
-      dailyCounts: [],
-    };
+    return (
+      data?.data ?? {
+        totalVisits: 0,
+        firstVisit: null,
+        lastVisit: null,
+        dailyCounts: [],
+      }
+    );
   } catch (error) {
     if (error instanceof ApiError) {
-      const message = typeof (error.data as any)?.message === 'string'
-        ? (error.data as any).message
-        : `Failed to load visit analytics (${error.status})`;
+      const message =
+        typeof (error.data as any)?.message === 'string'
+          ? (error.data as any).message
+          : `Failed to load visit analytics (${error.status})`;
       throw new Error(message);
     }
 

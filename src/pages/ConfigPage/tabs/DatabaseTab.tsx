@@ -85,7 +85,8 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
         <CardHeader>
           <CardTitle>Database Management</CardTitle>
           <CardDescription>
-            Manage the RAG (Retrieval-Augmented Generation) vector database that stores indexed documents.
+            Manage the RAG (Retrieval-Augmented Generation) vector database that stores indexed
+            documents.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -97,10 +98,22 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
                   Database Overview
                 </h4>
                 <div className="flex gap-2">
-                  <AnimatedButton variant="ghost" size="sm" onClick={onExport} disabled={!stats || isLoading} ripple>
+                  <AnimatedButton
+                    variant="ghost"
+                    size="sm"
+                    onClick={onExport}
+                    disabled={!stats || isLoading}
+                    ripple
+                  >
                     <Download className="h-4 w-4" />
                   </AnimatedButton>
-                  <AnimatedButton variant="ghost" size="sm" onClick={onRefresh} disabled={isLoading} ripple>
+                  <AnimatedButton
+                    variant="ghost"
+                    size="sm"
+                    onClick={onRefresh}
+                    disabled={isLoading}
+                    ripple
+                  >
                     <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
                   </AnimatedButton>
                 </div>
@@ -161,14 +174,14 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
                   <div className="p-3 bg-muted/30 rounded-lg space-y-2">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">Total Sources</span>
-                      <span className="font-semibold">
-                        {stats.totalSources.toLocaleString()}
-                      </span>
+                      <span className="font-semibold">{stats.totalSources.toLocaleString()}</span>
                     </div>
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">Avg chunks per doc</span>
                       <span className="font-semibold">
-                        {stats.totalDocuments > 0 ? (stats.totalChunks / stats.totalDocuments).toFixed(1) : '0'}
+                        {stats.totalDocuments > 0
+                          ? (stats.totalChunks / stats.totalDocuments).toFixed(1)
+                          : '0'}
                       </span>
                     </div>
                     {lastIngestedLabel && (
@@ -186,8 +199,8 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
               )}
             </div>
 
-            {!isLoading && (
-              sources.length > 0 ? (
+            {!isLoading &&
+              (sources.length > 0 ? (
                 <div className="p-4 border rounded-lg space-y-4">
                   <div className="flex items-center justify-between">
                     <h4 className="text-sm font-medium">Indexed Sources</h4>
@@ -202,9 +215,18 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
                           className="h-8 pl-8 pr-3 text-xs w-48"
                         />
                       </div>
-                      <Button variant="ghost" size="sm" onClick={onCycleSourceSort} className="text-xs">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={onCycleSourceSort}
+                        className="text-xs"
+                      >
                         <Filter className="h-3 w-3 mr-1" />
-                        {sourceSortBy === 'date' ? 'Date' : sourceSortBy === 'count' ? 'Count' : 'Name'}
+                        {sourceSortBy === 'date'
+                          ? 'Date'
+                          : sourceSortBy === 'count'
+                            ? 'Count'
+                            : 'Name'}
                       </Button>
                     </div>
                   </div>
@@ -226,10 +248,14 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
                               <div className="flex-1 min-w-0 space-y-1">
                                 <div className="flex items-center gap-2">
                                   <Globe className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                                  <span className="font-medium text-sm truncate">{source.label}</span>
+                                  <span className="font-medium text-sm truncate">
+                                    {source.label}
+                                  </span>
                                 </div>
                                 {displayUrl && (
-                                  <p className="text-xs text-muted-foreground truncate pl-6">{displayUrl}</p>
+                                  <p className="text-xs text-muted-foreground truncate pl-6">
+                                    {displayUrl}
+                                  </p>
                                 )}
                                 <div className="flex items-center gap-4 text-xs text-muted-foreground pl-6">
                                   <span className="flex items-center gap-1">
@@ -263,16 +289,17 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
                     sourcesError ? 'text-destructive' : 'text-muted-foreground'
                   }`}
                 >
-                  {sourcesError ?? 'No sources have been indexed yet. Ingest content to populate this list.'}
+                  {sourcesError ??
+                    'No sources have been indexed yet. Ingest content to populate this list.'}
                 </p>
-              )
-            )}
+              ))}
 
             <div className="p-4 border rounded-lg space-y-4">
               <div className="space-y-1">
                 <h4 className="text-sm font-medium text-destructive">Danger Zone</h4>
                 <p className="text-xs text-muted-foreground">
-                  Purging the database removes all indexed documents and embeddings. This cannot be undone.
+                  Purging the database removes all indexed documents and embeddings. This cannot be
+                  undone.
                 </p>
               </div>
 
@@ -296,8 +323,8 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
                   <AlertDialogHeader>
                     <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This action cannot be undone. This will permanently delete all indexed documents from the vector
-                      database, including:
+                      This action cannot be undone. This will permanently delete all indexed
+                      documents from the vector database, including:
                       <ul className="mt-2 space-y-1 list-disc list-inside">
                         <li>All ingested URLs and their content</li>
                         <li>All document embeddings and metadata</li>
@@ -307,7 +334,10 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={onPurge} className="bg-red-600 hover:bg-red-700 text-white">
+                    <AlertDialogAction
+                      onClick={onPurge}
+                      className="bg-red-600 hover:bg-red-700 text-white"
+                    >
                       Yes, purge database
                     </AlertDialogAction>
                   </AlertDialogFooter>
@@ -322,7 +352,12 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
                     <Activity className="h-4 w-4" />
                     Recent Activity
                   </h4>
-                  <Button variant="ghost" size="sm" onClick={onToggleActivityLog} className="text-xs">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onToggleActivityLog}
+                    className="text-xs"
+                  >
                     {showActivityLog ? 'Hide' : 'Show'} Log
                   </Button>
                 </div>
@@ -330,7 +365,10 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
                 {showActivityLog && (
                   <div className="space-y-2 max-h-48 overflow-y-auto">
                     {activityLog.slice(0, 10).map((entry, index) => (
-                      <div key={`${entry.timestamp}-${index}`} className="flex items-start gap-2 text-xs">
+                      <div
+                        key={`${entry.timestamp}-${index}`}
+                        className="flex items-start gap-2 text-xs"
+                      >
                         <Clock className="h-3 w-3 text-muted-foreground mt-0.5 flex-shrink-0" />
                         <div className="flex-1">
                           <div className="flex items-center gap-2">

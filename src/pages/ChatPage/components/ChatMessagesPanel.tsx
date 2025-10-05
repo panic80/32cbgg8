@@ -71,10 +71,7 @@ export const ChatMessagesPanel: React.FC<ChatMessagesPanelProps> = ({
       {isInitialLoading ? (
         <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 pb-20 sm:pb-24 space-y-8">
           {[...Array(3)].map((_, i) => (
-            <SkeletonChatMessage
-              key={i}
-              variant={i % 2 === 0 ? 'sent' : 'received'}
-            />
+            <SkeletonChatMessage key={i} variant={i % 2 === 0 ? 'sent' : 'received'} />
           ))}
         </div>
       ) : messages.length === 0 ? (
@@ -99,7 +96,10 @@ export const ChatMessagesPanel: React.FC<ChatMessagesPanelProps> = ({
             {visibleMessages.map((message, idx) => {
               const messageIndex = startIndex + idx;
               const prev = combinedMessages[messageIndex - 1];
-              const showDate = !prev || new Date(prev.timestamp).toDateString() !== new Date(message.timestamp).toDateString();
+              const showDate =
+                !prev ||
+                new Date(prev.timestamp).toDateString() !==
+                  new Date(message.timestamp).toDateString();
               return (
                 <React.Fragment key={message.id}>
                   {showDate && (
@@ -140,12 +140,14 @@ export const ChatMessagesPanel: React.FC<ChatMessagesPanelProps> = ({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
               >
-                <div className={cn(
-                  "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium",
-                  modelMode === 'smart'
-                    ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20'
-                    : 'bg-green-500/10 text-green-500 border border-green-500/20'
-                )}>
+                <div
+                  className={cn(
+                    'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium',
+                    modelMode === 'smart'
+                      ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20'
+                      : 'bg-green-500/10 text-green-500 border border-green-500/20',
+                  )}
+                >
                   {modelMode === 'smart' ? (
                     <>
                       <Sparkles size={12} />

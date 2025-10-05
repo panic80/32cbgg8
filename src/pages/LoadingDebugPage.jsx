@@ -9,13 +9,13 @@ const LoadingDebugPage = () => {
   const toggleLoader = (duration) => {
     const start = performance.now();
     setShowLoader(true);
-    
+
     setTimeout(() => {
       const end = performance.now();
       setShowLoader(false);
       setStats({
         duration: end - start,
-        frameRate: (loadTime.current / (end - start)) * 1000
+        frameRate: (loadTime.current / (end - start)) * 1000,
       });
     }, duration);
   };
@@ -27,7 +27,7 @@ const LoadingDebugPage = () => {
         <button onClick={() => toggleLoader(3000)}>Test 3s Load</button>
         <button onClick={() => toggleLoader(5000)}>Test 5s Load</button>
       </div>
-      
+
       {stats.duration && (
         <div className="debug-stats">
           <h3>Performance Metrics</h3>

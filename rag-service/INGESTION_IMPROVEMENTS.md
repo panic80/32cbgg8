@@ -3,25 +3,27 @@
 ## Completed High-Priority Improvements
 
 ### 1. Embedding Cache Layer
+
 - **File**: `app/services/embedding_cache.py`
 - **Features**:
   - Redis-based caching of embeddings with configurable TTL (default: 1 week)
   - Batch operations for efficient cache lookups
   - Cache hit/miss statistics tracking
   - Automatic integration with parallel embedding generator
-- **Benefits**: 
+- **Benefits**:
   - 2-3x faster re-ingestion of similar documents
   - Reduced API costs for embedding generation
   - Better performance for document updates
 
 ### 2. Adaptive Parallel Processing
+
 - **Files**: `app/pipelines/parallel_ingestion.py`
 - **Features**:
   - Dynamic worker allocation based on document size:
     - <10 docs: 2 workers
-    - <50 docs: 4 workers  
+    - <50 docs: 4 workers
     - <100 docs: 6-8 workers
-    - >500 docs: 12-16 workers
+    - > 500 docs: 12-16 workers
   - Adaptive batch sizing (5-50 based on document count)
   - Executor lifecycle management with proper cleanup
 - **Benefits**:
@@ -30,6 +32,7 @@
   - Scales up for large document sets
 
 ### 3. Checkpoint/Resume Capability
+
 - **File**: `app/services/ingestion_checkpoint.py`
 - **Features**:
   - Redis-backed checkpoint storage with 24-hour TTL
@@ -43,6 +46,7 @@
   - Progress visibility for long-running ingestions
 
 ### 4. Optimized Batch Sizes
+
 - **File**: `app/core/config.py`
 - **Changes**:
   - `parallel_chunk_workers`: 4 → 8
@@ -58,6 +62,7 @@
 ## Configuration
 
 New settings added to `app/core/config.py`:
+
 ```python
 enable_embedding_cache: bool = True  # Enable/disable embedding cache
 embedding_cache_ttl: int = 604800    # 1 week in seconds
@@ -66,6 +71,7 @@ embedding_cache_ttl: int = 604800    # 1 week in seconds
 ## Usage Examples
 
 ### Resume Failed Ingestion
+
 ```python
 # Initial ingestion that might fail
 response = await ingest_document(
@@ -87,6 +93,7 @@ resume_response = await ingest_document(
 ```
 
 ### Monitor Cache Performance
+
 ```python
 # Get embedding cache statistics
 stats = embedding_cache_service.get_stats()
@@ -101,14 +108,16 @@ stats = embedding_cache_service.get_stats()
 ## Performance Metrics
 
 Expected improvements with all optimizations enabled:
+
 - **Small documents (<10 chunks)**: 30-40% faster
-- **Medium documents (10-100 chunks)**: 50-60% faster  
+- **Medium documents (10-100 chunks)**: 50-60% faster
 - **Large documents (>100 chunks)**: 200-300% faster
 - **Re-ingestion of similar content**: 70-80% faster
 
 ## Completed Medium-Priority Improvements
 
 ### 5. Enhanced Smart Chunking
+
 - **File**: `app/pipelines/sentence_aware_splitter.py`
 - **Features**:
   - NLTK-based sentence boundary detection
@@ -122,6 +131,7 @@ Expected improvements with all optimizations enabled:
   - Optimal chunk sizes for retrieval
 
 ### 6. Table Multi-Vector Retriever
+
 - **File**: `app/components/table_multi_vector_retriever.py`
 - **Features**:
   - Multiple representations per table:
@@ -137,7 +147,8 @@ Expected improvements with all optimizations enabled:
   - Preserves table structure and relationships
 
 ### 7. Metadata Auto-Extraction & Quality Validation
-- **Files**: 
+
+- **Files**:
   - `app/services/metadata_extractor.py`
   - `app/services/quality_validator.py`
 - **Features**:
@@ -163,6 +174,7 @@ Expected improvements with all optimizations enabled:
 ## Configuration
 
 Additional settings in `app/core/config.py`:
+
 ```python
 # Smart chunking
 use_sentence_aware_splitting: bool = True
@@ -181,6 +193,7 @@ min_quality_score: float = 60.0
 ## Next Steps
 
 Advanced improvements to consider:
+
 1. Incremental document updates with versioning
 2. Document relationship mapping (citations, references)
 3. Multi-language support with translation

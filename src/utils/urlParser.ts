@@ -28,7 +28,7 @@ export class UrlParser {
       // Stage 1: URL Scanning
       this.events.onStageChange('url-scanning', 'Analyzing URL structure...');
       await this.simulateWork(500); // Simulate network delay
-      
+
       if (!this.url) {
         throw new Error('URL cannot be empty');
       }
@@ -36,13 +36,13 @@ export class UrlParser {
       // Stage 2: Parsing
       this.events.onStageChange('parsing', 'Extracting URL components...');
       await this.simulateWork(500);
-      
+
       const parsedUrl = new URL(this.url);
 
       // Stage 3: Validation
       this.events.onStageChange('validation', 'Validating URL format...');
       await this.simulateWork(500);
-      
+
       this.validateUrl(parsedUrl);
 
       // Stage 4: Complete
@@ -51,12 +51,11 @@ export class UrlParser {
         hostname: parsedUrl.hostname,
         pathname: parsedUrl.pathname,
         searchParams: Object.fromEntries(parsedUrl.searchParams.entries()),
-        hash: parsedUrl.hash.replace('#', '')
+        hash: parsedUrl.hash.replace('#', ''),
       };
 
       this.events.onStageChange('complete', 'URL processing complete');
       this.events.onComplete(result);
-
     } catch (error) {
       this.events.onError(error instanceof Error ? error.message : 'Unknown error occurred');
     }
@@ -80,7 +79,7 @@ export class UrlParser {
   }
 
   private async simulateWork(ms: number): Promise<void> {
-    await new Promise(resolve => setTimeout(resolve, ms));
+    await new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   // Utility method to use the parser
@@ -88,12 +87,12 @@ export class UrlParser {
     url: string,
     onStageChange: (stage: LoadingStage, message: string) => void,
     onError: (error: string) => void,
-    onComplete: (result: ParsedUrlResult) => void
+    onComplete: (result: ParsedUrlResult) => void,
   ): Promise<void> {
     const parser = new UrlParser(url, {
       onStageChange,
       onError,
-      onComplete
+      onComplete,
     });
     await parser.parse();
   }

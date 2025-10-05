@@ -13,7 +13,7 @@ import {
   MapPin,
   Filter,
   X,
-  CheckCircle2
+  CheckCircle2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -72,22 +72,24 @@ const ModernContactCard = ({ contact, type, onClick, index }) => {
     >
       <Card
         className={cn(
-          "group relative overflow-hidden border border-[var(--border)] cursor-pointer",
-          "transition-all duration-300 hover:shadow-xl hover:scale-[1.02]",
-          "bg-gradient-to-br h-full backdrop-blur-sm",
-          "glass",
+          'group relative overflow-hidden border border-[var(--border)] cursor-pointer',
+          'transition-all duration-300 hover:shadow-xl hover:scale-[1.02]',
+          'bg-gradient-to-br h-full backdrop-blur-sm',
+          'glass',
           getBgGradient(),
-          getBorderHover()
+          getBorderHover(),
         )}
       >
         <CardContent className="p-0 h-full flex flex-col">
           {/* Top section with colored accent bar (Teal=FSC, Gold=FMC) */}
-          <div className={cn("h-1 w-full", getIconBg())} />
+          <div className={cn('h-1 w-full', getIconBg())} />
 
           <div className="p-4 flex flex-col flex-1">
             {/* Header with small type badge and leadership indicator */}
             <div className="flex items-start justify-between mb-3">
-              <div className={cn("px-2 py-0.5 rounded-md text-xs font-bold text-white", getIconBg())}>
+              <div
+                className={cn('px-2 py-0.5 rounded-md text-xs font-bold text-white', getIconBg())}
+              >
                 {type || 'N/A'}
               </div>
               {contact.isLeadership && (
@@ -96,14 +98,17 @@ const ModernContactCard = ({ contact, type, onClick, index }) => {
             </div>
 
             {/* Contact name - BIGGER */}
-            <h3 className={cn("text-2xl font-bold text-foreground mb-1 transition-colors leading-tight", getAccentColor())}>
+            <h3
+              className={cn(
+                'text-2xl font-bold text-foreground mb-1 transition-colors leading-tight',
+                getAccentColor(),
+              )}
+            >
               {contact.name}
             </h3>
 
             {/* Role - smaller */}
-            <p className="text-xs text-muted-foreground mb-3">
-              {contact.role}
-            </p>
+            <p className="text-xs text-muted-foreground mb-3">{contact.role}</p>
 
             {/* Units - show all with emphasis */}
             {contact.units && contact.units.length > 0 && (
@@ -113,10 +118,12 @@ const ModernContactCard = ({ contact, type, onClick, index }) => {
                     <Badge
                       key={idx}
                       className={cn(
-                        "text-xs font-semibold px-2 py-1 shadow-sm",
-                        type === 'FSC' ? 'bg-teal-100 text-teal-800 border-teal-300 dark:bg-teal-900/30 dark:text-teal-200 dark:border-teal-700' :
-                        type === 'FMC' ? 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/30 dark:text-amber-200 dark:border-amber-700' :
-                        'bg-primary/10 text-primary border-primary/30'
+                        'text-xs font-semibold px-2 py-1 shadow-sm',
+                        type === 'FSC'
+                          ? 'bg-teal-100 text-teal-800 border-teal-300 dark:bg-teal-900/30 dark:text-teal-200 dark:border-teal-700'
+                          : type === 'FMC'
+                            ? 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/30 dark:text-amber-200 dark:border-amber-700'
+                            : 'bg-primary/10 text-primary border-primary/30',
                       )}
                     >
                       {unit}
@@ -130,10 +137,12 @@ const ModernContactCard = ({ contact, type, onClick, index }) => {
             <motion.div
               animate={{ x: isHovered ? 3 : 0 }}
               className={cn(
-                "flex items-center gap-1.5 text-xs font-medium mt-auto pt-2 border-t border-[var(--border)] transition-colors",
-                type === 'FSC' ? 'text-teal-600 hover:text-teal-700' :
-                type === 'FMC' ? 'text-amber-600 hover:text-amber-700' :
-                'text-primary hover:text-primary/80'
+                'flex items-center gap-1.5 text-xs font-medium mt-auto pt-2 border-t border-[var(--border)] transition-colors',
+                type === 'FSC'
+                  ? 'text-teal-600 hover:text-teal-700'
+                  : type === 'FMC'
+                    ? 'text-amber-600 hover:text-amber-700'
+                    : 'text-primary hover:text-primary/80',
               )}
             >
               <Mail className="w-3.5 h-3.5" />
@@ -170,24 +179,22 @@ const CompactContactRow = ({ contact, index }) => {
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: index * 0.02 }}
       className={cn(
-        "group p-3 rounded-r-lg border-l-4 border-y border-r border-[var(--border)]",
-        "hover:shadow-md glass hover:scale-[1.005] transition-all duration-200",
-        getBorderColor()
+        'group p-3 rounded-r-lg border-l-4 border-y border-r border-[var(--border)]',
+        'hover:shadow-md glass hover:scale-[1.005] transition-all duration-200',
+        getBorderColor(),
       )}
     >
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           {/* Compact type badge */}
-          <div className={cn("px-2 py-0.5 rounded text-[10px] font-bold", getTextColor())}>
+          <div className={cn('px-2 py-0.5 rounded text-[10px] font-bold', getTextColor())}>
             {isFSC ? 'FSC' : isFMC ? 'FMC' : 'N/A'}
           </div>
 
           {/* Info */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <h4 className="font-bold text-lg text-foreground truncate">
-                {contact.name}
-              </h4>
+              <h4 className="font-bold text-lg text-foreground truncate">{contact.name}</h4>
               {contact.isLeadership && (
                 <Crown className="w-3.5 h-3.5 text-[var(--primary)] flex-shrink-0" />
               )}
@@ -199,10 +206,12 @@ const CompactContactRow = ({ contact, index }) => {
                   <Badge
                     key={idx}
                     className={cn(
-                      "text-xs font-semibold px-2 py-0.5 shadow-sm",
-                      isFSC ? 'bg-teal-100 text-teal-800 border-teal-300 dark:bg-teal-900/30 dark:text-teal-200 dark:border-teal-700' :
-                      isFMC ? 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/30 dark:text-amber-200 dark:border-amber-700' :
-                      'bg-primary/10 text-primary border-primary/30'
+                      'text-xs font-semibold px-2 py-0.5 shadow-sm',
+                      isFSC
+                        ? 'bg-teal-100 text-teal-800 border-teal-300 dark:bg-teal-900/30 dark:text-teal-200 dark:border-teal-700'
+                        : isFMC
+                          ? 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/30 dark:text-amber-200 dark:border-amber-700'
+                          : 'bg-primary/10 text-primary border-primary/30',
                     )}
                   >
                     {unit}
@@ -217,8 +226,8 @@ const CompactContactRow = ({ contact, index }) => {
         <a
           href={`mailto:${contact.email}`}
           className={cn(
-            "hidden lg:flex items-center gap-1.5 text-xs font-medium group-hover:translate-x-1 transition-transform",
-            getTextColor()
+            'hidden lg:flex items-center gap-1.5 text-xs font-medium group-hover:translate-x-1 transition-transform',
+            getTextColor(),
           )}
           onClick={(e) => e.stopPropagation()}
         >
@@ -230,7 +239,10 @@ const CompactContactRow = ({ contact, index }) => {
         {/* Mobile email button */}
         <a
           href={`mailto:${contact.email}`}
-          className={cn("lg:hidden p-1.5 rounded-lg hover:bg-primary/10 transition-colors", getTextColor())}
+          className={cn(
+            'lg:hidden p-1.5 rounded-lg hover:bg-primary/10 transition-colors',
+            getTextColor(),
+          )}
           onClick={(e) => e.stopPropagation()}
         >
           <Mail className="w-4 h-4" />
@@ -250,7 +262,7 @@ export default function ReimaginedOPIView({
   searchTerm = '',
   setSelectedUnit = () => {},
   setSearchTerm = () => {},
-  setContactView = () => {}
+  setContactView = () => {},
 }) {
   const [localView, setLocalView] = useState(initialView);
   const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
@@ -264,7 +276,7 @@ export default function ReimaginedOPIView({
   const allUnits = useMemo(() => Object.keys(unitContacts).sort(), [unitContacts]);
   const filteredUnits = useMemo(() => {
     const term = localSearchTerm.toLowerCase();
-    return allUnits.filter(unit => unit.toLowerCase().includes(term));
+    return allUnits.filter((unit) => unit.toLowerCase().includes(term));
   }, [allUnits, localSearchTerm]);
 
   // Get contacts based on view and filter
@@ -286,28 +298,34 @@ export default function ReimaginedOPIView({
 
     // Apply filters
     if (filterType === 'leadership') {
-      contacts = contacts.filter(c => c.isLeadership);
+      contacts = contacts.filter((c) => c.isLeadership);
     } else if (filterType === 'sections') {
-      contacts = contacts.filter(c => !c.isLeadership);
+      contacts = contacts.filter((c) => !c.isLeadership);
     }
 
     return contacts;
   };
 
-  const displayContacts = useMemo(() => getDisplayContacts(), [localView, fscContacts, fmcContacts, allContacts, filterType]);
+  const displayContacts = useMemo(
+    () => getDisplayContacts(),
+    [localView, fscContacts, fmcContacts, allContacts, filterType],
+  );
 
   const handleContactClick = useCallback((email) => {
     window.location.href = `mailto:${email}`;
   }, []);
 
   // Quick stats
-  const stats = useMemo(() => ({
-    total: allContacts.length,
-    fsc: fscContacts.length,
-    fmc: fmcContacts.length,
-    units: allUnits.length,
-    leadership: allContacts.filter(c => c.isLeadership).length
-  }), [allContacts, fscContacts, fmcContacts, allUnits]);
+  const stats = useMemo(
+    () => ({
+      total: allContacts.length,
+      fsc: fscContacts.length,
+      fmc: fmcContacts.length,
+      units: allUnits.length,
+      leadership: allContacts.filter((c) => c.isLeadership).length,
+    }),
+    [allContacts, fscContacts, fmcContacts, allUnits],
+  );
 
   return (
     <div className="space-y-6">
@@ -429,10 +447,7 @@ export default function ReimaginedOPIView({
 
           {/* Selected unit results */}
           {selectedUnit && unitContacts[selectedUnit] && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
               <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
                 <CheckCircle2 className="w-4 h-4 text-green-500" />
                 Showing contacts for <strong className="text-foreground">{selectedUnit}</strong>
@@ -444,7 +459,7 @@ export default function ReimaginedOPIView({
                     name: unitContacts[selectedUnit].fsc,
                     role: 'Financial Services Cell (FSC)',
                     email: unitContacts[selectedUnit].fscEmail,
-                    units: [selectedUnit]
+                    units: [selectedUnit],
                   }}
                   type="FSC"
                   onClick={() => handleContactClick(unitContacts[selectedUnit].fscEmail)}
@@ -455,7 +470,7 @@ export default function ReimaginedOPIView({
                     name: unitContacts[selectedUnit].fmc,
                     role: 'Financial Management Cell (FMC)',
                     email: unitContacts[selectedUnit].fmcEmail,
-                    units: [selectedUnit]
+                    units: [selectedUnit],
                   }}
                   type="FMC"
                   onClick={() => handleContactClick(unitContacts[selectedUnit].fmcEmail)}
@@ -505,11 +520,7 @@ export default function ReimaginedOPIView({
                 className="space-y-2"
               >
                 {displayContacts.map((contact, index) => (
-                  <CompactContactRow
-                    key={index}
-                    contact={contact}
-                    index={index}
-                  />
+                  <CompactContactRow key={index} contact={contact} index={index} />
                 ))}
               </motion.div>
             )}

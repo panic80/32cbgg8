@@ -10,7 +10,7 @@ interface WhatsNewProps {
 
 export const WhatsNew: React.FC<WhatsNewProps> = ({ className = '' }) => {
   const [isCollapsed, setIsCollapsed] = useState(true);
-  
+
   const updatesByDate = WHATS_NEW_BY_DATE;
 
   return (
@@ -38,12 +38,12 @@ export const WhatsNew: React.FC<WhatsNewProps> = ({ className = '' }) => {
               <ChevronDown className="w-5 h-5 text-[var(--text-secondary)]" />
             </motion.div>
           </button>
-          
+
           <AnimatePresence>
             {!isCollapsed && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
+                animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.3 }}
                 className="overflow-hidden"
@@ -51,7 +51,9 @@ export const WhatsNew: React.FC<WhatsNewProps> = ({ className = '' }) => {
                 <div className="space-y-6">
                   {updatesByDate.map((dateGroup, groupIndex) => (
                     <div key={groupIndex}>
-                      <p className="text-sm text-[var(--text-secondary)] mb-3 font-medium">{dateGroup.date}</p>
+                      <p className="text-sm text-[var(--text-secondary)] mb-3 font-medium">
+                        {dateGroup.date}
+                      </p>
                       <ul className="space-y-3">
                         {dateGroup.updates.map((update, updateIndex) => (
                           <motion.li
@@ -59,9 +61,14 @@ export const WhatsNew: React.FC<WhatsNewProps> = ({ className = '' }) => {
                             className="flex items-start gap-3 text-sm"
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.1 * (groupIndex * dateGroup.updates.length + updateIndex + 1) }}
+                            transition={{
+                              delay:
+                                0.1 * (groupIndex * dateGroup.updates.length + updateIndex + 1),
+                            }}
                           >
-                            <span className="text-[var(--primary)] mt-0.5 flex-shrink-0">{update.icon}</span>
+                            <span className="text-[var(--primary)] mt-0.5 flex-shrink-0">
+                              {update.icon}
+                            </span>
                             <div className="flex-1 text-left">
                               <div className="text-[var(--text)]">{update.text}</div>
                               {update.description && (

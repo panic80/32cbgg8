@@ -71,7 +71,13 @@ export const LogsTab: React.FC<LogsTabProps> = ({
               High-level page view insights captured from the visit logger.
             </CardDescription>
           </div>
-          <Button type="button" variant="ghost" size="sm" onClick={onRefreshVisitSummary} disabled={visitSummaryLoading}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onRefreshVisitSummary}
+            disabled={visitSummaryLoading}
+          >
             <RefreshCw className={`mr-2 h-4 w-4 ${visitSummaryLoading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
@@ -92,19 +98,25 @@ export const LogsTab: React.FC<LogsTabProps> = ({
             <>
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="rounded-lg border border-border/60 bg-background/60 p-4 shadow-sm">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Total visits</p>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Total visits
+                  </p>
                   <p className="mt-2 text-2xl font-semibold text-foreground">
                     {(visitSummary?.totalVisits ?? 0).toLocaleString()}
                   </p>
                 </div>
                 <div className="rounded-lg border border-border/60 bg-background/60 p-4 shadow-sm">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">First recorded visit</p>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    First recorded visit
+                  </p>
                   <p className="mt-2 text-sm font-medium text-foreground">
                     {formatDateDisplay(visitSummary?.firstVisit ?? null, true) ?? '—'}
                   </p>
                 </div>
                 <div className="rounded-lg border border-border/60 bg-background/60 p-4 shadow-sm">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Most recent visit</p>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Most recent visit
+                  </p>
                   <p className="mt-2 text-sm font-medium text-foreground">
                     {formatDateDisplay(visitSummary?.lastVisit ?? null, true) ?? '—'}
                   </p>
@@ -120,17 +132,25 @@ export const LogsTab: React.FC<LogsTabProps> = ({
                 </div>
                 <div className="mt-4 space-y-2">
                   {visitDailyCounts.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">We will show daily visit counts once traffic arrives.</p>
+                    <p className="text-sm text-muted-foreground">
+                      We will show daily visit counts once traffic arrives.
+                    </p>
                   ) : (
                     visitDailyCounts.map((entry) => {
                       const safeDate = entry.date ? new Date(`${entry.date}T00:00:00Z`) : null;
-                      const displayDate = safeDate && !Number.isNaN(safeDate.getTime())
-                        ? safeDate.toLocaleDateString()
-                        : entry.date;
+                      const displayDate =
+                        safeDate && !Number.isNaN(safeDate.getTime())
+                          ? safeDate.toLocaleDateString()
+                          : entry.date;
                       return (
-                        <div key={entry.date} className="flex items-center justify-between rounded-md bg-muted/40 px-3 py-2 text-sm">
+                        <div
+                          key={entry.date}
+                          className="flex items-center justify-between rounded-md bg-muted/40 px-3 py-2 text-sm"
+                        >
                           <span>{displayDate}</span>
-                          <span className="font-medium text-foreground">{entry.count.toLocaleString()}</span>
+                          <span className="font-medium text-foreground">
+                            {entry.count.toLocaleString()}
+                          </span>
                         </div>
                       );
                     })
@@ -146,7 +166,8 @@ export const LogsTab: React.FC<LogsTabProps> = ({
         <CardHeader>
           <CardTitle>Chat Analytics Logs</CardTitle>
           <CardDescription>
-            Filter and review chat interactions captured by the gateway. Logs are limited to recent activity for performance.
+            Filter and review chat interactions captured by the gateway. Logs are limited to recent
+            activity for performance.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -157,7 +178,9 @@ export const LogsTab: React.FC<LogsTabProps> = ({
                 id="log-search"
                 placeholder="Meal allowances in Ottawa"
                 value={logsFilters.search}
-                onChange={(event) => onFiltersChange((prev) => ({ ...prev, search: event.target.value }))}
+                onChange={(event) =>
+                  onFiltersChange((prev) => ({ ...prev, search: event.target.value }))
+                }
               />
             </div>
             <div className="space-y-2">
@@ -166,7 +189,9 @@ export const LogsTab: React.FC<LogsTabProps> = ({
                 id="log-conversation"
                 placeholder="conv_123"
                 value={logsFilters.conversationId}
-                onChange={(event) => onFiltersChange((prev) => ({ ...prev, conversationId: event.target.value }))}
+                onChange={(event) =>
+                  onFiltersChange((prev) => ({ ...prev, conversationId: event.target.value }))
+                }
               />
             </div>
             <div className="space-y-2">
@@ -175,7 +200,9 @@ export const LogsTab: React.FC<LogsTabProps> = ({
                 id="log-provider"
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                 value={logsFilters.provider}
-                onChange={(event) => onFiltersChange((prev) => ({ ...prev, provider: event.target.value }))}
+                onChange={(event) =>
+                  onFiltersChange((prev) => ({ ...prev, provider: event.target.value }))
+                }
               >
                 <option value="all">All providers</option>
                 <option value="openai">OpenAI</option>
@@ -189,7 +216,9 @@ export const LogsTab: React.FC<LogsTabProps> = ({
                 id="log-model"
                 placeholder="gpt-5-mini"
                 value={logsFilters.model}
-                onChange={(event) => onFiltersChange((prev) => ({ ...prev, model: event.target.value }))}
+                onChange={(event) =>
+                  onFiltersChange((prev) => ({ ...prev, model: event.target.value }))
+                }
               />
             </div>
             <div className="space-y-2">
@@ -198,7 +227,9 @@ export const LogsTab: React.FC<LogsTabProps> = ({
                 id="log-start"
                 type="date"
                 value={logsFilters.startAt}
-                onChange={(event) => onFiltersChange((prev) => ({ ...prev, startAt: event.target.value }))}
+                onChange={(event) =>
+                  onFiltersChange((prev) => ({ ...prev, startAt: event.target.value }))
+                }
               />
             </div>
             <div className="space-y-2">
@@ -207,7 +238,9 @@ export const LogsTab: React.FC<LogsTabProps> = ({
                 id="log-end"
                 type="date"
                 value={logsFilters.endAt}
-                onChange={(event) => onFiltersChange((prev) => ({ ...prev, endAt: event.target.value }))}
+                onChange={(event) =>
+                  onFiltersChange((prev) => ({ ...prev, endAt: event.target.value }))
+                }
               />
             </div>
             <div className="space-y-2">
@@ -216,7 +249,12 @@ export const LogsTab: React.FC<LogsTabProps> = ({
                 id="log-rag"
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                 value={logsFilters.ragEnabled}
-                onChange={(event) => onFiltersChange((prev) => ({ ...prev, ragEnabled: event.target.value as LogFilters['ragEnabled'] }))}
+                onChange={(event) =>
+                  onFiltersChange((prev) => ({
+                    ...prev,
+                    ragEnabled: event.target.value as LogFilters['ragEnabled'],
+                  }))
+                }
               >
                 <option value="all">All</option>
                 <option value="true">Yes</option>
@@ -229,7 +267,12 @@ export const LogsTab: React.FC<LogsTabProps> = ({
                 id="log-short"
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                 value={logsFilters.shortAnswerMode}
-                onChange={(event) => onFiltersChange((prev) => ({ ...prev, shortAnswerMode: event.target.value as LogFilters['shortAnswerMode'] }))}
+                onChange={(event) =>
+                  onFiltersChange((prev) => ({
+                    ...prev,
+                    shortAnswerMode: event.target.value as LogFilters['shortAnswerMode'],
+                  }))
+                }
               >
                 <option value="all">All</option>
                 <option value="true">Enabled</option>
@@ -257,7 +300,8 @@ export const LogsTab: React.FC<LogsTabProps> = ({
               Refresh
             </Button>
             <span className="text-xs text-muted-foreground ml-auto">
-              Showing {chatLogs.length} of {logsPagination.hasMore ? `${logsPagination.limit}+` : chatLogs.length} results
+              Showing {chatLogs.length} of{' '}
+              {logsPagination.hasMore ? `${logsPagination.limit}+` : chatLogs.length} results
             </span>
           </div>
 
@@ -283,9 +327,16 @@ export const LogsTab: React.FC<LogsTabProps> = ({
                 {chatLogs.map((log) => {
                   const askedAtLabel = formatDateDisplay(log.askedAt, true) ?? 'Unknown time';
                   const metadataSummary = summariseMetadata(log.metadata);
-                  const answerPreview = log.answer ? (log.answer.length > 280 ? `${log.answer.slice(0, 277)}…` : log.answer) : null;
+                  const answerPreview = log.answer
+                    ? log.answer.length > 280
+                      ? `${log.answer.slice(0, 277)}…`
+                      : log.answer
+                    : null;
                   return (
-                    <div key={log.id} className="rounded-lg border border-border/60 bg-background/60 p-4 shadow-sm">
+                    <div
+                      key={log.id}
+                      className="rounded-lg border border-border/60 bg-background/60 p-4 shadow-sm"
+                    >
                       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                         <span className="font-medium text-foreground">{askedAtLabel}</span>
                         {log.provider && (
@@ -305,7 +356,10 @@ export const LogsTab: React.FC<LogsTabProps> = ({
                           Short answers: {formatBooleanLabel(log.shortAnswerMode)}
                         </span>
                         {log.conversationId && (
-                          <span className="truncate text-[11px] text-muted-foreground" title={log.conversationId}>
+                          <span
+                            className="truncate text-[11px] text-muted-foreground"
+                            title={log.conversationId}
+                          >
                             Conversation: {log.conversationId}
                           </span>
                         )}
@@ -313,16 +367,22 @@ export const LogsTab: React.FC<LogsTabProps> = ({
                       <div className="mt-3 space-y-2">
                         <div>
                           <p className="text-sm font-semibold text-foreground">Question</p>
-                          <p className="text-sm text-muted-foreground whitespace-pre-line">{log.question}</p>
+                          <p className="text-sm text-muted-foreground whitespace-pre-line">
+                            {log.question}
+                          </p>
                         </div>
                         {answerPreview && (
                           <div>
                             <p className="text-sm font-semibold text-foreground">Answer</p>
-                            <p className="text-sm text-muted-foreground whitespace-pre-line">{answerPreview}</p>
+                            <p className="text-sm text-muted-foreground whitespace-pre-line">
+                              {answerPreview}
+                            </p>
                           </div>
                         )}
                         {metadataSummary && (
-                          <div className="text-xs text-muted-foreground">Metadata: {metadataSummary}</div>
+                          <div className="text-xs text-muted-foreground">
+                            Metadata: {metadataSummary}
+                          </div>
                         )}
                       </div>
                     </div>
@@ -333,19 +393,26 @@ export const LogsTab: React.FC<LogsTabProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <Button variant="outline" size="sm" onClick={onPreviousPage} disabled={logsLoading || logsPagination.offset <= 0}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onPreviousPage}
+              disabled={logsLoading || logsPagination.offset <= 0}
+            >
               Previous
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={onNextPage}
-              disabled={logsLoading || !logsPagination.hasMore || logsPagination.nextOffset === null}
+              disabled={
+                logsLoading || !logsPagination.hasMore || logsPagination.nextOffset === null
+              }
             >
               Next
             </Button>
             <span className="text-xs text-muted-foreground">
-              Page {(logsPagination.offset / logsPagination.limit) + 1}
+              Page {logsPagination.offset / logsPagination.limit + 1}
             </span>
           </div>
         </CardContent>

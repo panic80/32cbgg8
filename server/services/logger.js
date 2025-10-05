@@ -100,11 +100,7 @@ class ChatLogger {
       }
 
       if (process.env.NODE_ENV === 'test' && !process.env.CHAT_LOG_DB_PATH) {
-        const cleanupTargets = [
-          this.dbPath,
-          `${this.dbPath}-wal`,
-          `${this.dbPath}-shm`
-        ];
+        const cleanupTargets = [this.dbPath, `${this.dbPath}-wal`, `${this.dbPath}-shm`];
 
         for (const file of cleanupTargets) {
           try {
@@ -240,9 +236,8 @@ class ChatLogger {
       viewport: typeof visitData.viewport === 'string' ? visitData.viewport : null,
     };
 
-    const additionalMetadata = visitData.metadata && typeof visitData.metadata === 'object'
-      ? visitData.metadata
-      : null;
+    const additionalMetadata =
+      visitData.metadata && typeof visitData.metadata === 'object' ? visitData.metadata : null;
 
     const metadata = compactObject({
       ...(additionalMetadata || {}),

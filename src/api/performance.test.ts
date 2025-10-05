@@ -9,7 +9,18 @@ describe('fetchPerformanceMetrics', () => {
       ok: true,
       json: async () => ({
         latency: {
-          answerTime: { mean: 1500, p50: 1200, p95: 2100, p75: 1800, p99: 2300, min: 900, max: 2500, rate_per_minute: 1.2, window_size: 25, recent: [{ value: 1200, timestamp: '2024-01-01T00:00:00Z' }] },
+          answerTime: {
+            mean: 1500,
+            p50: 1200,
+            p95: 2100,
+            p75: 1800,
+            p99: 2300,
+            min: 900,
+            max: 2500,
+            rate_per_minute: 1.2,
+            window_size: 25,
+            recent: [{ value: 1200, timestamp: '2024-01-01T00:00:00Z' }],
+          },
         },
         quality: {
           contextCoverage: { mean: 0.92 },
@@ -26,7 +37,12 @@ describe('fetchPerformanceMetrics', () => {
             std: { mean: 0.12 },
             gap: { mean: 0.18 },
           },
-          errorRate: { total_requests: 10, failed_requests: 1, error_rate: 0.1, errors_by_type: { llm: 1 } },
+          errorRate: {
+            total_requests: 10,
+            failed_requests: 1,
+            error_rate: 0.1,
+            errors_by_type: { llm: 1 },
+          },
         },
         throughput: { requestsPerMinute: 3.4, totalRequests: 120 },
         meta: { windowSize: 50, updatedAt: '2024-01-01T00:01:30Z' },

@@ -1,16 +1,19 @@
 # Secret Management Documentation
 
 ## Overview
+
 This application uses secure Linux environment variables to manage API keys and secrets, keeping them separate from the codebase.
 
 ## Secure Files Location
 
 ### Main Application Secrets
+
 - **Location**: `/etc/cbthis/env`
 - **Permissions**: `600` (owner read/write only)
 - **Contains**: API keys for OpenAI, Anthropic, Google, Redis password
 
-### RAG Service Secrets  
+### RAG Service Secrets
+
 - **Location**: `/etc/cbthis/rag-env`
 - **Permissions**: `600` (owner read/write only)
 - **Contains**: API keys for RAG service (OpenAI, Anthropic, Google), the admin bearer token (`ADMIN_API_TOKEN`), and the Fernet key (`RAG_ENCRYPTION_KEY`) used for query-log encryption
@@ -19,12 +22,14 @@ This application uses secure Linux environment variables to manage API keys and 
 ## Managing Secrets
 
 ### Initial Setup or Update Keys
+
 ```bash
 # Interactive script to set/update all secrets
 ./scripts/setup-secrets.sh
 ```
 
 ### Manual Update
+
 ```bash
 # Edit main application secrets
 sudo nano /etc/cbthis/env
@@ -42,6 +47,7 @@ sudo chmod 600 /etc/cbthis/rag-encryption.key
 ```
 
 ### Restart Services After Key Changes
+
 ```bash
 # Use the convenience script
 ./scripts/restart-services.sh
@@ -54,18 +60,21 @@ cd rag-service && ./start-secure.sh
 ## Security Scripts
 
 ### Check for Exposed Secrets
+
 ```bash
 # Run before committing code
 ./scripts/check-secrets.sh
 ```
 
 ### Setup New Environment
+
 ```bash
 # Interactive setup wizard
 ./scripts/setup-secrets.sh
 ```
 
 ### Restart All Services
+
 ```bash
 # Restart with updated environment
 ./scripts/restart-services.sh
@@ -96,6 +105,7 @@ cd rag-service && ./start-secure.sh
 ## Environment Files Structure
 
 ### `/etc/cbthis/env` Format
+
 ```bash
 # API Keys - SENSITIVE
 OPENAI_API_KEY=your-key-here
@@ -109,6 +119,7 @@ REDIS_PASSWORD=your-password-here
 ```
 
 ### Repository Files (NO SECRETS)
+
 - `.env` - Non-sensitive configuration only
 - `.env.template` - Template for developers
 - `rag-service/.env` - RAG configuration without secrets
@@ -116,6 +127,7 @@ REDIS_PASSWORD=your-password-here
 ## Security Best Practices
 
 ### Key Rotation
+
 - **Frequency**: Every 90 days
 - **Process**:
   1. Generate new keys from provider dashboards
@@ -125,6 +137,7 @@ REDIS_PASSWORD=your-password-here
   5. Revoke old keys
 
 ### Backup
+
 ```bash
 # Backup secrets (store securely!)
 sudo cp /etc/cbthis/env /secure/backup/location/env.$(date +%Y%m%d)
@@ -132,6 +145,7 @@ sudo cp /etc/cbthis/rag-env /secure/backup/location/rag-env.$(date +%Y%m%d)
 ```
 
 ### Access Control
+
 - Only root and application user should access `/etc/cbthis/`
 - Never commit secrets to Git
 - Use `.gitignore` to exclude sensitive files
@@ -140,6 +154,7 @@ sudo cp /etc/cbthis/rag-env /secure/backup/location/rag-env.$(date +%Y%m%d)
 ## Troubleshooting
 
 ### Services Not Loading Keys
+
 ```bash
 # Check if files exist and have correct permissions
 ls -la /etc/cbthis/
@@ -152,12 +167,14 @@ tail -f /var/log/cbthis/rag.log
 ```
 
 ### API Errors After Setup
+
 1. Verify keys are correctly formatted in `/etc/cbthis/env`
 2. Check for extra spaces or quotes around keys
 3. Ensure all required keys are present
 4. Restart services: `./scripts/restart-services.sh`
 
 ### Permission Denied Errors
+
 ```bash
 # Fix permissions
 sudo chown root:root /etc/cbthis/*
@@ -169,12 +186,14 @@ sudo chmod 600 /etc/cbthis/*
 If services won't start after changes:
 
 1. **Restore from backup**:
+
    ```bash
    sudo cp .env.backup.* .env
    pm2 restart all
    ```
 
 2. **Check logs**:
+
    ```bash
    pm2 logs --lines 50
    tail -f /var/log/cbthis/rag.log
@@ -190,11 +209,13 @@ If services won't start after changes:
 ## Development vs Production
 
 ### Development
+
 - Can use `.env.development` for local testing
 - Use test/sandbox API keys
 - Lower rate limits acceptable
 
-### Production  
+### Production
+
 - MUST use `/etc/cbthis/` secure files
 - Use production API keys with proper limits
 - Enable all security features
@@ -203,18 +224,22 @@ If services won't start after changes:
 ## Monitoring
 
 ### Check Service Health
+
 ```bash
 curl http://localhost:3000/health
 curl http://localhost:8000/api/v1/health
 ```
 
 ### Monitor API Usage
+
 - OpenAI: https://platform.openai.com/usage
 - Anthropic: https://console.anthropic.com/usage
 - Google: https://console.cloud.google.com/apis/dashboard
 
 ### Alert on Issues
+
 Set up monitoring for:
+
 - Failed API calls
 - Rate limit errors
 - Invalid key errors
@@ -223,12 +248,14 @@ Set up monitoring for:
 ## Important Notes
 
 ⚠️ **NEVER**:
+
 - Commit API keys to Git
 - Share keys via email/chat
 - Use production keys in development
 - Log API keys in application logs
 
 ✅ **ALWAYS**:
+
 - Use secure environment files
 - Rotate keys regularly
 - Monitor usage and costs

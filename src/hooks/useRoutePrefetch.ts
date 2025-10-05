@@ -11,7 +11,10 @@ const createPrefetch = (importFn: ImportFn): CleanupFn => {
     : undefined;
 
   const saveData = connection && 'saveData' in connection ? connection.saveData : false;
-  const isSlowConnection = connection && 'effectiveType' in connection ? /2g/.test(connection.effectiveType as string) : false;
+  const isSlowConnection =
+    connection && 'effectiveType' in connection
+      ? /2g/.test(connection.effectiveType as string)
+      : false;
 
   if (saveData || isSlowConnection) {
     return () => {};
@@ -28,8 +31,13 @@ const createPrefetch = (importFn: ImportFn): CleanupFn => {
     return () => {};
   }
 
-  const idleCallback = 'requestIdleCallback' in window ? (window.requestIdleCallback as typeof window.requestIdleCallback) : null;
-  const idleId = idleCallback ? idleCallback(runPrefetch, { timeout: 1500 }) : window.setTimeout(runPrefetch, 0);
+  const idleCallback =
+    'requestIdleCallback' in window
+      ? (window.requestIdleCallback as typeof window.requestIdleCallback)
+      : null;
+  const idleId = idleCallback
+    ? idleCallback(runPrefetch, { timeout: 1500 })
+    : window.setTimeout(runPrefetch, 0);
 
   return () => {
     cancelled = true;
@@ -57,16 +65,16 @@ export const useRoutePrefetch = (importFns: ImportFn[]) => {
     };
 
     const interactionEvents: Array<keyof DocumentEventMap> = ['pointerdown', 'keydown'];
-    interactionEvents.forEach(event => {
+    interactionEvents.forEach((event) => {
       document.addEventListener(event, startPrefetch, { once: true });
     });
 
     return () => {
-      interactionEvents.forEach(event => {
+      interactionEvents.forEach((event) => {
         document.removeEventListener(event, startPrefetch);
       });
       if (cleanupRef.current) {
-        cleanupRef.current.forEach(cleanup => cleanup());
+        cleanupRef.current.forEach((cleanup) => cleanup());
         cleanupRef.current = null;
       }
       triggeredRef.current = false;

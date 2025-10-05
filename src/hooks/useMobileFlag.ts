@@ -24,7 +24,7 @@ export const useMobileFlag = (breakpoint = 768) => {
 
     const commitUpdate = () => {
       const nextIsMobile = getIsMobile(breakpoint);
-      setIsMobile(prev => (prev === nextIsMobile ? prev : nextIsMobile));
+      setIsMobile((prev) => (prev === nextIsMobile ? prev : nextIsMobile));
     };
 
     const handleResize = () => {

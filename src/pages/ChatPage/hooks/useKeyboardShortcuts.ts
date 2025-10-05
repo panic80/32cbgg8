@@ -19,11 +19,11 @@ export const useKeyboardShortcuts = ({
   setSelectedCommandIndex,
   setInput,
   setShowInlineCommand,
-  setShowHelpDialog
+  setShowHelpDialog,
 }: KeyboardShortcutsOptions) => {
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         setCommandOpen((open) => !open);
       }
@@ -32,7 +32,7 @@ export const useKeyboardShortcuts = ({
         e.preventDefault();
         setShowHelpDialog((prev) => !prev);
       }
-      
+
       // Handle arrow navigation for inline commands
       if (showInlineCommand && inlineCommands.length > 0) {
         const total = inlineCommands.length;
@@ -55,12 +55,25 @@ export const useKeyboardShortcuts = ({
         } else if (e.key === 'Escape') {
           setShowInlineCommand(false);
         }
-      } else if (showInlineCommand && inlineCommands.length === 0 && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+      } else if (
+        showInlineCommand &&
+        inlineCommands.length === 0 &&
+        (e.key === 'ArrowDown' || e.key === 'ArrowUp')
+      ) {
         e.preventDefault();
       }
     };
 
-    document.addEventListener("keydown", down);
-    return () => document.removeEventListener("keydown", down);
-  }, [showInlineCommand, selectedCommandIndex, inlineCommands, setCommandOpen, setSelectedCommandIndex, setInput, setShowInlineCommand, setShowHelpDialog]);
+    document.addEventListener('keydown', down);
+    return () => document.removeEventListener('keydown', down);
+  }, [
+    showInlineCommand,
+    selectedCommandIndex,
+    inlineCommands,
+    setCommandOpen,
+    setSelectedCommandIndex,
+    setInput,
+    setShowInlineCommand,
+    setShowHelpDialog,
+  ]);
 };

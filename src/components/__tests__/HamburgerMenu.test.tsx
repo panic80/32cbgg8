@@ -13,9 +13,14 @@ vi.mock('framer-motion', () => {
     div: React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>((props, ref) => (
       <div ref={ref} {...(sanitizeProps(props) as React.HTMLAttributes<HTMLDivElement>)} />
     )),
-    button: React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement>>((props, ref) => (
-      <button ref={ref} {...(sanitizeProps(props) as React.ButtonHTMLAttributes<HTMLButtonElement>)} />
-    )),
+    button: React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement>>(
+      (props, ref) => (
+        <button
+          ref={ref}
+          {...(sanitizeProps(props) as React.ButtonHTMLAttributes<HTMLButtonElement>)}
+        />
+      ),
+    ),
   };
   return { motion: Framer };
 });
@@ -67,7 +72,13 @@ vi.mock('@/components/ui/sheet', () => {
 });
 
 vi.mock('@/components/ui/switch', () => ({
-  Switch: ({ checked, onCheckedChange }: { checked: boolean; onCheckedChange: (value: boolean) => void }) => (
+  Switch: ({
+    checked,
+    onCheckedChange,
+  }: {
+    checked: boolean;
+    onCheckedChange: (value: boolean) => void;
+  }) => (
     <button
       type="button"
       role="switch"
@@ -118,7 +129,7 @@ describe('HamburgerMenu', () => {
         onExportMarkdown={onExportMarkdown}
         onClearConversation={onClearConversation}
         hasWhatsNew
-      />
+      />,
     );
 
   beforeEach(() => {

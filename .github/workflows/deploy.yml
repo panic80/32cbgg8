@@ -2,12 +2,12 @@ name: Deploy CF Travel Bot
 
 on:
   push:
-    branches: 
-      - develop      # Auto-deploy to staging
-      - main         # Auto-deploy to production
+    branches:
+      - develop # Auto-deploy to staging
+      - main # Auto-deploy to production
   pull_request:
-    branches: 
-      - main         # Run tests on PR to main
+    branches:
+      - main # Run tests on PR to main
 
 env:
   NODE_VERSION: '18'
@@ -17,32 +17,32 @@ jobs:
   test:
     name: Run Tests
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          
+
       - name: Install dependencies
         run: npm ci
-        
+
       - name: Run linting
-        run: npm run lint || echo "Linting step completed with warnings"
-        
+        run: npm run lint
+
       - name: Run tests
         run: npm run test
         env:
           VITE_GEMINI_API_KEY: test-api-key-for-ci
           NODE_ENV: test
-        
+
       - name: Build application
         run: npm run build
-        
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -56,33 +56,33 @@ jobs:
     needs: test
     if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
     environment: staging
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          
+
       - name: Install dependencies
         run: npm ci
-        
+
       - name: Build for staging
         run: npm run build:staging
-        
+
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.8.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-          
+
       - name: Add server to known hosts
         run: |
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
-          
+
       - name: Deploy to staging server
         run: |
           # Create deployment package
@@ -99,7 +99,7 @@ jobs:
             --exclude=cf-travel-bot-staging.tar.gz \
             --warning=no-file-changed \
             .
-          
+
           # Test SSH connection with verbose output
           echo "Testing SSH connection to ${{ secrets.SERVER_HOST }}..."
           ssh -v -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "echo 'SSH connection successful'" || {
@@ -109,11 +109,11 @@ jobs:
             ssh -vvv -o BatchMode=yes -o ConnectTimeout=10 ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "echo 'test'" || true
             exit 1
           }
-          
+
           # Upload to server
           echo "Uploading deployment package..."
           scp -v -o BatchMode=yes -o ConnectTimeout=30 -o StrictHostKeyChecking=no cf-travel-bot-staging.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/tmp/
-          
+
           # Deploy on server
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
             set -e
@@ -174,7 +174,7 @@ jobs:
               ls -t 2>/dev/null | tail -n +4 | xargs -r rm -rf
             fi
           EOF
-          
+
       - name: Health check
         run: |
           sleep 10
@@ -195,46 +195,46 @@ jobs:
     needs: test
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment: production
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          
+
       - name: Install dependencies
         run: npm ci
-        
+
       - name: Build for production
         run: npm run build:production
-        
+
       - name: Verify build output
         run: |
           echo "Verifying dist/ folder exists and contains files..."
           ls -la dist/ || { echo "ERROR: dist/ folder not found after build"; exit 1; }
           echo "Build verification complete"
-        
+
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.8.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-          
+
       - name: Add server to known hosts
         run: |
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
-          
+
       - name: Debug SSH Setup
         run: |
           echo "=== BASIC DEBUG ==="
           echo "Current user: $(whoami)"
           echo "SSH agent PID: $SSH_AGENT_PID"
           echo "SSH auth sock: $SSH_AUTH_SOCK"
-          
+
           echo "=== SECRET VALIDATION ==="
           if [ -z "${{ secrets.SERVER_HOST }}" ]; then
             echo "ERROR: SERVER_HOST secret is empty"
@@ -249,27 +249,27 @@ jobs:
             exit 1
           fi
           echo "All secrets are set"
-          
+
           echo "=== SSH AGENT STATUS ==="
           ssh-add -l || echo "No keys in SSH agent"
-          
+
           echo "=== CONNECTIVITY TEST ==="
           nc -zv ${{ secrets.SERVER_HOST }} 22 || echo "Cannot connect to port 22"
-          
+
           echo "=== SSH TEST ==="
           ssh -vvv -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "echo success" || echo "SSH failed with code $?"
 
-      - name: Deploy to production server  
+      - name: Deploy to production server
         run: |
           set -ex  # Enable exit on error and command echoing
           echo "Starting deployment..."
-          
+
           # Create deployment package
           echo "Creating tar package..."
           tar --version
           echo "Current directory contents:"
           ls -la
-          
+
           # Use simpler tar command first
           tar -czf cf-travel-bot-production.tar.gz \
             --exclude=node_modules \
@@ -287,18 +287,18 @@ jobs:
             }
           }
           echo "Package created successfully"
-          
+
           # Verify package was created
           if [ ! -f cf-travel-bot-production.tar.gz ]; then
             echo "ERROR: Package file was not created"
             exit 1
           fi
           echo "Package size: $(du -h cf-travel-bot-production.tar.gz)"
-          
+
           # Upload to server
           echo "Uploading deployment package..."
           scp -v -o BatchMode=yes -o ConnectTimeout=30 -o StrictHostKeyChecking=no cf-travel-bot-production.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/tmp/
-          
+
           # Deploy on server
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
             set -e
@@ -390,7 +390,7 @@ jobs:
               ls -t 2>/dev/null | tail -n +4 | xargs -r rm -rf
             fi
           EOF
-          
+
       - name: Verify deployment
         run: |
           echo "Verifying deployment files and PM2 status..."
@@ -419,7 +419,7 @@ jobs:
             echo ""
             curl -s localhost:3000/api/deployment-info | head -5 || echo "Deployment info failed"
           EOF
-          
+
       - name: Health check
         run: |
           sleep 15
@@ -433,7 +433,7 @@ jobs:
             sleep 15
           done
           echo "Health check failed - initiating rollback"
-          
+
           # Rollback on health check failure
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
             DEPLOY_DIR="/home/${{ secrets.SERVER_USER }}/apps/cf-travel-bot"

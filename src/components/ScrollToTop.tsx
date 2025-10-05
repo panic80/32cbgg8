@@ -4,7 +4,7 @@ import { forceScrollToTop, forceScrollToTopDeferred } from '@/utils/scroll';
 
 export default function ScrollToTop() {
   const { pathname } = useLocation();
-  
+
   // Ensure browser doesn't restore scroll automatically between navigations
   useEffect(() => {
     try {
@@ -13,26 +13,26 @@ export default function ScrollToTop() {
       }
     } catch {}
   }, []);
-  
+
   // Immediate scroll reset before paint
   useLayoutEffect(() => {
     forceScrollToTop();
   }, [pathname]);
-  
+
   // Additional deferred scroll attempts for content-heavy pages
   useEffect(() => {
     const cleanup = forceScrollToTopDeferred();
-    
+
     // Extra scroll attempt for pages that might have delayed content loading
     const extraDelay = setTimeout(() => {
       forceScrollToTop();
     }, 200);
-    
+
     return () => {
       cleanup();
       clearTimeout(extraDelay);
     };
   }, [pathname]);
-  
+
   return null;
 }

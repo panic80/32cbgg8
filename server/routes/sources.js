@@ -3,8 +3,10 @@ import axios from 'axios';
 
 export function createSourcesRoutes({ rateLimiter, requireAdminAuth, getRagAuthHeaders }) {
   const router = express.Router();
-  const adminMiddleware = typeof requireAdminAuth === 'function' ? requireAdminAuth : (req, res, next) => next();
-  const buildRagAuthHeaders = typeof getRagAuthHeaders === 'function' ? getRagAuthHeaders : () => ({});
+  const adminMiddleware =
+    typeof requireAdminAuth === 'function' ? requireAdminAuth : (req, res, next) => next();
+  const buildRagAuthHeaders =
+    typeof getRagAuthHeaders === 'function' ? getRagAuthHeaders : () => ({});
 
   // List indexed sources
   router.get('/api/v2/sources', adminMiddleware, rateLimiter, async (req, res) => {
@@ -13,7 +15,7 @@ export function createSourcesRoutes({ rateLimiter, requireAdminAuth, getRagAuthH
       const ragResponse = await axios.get(`${ragServiceUrl}/api/v1/sources`, {
         params: req.query,
         timeout: 10000,
-        headers: { ...buildRagAuthHeaders() }
+        headers: { ...buildRagAuthHeaders() },
       });
 
       res.json(ragResponse.data);
@@ -35,7 +37,7 @@ export function createSourcesRoutes({ rateLimiter, requireAdminAuth, getRagAuthH
       const ragServiceUrl = process.env.RAG_SERVICE_URL || 'http://localhost:8000';
       const ragResponse = await axios.get(`${ragServiceUrl}/api/v1/sources/stats`, {
         timeout: 10000,
-        headers: { ...buildRagAuthHeaders() }
+        headers: { ...buildRagAuthHeaders() },
       });
 
       res.json(ragResponse.data);
@@ -57,7 +59,7 @@ export function createSourcesRoutes({ rateLimiter, requireAdminAuth, getRagAuthH
       const ragServiceUrl = process.env.RAG_SERVICE_URL || 'http://localhost:8000';
       const ragResponse = await axios.get(`${ragServiceUrl}/api/v1/sources/count`, {
         timeout: 10000,
-        headers: { ...buildRagAuthHeaders() }
+        headers: { ...buildRagAuthHeaders() },
       });
 
       res.json(ragResponse.data);
@@ -73,10 +75,14 @@ export function createSourcesRoutes({ rateLimiter, requireAdminAuth, getRagAuthH
     try {
       console.log('Database purge requested');
       const ragServiceUrl = process.env.RAG_SERVICE_URL || 'http://localhost:8000';
-      const ragResponse = await axios.post(`${ragServiceUrl}/api/v1/database/purge`, {}, {
-        timeout: 30000,
-        headers: { 'Content-Type': 'application/json', ...buildRagAuthHeaders() },
-      });
+      const ragResponse = await axios.post(
+        `${ragServiceUrl}/api/v1/database/purge`,
+        {},
+        {
+          timeout: 30000,
+          headers: { 'Content-Type': 'application/json', ...buildRagAuthHeaders() },
+        },
+      );
       console.log('Database purge completed:', ragResponse.data);
       res.json(ragResponse.data);
     } catch (error) {

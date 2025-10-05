@@ -39,57 +39,62 @@ const ChatMessageInner: React.FC<ChatMessageProps> = ({
   modelMode,
   isLoading,
   isLatestMessage,
-  onFollowUpClick
+  onFollowUpClick,
 }) => {
   const prefersReducedMotion = useReducedMotion();
   const [showSources, setShowSources] = useState(false);
   const shouldTruncate = message.content.length > 500;
-  const displayContent = shouldTruncate && isCollapsed 
-    ? message.content.slice(0, 400) + '...' 
-    : message.content;
+  const displayContent =
+    shouldTruncate && isCollapsed ? message.content.slice(0, 400) + '...' : message.content;
   const isAssistant = message.sender === 'assistant';
   const isUser = message.sender === 'user';
 
   return (
-    <motion.div 
-      key={message.id} 
-      className={cn("mb-6 sm:mb-8", message.sender === 'user' ? 'ml-4 sm:ml-8 lg:ml-12' : 'mr-4 sm:mr-8 lg:mr-12')}
+    <motion.div
+      key={message.id}
+      className={cn(
+        'mb-6 sm:mb-8',
+        message.sender === 'user' ? 'ml-4 sm:ml-8 lg:ml-12' : 'mr-4 sm:mr-8 lg:mr-12',
+      )}
       initial={prefersReducedMotion ? undefined : { opacity: 0, y: 20 }}
       animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
       exit={prefersReducedMotion ? undefined : { opacity: 0, y: -20 }}
-      transition={{ 
+      transition={{
         delay: messageIndex * 0.05,
-        type: "spring",
+        type: 'spring',
         stiffness: 500,
-        damping: 30
+        damping: 30,
       }}
     >
       <div className={cn('flex gap-2 sm:gap-4', isUser ? 'justify-end' : 'justify-start')}>
-        <motion.div 
+        <motion.div
           className={cn('max-w-full sm:max-w-[85%] lg:max-w-[85%] group', isUser ? 'order-1' : '')}
           whileHover={prefersReducedMotion ? undefined : { scale: 1.01 }}
-          transition={{ type: "spring", stiffness: 400, damping: 30 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 30 }}
         >
           {isUser ? (
-            <Card className={cn(
-              "border border-[var(--border)] shadow-lg transition-all duration-300",
-              isUser 
-                ? 'bg-[var(--primary)] text-white border-transparent hover:shadow-2xl' 
-                : 'glass hover:shadow-2xl backdrop-blur-xl'
-            )}>
+            <Card
+              className={cn(
+                'border border-[var(--border)] shadow-lg transition-all duration-300',
+                isUser
+                  ? 'bg-[var(--primary)] text-white border-transparent hover:shadow-2xl'
+                  : 'glass hover:shadow-2xl backdrop-blur-xl',
+              )}
+            >
               <CardContent className="p-4 sm:p-6 relative overflow-hidden">
                 {/* Animated gradient overlay on hover */}
                 <motion.div
                   className="absolute inset-0 opacity-0 pointer-events-none"
                   style={{
-                    background: message.sender === 'user' 
-                      ? 'radial-gradient(circle at var(--mouse-x) var(--mouse-y), rgba(255,255,255,0.1) 0%, transparent 60%)'
-                      : 'radial-gradient(circle at var(--mouse-x) var(--mouse-y), rgba(var(--primary-rgb),0.1) 0%, transparent 60%)'
+                    background:
+                      message.sender === 'user'
+                        ? 'radial-gradient(circle at var(--mouse-x) var(--mouse-y), rgba(255,255,255,0.1) 0%, transparent 60%)'
+                        : 'radial-gradient(circle at var(--mouse-x) var(--mouse-y), rgba(var(--primary-rgb),0.1) 0%, transparent 60%)',
                   }}
                   whileHover={{ opacity: 1 }}
                   transition={{ duration: 0.3 }}
                 />
-                
+
                 <div
                   className="leading-relaxed text-[var(--text)] relative z-10 text-lg sm:text-base chat-message-text"
                   style={isUser ? { color: 'white' } : {}}
@@ -97,9 +102,11 @@ const ChatMessageInner: React.FC<ChatMessageProps> = ({
                   {isAssistant && message.isFormatted ? (
                     <MarkdownRenderer>{displayContent}</MarkdownRenderer>
                   ) : (
-                    <div className="whitespace-pre-wrap break-words overflow-hidden">{displayContent}</div>
+                    <div className="whitespace-pre-wrap break-words overflow-hidden">
+                      {displayContent}
+                    </div>
                   )}
-                  
+
                   {shouldTruncate && (
                     <motion.button
                       className="mt-3 px-3 py-1.5 text-sm font-medium bg-[var(--primary)] text-white rounded-full hover:bg-[var(--primary-hover)] transition-all duration-200 flex items-center gap-1.5 shadow-sm hover:shadow-md"
@@ -108,23 +115,23 @@ const ChatMessageInner: React.FC<ChatMessageProps> = ({
                       whileTap={{ scale: 0.95 }}
                     >
                       {isCollapsed ? 'Read more' : 'Show less'}
-                      <ChevronDown 
-                        size={16} 
+                      <ChevronDown
+                        size={16}
                         className={cn(
-                          "transition-transform duration-200",
-                          isCollapsed ? "" : "rotate-180"
+                          'transition-transform duration-200',
+                          isCollapsed ? '' : 'rotate-180',
                         )}
                       />
                     </motion.button>
                   )}
                 </div>
-                
+
                 {/* Sources Toggle */}
                 {message.sources && message.sources.length > 0 && isAssistant && (
                   <div className="mt-4 pt-4 border-t border-[var(--border)]">
                     <button
                       className="text-xs px-2 py-1 rounded-full bg-[var(--background-secondary)] hover:bg-[var(--background-tertiary)]"
-                      onClick={() => setShowSources(s => !s)}
+                      onClick={() => setShowSources((s) => !s)}
                     >
                       {showSources ? 'Hide sources' : `Show sources (${message.sources.length})`}
                     </button>
@@ -141,18 +148,20 @@ const ChatMessageInner: React.FC<ChatMessageProps> = ({
             <div>
               {/* Mode Indicator for Assistant Messages */}
               {message.sender === 'assistant' && modelMode && (
-                <motion.div 
+                <motion.div
                   className="flex items-center gap-2 mb-3"
                   initial={prefersReducedMotion ? undefined : { opacity: 0, y: -10 }}
                   animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 }}
                 >
-                  <div className={cn(
-                    "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium",
-                    modelMode === 'smart' 
-                      ? "bg-blue-500/10 text-blue-500 border border-blue-500/20" 
-                      : "bg-green-500/10 text-green-500 border border-green-500/20"
-                  )}>
+                  <div
+                    className={cn(
+                      'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium',
+                      modelMode === 'smart'
+                        ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20'
+                        : 'bg-green-500/10 text-green-500 border border-green-500/20',
+                    )}
+                  >
                     {modelMode === 'smart' ? (
                       <>
                         <Sparkles size={12} />
@@ -166,13 +175,13 @@ const ChatMessageInner: React.FC<ChatMessageProps> = ({
                     )}
                   </div>
                   <span className="text-xs text-[var(--text-secondary)]">
-                    {modelMode === 'smart' 
-                      ? "Detailed answers but slower. Select Fast mode in the menu for quicker responses."
-                      : "Quick responses. Select Smart mode in the menu for detailed answers."}
+                    {modelMode === 'smart'
+                      ? 'Detailed answers but slower. Select Fast mode in the menu for quicker responses.'
+                      : 'Quick responses. Select Smart mode in the menu for detailed answers.'}
                   </span>
                 </motion.div>
               )}
-              
+
               <div
                 className="leading-relaxed text-[var(--text)] text-lg sm:text-base chat-message-text"
                 role={message.sender === 'assistant' ? 'status' : undefined}
@@ -181,9 +190,11 @@ const ChatMessageInner: React.FC<ChatMessageProps> = ({
                 {message.sender === 'assistant' && message.isFormatted ? (
                   <MarkdownRenderer>{displayContent}</MarkdownRenderer>
                 ) : (
-                  <div className="whitespace-pre-wrap break-words overflow-hidden">{displayContent}</div>
+                  <div className="whitespace-pre-wrap break-words overflow-hidden">
+                    {displayContent}
+                  </div>
                 )}
-                
+
                 {shouldTruncate && (
                   <motion.button
                     className="mt-3 px-3 py-1.5 text-sm font-medium bg-[var(--background-secondary)] text-[var(--text)] rounded-full hover:bg-[var(--background-tertiary)] transition-all duration-200 flex items-center gap-1.5 shadow-sm hover:shadow-md"
@@ -192,11 +203,11 @@ const ChatMessageInner: React.FC<ChatMessageProps> = ({
                     whileTap={{ scale: 0.95 }}
                   >
                     {isCollapsed ? 'Read more' : 'Show less'}
-                    <ChevronDown 
-                      size={16} 
+                    <ChevronDown
+                      size={16}
                       className={cn(
-                        "transition-transform duration-200",
-                        isCollapsed ? "" : "rotate-180"
+                        'transition-transform duration-200',
+                        isCollapsed ? '' : 'rotate-180',
                       )}
                     />
                   </motion.button>
@@ -204,7 +215,7 @@ const ChatMessageInner: React.FC<ChatMessageProps> = ({
               </div>
             </div>
           )}
-          
+
           {/* Message Actions */}
           {ENABLE_MESSAGE_ACTIONS && message.sender === 'assistant' && (
             <MessageActions
@@ -218,7 +229,7 @@ const ChatMessageInner: React.FC<ChatMessageProps> = ({
             />
           )}
         </motion.div>
-        
+
         {isUser && (
           <motion.div
             initial={{ scale: 0 }}
@@ -233,8 +244,8 @@ const ChatMessageInner: React.FC<ChatMessageProps> = ({
           </motion.div>
         )}
       </div>
-      
-      <motion.div 
+
+      <motion.div
         className="text-sm sm:text-xs text-[var(--text-secondary)] mt-2 px-2 flex items-center gap-2"
         initial={{ opacity: 0 }}
         animate={{ opacity: 0.7 }}
@@ -244,12 +255,14 @@ const ChatMessageInner: React.FC<ChatMessageProps> = ({
         {isAssistant && modelMode && (
           <span className="inline-flex items-center gap-1 ml-2">
             <span className="opacity-60">•</span>
-            <span className={cn(
-              "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium",
-              modelMode === 'smart' 
-                ? "bg-blue-500/10 text-blue-500 border border-blue-500/20" 
-                : "bg-green-500/10 text-green-500 border border-green-500/20"
-            )}>
+            <span
+              className={cn(
+                'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium',
+                modelMode === 'smart'
+                  ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20'
+                  : 'bg-green-500/10 text-green-500 border border-green-500/20',
+              )}
+            >
               {modelMode === 'smart' ? (
                 <>
                   <Sparkles size={10} />
@@ -266,11 +279,11 @@ const ChatMessageInner: React.FC<ChatMessageProps> = ({
           </span>
         )}
       </motion.div>
-      
+
       {/* Enhanced Follow-up Questions with Smart Progressive Disclosure */}
       {isAssistant && message.followUpQuestions && message.followUpQuestions.length > 0 && (
         <div className="w-full mt-4">
-          <SuggestionController 
+          <SuggestionController
             questions={message.followUpQuestions}
             onQuestionClick={onFollowUpClick}
             messageId={message.id}
@@ -312,18 +325,15 @@ const areFollowUpQuestionsEqual = (
   });
 };
 
-export const ChatMessage = React.memo(
-  ChatMessageInner,
-  (prev, next) => {
-    return (
-      prev.message.id === next.message.id &&
-      prev.message.content === next.message.content &&
-      areFollowUpQuestionsEqual(prev.message.followUpQuestions, next.message.followUpQuestions) &&
-      prev.isCollapsed === next.isCollapsed &&
-      prev.isLoading === next.isLoading &&
-      prev.isLatestMessage === next.isLatestMessage &&
-      prev.currentModel === next.currentModel &&
-      prev.modelMode === next.modelMode
-    );
-  }
-);
+export const ChatMessage = React.memo(ChatMessageInner, (prev, next) => {
+  return (
+    prev.message.id === next.message.id &&
+    prev.message.content === next.message.content &&
+    areFollowUpQuestionsEqual(prev.message.followUpQuestions, next.message.followUpQuestions) &&
+    prev.isCollapsed === next.isCollapsed &&
+    prev.isLoading === next.isLoading &&
+    prev.isLatestMessage === next.isLatestMessage &&
+    prev.currentModel === next.currentModel &&
+    prev.modelMode === next.modelMode
+  );
+});

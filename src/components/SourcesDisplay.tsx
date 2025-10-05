@@ -4,15 +4,15 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { 
-  FileText, 
-  Globe, 
-  ChevronDown, 
-  ChevronUp, 
+import {
+  FileText,
+  Globe,
+  ChevronDown,
+  ChevronUp,
   ExternalLink,
   BookOpen,
   Calendar,
-  Hash
+  Hash,
 } from 'lucide-react';
 import { Source } from '@/types/chat';
 
@@ -28,7 +28,7 @@ export const SourcesDisplay: React.FC<SourcesDisplayProps> = ({ sources, classNa
   // Initialize all sources as expanded by default
   useEffect(() => {
     if (sources && sources.length > 0) {
-      const allSourceIds = new Set(sources.map(source => source.id));
+      const allSourceIds = new Set(sources.map((source) => source.id));
       setExpandedSources(allSourceIds);
     }
   }, [sources]);
@@ -82,7 +82,7 @@ export const SourcesDisplay: React.FC<SourcesDisplayProps> = ({ sources, classNa
         )}
       </div>
 
-      <ScrollArea className={showAll ? "h-[400px]" : ""}>
+      <ScrollArea className={showAll ? 'h-[400px]' : ''}>
         <div className="space-y-2">
           {displayedSources.map((source, index) => (
             <Card key={source.id} className="overflow-hidden">
@@ -108,10 +108,8 @@ export const SourcesDisplay: React.FC<SourcesDisplayProps> = ({ sources, classNa
                             {source.metadata?.type || 'document'}
                           </Badge>
                         </div>
-                        
-                        <p className="text-xs text-muted-foreground line-clamp-2">
-                          {source.text}
-                        </p>
+
+                        <p className="text-xs text-muted-foreground line-clamp-2">{source.text}</p>
 
                         <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                           {source.section && (

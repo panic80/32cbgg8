@@ -6,7 +6,11 @@ interface TrendSparklineProps {
   className?: string;
 }
 
-const TrendSparkline = ({ data, height = 48, className = 'text-blue-500 dark:text-blue-300' }: TrendSparklineProps) => {
+const TrendSparkline = ({
+  data,
+  height = 48,
+  className = 'text-blue-500 dark:text-blue-300',
+}: TrendSparklineProps) => {
   if (!data || data.length === 0) {
     return (
       <div
@@ -41,12 +45,7 @@ const TrendSparkline = ({ data, height = 48, className = 'text-blue-500 dark:tex
       role="img"
       aria-label="Trend sparkline"
     >
-      <polyline
-        fill="none"
-        strokeWidth={2}
-        stroke="currentColor"
-        points={points}
-      />
+      <polyline fill="none" strokeWidth={2} stroke="currentColor" points={points} />
     </svg>
   );
 };

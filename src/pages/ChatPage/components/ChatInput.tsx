@@ -44,7 +44,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   currentModel,
   attachments = [],
   onAttachFiles,
-  onRemoveAttachment
+  onRemoveAttachment,
 }) => {
   const ENABLE_ATTACHMENTS = false;
   const inputRef = useRef<HTMLInputElement>(null);
@@ -52,12 +52,12 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const prefersReducedMotion = useReducedMotion();
 
   return (
-    <motion.div 
+    <motion.div
       data-chat-input
       className="border-t border-[var(--border)] glass p-3 sm:p-4"
       initial={prefersReducedMotion ? undefined : { y: 100 }}
       animate={prefersReducedMotion ? undefined : { y: 0 }}
-      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       style={{
         position: 'fixed',
         bottom: 0,
@@ -89,10 +89,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                       <motion.div
                         key={cmd.command}
                         className={cn(
-                          "flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors",
-                          selectedCommandIndex === index 
-                            ? "bg-[var(--primary)] text-white" 
-                            : "hover:bg-[var(--background-secondary)]"
+                          'flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors',
+                          selectedCommandIndex === index
+                            ? 'bg-[var(--primary)] text-white'
+                            : 'hover:bg-[var(--background-secondary)]',
                         )}
                         role="option"
                         aria-selected={selectedCommandIndex === index}
@@ -103,12 +103,14 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                         }}
                         whileHover={prefersReducedMotion ? undefined : { x: 5 }}
                       >
-                        <div className={cn(
-                          "w-8 h-8 rounded-lg flex items-center justify-center",
-                          selectedCommandIndex === index
-                            ? "bg-white/20"
-                            : "bg-[var(--background-secondary)]"
-                        )}>
+                        <div
+                          className={cn(
+                            'w-8 h-8 rounded-lg flex items-center justify-center',
+                            selectedCommandIndex === index
+                              ? 'bg-white/20'
+                              : 'bg-[var(--background-secondary)]',
+                          )}
+                        >
                           {cmd.icon}
                         </div>
                         <div className="flex-1">
@@ -129,9 +131,14 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             {/* Attachments row (disabled) */}
             {ENABLE_ATTACHMENTS && attachments.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-2">
-                {attachments.map(file => (
-                  <div key={file.id} className="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-[var(--background-secondary)] text-xs">
-                    <span className="max-w-[160px] truncate" title={file.name}>{file.name}</span>
+                {attachments.map((file) => (
+                  <div
+                    key={file.id}
+                    className="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-[var(--background-secondary)] text-xs"
+                  >
+                    <span className="max-w-[160px] truncate" title={file.name}>
+                      {file.name}
+                    </span>
                     <button
                       aria-label={`Remove ${file.name}`}
                       className="rounded hover:bg-[var(--background-tertiary)] p-1"
@@ -243,7 +250,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             </div>
           </div>
         </div>
-        <motion.div 
+        <motion.div
           className="text-[10px] sm:text-xs text-[var(--text-secondary)] text-center mt-1 sm:mt-2 flex items-center justify-center gap-1 sm:gap-2"
           initial={prefersReducedMotion ? undefined : { opacity: 0 }}
           animate={prefersReducedMotion ? undefined : { opacity: 1 }}
@@ -251,7 +258,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         >
           <span className="opacity-70 sm:opacity-100">AI makes mistakes. Verify with FSA.</span>
           <span className="text-[var(--text-secondary)]/60 hidden sm:inline">•</span>
-          <span className="text-[var(--text-secondary)]/70 hidden sm:inline">Powered by {currentModel}, LangChain and LangGraph</span>
+          <span className="text-[var(--text-secondary)]/70 hidden sm:inline">
+            Powered by {currentModel}, LangChain and LangGraph
+          </span>
         </motion.div>
       </div>
     </motion.div>

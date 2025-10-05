@@ -1,12 +1,15 @@
 # Security Headers Configuration
 
 ## Overview
+
 This document describes the security headers implemented in the Canadian Forces Travel Instructions Chatbot to protect against common web vulnerabilities.
 
 ## Implemented Security Headers
 
 ### 1. Content Security Policy (CSP)
+
 Controls which resources can be loaded and executed:
+
 - **default-src**: 'self' only
 - **style-src**: 'self', 'unsafe-inline' (required for React), fonts.googleapis.com
 - **script-src**: 'self', 'unsafe-inline' (required for index.html), 'unsafe-eval' (React dev tools), fonts.googleapis.com
@@ -20,58 +23,73 @@ Controls which resources can be loaded and executed:
 - **form-action**: 'self' (restricts form submissions)
 
 Production only:
+
 - **upgrade-insecure-requests**: Forces HTTPS for all requests
 - **block-all-mixed-content**: Blocks HTTP content on HTTPS pages
 
 ### 2. HTTP Strict Transport Security (HSTS)
+
 Production only:
+
 - **max-age**: 31536000 (1 year)
 - **includeSubDomains**: true
 - **preload**: true (eligible for browser preload lists)
 
 ### 3. X-Frame-Options
+
 - **Setting**: DENY
 - **Purpose**: Prevents clickjacking attacks by blocking all iframe embedding
 
 ### 4. X-Content-Type-Options
+
 - **Setting**: nosniff
 - **Purpose**: Prevents MIME type sniffing attacks
 
 ### 5. X-XSS-Protection
+
 - **Setting**: 1; mode=block (legacy but still useful)
 - **Purpose**: Enables browser XSS filter
 
 ### 6. Referrer-Policy
+
 - **Setting**: strict-origin-when-cross-origin
 - **Purpose**: Controls referrer information sent with requests
 
 ### 7. Permissions-Policy
+
 Disabled browser features:
+
 - accelerometer, camera, geolocation, gyroscope, magnetometer, microphone, payment, usb
 
 ### 8. Additional Production Headers
+
 - **Cross-Origin-Embedder-Policy**: require-corp
 - **Cross-Origin-Opener-Policy**: same-origin
 - **Cross-Origin-Resource-Policy**: same-origin
 
 ### 9. CORS Configuration
+
 Development:
+
 - Allows localhost ports (3000, 3001, 5173)
 - Allows configured FRONTEND_URL
 
 Production:
+
 - Only allows https://32cbgg8.com and https://www.32cbgg8.com
 - Blocks all other origins with logging
 
 ## Environment-Specific Behavior
 
 ### Development Mode
+
 - HSTS disabled (to allow HTTP localhost)
 - CORS allows localhost origins
 - Cross-Origin policies relaxed
 - CSP allows localhost connections
 
 ### Production Mode
+
 - All security headers enforced
 - HSTS enabled with preload
 - Strict CORS origin validation
@@ -81,14 +99,17 @@ Production:
 ## Testing Security Headers
 
 ### Check Headers
+
 ```bash
 curl -I https://32cbgg8.com/api/health
 ```
 
 ### Verify CSP
+
 Check browser console for CSP violations when loading the application.
 
 ### Test CORS
+
 ```bash
 # Should succeed from allowed origin
 curl -H "Origin: https://32cbgg8.com" https://32cbgg8.com/api/health
@@ -111,6 +132,7 @@ curl -H "Origin: https://evil.com" https://32cbgg8.com/api/health
 4. **Implement Subresource Integrity (SRI)**: For external resources like Google Fonts
 
 ## References
+
 - [MDN Web Docs - CSP](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP)
 - [OWASP Secure Headers](https://owasp.org/www-project-secure-headers/)
 - [Helmet.js Documentation](https://helmetjs.github.io/)

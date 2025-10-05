@@ -85,7 +85,7 @@ export const useSuggestionVisibility = (): SuggestionVisibilityManager => {
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('focus', handleFocus, true);
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
     // Optional: Cancel on any click outside suggestion areas
     window.addEventListener('click', handleUserActivity);
 
@@ -96,7 +96,7 @@ export const useSuggestionVisibility = (): SuggestionVisibilityManager => {
       window.removeEventListener('focus', handleFocus, true);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('click', handleUserActivity);
-      
+
       if (scrollTimeout) {
         clearTimeout(scrollTimeout);
       }

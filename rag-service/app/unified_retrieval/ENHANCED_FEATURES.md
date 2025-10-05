@@ -7,7 +7,7 @@ This document describes the advanced retrieval quality enhancements implemented 
 The enhanced features provide sophisticated capabilities for improving retrieval quality:
 
 1. **Semantic Caching** - Intelligent caching based on semantic similarity
-2. **Advanced Query Expansion** - Domain-specific query enhancement 
+2. **Advanced Query Expansion** - Domain-specific query enhancement
 3. **Contextual Retrieval** - Conversation-aware document scoring
 4. **Enhanced Hybrid Search** - Advanced fusion strategies including RRF
 5. **Integration Strategies** - Pre-built strategies combining enhancements
@@ -19,6 +19,7 @@ The enhanced features provide sophisticated capabilities for improving retrieval
 Located in `enhancements/semantic_cache.py`
 
 **Capabilities:**
+
 - Stores query embeddings with responses in Redis
 - Finds cached responses for semantically similar queries
 - Configurable similarity threshold
@@ -26,6 +27,7 @@ Located in `enhancements/semantic_cache.py`
 - Cache warming for common patterns
 
 **Usage:**
+
 ```python
 from app.unified_retrieval.enhancements import SemanticCache
 from langchain.embeddings import OpenAIEmbeddings
@@ -58,6 +60,7 @@ else:
 Located in `enhancements/query_expansion.py`
 
 **Capabilities:**
+
 - Canadian Forces domain-specific synonyms
 - Abbreviation and acronym expansion
 - Contextual expansion from conversation history
@@ -65,12 +68,14 @@ Located in `enhancements/query_expansion.py`
 - Temporal context handling
 
 **Domain Coverage:**
+
 - Military terminology (CAF, TD, LTA, etc.)
 - Travel-related terms
 - Policy and procedure vocabulary
 - Financial/expense terminology
 
 **Usage:**
+
 ```python
 from app.unified_retrieval.enhancements import AdvancedQueryExpander
 
@@ -92,6 +97,7 @@ result = expander.expand_query(
 Located in `enhancements/contextual_retrieval.py`
 
 **Capabilities:**
+
 - Conversation memory tracking entities and topics
 - Entity-based document boosting
 - Topic relevance scoring
@@ -99,12 +105,14 @@ Located in `enhancements/contextual_retrieval.py`
 - Contextual query enhancement
 
 **Memory System:**
+
 - Tracks last N conversation turns
 - Maintains active entities and topics
 - Decays topic relevance over time
 - Provides context summaries
 
 **Usage:**
+
 ```python
 from app.unified_retrieval.enhancements import ContextualRetriever
 
@@ -129,12 +137,14 @@ enhanced_docs, scores = retriever.enhance_retrieval(
 Located in `enhancements/hybrid_search.py`
 
 **Fusion Strategies:**
+
 1. **Reciprocal Rank Fusion (RRF)** - Robust rank-based fusion
 2. **Weighted Fusion** - Normalized score combination
 3. **CombSUM** - Sum of normalized scores
 4. **CombMNZ** - Sum multiplied by non-zero count
 
 **Query Type Detection:**
+
 - Keyword queries (high sparse weight)
 - Semantic queries (high dense weight)
 - Exact match queries
@@ -142,6 +152,7 @@ Located in `enhancements/hybrid_search.py`
 - Hybrid queries
 
 **Usage:**
+
 ```python
 from app.unified_retrieval.enhancements import EnhancedHybridSearch
 
@@ -185,17 +196,17 @@ pipelines:
       - type: SemanticCacheStrategy
         config:
           similarity_threshold: 0.95
-          
+
       - type: EnhancedQueryStrategy
         config:
-          spacy_model: "en_core_web_sm"
-          
+          spacy_model: 'en_core_web_sm'
+
       - type: HybridRetrievalStrategy
         config:
           k: 20
-          
+
       - type: AdaptiveHybridStrategy
-        
+
       - type: ContextualBoostStrategy
         config:
           entity_boost: 0.2
@@ -204,21 +215,25 @@ pipelines:
 ## Performance Considerations
 
 ### Semantic Cache
+
 - **Overhead**: ~50-100ms for embedding computation
 - **Hit Rate**: Typically 20-40% for conversational queries
 - **Storage**: ~1KB per cached query-response pair
 
 ### Query Expansion
+
 - **Overhead**: ~10-50ms depending on SpaCy usage
 - **Expansion Factor**: 1.5-3x original query length
 - **Impact**: 10-30% improvement in recall
 
 ### Contextual Retrieval
+
 - **Memory Usage**: ~10KB per conversation
 - **Scoring Time**: <5ms per document
 - **Improvement**: 15-25% in relevance for multi-turn conversations
 
 ### Hybrid Search
+
 - **RRF Overhead**: <10ms for 100 documents
 - **Normalization**: <5ms
 - **Quality**: 20-40% improvement over single method

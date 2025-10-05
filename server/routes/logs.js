@@ -22,7 +22,7 @@ const createLogsRoutes = ({ rateLimiter }) => {
     if (process.env.ENABLE_LOGGING !== 'true') {
       return res.status(503).json({
         error: 'LoggingDisabled',
-        message: 'Analytics logging is disabled. Enable ENABLE_LOGGING to access chat logs.'
+        message: 'Analytics logging is disabled. Enable ENABLE_LOGGING to access chat logs.',
       });
     }
 
@@ -71,7 +71,7 @@ const createLogsRoutes = ({ rateLimiter }) => {
     if (process.env.ENABLE_LOGGING !== 'true') {
       return res.status(503).json({
         error: 'LoggingDisabled',
-        message: 'Analytics logging is disabled. Enable ENABLE_LOGGING to access visit analytics.'
+        message: 'Analytics logging is disabled. Enable ENABLE_LOGGING to access visit analytics.',
       });
     }
 
@@ -97,11 +97,19 @@ const createLogsRoutes = ({ rateLimiter }) => {
     if (process.env.ENABLE_LOGGING !== 'true') {
       return res.status(503).json({
         error: 'LoggingDisabled',
-        message: 'Analytics logging is disabled. Visit events will not be recorded.'
+        message: 'Analytics logging is disabled. Visit events will not be recorded.',
       });
     }
 
-    const { path: visitPath, referrer, sessionId, locale, title, viewport, metadata } = req.body || {};
+    const {
+      path: visitPath,
+      referrer,
+      sessionId,
+      locale,
+      title,
+      viewport,
+      metadata,
+    } = req.body || {};
 
     const sanitizedPath = typeof visitPath === 'string' ? visitPath.trim() : '';
     const cleanMetadata = metadata && typeof metadata === 'object' ? metadata : undefined;

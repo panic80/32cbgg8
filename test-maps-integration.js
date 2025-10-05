@@ -8,13 +8,13 @@ import fetch from 'node-fetch';
 const testLocations = [
   { origin: 'CFB Toronto', destination: 'CFB Ottawa' },
   { origin: 'Toronto, ON', destination: 'Ottawa, ON' },
-  { origin: 'Vancouver, BC', destination: 'Calgary, AB' }
+  { origin: 'Vancouver, BC', destination: 'Calgary, AB' },
 ];
 
 const testEndpoint = async (origin, destination) => {
   console.log(`\nTesting: ${origin} → ${destination}`);
   console.log('='.repeat(50));
-  
+
   try {
     const response = await fetch('http://localhost:3000/api/maps/distance', {
       method: 'POST',
@@ -24,8 +24,8 @@ const testEndpoint = async (origin, destination) => {
       body: JSON.stringify({
         origin,
         destination,
-        mode: 'driving'
-      })
+        mode: 'driving',
+      }),
     });
 
     if (!response.ok) {
@@ -49,13 +49,13 @@ const runTests = async () => {
   console.log('Google Maps Distance API Integration Test');
   console.log('Make sure the server is running on port 3000');
   console.log('Make sure GOOGLE_MAPS_API_KEY is set in .env');
-  
+
   for (const test of testLocations) {
     await testEndpoint(test.origin, test.destination);
     // Wait between requests to respect rate limits
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
   }
-  
+
   console.log('\n✅ All tests completed!');
 };
 

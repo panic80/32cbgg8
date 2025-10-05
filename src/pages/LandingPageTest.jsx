@@ -10,7 +10,7 @@ import {
   ChevronDown,
   Send,
   Zap,
-  ExternalLink
+  ExternalLink,
 } from 'lucide-react';
 import LogoImage from '../components/LogoImage';
 import '../styles/landing-test.css';
@@ -58,11 +58,14 @@ export default function LandingPageTest() {
   };
 
   const copySCIPLink = () => {
-    navigator.clipboard.writeText(SITE_CONFIG.SCIP_PORTAL_URL).then(() => {
-      setIsLinkCopied(true);
-    }).catch(err => {
-      console.error('Failed to copy link:', err);
-    });
+    navigator.clipboard
+      .writeText(SITE_CONFIG.SCIP_PORTAL_URL)
+      .then(() => {
+        setIsLinkCopied(true);
+      })
+      .catch((err) => {
+        console.error('Failed to copy link:', err);
+      });
   };
 
   const handleScroll = (e, setShowIndicator) => {
@@ -83,13 +86,34 @@ export default function LandingPageTest() {
         aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
       >
         {theme === 'light' ? (
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M20 14.12A7.78 7.78 0 019.88 4a7.78 7.78 0 002.9 15.1 7.78 7.78 0 007.22-5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <svg
+            className="w-4 h-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M20 14.12A7.78 7.78 0 019.88 4a7.78 7.78 0 002.9 15.1 7.78 7.78 0 007.22-5z"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
         ) : (
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg
+            className="w-4 h-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
             <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="2" />
-            <path d="M12 2v2m0 16v2M2 12h2m16 0h2m-3-7l-1.5 1.5M4.93 4.93l1.5 1.5m11.14 11.14l1.5 1.5M4.93 19.07l1.5-1.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            <path
+              d="M12 2v2m0 16v2M2 12h2m16 0h2m-3-7l-1.5 1.5M4.93 4.93l1.5 1.5m11.14 11.14l1.5 1.5M4.93 19.07l1.5-1.5"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
           </svg>
         )}
       </button>
@@ -103,14 +127,10 @@ export default function LandingPageTest() {
           </div>
 
           {/* Title */}
-          <h1 className="lpt-minimal-title">
-            32 CBG G8 Administration Hub
-          </h1>
+          <h1 className="lpt-minimal-title">32 CBG G8 Administration Hub</h1>
 
           {/* Subtitle */}
-          <p className="lpt-minimal-subtitle">
-            Comprehensive Gateway to Financial Resources
-          </p>
+          <p className="lpt-minimal-subtitle">Comprehensive Gateway to Financial Resources</p>
 
           {/* Search Form */}
           <form onSubmit={handleAskSubmit} className="lpt-minimal-search">
@@ -175,7 +195,10 @@ export default function LandingPageTest() {
             >
               <CircleHelp className="lpt-minimal-card-icon" aria-hidden="true" />
               <span className="lpt-minimal-card-label">Policy Assistant</span>
-              <span className="lpt-minimal-card-subtitle">Interactive, RAG powered AI chat to answer travel, benefits and DOA related questions.</span>
+              <span className="lpt-minimal-card-subtitle">
+                Interactive, RAG powered AI chat to answer travel, benefits and DOA related
+                questions.
+              </span>
             </Link>
 
             {/* SCIP Portal */}
@@ -188,7 +211,10 @@ export default function LandingPageTest() {
             >
               <FileText className="lpt-minimal-card-icon" aria-hidden="true" />
               <span className="lpt-minimal-card-label">SCIP Portal</span>
-              <span className="lpt-minimal-card-subtitle">Streamlined Claims Interface Platform for efficient digital submission and processing of administrative claims.</span>
+              <span className="lpt-minimal-card-subtitle">
+                Streamlined Claims Interface Platform for efficient digital submission and
+                processing of administrative claims.
+              </span>
             </Link>
 
             {/* OPI Contacts */}
@@ -200,7 +226,10 @@ export default function LandingPageTest() {
             >
               <Users className="lpt-minimal-card-icon" aria-hidden="true" />
               <span className="lpt-minimal-card-label">OPI Contacts</span>
-              <span className="lpt-minimal-card-subtitle">Find FSC & FMC contact information for your unit's financial services and management.</span>
+              <span className="lpt-minimal-card-subtitle">
+                Find FSC & FMC contact information for your unit's financial services and
+                management.
+              </span>
             </Link>
 
             {/* Resources (Under Review) */}
@@ -215,7 +244,10 @@ export default function LandingPageTest() {
               <Zap className="lpt-minimal-card-icon" aria-hidden="true" />
               <span className="lpt-minimal-card-badge">Under Review</span>
               <span className="lpt-minimal-card-label">Resources</span>
-              <span className="lpt-minimal-card-subtitle">Access SOPs, how-to guides, FAQs, templates, and comprehensive administrative documentation.</span>
+              <span className="lpt-minimal-card-subtitle">
+                Access SOPs, how-to guides, FAQs, templates, and comprehensive administrative
+                documentation.
+              </span>
             </Link>
           </div>
         </div>
@@ -268,16 +300,21 @@ export default function LandingPageTest() {
             >
               <h3 className="text-base sm:text-lg font-semibold">General Privacy Notice</h3>
               <p className="text-sm sm:text-base text-[var(--text)] leading-relaxed">
-                We prioritize the protection of your personal information and are committed to maintaining your trust.
+                We prioritize the protection of your personal information and are committed to
+                maintaining your trust.
               </p>
-              <h3 className="text-base sm:text-lg font-semibold mt-4 sm:mt-6">Data Collection & Usage</h3>
+              <h3 className="text-base sm:text-lg font-semibold mt-4 sm:mt-6">
+                Data Collection & Usage
+              </h3>
               <ul className="list-disc pl-5 space-y-2 text-sm sm:text-base text-[var(--text)] opacity-80">
                 <li>We collect only essential information needed for the service</li>
                 <li>Your data is encrypted and stored securely</li>
                 <li>We do not sell or share your personal information</li>
                 <li>You have control over your data and can request its deletion</li>
               </ul>
-              <h3 className="text-base sm:text-lg font-semibold mt-4 sm:mt-6">AI Processing (OpenAI)</h3>
+              <h3 className="text-base sm:text-lg font-semibold mt-4 sm:mt-6">
+                AI Processing (OpenAI)
+              </h3>
               <p className="text-sm sm:text-base text-[var(--text)] leading-relaxed">
                 This application uses OpenAI's GPT models. When you interact with our AI features:
               </p>
@@ -323,20 +360,34 @@ export default function LandingPageTest() {
                 32 CBG G8 Admin Hub
               </h3>
               <p className="mb-3 sm:mb-4 text-sm sm:text-base">
-                A comprehensive digital platform designed to streamline administrative processes for Canadian Armed Forces personnel,
-                with a focus on travel claims, policy guidance, and financial services.
+                A comprehensive digital platform designed to streamline administrative processes for
+                Canadian Armed Forces personnel, with a focus on travel claims, policy guidance, and
+                financial services.
               </p>
               <h3 className="text-base sm:text-lg font-semibold mb-2">Key Features</h3>
               <ul className="list-disc list-inside mb-3 sm:mb-4 text-sm sm:text-base space-y-1">
-                <li><strong className="text-[var(--primary)]">Policy Assistant</strong> – AI-powered chatbot providing instant guidance</li>
-                <li><strong className="text-[var(--primary)]">SCIP Portal</strong> – Direct access to claims submission platform</li>
-                <li><strong className="text-[var(--primary)]">OPI Contacts</strong> – Comprehensive directory of FSC and FMC personnel</li>
-                <li><strong className="text-[var(--primary)]">Resources</strong> – Consolidated SOPs, guides, and templates for day-to-day administration</li>
+                <li>
+                  <strong className="text-[var(--primary)]">Policy Assistant</strong> – AI-powered
+                  chatbot providing instant guidance
+                </li>
+                <li>
+                  <strong className="text-[var(--primary)]">SCIP Portal</strong> – Direct access to
+                  claims submission platform
+                </li>
+                <li>
+                  <strong className="text-[var(--primary)]">OPI Contacts</strong> – Comprehensive
+                  directory of FSC and FMC personnel
+                </li>
+                <li>
+                  <strong className="text-[var(--primary)]">Resources</strong> – Consolidated SOPs,
+                  guides, and templates for day-to-day administration
+                </li>
               </ul>
               <h3 className="text-base sm:text-lg font-semibold mb-2">Disclaimer</h3>
               <p className="mb-3 sm:mb-4 text-sm sm:text-base text-[var(--text-secondary)]">
-                This is an unofficial site not affiliated with DND, CAF, or any government department. Information provided is for reference only.
-                Always verify critical information through official channels.
+                This is an unofficial site not affiliated with DND, CAF, or any government
+                department. Information provided is for reference only. Always verify critical
+                information through official channels.
               </p>
               <p className="text-xs sm:text-sm text-[var(--text-secondary)] mt-4 pt-4 border-t border-[var(--border)]">
                 Maintained by the 32 CBG G8 Team
@@ -360,22 +411,29 @@ export default function LandingPageTest() {
       </Dialog>
 
       {/* SCIP Confirmation Modal */}
-      <Dialog open={showSCIPConfirmation} onOpenChange={(open) => { setShowSCIPConfirmation(open); if (!open) setIsLinkCopied(false); }}>
+      <Dialog
+        open={showSCIPConfirmation}
+        onOpenChange={(open) => {
+          setShowSCIPConfirmation(open);
+          if (!open) setIsLinkCopied(false);
+        }}
+      >
         <DialogContent className="w-[92vw] sm:max-w-lg md:max-w-xl lg:max-w-2xl break-words">
           <DialogHeader>
             <DialogTitle>SCIP Portal</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm sm:text-base break-words">
-              You are about to navigate to the SCIP Portal, which is an external Microsoft PowerApps platform.
-              Have your D365 login (@ecn.forces.gc.ca) ready.
+              You are about to navigate to the SCIP Portal, which is an external Microsoft PowerApps
+              platform. Have your D365 login (@ecn.forces.gc.ca) ready.
             </p>
             <p className="text-sm sm:text-base text-[var(--text-secondary)] break-words">
               This will open in a new tab. Do you want to continue?
             </p>
             <div className="mb-2 p-3 bg-[var(--background-secondary)] rounded-lg border border-[var(--border)] w-full">
               <p className="text-xs sm:text-sm text-[var(--text-secondary)] mb-3">
-                If the portal does not open, please copy the URL below and paste it directly into your browser:
+                If the portal does not open, please copy the URL below and paste it directly into
+                your browser:
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto] gap-2 items-center">
                 <div className="min-w-0 w-full p-2 bg-[var(--background)] rounded text-xs font-mono text-[var(--text-secondary)] overflow-hidden">
@@ -398,7 +456,10 @@ export default function LandingPageTest() {
             </div>
             <div className="flex gap-3 justify-end">
               <button
-                onClick={() => { setShowSCIPConfirmation(false); setIsLinkCopied(false); }}
+                onClick={() => {
+                  setShowSCIPConfirmation(false);
+                  setIsLinkCopied(false);
+                }}
                 className="px-4 py-2 text-sm sm:text-base text-[var(--text)] bg-[var(--background-secondary)] hover:bg-[var(--background)] rounded-lg transition-colors duration-300"
               >
                 Cancel

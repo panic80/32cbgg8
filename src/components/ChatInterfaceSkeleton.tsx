@@ -22,13 +22,13 @@ export const ChatInterfaceSkeleton: React.FC = () => {
         <div className="space-y-6 p-4">
           {/* User message skeleton */}
           <SkeletonChatMessage variant="sent" />
-          
+
           {/* Assistant message skeleton */}
           <SkeletonChatMessage variant="received" />
-          
+
           {/* Another user message */}
           <SkeletonChatMessage variant="sent" />
-          
+
           {/* Loading assistant message */}
           <div className="flex items-start gap-3">
             <SkeletonAvatar size="sm" />

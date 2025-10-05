@@ -14,23 +14,32 @@ import {
   Settings,
   Wrench,
   Crown,
-  BookOpen
+  BookOpen,
 } from 'lucide-react';
 import LogoImage from '../components/LogoImage';
 import '../styles/sticky-footer.css';
 import '../styles/landing.css';
 import { SITE_CONFIG, getCopyrightText, getLastUpdatedText } from '../constants/siteConfig';
 import { useTheme } from '../context/ThemeContext';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '../components/ui/dialog';
 
 const useIntersectionObserver = (options = {}) => {
   const [isVisible, setIsVisible] = useState(false);
   const elementRef = useRef(null);
 
   useEffect(() => {
-    const observer = new IntersectionObserver(([entry]) => {
-      setIsVisible(entry.isIntersecting);
-    }, { threshold: 0.1, ...options });
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting);
+      },
+      { threshold: 0.1, ...options },
+    );
 
     const currentElement = elementRef.current;
     if (currentElement) {
@@ -78,16 +87,15 @@ export default function LandingPage() {
 
   const privacyScrollRef = useRef(null);
   const aboutScrollRef = useRef(null);
-  
+
   console.log('Privacy modal state:', showPrivacyModal);
-  
+
   useEffect(() => {
     const computedFont = window.getComputedStyle(document.body).getPropertyValue('font-family');
     console.log('Computed font-family on landing page:', computedFont);
   }, []);
 
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
-
 
   const handleAboutClick = (e) => {
     e.preventDefault();
@@ -102,7 +110,7 @@ export default function LandingPage() {
 
   // SCIP Portal URL (use centralized, correctly formatted URL)
   const SCIP_URL = SITE_CONFIG.SCIP_PORTAL_URL;
-  
+
   const confirmSCIPNavigation = () => {
     if (isNavigatingToSCIP) return;
     setIsNavigatingToSCIP(true);
@@ -111,13 +119,16 @@ export default function LandingPage() {
     setIsLinkCopied(false); // Reset copy state when closing
     window.location.assign(SCIP_URL);
   };
-  
+
   const copySCIPLink = () => {
-    navigator.clipboard.writeText(SCIP_URL).then(() => {
-      setIsLinkCopied(true);
-    }).catch(err => {
-      console.error('Failed to copy link:', err);
-    });
+    navigator.clipboard
+      .writeText(SCIP_URL)
+      .then(() => {
+        setIsLinkCopied(true);
+      })
+      .catch((err) => {
+        console.error('Failed to copy link:', err);
+      });
   };
 
   const handleScroll = (e, setShowIndicator) => {
@@ -140,19 +151,40 @@ export default function LandingPage() {
               >
                 {theme === 'light' ? (
                   // Moon icon for light mode
-                  <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M20 14.12A7.78 7.78 0 019.88 4a7.78 7.78 0 002.9 15.1 7.78 7.78 0 007.22-5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <svg
+                    className="w-4 h-4 sm:w-5 sm:h-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M20 14.12A7.78 7.78 0 019.88 4a7.78 7.78 0 002.9 15.1 7.78 7.78 0 007.22-5z"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
                 ) : (
                   // Sun icon for dark mode
-                  <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <svg
+                    className="w-4 h-4 sm:w-5 sm:h-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
                     <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="2" />
-                    <path d="M12 2v2m0 16v2M2 12h2m16 0h2m-3-7l-1.5 1.5M4.93 4.93l1.5 1.5m11.14 11.14l1.5 1.5M4.93 19.07l1.5-1.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                    <path
+                      d="M12 2v2m0 16v2M2 12h2m16 0h2m-3-7l-1.5 1.5M4.93 4.93l1.5 1.5m11.14 11.14l1.5 1.5M4.93 19.07l1.5-1.5"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    />
                   </svg>
                 )}
               </button>
             </div>
-            
+
             {/* Hero Section */}
             <main
               ref={heroRef}
@@ -162,14 +194,16 @@ export default function LandingPage() {
             >
               {/* Decorative Background Elements */}
               <div className="absolute inset-0 pointer-events-none">
-                <div className="absolute w-[600px] h-[600px] rounded-full blur-3xl opacity-20 floating"
+                <div
+                  className="absolute w-[600px] h-[600px] rounded-full blur-3xl opacity-20 floating"
                   style={{
                     background: `radial-gradient(circle at center, var(--primary) 0%, transparent 70%)`,
                     top: '-10%',
                     left: '-10%',
                   }}
                 />
-                <div className="absolute w-[600px] h-[600px] rounded-full blur-3xl opacity-20 floating"
+                <div
+                  className="absolute w-[600px] h-[600px] rounded-full blur-3xl opacity-20 floating"
                   style={{
                     background: `radial-gradient(circle at center, var(--primary) 0%, transparent 70%)`,
                     bottom: '-10%',
@@ -181,13 +215,8 @@ export default function LandingPage() {
 
               <div className="w-full max-w-4xl mx-auto text-center relative z-10">
                 {/* Logo */}
-                <div
-                  className="mb-6 sm:mb-8 md:mb-10 flex justify-center transform transition-all duration-300 hover:scale-110"
-                >
-                  <LogoImage 
-                    size="xl" 
-                    className="animate-scale drop-shadow-2xl"
-                  />
+                <div className="mb-6 sm:mb-8 md:mb-10 flex justify-center transform transition-all duration-300 hover:scale-110">
+                  <LogoImage size="xl" className="animate-scale drop-shadow-2xl" />
                 </div>
 
                 {/* Title with Enhanced Typography */}
@@ -198,7 +227,9 @@ export default function LandingPage() {
                     role="heading"
                     aria-level="1"
                   >
-                    32 CBG G8<br />Administration Hub
+                    32 CBG G8
+                    <br />
+                    Administration Hub
                     <span
                       className="block text-sm sm:text-lg md:text-xl lg:text-2xl mt-3 sm:mt-4 md:mt-6 text-[var(--text-secondary)] font-normal animate-fade-up"
                       style={{ animationDelay: '0.4s' }}
@@ -211,15 +242,19 @@ export default function LandingPage() {
                     className="text-base sm:text-lg md:text-xl lg:text-2xl text-center max-w-2xl mx-auto text-[var(--text)] opacity-90 leading-relaxed animate-fade-up glass p-4 sm:p-6 rounded-2xl"
                     style={{ animationDelay: '0.6s' }}
                   >
-                    Your comprehensive digital gateway to administrative resources, claims processing, and policy information. Designed to simplify and expedite your financial administrative tasks.
+                    Your comprehensive digital gateway to administrative resources, claims
+                    processing, and policy information. Designed to simplify and expedite your
+                    financial administrative tasks.
                   </p>
                   {/* Inline Scroll Indicator directly after paragraph */}
-                  <div className="scroll-indicator inline animate-fade-in mt-4 sm:mt-6" style={{ animationDelay: '0.9s' }}>
+                  <div
+                    className="scroll-indicator inline animate-fade-in mt-4 sm:mt-6"
+                    style={{ animationDelay: '0.9s' }}
+                  >
                     <ChevronDown className="w-6 h-6 sm:w-8 sm:h-8 text-[var(--text-secondary)] animate-bounce" />
                   </div>
                 </div>
               </div>
-
             </main>
 
             {/* Features Grid Section */}
@@ -248,7 +283,10 @@ export default function LandingPage() {
                       <div className="relative">
                         <div className="absolute inset-0 bg-[var(--primary)] opacity-20 rounded-full blur-xl transform group-hover:scale-150 transition-transform duration-300" />
                         <div className="relative transform transition-all duration-300 group-hover:scale-110">
-                          <CircleHelp className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 text-[var(--primary)]" aria-hidden="true" />
+                          <CircleHelp
+                            className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 text-[var(--primary)]"
+                            aria-hidden="true"
+                          />
                         </div>
                       </div>
                       <div className="space-y-3 sm:space-y-4">
@@ -257,7 +295,8 @@ export default function LandingPage() {
                           <Crown className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-500" />
                         </h3>
                         <p className="text-sm sm:text-base text-[var(--text)] opacity-80 leading-relaxed">
-                          Interactive AI-powered guide for policy inquiries and administrative procedures.
+                          Interactive AI-powered guide for policy inquiries and administrative
+                          procedures.
                         </p>
                         <p className="text-xs sm:text-sm text-[var(--text)] opacity-60 leading-relaxed mt-2">
                           Currently serving CFTDTI, NJC, CBI and FAM
@@ -280,7 +319,10 @@ export default function LandingPage() {
                       <div className="relative">
                         <div className="absolute inset-0 bg-[var(--primary)] opacity-20 rounded-full blur-xl transform group-hover:scale-150 transition-transform duration-300" />
                         <div className="relative transform transition-all duration-300 group-hover:scale-110">
-                          <FileText className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 text-[var(--primary)]" aria-hidden="true" />
+                          <FileText
+                            className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 text-[var(--primary)]"
+                            aria-hidden="true"
+                          />
                         </div>
                       </div>
                       <div className="space-y-3 sm:space-y-4">
@@ -288,7 +330,8 @@ export default function LandingPage() {
                           SCIP Portal
                         </h3>
                         <p className="text-sm sm:text-base text-[var(--text)] opacity-80 leading-relaxed">
-                          Streamlined Claims Interface Platform for efficient digital submission and processing of administrative claims.
+                          Streamlined Claims Interface Platform for efficient digital submission and
+                          processing of administrative claims.
                         </p>
                       </div>
                     </div>
@@ -307,7 +350,10 @@ export default function LandingPage() {
                       <div className="relative">
                         <div className="absolute inset-0 bg-[var(--primary)] opacity-20 rounded-full blur-xl transform group-hover:scale-150 transition-transform duration-300" />
                         <div className="relative transform transition-all duration-300 group-hover:scale-110">
-                          <Users className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 text-[var(--primary)]" aria-hidden="true" />
+                          <Users
+                            className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 text-[var(--primary)]"
+                            aria-hidden="true"
+                          />
                         </div>
                       </div>
                       <div className="space-y-3 sm:space-y-4">
@@ -315,7 +361,8 @@ export default function LandingPage() {
                           Office of Primary Interest
                         </h3>
                         <p className="text-sm sm:text-base text-[var(--text)] opacity-80 leading-relaxed">
-                          Find FSC & FMC contact information for your unit's financial services and management.
+                          Find FSC & FMC contact information for your unit's financial services and
+                          management.
                         </p>
                       </div>
                     </div>
@@ -335,12 +382,15 @@ export default function LandingPage() {
                         🚧 Under Update
                       </div>
                     </div>
-                    
+
                     <div className="flex flex-col items-center text-center space-y-4 sm:space-y-6 opacity-50">
                       <div className="relative">
                         <div className="absolute inset-0 bg-[var(--primary)] opacity-20 rounded-full blur-xl" />
                         <div className="relative">
-                          <BookOpen className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 text-[var(--primary)]" aria-hidden="true" />
+                          <BookOpen
+                            className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 text-[var(--primary)]"
+                            aria-hidden="true"
+                          />
                         </div>
                       </div>
                       <div className="space-y-3 sm:space-y-4">
@@ -348,7 +398,8 @@ export default function LandingPage() {
                           Resource Library
                         </h3>
                         <p className="text-sm sm:text-base text-[var(--text)] opacity-80 leading-relaxed">
-                          Access SOPs, how-to guides, FAQs, templates, and comprehensive administrative documentation.
+                          Access SOPs, how-to guides, FAQs, templates, and comprehensive
+                          administrative documentation.
                         </p>
                       </div>
                     </div>
@@ -358,10 +409,16 @@ export default function LandingPage() {
             </section>
 
             {/* Footer */}
-            <footer className="mt-auto px-4 sm:px-6 lg:px-8 border-t border-[var(--border)]" role="contentinfo">
+            <footer
+              className="mt-auto px-4 sm:px-6 lg:px-8 border-t border-[var(--border)]"
+              role="contentinfo"
+            >
               <div className="max-w-5xl mx-auto py-4">
                 <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs sm:text-sm">
-                  <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2" aria-label="Footer Navigation">
+                  <nav
+                    className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2"
+                    aria-label="Footer Navigation"
+                  >
                     <button
                       type="button"
                       onClick={handleAboutClick}
@@ -409,38 +466,44 @@ export default function LandingPage() {
               className="space-y-4 sm:space-y-6 overflow-y-auto max-h-[60vh] pr-2"
               onScroll={(e) => handleScroll(e, setShowPrivacyScrollIndicator)}
             >
-            <h3 className="text-base sm:text-lg font-semibold">General Privacy Notice</h3>
-            <p className="text-sm sm:text-base text-[var(--text)] leading-relaxed">
-              We prioritize the protection of your personal information and are committed to maintaining your trust.
-            </p>
-            <h3 className="text-base sm:text-lg font-semibold mt-4 sm:mt-6">Data Collection & Usage</h3>
-            <ul className="list-disc pl-5 space-y-2 text-sm sm:text-base text-[var(--text)] opacity-80">
-              <li>We collect only essential information needed for the service</li>
-              <li>Your data is encrypted and stored securely</li>
-              <li>We do not sell or share your personal information</li>
-              <li>You have control over your data and can request its deletion</li>
-            </ul>
-            <h3 className="text-base sm:text-lg font-semibold mt-4 sm:mt-6">AI Processing (OpenAI)</h3>
-            <p className="text-sm sm:text-base text-[var(--text)] leading-relaxed">
-              This application uses OpenAI's GPT models. When you interact with our AI features:
-            </p>
-            <ul className="list-disc pl-5 space-y-2 text-sm sm:text-base text-[var(--text)] opacity-80">
-              <li>Your conversations may be processed to improve responses</li>
-              <li>No personally identifiable information is retained by the AI</li>
-              <li>Conversations are not used to train the core AI model</li>
-              <li>You can opt out of AI features at any time</li>
-            </ul>
-            <p className="text-xs sm:text-sm text-[var(--text-secondary)] mt-4 sm:mt-6">
-              For more details about OpenAI's data handling, please visit OpenAI's privacy policy at https://openai.com/policies/privacy-policy.
-            </p>
-            <div className="pt-2">
-              <button
-                onClick={() => setShowPrivacyModal(false)}
-                className="w-full px-4 py-2 sm:py-3 text-center text-sm sm:text-base text-[var(--text)] bg-[var(--card)] hover:bg-[var(--primary)] hover:text-white rounded-lg transition-colors duration-300 h-10 sm:h-12"
-              >
-                Close
-              </button>
-            </div>
+              <h3 className="text-base sm:text-lg font-semibold">General Privacy Notice</h3>
+              <p className="text-sm sm:text-base text-[var(--text)] leading-relaxed">
+                We prioritize the protection of your personal information and are committed to
+                maintaining your trust.
+              </p>
+              <h3 className="text-base sm:text-lg font-semibold mt-4 sm:mt-6">
+                Data Collection & Usage
+              </h3>
+              <ul className="list-disc pl-5 space-y-2 text-sm sm:text-base text-[var(--text)] opacity-80">
+                <li>We collect only essential information needed for the service</li>
+                <li>Your data is encrypted and stored securely</li>
+                <li>We do not sell or share your personal information</li>
+                <li>You have control over your data and can request its deletion</li>
+              </ul>
+              <h3 className="text-base sm:text-lg font-semibold mt-4 sm:mt-6">
+                AI Processing (OpenAI)
+              </h3>
+              <p className="text-sm sm:text-base text-[var(--text)] leading-relaxed">
+                This application uses OpenAI's GPT models. When you interact with our AI features:
+              </p>
+              <ul className="list-disc pl-5 space-y-2 text-sm sm:text-base text-[var(--text)] opacity-80">
+                <li>Your conversations may be processed to improve responses</li>
+                <li>No personally identifiable information is retained by the AI</li>
+                <li>Conversations are not used to train the core AI model</li>
+                <li>You can opt out of AI features at any time</li>
+              </ul>
+              <p className="text-xs sm:text-sm text-[var(--text-secondary)] mt-4 sm:mt-6">
+                For more details about OpenAI's data handling, please visit OpenAI's privacy policy
+                at https://openai.com/policies/privacy-policy.
+              </p>
+              <div className="pt-2">
+                <button
+                  onClick={() => setShowPrivacyModal(false)}
+                  className="w-full px-4 py-2 sm:py-3 text-center text-sm sm:text-base text-[var(--text)] bg-[var(--card)] hover:bg-[var(--primary)] hover:text-white rounded-lg transition-colors duration-300 h-10 sm:h-12"
+                >
+                  Close
+                </button>
+              </div>
             </div>
             {/* Scroll indicator */}
             {showPrivacyScrollIndicator && (
@@ -464,41 +527,61 @@ export default function LandingPage() {
               className="overflow-y-auto max-h-[60vh] pr-2"
               onScroll={(e) => handleScroll(e, setShowAboutScrollIndicator)}
             >
-            <h3 className="text-base sm:text-lg font-semibold mb-2 text-[var(--primary)]">
-              32 CBG G8 Admin Hub
-            </h3>
-            <p className="mb-3 sm:mb-4 text-sm sm:text-base">
-              A comprehensive digital platform designed to streamline administrative processes for Canadian Armed Forces personnel, with a focus on travel claims, policy guidance, and financial services.
-            </p>
-            <h3 className="text-base sm:text-lg font-semibold mb-2">Key Features</h3>
-            <ul className="list-disc list-inside mb-3 sm:mb-4 text-sm sm:text-base space-y-1">
-              <li><strong className="text-[var(--primary)]">Policy Assistant</strong> – AI-powered chatbot providing instant guidance on CFTDTI policies, travel claims, and administrative procedures</li>
-              <li><strong className="text-[var(--primary)]">SCIP Portal</strong> – Direct access to the Streamlined Claims Interface Platform for digital claim submission</li>
-              <li><strong className="text-[var(--primary)]">OPI Contacts</strong> – Comprehensive directory of Financial Services (FSC) and Financial Management (FMC) personnel across 32 CBG units</li>
-              <li><strong className="text-[var(--primary)]">Administrative Tools</strong> – SOPs, onboarding guides, and essential resources for efficient unit administration</li>
-            </ul>
-            <h3 className="text-base sm:text-lg font-semibold mb-2">Built for Efficiency</h3>
-            <p className="mb-3 sm:mb-4 text-sm sm:text-base">
-              This portal consolidates multiple resources into a single, user-friendly interface, reducing the time spent searching for information and ensuring consistent access to up-to-date policies and contacts.
-            </p>
-            <h3 className="text-base sm:text-lg font-semibold mb-2">Disclaimer</h3>
-            <p className="mb-3 sm:mb-4 text-sm sm:text-base text-[var(--text-secondary)]">
-              This is an unofficial site not affiliated with DND, CAF, or any government department. Information provided is for reference only. Always verify critical information through official channels.
-            </p>
-            <p className="text-xs sm:text-sm text-[var(--text-secondary)]">
-              Not supported by the Defence Wide Area Network (DWAN). Use at your own discretion.
-            </p>
-            <p className="text-xs sm:text-sm text-[var(--text-secondary)] mt-4 pt-4 border-t border-[var(--border)]">
-              Maintained by the 32 CBG G8 Team
-            </p>
-            <div className="pt-4">
-              <button
-                onClick={() => setShowAboutModal(false)}
-                className="w-full px-4 py-2 sm:py-3 text-center text-sm sm:text-base text-[var(--text)] bg-[var(--card)] hover:bg-[var(--primary)] hover:text-white rounded-lg transition-colors duration-300 h-10 sm:h-12"
-              >
-                Close
-              </button>
-            </div>
+              <h3 className="text-base sm:text-lg font-semibold mb-2 text-[var(--primary)]">
+                32 CBG G8 Admin Hub
+              </h3>
+              <p className="mb-3 sm:mb-4 text-sm sm:text-base">
+                A comprehensive digital platform designed to streamline administrative processes for
+                Canadian Armed Forces personnel, with a focus on travel claims, policy guidance, and
+                financial services.
+              </p>
+              <h3 className="text-base sm:text-lg font-semibold mb-2">Key Features</h3>
+              <ul className="list-disc list-inside mb-3 sm:mb-4 text-sm sm:text-base space-y-1">
+                <li>
+                  <strong className="text-[var(--primary)]">Policy Assistant</strong> – AI-powered
+                  chatbot providing instant guidance on CFTDTI policies, travel claims, and
+                  administrative procedures
+                </li>
+                <li>
+                  <strong className="text-[var(--primary)]">SCIP Portal</strong> – Direct access to
+                  the Streamlined Claims Interface Platform for digital claim submission
+                </li>
+                <li>
+                  <strong className="text-[var(--primary)]">OPI Contacts</strong> – Comprehensive
+                  directory of Financial Services (FSC) and Financial Management (FMC) personnel
+                  across 32 CBG units
+                </li>
+                <li>
+                  <strong className="text-[var(--primary)]">Administrative Tools</strong> – SOPs,
+                  onboarding guides, and essential resources for efficient unit administration
+                </li>
+              </ul>
+              <h3 className="text-base sm:text-lg font-semibold mb-2">Built for Efficiency</h3>
+              <p className="mb-3 sm:mb-4 text-sm sm:text-base">
+                This portal consolidates multiple resources into a single, user-friendly interface,
+                reducing the time spent searching for information and ensuring consistent access to
+                up-to-date policies and contacts.
+              </p>
+              <h3 className="text-base sm:text-lg font-semibold mb-2">Disclaimer</h3>
+              <p className="mb-3 sm:mb-4 text-sm sm:text-base text-[var(--text-secondary)]">
+                This is an unofficial site not affiliated with DND, CAF, or any government
+                department. Information provided is for reference only. Always verify critical
+                information through official channels.
+              </p>
+              <p className="text-xs sm:text-sm text-[var(--text-secondary)]">
+                Not supported by the Defence Wide Area Network (DWAN). Use at your own discretion.
+              </p>
+              <p className="text-xs sm:text-sm text-[var(--text-secondary)] mt-4 pt-4 border-t border-[var(--border)]">
+                Maintained by the 32 CBG G8 Team
+              </p>
+              <div className="pt-4">
+                <button
+                  onClick={() => setShowAboutModal(false)}
+                  className="w-full px-4 py-2 sm:py-3 text-center text-sm sm:text-base text-[var(--text)] bg-[var(--card)] hover:bg-[var(--primary)] hover:text-white rounded-lg transition-colors duration-300 h-10 sm:h-12"
+                >
+                  Close
+                </button>
+              </div>
             </div>
             {/* Scroll indicator */}
             {showAboutScrollIndicator && (
@@ -511,34 +594,40 @@ export default function LandingPage() {
       </Dialog>
 
       {/* SCIP Confirmation Modal */}
-      <Dialog open={showSCIPConfirmation} onOpenChange={(open) => { setShowSCIPConfirmation(open); if (!open) setIsLinkCopied(false); }}>
+      <Dialog
+        open={showSCIPConfirmation}
+        onOpenChange={(open) => {
+          setShowSCIPConfirmation(open);
+          if (!open) setIsLinkCopied(false);
+        }}
+      >
         <DialogContent className="w-[92vw] sm:max-w-lg md:max-w-xl lg:max-w-2xl break-words">
           <DialogHeader>
             <DialogTitle>SCIP Portal</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm sm:text-base break-words">
-              You are about to navigate to the SCIP Portal, which is an external Microsoft PowerApps platform. Have your D365 login (@ecn.forces.gc.ca) ready.
+              You are about to navigate to the SCIP Portal, which is an external Microsoft PowerApps
+              platform. Have your D365 login (@ecn.forces.gc.ca) ready.
             </p>
             <p className="text-sm sm:text-base text-[var(--text-secondary)] break-words">
               This will open in a new tab. Do you want to continue?
             </p>
             <div className="mb-2 p-3 bg-[var(--background-secondary)] rounded-lg border border-[var(--border)] w-full">
               <p className="text-xs sm:text-sm text-[var(--text-secondary)] mb-3">
-                If the portal does not open, please copy the URL below and paste it directly into your browser:
+                If the portal does not open, please copy the URL below and paste it directly into
+                your browser:
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto] gap-2 items-center">
                 <div className="min-w-0 w-full p-2 bg-[var(--background)] rounded text-xs font-mono text-[var(--text-secondary)] overflow-hidden">
-                  <div className="block truncate max-w-full">
-                    {SCIP_URL.substring(0, 50)}...
-                  </div>
+                  <div className="block truncate max-w-full">{SCIP_URL.substring(0, 50)}...</div>
                 </div>
                 <button
                   onClick={copySCIPLink}
                   disabled={isLinkCopied}
                   className={`px-3 py-2 text-xs sm:text-sm rounded-lg transition-all duration-300 flex items-center gap-2 whitespace-nowrap shrink-0 mt-2 sm:mt-0 justify-center ${
-                    isLinkCopied 
-                      ? 'bg-green-600/20 text-green-600 cursor-not-allowed' 
+                    isLinkCopied
+                      ? 'bg-green-600/20 text-green-600 cursor-not-allowed'
                       : 'bg-[var(--primary)] text-white hover:bg-[var(--primary-hover)]'
                   }`}
                 >
@@ -548,7 +637,10 @@ export default function LandingPage() {
             </div>
             <div className="flex gap-3 justify-end">
               <button
-                onClick={() => { setShowSCIPConfirmation(false); setIsLinkCopied(false); }}
+                onClick={() => {
+                  setShowSCIPConfirmation(false);
+                  setIsLinkCopied(false);
+                }}
                 className="px-4 py-2 text-sm sm:text-base text-[var(--text)] bg-[var(--background-secondary)] hover:bg-[var(--background)] rounded-lg transition-colors duration-300"
               >
                 Cancel
@@ -569,7 +661,6 @@ export default function LandingPage() {
           </div>
         </DialogContent>
       </Dialog>
-
     </div>
   );
 }

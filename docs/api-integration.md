@@ -18,7 +18,7 @@ const response = await sendToGemini(
   userMessage,
   isSimplifiedMode,
   'gemini-2.0-flash',
-  travelInstructionsText
+  travelInstructionsText,
 );
 ```
 

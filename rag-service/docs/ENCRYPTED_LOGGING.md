@@ -5,6 +5,7 @@ This document describes the encrypted logging system for storing questions and a
 ## Overview
 
 The encrypted logging system provides:
+
 - **Field-level encryption** for user queries and AI responses
 - **Secure key management** with rotation support
 - **Transparent encryption/decryption** during storage and retrieval
@@ -41,6 +42,7 @@ python app/utils/manage_encryption.py generate
 ```
 
 Or specify a custom path:
+
 ```bash
 python app/utils/manage_encryption.py generate --output /secure/path/encryption.key
 ```
@@ -48,6 +50,7 @@ python app/utils/manage_encryption.py generate --output /secure/path/encryption.
 ### 2. Configure Environment
 
 Set the encryption key via environment variable:
+
 ```bash
 export RAG_ENCRYPTION_KEY='<your-generated-key>'
 ```
@@ -73,6 +76,7 @@ python app/utils/manage_encryption.py verify
 ## Configuration
 
 Add to your `.env` file:
+
 ```env
 RAG_ENCRYPT_QUERY_LOGS=true
 RAG_ENCRYPTION_KEY=your-base64-encoded-key
@@ -80,6 +84,7 @@ RAG_QUERY_RETENTION_DAYS=90
 ```
 
 Or configure in `app/core/config.py`:
+
 ```python
 encrypt_query_logs: bool = True
 encryption_key_path: Optional[str] = None
@@ -130,16 +135,19 @@ decrypted_text = encryption_service.decrypt_text(encrypted_text, version)
 ## Key Management
 
 ### View Key Information
+
 ```bash
 python app/utils/manage_encryption.py info
 ```
 
 ### Rotate Keys
+
 ```bash
 python app/utils/manage_encryption.py rotate
 ```
 
 ### Test Encryption
+
 ```bash
 python app/utils/manage_encryption.py test
 ```
@@ -147,12 +155,14 @@ python app/utils/manage_encryption.py test
 ## Testing
 
 Run the comprehensive test suite:
+
 ```bash
 cd rag-service
 python app/tests/test_encrypted_logging.py
 ```
 
 This tests:
+
 - Encryption/decryption functionality
 - Database storage and retrieval
 - Export capabilities
@@ -202,6 +212,7 @@ This tests:
 ### Debug Mode
 
 Enable debug logging:
+
 ```python
 import logging
 logging.getLogger('app.services.encryption').setLevel(logging.DEBUG)
@@ -226,6 +237,7 @@ logging.getLogger('app.services.query_logger').setLevel(logging.DEBUG)
 ### Rollback Plan
 
 If needed, encryption can be disabled:
+
 1. Set `RAG_ENCRYPT_QUERY_LOGS=false`
 2. System will read both encrypted and unencrypted data
 3. New data will be stored unencrypted

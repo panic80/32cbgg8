@@ -25,6 +25,7 @@ retriever = factory.create_retriever(config)
 ```
 
 The factory now:
+
 - Recognizes `UNIFIED` as a retriever mode
 - Creates UnifiedRetriever instances with proper configuration
 - Maps legacy configurations to unified format when needed
@@ -44,6 +45,7 @@ pipeline = create_parallel_pipeline(
 ```
 
 Updates include:
+
 - Special handling for UnifiedRetriever's `top_k` parameter
 - Metrics collection from unified retrievers
 - Proper weight assignment in ensemble
@@ -62,6 +64,7 @@ chat_request = ChatRequest(
 ```
 
 The endpoint:
+
 - Checks for `enable_unified_retrieval` flag
 - Passes configuration to parallel pipeline
 - Maintains all existing functionality
@@ -210,6 +213,7 @@ To use unified retrieval in production:
 ## Troubleshooting
 
 If unified retrieval fails:
+
 1. Check logs for strategy-specific errors
 2. Verify all required components are initialized
 3. Use fallback retrievers for reliability

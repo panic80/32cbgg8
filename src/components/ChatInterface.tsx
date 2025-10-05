@@ -28,7 +28,7 @@ const AnimatedButton = ({ children, className, ...props }: any) => (
     className={cn(
       'transition-colors duration-200 ease-out',
       'focus:ring-2 focus:ring-primary/20',
-      className
+      className,
     )}
     {...props}
   >
@@ -41,40 +41,40 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   onSendMessage,
   isLoading = false,
   className,
-  assistant = 'assistant'
+  assistant = 'assistant',
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [pullOffset, setPullOffset] = useState(0);
   const [isPulling, setIsPulling] = useState(false);
   const [touchStartY, setTouchStartY] = useState(0);
-  
+
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  
+
   const { isKeyboardVisible, keyboardHeight } = useMobileKeyboard();
 
-//   // Detect user scroll position
-//   useEffect(() => {
-//     const handleScroll = () => {
-//       if (messagesContainerRef.current) {
-//         const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
-//         const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
-//         setIsUserNearBottom(distanceFromBottom < 100);
-//       }
-//     };
-// 
-//     const container = messagesContainerRef.current;
-//     container?.addEventListener('scroll', handleScroll);
-//     return () => container?.removeEventListener('scroll', handleScroll);
-//   }, []);
+  //   // Detect user scroll position
+  //   useEffect(() => {
+  //     const handleScroll = () => {
+  //       if (messagesContainerRef.current) {
+  //         const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+  //         const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+  //         setIsUserNearBottom(distanceFromBottom < 100);
+  //       }
+  //     };
+  //
+  //     const container = messagesContainerRef.current;
+  //     container?.addEventListener('scroll', handleScroll);
+  //     return () => container?.removeEventListener('scroll', handleScroll);
+  //   }, []);
 
-//   // Auto-scroll to bottom when new messages arrive
-//   useEffect(() => {
-//     if (messagesContainerRef.current && isUserNearBottom) {
-//       messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
-//     }
-//   }, [messages, isUserNearBottom]);
-// 
+  //   // Auto-scroll to bottom when new messages arrive
+  //   useEffect(() => {
+  //     if (messagesContainerRef.current && isUserNearBottom) {
+  //       messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+  //     }
+  //   }, [messages, isUserNearBottom]);
+  //
   // Auto-resize textarea
   useEffect(() => {
     if (inputRef.current) {
@@ -90,19 +90,22 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   }, [inputValue, isLoading, onSendMessage]);
 
-  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  }, [handleSend]);
+  const handleKeyPress = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleSend();
+      }
+    },
+    [handleSend],
+  );
 
   const handleInputFocus = useCallback(() => {
-//     setTimeout(() => {
-//       if (messagesContainerRef.current) {
-//         messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
-//       }
-//     }, 300);
+    //     setTimeout(() => {
+    //       if (messagesContainerRef.current) {
+    //         messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    //       }
+    //     }, 300);
   }, []);
 
   const copyToClipboard = useCallback(async (text: string) => {
@@ -125,19 +128,22 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   }, []);
 
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (isPulling && messagesContainerRef.current?.scrollTop === 0) {
-      const currentY = e.touches[0].clientY;
-      const diff = currentY - touchStartY;
-      
-      if (diff > 0) {
-        setPullOffset(Math.min(diff, 100));
-        if (diff > 80) {
-          // Trigger refresh action
+  const handleTouchMove = useCallback(
+    (e: React.TouchEvent) => {
+      if (isPulling && messagesContainerRef.current?.scrollTop === 0) {
+        const currentY = e.touches[0].clientY;
+        const diff = currentY - touchStartY;
+
+        if (diff > 0) {
+          setPullOffset(Math.min(diff, 100));
+          if (diff > 80) {
+            // Trigger refresh action
+          }
         }
       }
-    }
-  }, [isPulling, touchStartY]);
+    },
+    [isPulling, touchStartY],
+  );
 
   const handleTouchEnd = useCallback(() => {
     setIsPulling(false);
@@ -149,7 +155,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     return messages.map((message, index) => {
       const isUser = message.sender === 'user';
       const showAvatar = index === 0 || messages[index - 1].sender !== message.sender;
-      
+
       return (
         <div
           key={message.id}
@@ -162,7 +168,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               </div>
             </div>
           )}
-          <div className={isUser ? "message-bubble user-bubble bg-primary text-primary-foreground animate-fade-up" : "assistant-plain-content"}>
+          <div
+            className={
+              isUser
+                ? 'message-bubble user-bubble bg-primary text-primary-foreground animate-fade-up'
+                : 'assistant-plain-content'
+            }
+          >
             <div className="message-content">
               {message.sender === assistant && message.isFormatted ? (
                 <MarkdownRenderer>{message.content}</MarkdownRenderer>
@@ -170,7 +182,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 message.content
               )}
             </div>
-            
+
             <div className="message-meta">
               <span className="timestamp">{formatTime(message.timestamp)}</span>
               {message.status && (
@@ -186,9 +198,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 onClick={() => copyToClipboard(message.content)}
                 title="Copy message"
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                  <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
                 </svg>
               </button>
             </div>
@@ -210,12 +229,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     <div className={cn('chat-interface', className)} data-keyboard-visible={isKeyboardVisible}>
       {/* Pull to refresh indicator */}
       {pullOffset > 20 && (
-        <div 
-          className="pull-refresh-indicator"
-          style={{ opacity: Math.min(pullOffset / 80, 1) }}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M21 12a9 9 0 11-6.219-8.56"/>
+        <div className="pull-refresh-indicator" style={{ opacity: Math.min(pullOffset / 80, 1) }}>
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="M21 12a9 9 0 11-6.219-8.56" />
           </svg>
         </div>
       )}
@@ -229,7 +252,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         onTouchEnd={handleTouchEnd}
         style={{
           transform: `translateY(${Math.min(pullOffset * 0.3, 20)}px)`,
-          paddingBottom: isKeyboardVisible ? `calc(${keyboardHeight}px + var(--input-container-height) + 1rem)` : `calc(var(--input-container-height) + 1rem + env(safe-area-inset-bottom))`
+          paddingBottom: isKeyboardVisible
+            ? `calc(${keyboardHeight}px + var(--input-container-height) + 1rem)`
+            : `calc(var(--input-container-height) + 1rem + env(safe-area-inset-bottom))`,
         }}
       >
         {messages.length === 0 && (
@@ -239,7 +264,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 Welcome to Chat Interface
               </h2>
               <p className="body-lg text-muted-foreground">
-                This is a clean, professional chat interface for the Canadian Forces Travel Instructions Chatbot.
+                This is a clean, professional chat interface for the Canadian Forces Travel
+                Instructions Chatbot.
               </p>
             </div>
           </div>
@@ -258,8 +284,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             <div className="assistant-plain-content">
               <div className="typing-indicator">
                 <div className="typing-dot animate-typing-dot-bounce"></div>
-                <div className="typing-dot animate-typing-dot-bounce" style={{ animationDelay: '0.1s' }}></div>
-                <div className="typing-dot animate-typing-dot-bounce" style={{ animationDelay: '0.2s' }}></div>
+                <div
+                  className="typing-dot animate-typing-dot-bounce"
+                  style={{ animationDelay: '0.1s' }}
+                ></div>
+                <div
+                  className="typing-dot animate-typing-dot-bounce"
+                  style={{ animationDelay: '0.2s' }}
+                ></div>
               </div>
             </div>
           </div>
@@ -267,12 +299,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       </div>
 
       {/* Input Area */}
-      <div 
+      <div
         className="input-area"
         style={{
           bottom: isKeyboardVisible ? `${keyboardHeight}px` : '0',
           paddingBottom: `calc(0.75rem + env(safe-area-inset-bottom))`,
-          transition: 'bottom 0.3s ease-out'
+          transition: 'bottom 0.3s ease-out',
         }}
       >
         <div className="input-wrapper">
@@ -289,7 +321,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               rows={1}
               style={{ fontSize: '16px' }}
             />
-            
+
             <AnimatedButton
               onClick={handleSend}
               disabled={!inputValue.trim() || isLoading}

@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 
 export const TypingIndicator = () => (
-  <motion.div 
+  <motion.div
     className="flex items-center gap-1 px-1"
     initial={{ opacity: 0, scale: 0.8 }}
     animate={{ opacity: 1, scale: 1 }}
@@ -19,7 +19,7 @@ export const TypingIndicator = () => (
           duration: 1.2,
           repeat: Infinity,
           delay: i * 0.15,
-          ease: "easeInOut"
+          ease: 'easeInOut',
         }}
       />
     ))}

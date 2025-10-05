@@ -1,9 +1,9 @@
 :root {
   /* Theme transition duration */
   --theme-transition: 0.3s ease-in-out;
-  
+
   /* Light theme */
-  &[data-theme="light"] {
+  &[data-theme='light'] {
     --background: #ffffff;
     --background-secondary: #f8f7f4;
     --card: #ffffff;
@@ -16,7 +16,7 @@
     --primary-active: #051e14;
     --border: #e2d9c0;
     --border-rgb: 226, 217, 192;
-    
+
     /* Semantic colors - Light */
     --success: #0a3622;
     --success-rgb: 10, 54, 34;
@@ -30,7 +30,7 @@
     --info: #1a4d35;
     --info-rgb: 26, 77, 53;
     --info-hover: #0a3622;
-    
+
     /* Extended palette */
     --muted: #f8f7f4;
     --muted-foreground: #1a4d35;
@@ -45,7 +45,7 @@
   }
 
   /* Dark theme */
-  &[data-theme="dark"] {
+  &[data-theme='dark'] {
     --background: #0a3622;
     --background-secondary: #082d1b;
     --card: #0f4029;
@@ -58,7 +58,7 @@
     --primary-active: #c9a027;
     --border: #1a4d35;
     --border-rgb: 26, 77, 53;
-    
+
     /* Semantic colors - Dark */
     --success: #4ade80;
     --success-rgb: 74, 222, 128;
@@ -72,7 +72,7 @@
     --info: #d4af37;
     --info-rgb: 212, 175, 55;
     --info-hover: #e0c350;
-    
+
     /* Extended palette */
     --muted: #0f4029;
     --muted-foreground: #e8d7b9;

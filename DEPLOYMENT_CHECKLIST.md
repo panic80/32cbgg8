@@ -40,6 +40,7 @@ sudo ./vps-setup.sh
 ## Step 4: Configuration Files
 
 1. **Environment Variables**
+
    ```bash
    # Copy template and edit
    cp .env.production.template .env.production
@@ -73,6 +74,7 @@ sudo certbot --nginx -d 32cbgg8.com -d www.32cbgg8.com
 ## Step 7: Monitoring
 
 ### PM2 Commands
+
 ```bash
 pm2 status
 pm2 logs
@@ -80,6 +82,7 @@ pm2 monit
 ```
 
 ### System Monitoring
+
 ```bash
 htop
 df -h
@@ -102,11 +105,13 @@ crontab -e
 ## Troubleshooting Quick Reference
 
 ### Port Conflicts
+
 ```bash
 sudo netstat -tlnp | grep -E '3000|8000|6379|80|443'
 ```
 
 ### Service Issues
+
 ```bash
 # PM2
 pm2 restart all
@@ -114,6 +119,7 @@ sudo systemctl restart cf-rag-service
 ```
 
 ### Memory Issues
+
 ```bash
 # Add swap if needed
 sudo fallocate -l 4G /swapfile
@@ -123,6 +129,7 @@ sudo swapon /swapfile
 ```
 
 ### Log Locations
+
 - Nginx: `/var/log/nginx/`
 - PM2: `pm2 logs`
 - RAG service: `/var/www/cbthis/rag-service/logs/`

@@ -17,7 +17,8 @@ const DEFAULT_STATE: PerformanceState = {
   data: null,
 };
 
-const isAbortError = (error: unknown): boolean => error instanceof Error && error.name === 'AbortError';
+const isAbortError = (error: unknown): boolean =>
+  error instanceof Error && error.name === 'AbortError';
 
 export function usePerformanceMetrics(options: UsePerformanceMetricsOptions = {}) {
   const { refreshInterval = 30000, immediate = true } = options;
@@ -64,7 +65,10 @@ export function usePerformanceMetrics(options: UsePerformanceMetricsOptions = {}
     }
   }, []);
 
-  const refresh = useCallback((refreshOptions: RefreshOptions = {}) => fetchData(refreshOptions), [fetchData]);
+  const refresh = useCallback(
+    (refreshOptions: RefreshOptions = {}) => fetchData(refreshOptions),
+    [fetchData],
+  );
 
   useEffect(() => {
     if (!immediate) {

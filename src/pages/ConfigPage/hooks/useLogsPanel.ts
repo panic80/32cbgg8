@@ -44,74 +44,83 @@ export const useLogsPanel = (initialFilters: LogFilters) => {
     nextOffset: null as number | null,
   });
 
-  const fetchLogs = useCallback(async (offset: number, overrideFilters?: LogFilters) => {
-    const appliedFilters = normaliseFilters(overrideFilters ?? filters);
-    const query = buildQueryParams(offset, appliedFilters);
+  const fetchLogs = useCallback(
+    async (offset: number, overrideFilters?: LogFilters) => {
+      const appliedFilters = normaliseFilters(overrideFilters ?? filters);
+      const query = buildQueryParams(offset, appliedFilters);
 
-    setLoading(true);
-    setError(null);
+      setLoading(true);
+      setError(null);
 
-    try {
-      const body = await apiClient.getJson<any>(`/api/admin/chat-logs?${query}`, { parseErrorResponse: true });
-      const rows: ChatLogEntry[] = Array.isArray(body?.data)
-        ? body.data
-        : Array.isArray(body?.rows)
-          ? body.rows
-          : [];
+      try {
+        const body = await apiClient.getJson<any>(`/api/admin/chat-logs?${query}`, {
+          parseErrorResponse: true,
+        });
+        const rows: ChatLogEntry[] = Array.isArray(body?.data)
+          ? body.data
+          : Array.isArray(body?.rows)
+            ? body.rows
+            : [];
 
-      setLogs(rows);
+        setLogs(rows);
 
-      const baseOffset = Math.max(offset, 0);
-      const parsedLimit = Number(body?.pagination?.limit);
-      const limitFromResponse = Number.isFinite(parsedLimit) && parsedLimit > 0
-        ? parsedLimit
-        : LOGS_PAGE_SIZE;
-      const parsedOffset = Number(body?.pagination?.offset);
-      const offsetFromResponse = Number.isFinite(parsedOffset) && parsedOffset >= 0
-        ? parsedOffset
-        : baseOffset;
-      const hasMoreFromResponse = Boolean(body?.pagination?.hasMore);
-      const hasMore = hasMoreFromResponse || rows.length === limitFromResponse;
-      const parsedNextOffset = Number(body?.pagination?.nextOffset);
-      const nextOffsetFromResponse = Number.isFinite(parsedNextOffset) && parsedNextOffset >= 0
-        ? parsedNextOffset
-        : null;
+        const baseOffset = Math.max(offset, 0);
+        const parsedLimit = Number(body?.pagination?.limit);
+        const limitFromResponse =
+          Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : LOGS_PAGE_SIZE;
+        const parsedOffset = Number(body?.pagination?.offset);
+        const offsetFromResponse =
+          Number.isFinite(parsedOffset) && parsedOffset >= 0 ? parsedOffset : baseOffset;
+        const hasMoreFromResponse = Boolean(body?.pagination?.hasMore);
+        const hasMore = hasMoreFromResponse || rows.length === limitFromResponse;
+        const parsedNextOffset = Number(body?.pagination?.nextOffset);
+        const nextOffsetFromResponse =
+          Number.isFinite(parsedNextOffset) && parsedNextOffset >= 0 ? parsedNextOffset : null;
 
-      setPagination({
-        limit: limitFromResponse,
-        offset: offsetFromResponse,
-        hasMore,
-        nextOffset: nextOffsetFromResponse ?? (hasMore ? offsetFromResponse + limitFromResponse : null),
-      });
-      setFilters(appliedFilters);
-    } catch (err) {
-      let message = err instanceof Error ? err.message : 'Failed to load chat logs';
-      if (err instanceof ApiError) {
-        if (err.status === 503) {
-          message = 'Logging is disabled on the server. Enable ENABLE_LOGGING to view analytics.';
-        } else if (typeof (err.data as any)?.message === 'string') {
-          message = (err.data as any).message;
+        setPagination({
+          limit: limitFromResponse,
+          offset: offsetFromResponse,
+          hasMore,
+          nextOffset:
+            nextOffsetFromResponse ?? (hasMore ? offsetFromResponse + limitFromResponse : null),
+        });
+        setFilters(appliedFilters);
+      } catch (err) {
+        let message = err instanceof Error ? err.message : 'Failed to load chat logs';
+        if (err instanceof ApiError) {
+          if (err.status === 503) {
+            message = 'Logging is disabled on the server. Enable ENABLE_LOGGING to view analytics.';
+          } else if (typeof (err.data as any)?.message === 'string') {
+            message = (err.data as any).message;
+          }
         }
+        setError(message);
+        setLogs([]);
+        setPagination((prev) => ({ ...prev, hasMore: false, nextOffset: null }));
+      } finally {
+        setLoading(false);
       }
-      setError(message);
-      setLogs([]);
-      setPagination((prev) => ({ ...prev, hasMore: false, nextOffset: null }));
-    } finally {
-      setLoading(false);
-    }
-  }, [filters]);
+    },
+    [filters],
+  );
 
-  const applyFilters = useCallback((nextFilters: LogFilters) => {
-    const normalised = normaliseFilters(nextFilters);
-    setFilters(normalised);
-    void fetchLogs(0, normalised);
-  }, [fetchLogs]);
+  const applyFilters = useCallback(
+    (nextFilters: LogFilters) => {
+      const normalised = normaliseFilters(nextFilters);
+      setFilters(normalised);
+      void fetchLogs(0, normalised);
+    },
+    [fetchLogs],
+  );
 
-  const resetFilters = useCallback((defaults: LogFilters) => {
-    const normalised = normaliseFilters(defaults);
-    setFilters(normalised);
-    void fetchLogs(0, normalised);
-  }, [fetchLogs]);
+  const resetFilters = useCallback(
+    (defaults: LogFilters) => {
+      const normalised = normaliseFilters(defaults);
+      setFilters(normalised);
+      void fetchLogs(0, normalised);
+    },
+    [fetchLogs],
+  );
 
   const refresh = useCallback(() => {
     void fetchLogs(pagination.offset, filters);

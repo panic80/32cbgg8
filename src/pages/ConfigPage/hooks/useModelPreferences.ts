@@ -24,9 +24,11 @@ export interface ModelPreferencesHook {
 export const useModelPreferences = (
   models: LLMModel[],
   defaultModelId: string,
-  fallbackProvider: ModelProvider
+  fallbackProvider: ModelProvider,
 ): ModelPreferencesHook => {
-  const defaultProvider = (models.find((model) => model.id === defaultModelId)?.provider as ModelProvider) || fallbackProvider;
+  const defaultProvider =
+    (models.find((model) => model.id === defaultModelId)?.provider as ModelProvider) ||
+    fallbackProvider;
 
   const [selectedModel, setSelectedModel] = useState<string>(defaultModelId);
   const [selectedProvider, setSelectedProvider] = useState<ModelProvider>(defaultProvider);
@@ -42,7 +44,8 @@ export const useModelPreferences = (
       const initialModel = models.find((model) => model.id === savedModel)?.id || defaultModelId;
       const initialProvider = isModelProvider(savedProvider)
         ? savedProvider
-        : ((models.find((model) => model.id === initialModel)?.provider as ModelProvider) || defaultProvider);
+        : (models.find((model) => model.id === initialModel)?.provider as ModelProvider) ||
+          defaultProvider;
 
       setSelectedModel(initialModel);
       setSelectedProvider(initialProvider);
@@ -59,7 +62,7 @@ export const useModelPreferences = (
       setTempSelectedProvider(provider);
       setHasUnsavedChanges(provider !== selectedProvider || tempSelectedModel !== selectedModel);
     },
-    [selectedModel, selectedProvider, tempSelectedModel]
+    [selectedModel, selectedProvider, tempSelectedModel],
   );
 
   const selectModel = useCallback(
@@ -72,7 +75,7 @@ export const useModelPreferences = (
       setTempSelectedProvider(provider);
       setHasUnsavedChanges(modelId !== selectedModel || provider !== selectedProvider);
     },
-    [models, selectedModel, selectedProvider]
+    [models, selectedModel, selectedProvider],
   );
 
   const savePreferences = useCallback(() => {

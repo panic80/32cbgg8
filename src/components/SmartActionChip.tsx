@@ -27,7 +27,9 @@ const getCategoryIcon = (category?: string) => {
     case 'explore':
       return <ArrowRight size={12} className="text-purple-600 dark:text-purple-400" />;
     default:
-      return <HelpCircle size={12} className="text-gray-600 dark:text-gray-500 dark:text-gray-400" />;
+      return (
+        <HelpCircle size={12} className="text-gray-600 dark:text-gray-500 dark:text-gray-400" />
+      );
   }
 };
 
@@ -72,76 +74,77 @@ const SmartActionChip: React.FC<SmartActionChipProps> = ({
     <motion.button
       initial={{ opacity: 0, scale: 0.8, y: 20 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
-      transition={{ 
+      transition={{
         delay: index * 0.1,
-        type: "spring",
+        type: 'spring',
         stiffness: 300,
-        damping: 20
+        damping: 20,
       }}
-      whileHover={{ 
+      whileHover={{
         scale: 1.02,
         y: -2,
-        transition: { type: "spring", stiffness: 400, damping: 25 }
+        transition: { type: 'spring', stiffness: 400, damping: 25 },
       }}
       whileTap={{ scale: 0.96 }}
       onClick={() => onClick(questionText)}
       className={cn(
-        "group relative flex items-start gap-2 px-3 py-2 rounded-lg border bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm shadow-sm transition-all duration-200",
-        "min-h-[36px] text-left text-sm font-medium text-gray-700 dark:text-gray-200",
-        "hover:bg-white/90 dark:hover:bg-gray-800/90 hover:shadow-md active:shadow-sm",
-        "focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-400 focus:ring-offset-1",
-        "max-w-full",
-        getCategoryColor(question?.category).replace('border-', 'border-').replace('hover:border-', 'hover:border-').replace('hover:bg-', 'hover:bg-'),
-        className
+        'group relative flex items-start gap-2 px-3 py-2 rounded-lg border bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm shadow-sm transition-all duration-200',
+        'min-h-[36px] text-left text-sm font-medium text-gray-700 dark:text-gray-200',
+        'hover:bg-white/90 dark:hover:bg-gray-800/90 hover:shadow-md active:shadow-sm',
+        'focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-400 focus:ring-offset-1',
+        'max-w-full',
+        getCategoryColor(question?.category)
+          .replace('border-', 'border-')
+          .replace('hover:border-', 'hover:border-')
+          .replace('hover:bg-', 'hover:bg-'),
+        className,
       )}
       title={questionText} // Full question on hover
     >
       {/* Category icon */}
-      <motion.div 
+      <motion.div
         className="flex-shrink-0 opacity-70 group-hover:opacity-100 transition-opacity mt-0.5"
         whileHover={{ rotate: 15 }}
-        transition={{ type: "spring", stiffness: 300 }}
+        transition={{ type: 'spring', stiffness: 300 }}
       >
         {getCategoryIcon(question?.category)}
       </motion.div>
-      
+
       {/* Question text */}
-      <span className="flex-1 text-left whitespace-normal break-words">
-        {questionText}
-      </span>
-      
+      <span className="flex-1 text-left whitespace-normal break-words">{questionText}</span>
+
       {/* Confidence indicators */}
       <div className="flex items-center gap-1 flex-shrink-0">
         {question?.confidence && question.confidence > 0.8 && (
-          <motion.div 
-            className="w-2 h-2 rounded-full bg-green-500 opacity-60" 
+          <motion.div
+            className="w-2 h-2 rounded-full bg-green-500 opacity-60"
             title="High confidence question"
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 500, delay: 0.2 + index * 0.1 }}
+            transition={{ type: 'spring', stiffness: 500, delay: 0.2 + index * 0.1 }}
           />
         )}
         {question?.groundingScore && question.groundingScore > 0.5 && (
-          <motion.div 
-            className="w-2 h-2 rounded-full bg-blue-500 opacity-60" 
+          <motion.div
+            className="w-2 h-2 rounded-full bg-blue-500 opacity-60"
             title="Well-grounded in source content"
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 500, delay: 0.3 + index * 0.1 }}
+            transition={{ type: 'spring', stiffness: 500, delay: 0.3 + index * 0.1 }}
           />
         )}
       </div>
-      
+
       {/* Hover arrow indicator */}
       <motion.div
         className="opacity-0 group-hover:opacity-100 transition-opacity"
         initial={{ x: -5 }}
         whileHover={{ x: 0 }}
-        transition={{ type: "spring", stiffness: 300 }}
+        transition={{ type: 'spring', stiffness: 300 }}
       >
         <ArrowRight size={12} className="text-gray-500 dark:text-gray-400" />
       </motion.div>
-      
+
       {/* Subtle gradient overlay on hover */}
       <motion.div
         className="absolute inset-0 rounded-full bg-gradient-to-r from-transparent via-white to-transparent opacity-0 pointer-events-none"

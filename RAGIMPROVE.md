@@ -1,6 +1,7 @@
 # RAG Improvements Log
 
 ## 2025-09-17 — Source Catalog and Ingestion Enhancements
+
 - Tagged every chunk with stable provenance fields (`source_id`, `canonical_url`, `reference_path`) during ingestion so downstream retrieval can cite canonical documents reliably.
 - Wired ingestion to persist those records into a dedicated SQLite-backed `SourceRepository`, keeping chunk-to-source and query-to-source mappings in sync without re-embedding data.
 - Updated chat (sync + streaming) flows to emit canonical IDs in `Source` payloads and log the exact citations used per response for later auditing.

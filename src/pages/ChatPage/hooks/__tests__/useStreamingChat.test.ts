@@ -66,7 +66,7 @@ describe('useStreamingChat', () => {
         useRAG: true,
         shortAnswerMode: false,
         modelMode: 'fast',
-      })
+      }),
     );
 
     return { ...hook, setConversationId, setCurrentModel };

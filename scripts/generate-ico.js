@@ -13,7 +13,7 @@ async function generateIco() {
     const files = [
       path.join(publicPath, 'favicon-16x16.png'),
       path.join(publicPath, 'favicon-32x32.png'),
-      path.join(publicPath, 'favicon-48x48.png')
+      path.join(publicPath, 'favicon-48x48.png'),
     ];
 
     const ico = await pngToIco(files);

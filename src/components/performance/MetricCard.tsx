@@ -67,7 +67,9 @@ const MetricCard = ({ title, metric, unit = 'ms', description, target }: MetricC
           <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
           <p className="text-2xl font-semibold text-foreground mt-1">{formattedPrimary}</p>
           {description && (
-            <p className="text-xs text-muted-foreground mt-1 max-w-xs leading-relaxed">{description}</p>
+            <p className="text-xs text-muted-foreground mt-1 max-w-xs leading-relaxed">
+              {description}
+            </p>
           )}
         </div>
         <div className="text-right text-xs text-muted-foreground space-y-1">

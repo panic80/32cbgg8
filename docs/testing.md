@@ -86,10 +86,10 @@ vi.mock('@google/generative-ai', () => ({
   GoogleGenerativeAI: vi.fn(() => ({
     getGenerativeModel: vi.fn(() => ({
       generateContent: vi.fn().mockResolvedValue({
-        response: { text: vi.fn().mockReturnValue('Test response') }
-      })
-    }))
-  }))
+        response: { text: vi.fn().mockReturnValue('Test response') },
+      }),
+    })),
+  })),
 }));
 
 describe('Gemini API', () => {
@@ -98,7 +98,12 @@ describe('Gemini API', () => {
   });
 
   it('sends request to Gemini API', async () => {
-    const result = await sendToGemini('Test question', false, 'gemini-2.0-flash', 'Test instructions');
+    const result = await sendToGemini(
+      'Test question',
+      false,
+      'gemini-2.0-flash',
+      'Test instructions',
+    );
     expect(result).toHaveProperty('text');
     expect(result).toHaveProperty('sources');
   });
@@ -116,10 +121,16 @@ describe('Error handling', () => {
   it('handles network errors gracefully', async () => {
     // Mock a network error
     global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
-    
+
     // Should use fallback content
-    const result = await sendToGemini('Test question', false, 'gemini-2.0-flash', 'Test instructions', true);
-    
+    const result = await sendToGemini(
+      'Test question',
+      false,
+      'gemini-2.0-flash',
+      'Test instructions',
+      true,
+    );
+
     expect(result.fallback).toBe(true);
     expect(result.text).toContain('Unable to generate response');
   });
@@ -147,7 +158,7 @@ Always test error conditions:
 it('handles errors when API fails', async () => {
   // Mock the failure
   mockFetch.mockRejectedValueOnce(new Error('API error'));
-  
+
   // Verify error handling behavior
   await expect(fetchData()).rejects.toThrow('API error');
 });
@@ -160,8 +171,8 @@ Use `vi.mock()` to mock external dependencies:
 ```jsx
 vi.mock('axios', () => ({
   default: {
-    get: vi.fn().mockResolvedValue({ data: { result: 'mocked data' } })
-  }
+    get: vi.fn().mockResolvedValue({ data: { result: 'mocked data' } }),
+  },
 }));
 ```
 
@@ -174,11 +185,11 @@ describe('Component name', () => {
   describe('Rendering', () => {
     // Tests for rendering behavior
   });
-  
+
   describe('Interactivity', () => {
     // Tests for user interactions
   });
-  
+
   describe('Error states', () => {
     // Tests for error handling
   });
@@ -190,6 +201,7 @@ describe('Component name', () => {
 ### UI Components
 
 Focus on:
+
 - Correct rendering
 - User interactions
 - Accessibility
@@ -198,6 +210,7 @@ Focus on:
 ### API Integrations
 
 Focus on:
+
 - Successful requests/responses
 - Error handling
 - Retries and fallbacks
@@ -206,6 +219,7 @@ Focus on:
 ### Utility Functions
 
 Focus on:
+
 - Input/output correctness
 - Edge cases
 - Performance (when relevant)
@@ -213,6 +227,7 @@ Focus on:
 ## Coverage Goals
 
 Aim for:
+
 - 80%+ overall test coverage
 - 90%+ coverage for critical paths
 - 100% coverage for error handling logic

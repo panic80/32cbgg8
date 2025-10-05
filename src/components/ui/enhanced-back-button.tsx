@@ -64,7 +64,7 @@ export const EnhancedBackButton: React.FC<EnhancedBackButtonProps> = ({
   const sizeClasses = {
     sm: 'h-9 px-3 text-sm gap-1.5',
     default: 'h-11 px-4 text-base gap-2',
-    lg: 'h-14 px-6 text-lg gap-3'
+    lg: 'h-14 px-6 text-lg gap-3',
   };
 
   const Icon = showHome ? Home : ArrowLeft;
@@ -85,9 +85,9 @@ export const EnhancedBackButton: React.FC<EnhancedBackButtonProps> = ({
           'hover:shadow-xl hover:shadow-primary/25',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
           sizeClasses[size],
-          className
+          className,
         )}
-                aria-label={`${label} - Navigate to previous page`}
+        aria-label={`${label} - Navigate to previous page`}
       >
         {/* Gradient background animation */}
         <motion.div
@@ -101,7 +101,6 @@ export const EnhancedBackButton: React.FC<EnhancedBackButtonProps> = ({
           <Icon size={iconSize} />
           <span className="hidden sm:inline-block">{label}</span>
         </span>
-
       </motion.button>
     );
   }
@@ -110,10 +109,7 @@ export const EnhancedBackButton: React.FC<EnhancedBackButtonProps> = ({
     return (
       <button
         onClick={handleClick}
-        className={cn(
-          'group relative',
-          className
-        )}
+        className={cn('group relative', className)}
         aria-label={`${label} - Navigate to previous page`}
       >
         <div
@@ -123,7 +119,7 @@ export const EnhancedBackButton: React.FC<EnhancedBackButtonProps> = ({
             'font-medium transition-colors duration-300',
             '',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
-            sizeClasses[size]
+            sizeClasses[size],
           )}
         >
           <Icon size={iconSize} className="" />
@@ -133,7 +129,7 @@ export const EnhancedBackButton: React.FC<EnhancedBackButtonProps> = ({
           className={cn(
             'absolute inset-0 rounded-2xl bg-primary/20 transition-colors duration-300',
             '',
-            'group-hover:[box-shadow:2px_2px_0_0_rgba(var(--primary-rgb),0.4),4px_4px_0_0_rgba(var(--primary-rgb),0.3),6px_6px_0_0_rgba(var(--primary-rgb),0.2)]'
+            'group-hover:[box-shadow:2px_2px_0_0_rgba(var(--primary-rgb),0.4),4px_4px_0_0_rgba(var(--primary-rgb),0.3),6px_6px_0_0_rgba(var(--primary-rgb),0.2)]',
           )}
         />
       </button>
@@ -151,9 +147,9 @@ export const EnhancedBackButton: React.FC<EnhancedBackButtonProps> = ({
           'hover:border-primary/40 hover:bg-primary/10 hover:shadow-lg hover:shadow-primary/20',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
           sizeClasses[size],
-          className
+          className,
         )}
-                        aria-label={`${label} - Navigate to previous page`}
+        aria-label={`${label} - Navigate to previous page`}
       >
         {/* Animated glow */}
         <motion.div
@@ -171,10 +167,7 @@ export const EnhancedBackButton: React.FC<EnhancedBackButtonProps> = ({
 
         {/* Content */}
         <span className="relative z-10 flex items-center">
-          <motion.div
-            className="relative"
-                        transition={{ duration: 0.3 }}
-          >
+          <motion.div className="relative" transition={{ duration: 0.3 }}>
             <Icon size={iconSize} />
           </motion.div>
           <span className="hidden sm:inline-block">{label}</span>
@@ -195,7 +188,7 @@ export const EnhancedBackButton: React.FC<EnhancedBackButtonProps> = ({
           'hover:border-primary hover:shadow-lg',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
           sizeClasses[size],
-          className
+          className,
         )}
         aria-label={`${label} - Navigate to previous page`}
       >
@@ -247,10 +240,10 @@ export const EnhancedBackButton: React.FC<EnhancedBackButtonProps> = ({
         size === 'sm' && 'gap-1 text-sm',
         size === 'default' && 'gap-1.5 text-base',
         size === 'lg' && 'gap-2 text-lg',
-        className
+        className,
       )}
       whileHover={{ x: -4 }}
-            aria-label={`${label} - Navigate to previous page`}
+      aria-label={`${label} - Navigate to previous page`}
     >
       <motion.div
         whileHover={{ x: -2 }}
@@ -262,7 +255,7 @@ export const EnhancedBackButton: React.FC<EnhancedBackButtonProps> = ({
         {label}
         <motion.span
           className="absolute bottom-0 left-0 h-px w-full bg-primary"
-                              transition={{ duration: 0.2 }}
+          transition={{ duration: 0.2 }}
           style={{ transformOrigin: 'left' }}
         />
       </span>

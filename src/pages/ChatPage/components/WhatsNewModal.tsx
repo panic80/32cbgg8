@@ -1,5 +1,11 @@
 import React from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Calendar } from 'lucide-react';
@@ -50,11 +56,15 @@ export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ open, onOpenChange
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.02 * (idx + 1) }}
                     >
-                      <span className="text-[var(--primary)] mt-0.5 flex-shrink-0">{update.icon}</span>
+                      <span className="text-[var(--primary)] mt-0.5 flex-shrink-0">
+                        {update.icon}
+                      </span>
                       <div className="flex-1">
                         <div className="text-[var(--text)]">{update.text}</div>
                         {update.description && (
-                          <div className="text-xs text-[var(--text-secondary)] mt-1">{update.description}</div>
+                          <div className="text-xs text-[var(--text-secondary)] mt-1">
+                            {update.description}
+                          </div>
                         )}
                       </div>
                     </motion.li>
@@ -65,7 +75,9 @@ export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ open, onOpenChange
           </div>
         </ScrollArea>
         <div className="flex items-center justify-end pt-2 gap-2">
-          <Button size="sm" onClick={() => handleOpenChange(false)}>Got it</Button>
+          <Button size="sm" onClick={() => handleOpenChange(false)}>
+            Got it
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

@@ -17,11 +17,7 @@
   z-index: 0;
   opacity: 0.15;
   pointer-events: none;
-  background: radial-gradient(
-    circle at 50% 0%,
-    var(--primary) 0%,
-    transparent 50%
-  );
+  background: radial-gradient(circle at 50% 0%, var(--primary) 0%, transparent 50%);
 }
 
 /* Theme Toggle */
@@ -409,7 +405,9 @@
     padding: 0.875rem 1.5rem;
   }
 
-  .lpt-minimal-cards { gap: 1rem; }
+  .lpt-minimal-cards {
+    gap: 1rem;
+  }
 
   .lpt-minimal-card {
     padding: 1.25rem 0.75rem;

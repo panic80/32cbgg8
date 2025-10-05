@@ -156,11 +156,11 @@ module.exports = {
       cwd: '/var/www/cbthis',
       env: {
         NODE_ENV: 'production',
-        PORT: 3000
+        PORT: 3000,
       },
       // ... rest of config
-    }
-  ]
+    },
+  ],
 };
 ```
 
@@ -221,6 +221,7 @@ sudo nano /etc/redis/redis.conf
 ```
 
 Make these changes:
+
 ```conf
 # Set memory limit
 maxmemory 512mb
@@ -321,17 +322,17 @@ upstream rag_backend {
 server {
     listen 80;
     server_name 32cbgg8.com www.32cbgg8.com;
-    
+
     # Allow Let's Encrypt challenges
     location /.well-known/acme-challenge/ {
         root /var/www/certbot;
     }
-    
+
     # Redirect all other traffic to HTTPS (uncomment after SSL setup)
     # location / {
     #     return 301 https://$server_name$request_uri;
     # }
-    
+
     # For initial setup without SSL:
     location / {
         proxy_pass http://app_backend;
@@ -343,13 +344,13 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_cache_bypass $http_upgrade;
-        
+
         # SSE support
         proxy_buffering off;
         proxy_read_timeout 86400s;
         proxy_send_timeout 86400s;
     }
-    
+
     # RAG service proxy
     location /api/rag/ {
         proxy_pass http://rag_backend/;
@@ -358,13 +359,13 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        
+
         # Increase timeouts for RAG processing
         proxy_connect_timeout 60s;
         proxy_send_timeout 300s;
         proxy_read_timeout 300s;
     }
-    
+
     # Health check endpoint
     location /health {
         proxy_pass http://app_backend/health;
@@ -424,6 +425,7 @@ sudo nano /etc/logrotate.d/cf-rag-service
 ```
 
 Add:
+
 ```
 /var/www/cbthis/rag-service/logs/*.log {
     daily
@@ -443,6 +445,7 @@ Add:
 ## Monitoring and Maintenance
 
 ### Check Service Status
+
 ```bash
 # PM2 status
 pm2 status
@@ -460,6 +463,7 @@ sudo systemctl status redis
 ```
 
 ### Monitor Resources
+
 ```bash
 # Install htop for better monitoring
 sudo apt install -y htop
@@ -475,6 +479,7 @@ htop
 ```
 
 ### Update Application
+
 ```bash
 cd /var/www/cbthis
 
@@ -494,12 +499,14 @@ sudo systemctl restart cf-rag-service
 ```
 
 ### Backup Strategy
+
 ```bash
 # Create backup script
 nano /home/deploy/backup.sh
 ```
 
 Add:
+
 ```bash
 #!/bin/bash
 BACKUP_DIR="/home/deploy/backups"
@@ -534,6 +541,7 @@ crontab -e
 ## Troubleshooting
 
 ### Memory Issues
+
 If you run out of memory during Python package installation:
 
 ```bash
@@ -548,6 +556,7 @@ echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 ```
 
 ### Port Conflicts
+
 ```bash
 # Check what's using ports
 sudo netstat -tlnp | grep -E ':3000|:8000|:6379'
@@ -557,6 +566,7 @@ sudo fuser -k 3000/tcp
 ```
 
 ### Service Won't Start
+
 ```bash
 # Check logs
 pm2 logs cf-travel-bot
@@ -567,6 +577,7 @@ ls -la /var/www/cbthis
 ```
 
 ### Python Package Issues
+
 ```bash
 # If packages fail to install, try:
 cd /var/www/cbthis/rag-service
@@ -595,6 +606,7 @@ pip install --no-cache-dir -r requirements.txt
 ## Performance Optimization
 
 ### Optimize PM2
+
 ```bash
 # Set cluster mode for better performance
 pm2 scale cf-travel-bot 2
@@ -604,6 +616,7 @@ pm2 monit
 ```
 
 ### Optimize Python/RAG Service
+
 ```bash
 # Edit systemd service to add more workers
 sudo nano /etc/systemd/system/cf-rag-service.service
@@ -614,6 +627,7 @@ sudo systemctl restart cf-rag-service
 ```
 
 ### Monitor and Optimize
+
 ```bash
 # Install monitoring tools
 sudo apt install -y nethogs iotop

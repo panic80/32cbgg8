@@ -22,7 +22,7 @@ export const processContent = (html) => {
     const navCount = $('nav').length;
 
     console.log(
-      `Element counts before removal: scripts=${scriptCount}, styles=${styleCount}, headers=${headerCount}, footers=${footerCount}, navs=${navCount}`
+      `Element counts before removal: scripts=${scriptCount}, styles=${styleCount}, headers=${headerCount}, footers=${footerCount}, navs=${navCount}`,
     );
 
     $('script, style, header, footer, nav').remove();
@@ -58,9 +58,12 @@ export const processContent = (html) => {
       .replace(/(\d+\.\d+\.?\d*)(\s+)/g, '\n$1$2')
       .replace(/(SECTION|Chapter|CHAPTER|Part|PART)\s+(\d+)/gi, '\n$1 $2')
       .replace(/([a-z])([A-Z])/g, '$1 $2')
-      .replace(/([Ll]unch).+?(\d{1,2}[:\.]\d{2}).+?(\d{1,2}[:\.]\d{2})/g, (match, meal, start, end) => {
-        return `${meal} may be claimed when duty travel extends through the period of ${start} to ${end}`;
-      })
+      .replace(
+        /([Ll]unch).+?(\d{1,2}[:\.]\d{2}).+?(\d{1,2}[:\.]\d{2})/g,
+        (match, meal, start, end) => {
+          return `${meal} may be claimed when duty travel extends through the period of ${start} to ${end}`;
+        },
+      )
       .replace(/([.!?])\s+/g, '$1\n')
       .trim();
 
@@ -81,4 +84,3 @@ export const processContent = (html) => {
     }
   }
 };
-

@@ -7,7 +7,9 @@ const logStartupInfo = () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'production'}`);
   console.log(`Cache: ${config.cacheEnabled ? 'Enabled' : 'Disabled'}`);
-  console.log(`Rate Limiting: ${config.rateLimitEnabled ? `Enabled (${config.rateLimitMax} req/min)` : 'Disabled'}`);
+  console.log(
+    `Rate Limiting: ${config.rateLimitEnabled ? `Enabled (${config.rateLimitMax} req/min)` : 'Disabled'}`,
+  );
   console.log(`Static assets: ${distPath || 'Not found'}`);
   console.log(`Landing page: ${landingPath || 'Not found'}`);
   console.log('\nAvailable endpoints:');

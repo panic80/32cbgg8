@@ -11,7 +11,7 @@ vi.mock('@google/generative-ai', () => {
           }),
         };
       }
-    }
+    },
   };
 });
 
@@ -89,8 +89,7 @@ describe('server/main routes', () => {
   });
 
   it('requires admin credentials for logs API', async () => {
-    const unauthorized = await request(app)
-      .get('/api/admin/chat-logs?limit=1&offset=0');
+    const unauthorized = await request(app).get('/api/admin/chat-logs?limit=1&offset=0');
 
     expect(unauthorized.status).toBe(401);
     expect(unauthorized.headers['www-authenticate']).toMatch(/Basic/);

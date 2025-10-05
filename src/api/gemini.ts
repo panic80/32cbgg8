@@ -17,7 +17,7 @@ const toError = (error: unknown): Error => {
 export const createPrompt = (
   message: string,
   isSimplified = false,
-  instructions: string
+  instructions: string,
 ): string => {
   return `You are a helpful assistant for Canadian Forces Travel Instructions.
 
@@ -46,10 +46,10 @@ Please provide a response in this EXACT format:
 Reference: <provide the section or chapter reference from the source>
 Quote: <provide the exact quote that contains the answer>
 ${
-    isSimplified
-      ? 'Answer: <provide a concise answer in no more than two sentences>'
-      : 'Answer: <provide a succinct one-sentence reply>\nReason: <provide a comprehensive explanation and justification drawing upon the source material>'
-  }`;
+  isSimplified
+    ? 'Answer: <provide a concise answer in no more than two sentences>'
+    : 'Answer: <provide a succinct one-sentence reply>\nReason: <provide a comprehensive explanation and justification drawing upon the source material>'
+}`;
 };
 
 export const getGenerationConfig = () => ({
@@ -80,11 +80,19 @@ const handleApiError = (error: unknown): ChatError => {
     return new ChatError(ChatErrorType.RATE_LIMIT, normalised);
   }
 
-  if (message.includes('Network') || message.includes('ECONNREFUSED') || message.includes('fetch')) {
+  if (
+    message.includes('Network') ||
+    message.includes('ECONNREFUSED') ||
+    message.includes('fetch')
+  ) {
     return new ChatError(ChatErrorType.NETWORK, normalised);
   }
 
-  if (normalised instanceof SyntaxError || message.includes('JSON') || message.includes('Invalid response format')) {
+  if (
+    normalised instanceof SyntaxError ||
+    message.includes('JSON') ||
+    message.includes('Invalid response format')
+  ) {
     return new ChatError(ChatErrorType.SERVICE, {
       message: 'Invalid API response format',
       details: message,
@@ -99,7 +107,7 @@ export const callGeminiAPI = async (
   isSimplified: boolean,
   model: string,
   instructions: string,
-  enableRetry = true
+  enableRetry = true,
 ): Promise<ParsedChatResponse> => {
   const promptText = createPrompt(message, isSimplified, instructions);
   const requestBody = {
@@ -209,7 +217,7 @@ export const sendToGemini = async (
   isSimplified = false,
   model = 'gemini-2.5-flash-preview-05-20',
   preloadedInstructions: string | null = null,
-  useFallback = false
+  useFallback = false,
 ): Promise<GeminiApiResponse> => {
   try {
     if (!preloadedInstructions) {

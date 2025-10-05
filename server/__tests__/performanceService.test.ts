@@ -12,7 +12,19 @@ const mockAxios = axios as unknown as { get: ReturnType<typeof vi.fn> };
 
 const samplePayload = {
   latency: {
-    answerTime: { mean: 1200, count: 3, p50: 1100, p75: 1300, p95: 1500, p99: 1700, min: 1000, max: 1800, rate_per_minute: 2, window_size: 3, recent: [] },
+    answerTime: {
+      mean: 1200,
+      count: 3,
+      p50: 1100,
+      p75: 1300,
+      p95: 1500,
+      p99: 1700,
+      min: 1000,
+      max: 1800,
+      rate_per_minute: 2,
+      window_size: 3,
+      recent: [],
+    },
     searchTime: { mean: 350 },
     retrievalTime: { mean: 200 },
     answerGeneration: { mean: 900 },

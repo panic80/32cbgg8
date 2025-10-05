@@ -14,13 +14,7 @@ import {
   FileQuestion,
   ChevronRight,
 } from 'lucide-react';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
@@ -113,7 +107,7 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
       onClick: () => {
         setIsOpen(false);
         onTripPlannerOpen();
-      }
+      },
     },
     {
       type: 'button',
@@ -122,8 +116,8 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
       onClick: () => {
         setIsOpen(false);
         onWhatsNewOpen && onWhatsNewOpen();
-      }
-    }
+      },
+    },
   ];
 
   toolsItems.push(
@@ -134,7 +128,7 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
       onClick: () => {
         setIsOpen(false);
         onHowItWorksOpen && onHowItWorksOpen();
-      }
+      },
     },
     {
       type: 'button',
@@ -143,8 +137,8 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
       onClick: () => {
         setIsOpen(false);
         onHelpOpen();
-      }
-    }
+      },
+    },
   );
 
   const menuSections: MenuSection[] = [
@@ -158,9 +152,9 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
           value: modelMode,
           options: [
             { value: 'smart', label: 'Smart', icon: <Brain className="w-3 h-3" /> },
-            { value: 'fast', label: 'Fast', icon: <Zap className="w-3 h-3" /> }
+            { value: 'fast', label: 'Fast', icon: <Zap className="w-3 h-3" /> },
           ],
-          onChange: (value: string) => setModelMode(value as 'fast' | 'smart')
+          onChange: (value: string) => setModelMode(value as 'fast' | 'smart'),
         },
         {
           type: 'switch',
@@ -168,9 +162,9 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
           description: 'Get concise responses',
           icon: <Minimize2 className="w-4 h-4" />,
           value: shortAnswerMode,
-          onChange: setShortAnswerMode
-        }
-      ]
+          onChange: setShortAnswerMode,
+        },
+      ],
     },
     {
       title: 'Tools',
@@ -179,9 +173,19 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
     {
       title: 'Conversation',
       items: [
-        { type: 'button', label: 'Export as Markdown', icon: <FileQuestion className="w-4 h-4" />, onClick: onExportMarkdown },
-        { type: 'button', label: 'Clear conversation', icon: <X className="w-4 h-4" />, onClick: onClearConversation },
-      ]
+        {
+          type: 'button',
+          label: 'Export as Markdown',
+          icon: <FileQuestion className="w-4 h-4" />,
+          onClick: onExportMarkdown,
+        },
+        {
+          type: 'button',
+          label: 'Clear conversation',
+          icon: <X className="w-4 h-4" />,
+          onClick: onClearConversation,
+        },
+      ],
     },
     {
       title: 'Appearance',
@@ -193,14 +197,14 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
           value: theme,
           options: [
             { value: 'light', label: 'Light', icon: <Sun className="w-3 h-3" /> },
-            { value: 'dark', label: 'Dark', icon: <Moon className="w-3 h-3" /> }
+            { value: 'dark', label: 'Dark', icon: <Moon className="w-3 h-3" /> },
           ],
           onChange: (value: string) => {
             if (value !== theme) toggleTheme();
-          }
-        }
-      ]
-    }
+          },
+        },
+      ],
+    },
   ];
 
   return (
@@ -209,11 +213,11 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ 
-            type: "spring", 
-            stiffness: 200, 
+          transition={{
+            type: 'spring',
+            stiffness: 200,
             damping: 20,
-            delay: 0.5 
+            delay: 0.5,
           }}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
@@ -232,32 +236,30 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
             <motion.div
               className="absolute inset-0 rounded-lg border-2 border-[var(--accent-foreground)]"
               initial={{ opacity: 0.6, scale: 1 }}
-              animate={{ 
+              animate={{
                 opacity: [0.6, 0, 0.6],
-                scale: [1, 1.15, 1]
+                scale: [1, 1.15, 1],
               }}
               transition={{
                 duration: 2,
                 repeat: 2,
-                repeatType: "loop",
-                ease: "easeInOut"
+                repeatType: 'loop',
+                ease: 'easeInOut',
               }}
               style={{ pointerEvents: 'none' }}
             />
           </Button>
         </motion.div>
       </SheetTrigger>
-      <SheetContent 
-        side="right" 
+      <SheetContent
+        side="right"
         className="w-[300px] sm:w-[350px] p-0 border-l border-[var(--border)]"
       >
         <SheetHeader className="px-6 py-4 border-b border-[var(--border)]">
           <SheetTitle className="text-xl font-bold">Menu</SheetTitle>
         </SheetHeader>
-        
-        <div
-          className="flex flex-col overflow-y-auto overscroll-contain pb-[max(env(safe-area-inset-bottom),1rem)] h-[calc(100dvh-4rem)]"
-        >
+
+        <div className="flex flex-col overflow-y-auto overscroll-contain pb-[max(env(safe-area-inset-bottom),1rem)] h-[calc(100dvh-4rem)]">
           {menuSections.map((section, sectionIndex) => (
             <div key={section.title} className="px-6 py-4">
               <h3 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-3">
@@ -278,12 +280,12 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
                               key={option.value}
                               onClick={() => item.onChange(option.value)}
                               className={cn(
-                                "flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+                                'flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all',
                                 item.value === option.value
-                                  ? theme === 'dark' 
-                                    ? "bg-yellow-500 text-black shadow-sm" 
-                                    : "bg-green-500 text-white shadow-sm"
-                                  : "text-[var(--text-secondary)] hover:text-foreground"
+                                  ? theme === 'dark'
+                                    ? 'bg-yellow-500 text-black shadow-sm'
+                                    : 'bg-green-500 text-white shadow-sm'
+                                  : 'text-[var(--text-secondary)] hover:text-foreground',
                               )}
                             >
                               {option.icon}
@@ -294,7 +296,7 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
                       </div>
                     );
                   }
-                  
+
                   if (item.type === 'switch') {
                     return (
                       <div key={itemIndex} className="flex items-center justify-between py-2">
@@ -309,14 +311,11 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
                             )}
                           </div>
                         </div>
-                        <Switch
-                          checked={item.value}
-                          onCheckedChange={item.onChange}
-                        />
+                        <Switch checked={item.value} onCheckedChange={item.onChange} />
                       </div>
                     );
                   }
-                  
+
                   if (item.type === 'button') {
                     return (
                       <motion.button
@@ -334,14 +333,10 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
                       </motion.button>
                     );
                   }
-                  
+
                   if (item.type === 'link') {
                     return (
-                      <Link
-                        key={itemIndex}
-                        to={item.href || '/'}
-                        onClick={() => setIsOpen(false)}
-                      >
+                      <Link key={itemIndex} to={item.href || '/'} onClick={() => setIsOpen(false)}>
                         <motion.div
                           className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-[var(--background-secondary)] transition-colors"
                           whileHover={{ x: 2 }}
@@ -356,13 +351,11 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
                       </Link>
                     );
                   }
-                  
+
                   return null;
                 })}
               </div>
-              {sectionIndex < menuSections.length - 1 && (
-                <Separator className="mt-4" />
-              )}
+              {sectionIndex < menuSections.length - 1 && <Separator className="mt-4" />}
             </div>
           ))}
         </div>

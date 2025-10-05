@@ -5,6 +5,7 @@ This guide covers the safe deployment of retrieval optimizations using A/B testi
 ## Overview
 
 The optimization system includes:
+
 - **Gated Retrieval Coordinator**: Orchestrates all retrieval components
 - **Conditional Reranking**: Intelligent reranking decisions
 - **Delayed Head Streaming**: Optimized response streaming
@@ -14,6 +15,7 @@ The optimization system includes:
 ## Deployment Strategy
 
 ### Phase 1: Development Testing (0% Production)
+
 ```bash
 # Use development settings
 cp .env.optimization .env
@@ -21,6 +23,7 @@ python3 scripts/rollback_retrieval.py status
 ```
 
 ### Phase 2: Staging Validation (25% Traffic)
+
 ```bash
 # Copy staging config
 cp .env.staging .env
@@ -35,6 +38,7 @@ sudo systemctl restart rag-service
 ### Phase 3: Production Rollout (10% → 25% → 50% → 100%)
 
 #### Step 1: Initial 10% rollout
+
 ```bash
 # Enable with 10% rollout
 python3 scripts/rollback_retrieval.py enable --percentage 0.1
@@ -44,12 +48,14 @@ python3 scripts/rollback_retrieval.py enable --percentage 0.1
 ```
 
 #### Step 2: Gradual increase to 50%
+
 ```bash
 # Gradual rollout with 5-minute steps
 python3 scripts/rollback_retrieval.py rollout --percentage 0.5 --step-size 0.1 --step-delay 300
 ```
 
 #### Step 3: Full rollout
+
 ```bash
 # After 72 hours of successful 50% rollout
 python3 scripts/rollback_retrieval.py enable --percentage 1.0
@@ -73,11 +79,13 @@ python3 scripts/rollback_retrieval.py status
 ## Monitoring Commands
 
 ### Check Current Status
+
 ```bash
 python3 scripts/rollback_retrieval.py status
 ```
 
 ### Monitor Service Logs
+
 ```bash
 # General service logs
 journalctl -f -u rag-service
@@ -90,6 +98,7 @@ journalctl -f -u rag-service | grep "A/B test"
 ```
 
 ### Performance Monitoring
+
 ```bash
 # Check latency metrics
 curl -X POST http://localhost:8000/api/v1/streaming_chat \
@@ -105,11 +114,12 @@ Before proceeding to next phase, verify:
 ✅ **Accuracy**: F1 score within ±1% of baseline  
 ✅ **Performance**: P50 latency < 250ms, P95 < 500ms  
 ✅ **Reliability**: No increase in error rates  
-✅ **Cache Hit Rate**: L2 cache hit rate > 40%  
+✅ **Cache Hit Rate**: L2 cache hit rate > 40%
 
 ## Rollback Triggers
 
 Automatically rollback if:
+
 - F1 score drops >1% from baseline
 - P95 latency increases >30%
 - Error rate increases >5%
@@ -125,6 +135,7 @@ Automatically rollback if:
 ## A/B Testing Details
 
 The system uses MD5 hash of query message for consistent A/B assignments:
+
 - Users get the same experience across sessions
 - Traffic split is deterministic and stable
 - Can be monitored via "A/B test" log entries
@@ -132,6 +143,7 @@ The system uses MD5 hash of query message for consistent A/B assignments:
 ## Support
 
 For issues during deployment:
+
 1. Check service logs: `journalctl -f -u rag-service`
 2. Verify configuration: `python3 scripts/rollback_retrieval.py status`
 3. Emergency rollback: `python3 scripts/rollback_retrieval.py disable`

@@ -48,9 +48,7 @@ const PerformanceDashboard = () => {
     refresh({ force: true });
   };
 
-  const lastUpdatedLabel = lastUpdated
-    ? new Date(lastUpdated).toLocaleString()
-    : '—';
+  const lastUpdatedLabel = lastUpdated ? new Date(lastUpdated).toLocaleString() : '—';
 
   const showSkeleton = isLoading && !data;
 
@@ -61,7 +59,8 @@ const PerformanceDashboard = () => {
           <div>
             <h1 className="text-3xl font-semibold text-foreground">Performance Dashboard</h1>
             <p className="text-muted-foreground mt-2 max-w-2xl">
-              Observe RAG latency, quality, and throughput metrics in real time. Values update automatically and can be refreshed on demand.
+              Observe RAG latency, quality, and throughput metrics in real time. Values update
+              automatically and can be refreshed on demand.
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -69,7 +68,13 @@ const PerformanceDashboard = () => {
               <p className="uppercase tracking-wide">Last updated</p>
               <p className="font-medium">{lastUpdatedLabel}</p>
             </div>
-            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isLoading} className="gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isLoading}
+              className="gap-2"
+            >
               <RefreshCcw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
@@ -89,7 +94,10 @@ const PerformanceDashboard = () => {
         {showSkeleton && (
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
             {Array.from({ length: 4 }).map((_, index) => (
-              <div key={index} className="h-40 rounded-xl border border-border/60 bg-muted animate-pulse" />
+              <div
+                key={index}
+                className="h-40 rounded-xl border border-border/60 bg-muted animate-pulse"
+              />
             ))}
           </div>
         )}
@@ -188,18 +196,27 @@ const PerformanceDashboard = () => {
                 <div className="rounded-xl border border-border/60 bg-background p-4 flex flex-col gap-4 shadow-sm">
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground">Error Rate</h3>
-                    <p className="text-2xl font-semibold text-foreground mt-1">{formatPercent(qualitySummary?.errorRate)}</p>
+                    <p className="text-2xl font-semibold text-foreground mt-1">
+                      {formatPercent(qualitySummary?.errorRate)}
+                    </p>
                     <p className="text-xs text-muted-foreground mt-1">
                       {`Failures: ${formatNumber(qualitySummary?.failed)} of ${formatNumber(qualitySummary?.total)}`}
                     </p>
                   </div>
-                  <TrendSparkline data={data.quality.hallucinationRate.recent} className="text-red-500" />
+                  <TrendSparkline
+                    data={data.quality.hallucinationRate.recent}
+                    className="text-red-500"
+                  />
                 </div>
                 <div className="rounded-xl border border-border/60 bg-background p-4 flex flex-col gap-4 shadow-sm">
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground">Source Count</h3>
-                    <p className="text-2xl font-semibold text-foreground mt-1">{formatNumber(data.quality.sourceCount.p75)}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Median supporting documents referenced per answer</p>
+                    <p className="text-2xl font-semibold text-foreground mt-1">
+                      {formatNumber(data.quality.sourceCount.p75)}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Median supporting documents referenced per answer
+                    </p>
                   </div>
                   <TrendSparkline data={data.quality.sourceCount.recent} className="text-primary" />
                 </div>
@@ -211,19 +228,27 @@ const PerformanceDashboard = () => {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
                 <div className="rounded-lg border border-border/50 bg-card p-4">
                   <p className="text-muted-foreground uppercase text-xs">Requests / min</p>
-                  <p className="text-xl font-semibold">{formatNumber(data.throughput.requestsPerMinute)}</p>
+                  <p className="text-xl font-semibold">
+                    {formatNumber(data.throughput.requestsPerMinute)}
+                  </p>
                 </div>
                 <div className="rounded-lg border border-border/50 bg-card p-4">
                   <p className="text-muted-foreground uppercase text-xs">Total Requests</p>
-                  <p className="text-xl font-semibold">{formatNumber(data.throughput.totalRequests)}</p>
+                  <p className="text-xl font-semibold">
+                    {formatNumber(data.throughput.totalRequests)}
+                  </p>
                 </div>
                 <div className="rounded-lg border border-border/50 bg-card p-4">
                   <p className="text-muted-foreground uppercase text-xs">Successful</p>
-                  <p className="text-xl font-semibold">{formatNumber(data.throughput.successfulRequests)}</p>
+                  <p className="text-xl font-semibold">
+                    {formatNumber(data.throughput.successfulRequests)}
+                  </p>
                 </div>
                 <div className="rounded-lg border border-border/50 bg-card p-4">
                   <p className="text-muted-foreground uppercase text-xs">Failed</p>
-                  <p className="text-xl font-semibold">{formatNumber(data.throughput.failedRequests)}</p>
+                  <p className="text-xl font-semibold">
+                    {formatNumber(data.throughput.failedRequests)}
+                  </p>
                 </div>
               </div>
             </section>

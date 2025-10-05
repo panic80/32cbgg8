@@ -12,12 +12,12 @@ export const initDB = (dbName, version, upgradeCallback) => {
     request.onsuccess = (event) => {
       const db = event.target.result;
       console.log(`Successfully opened IndexedDB: ${dbName}`);
-      
+
       // Add error handler for all database operations
       db.onerror = (event) => {
         console.error('Database error:', event.target.error);
       };
-      
+
       resolve(db);
     };
 
@@ -43,14 +43,14 @@ export const initDB = (dbName, version, upgradeCallback) => {
 export const addToStore = async (db, storeName, data) => {
   return new Promise((resolve, reject) => {
     console.log(`Adding data to store: ${storeName}`, data);
-    
+
     const transaction = db.transaction(storeName, 'readwrite');
     const store = transaction.objectStore(storeName);
-    
+
     transaction.oncomplete = () => {
       console.log(`Successfully added data to ${storeName}`);
     };
-    
+
     transaction.onerror = (event) => {
       console.error(`Error in transaction for ${storeName}:`, event.target.error);
       reject(transaction.error);
@@ -58,13 +58,13 @@ export const addToStore = async (db, storeName, data) => {
 
     try {
       const request = store.add(data);
-      
+
       request.onsuccess = (event) => {
         const key = event.target.result;
         console.log(`Data added successfully with key: ${key}`);
         resolve(key);
       };
-      
+
       request.onerror = (event) => {
         console.error(`Error adding data to ${storeName}:`, event.target.error);
         reject(request.error);
@@ -80,14 +80,14 @@ export const addToStore = async (db, storeName, data) => {
 export const getAllFromStore = async (db, storeName) => {
   return new Promise((resolve, reject) => {
     console.log(`Getting all data from store: ${storeName}`);
-    
+
     const transaction = db.transaction(storeName, 'readonly');
     const store = transaction.objectStore(storeName);
-    
+
     transaction.oncomplete = () => {
       console.log(`Successfully completed read transaction for ${storeName}`);
     };
-    
+
     transaction.onerror = (event) => {
       console.error(`Error in read transaction for ${storeName}:`, event.target.error);
       reject(transaction.error);
@@ -95,13 +95,13 @@ export const getAllFromStore = async (db, storeName) => {
 
     try {
       const request = store.getAll();
-      
+
       request.onsuccess = (event) => {
         const results = event.target.result;
         console.log(`Retrieved ${results.length} records from ${storeName}`);
         resolve(results);
       };
-      
+
       request.onerror = (event) => {
         console.error(`Error getting data from ${storeName}:`, event.target.error);
         reject(request.error);

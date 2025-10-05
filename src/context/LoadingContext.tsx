@@ -70,32 +70,40 @@ export const useLoading = () => {
 export const LoadingProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(loadingReducer, initialState);
 
-  return (
-    <LoadingContext.Provider value={{ state, dispatch }}>
-      {children}
-    </LoadingContext.Provider>
-  );
+  return <LoadingContext.Provider value={{ state, dispatch }}>{children}</LoadingContext.Provider>;
 };
 
 // Utility functions for stage management
 export const getStagePercentage = (stage: LoadingStage): number => {
   switch (stage) {
-    case 'url-scanning': return 25;
-    case 'parsing': return 50;
-    case 'validation': return 75;
-    case 'complete': return 100;
-    case 'error': return 100;
-    default: return 0;
+    case 'url-scanning':
+      return 25;
+    case 'parsing':
+      return 50;
+    case 'validation':
+      return 75;
+    case 'complete':
+      return 100;
+    case 'error':
+      return 100;
+    default:
+      return 0;
   }
 };
 
 export const getStageMessage = (stage: LoadingStage): string => {
   switch (stage) {
-    case 'url-scanning': return 'Analyzing URL structure...';
-    case 'parsing': return 'Extracting URL components...';
-    case 'validation': return 'Validating URL format...';
-    case 'complete': return 'URL processing complete';
-    case 'error': return 'Error processing URL';
-    default: return 'Processing...';
+    case 'url-scanning':
+      return 'Analyzing URL structure...';
+    case 'parsing':
+      return 'Extracting URL components...';
+    case 'validation':
+      return 'Validating URL format...';
+    case 'complete':
+      return 'URL processing complete';
+    case 'error':
+      return 'Error processing URL';
+    default:
+      return 'Processing...';
   }
 };

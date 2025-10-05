@@ -18,11 +18,13 @@ The chat logging functionality is implemented in `server/services/logger.js`. Th
 ### Log Format
 
 Each log entry follows this format:
+
 ```
 [timestamp] | Question: [question] | Answer: [answer]
 ```
 
 Example:
+
 ```
 2025-03-04T17:22:40.579Z | Question: test question | Answer: Okay, I'm ready. What's the test question? I'll do my best to answer it accurately and thoroughly.
 ```

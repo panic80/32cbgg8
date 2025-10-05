@@ -48,7 +48,8 @@ export const IngestionTab: React.FC<IngestionTabProps> = ({
         <CardHeader>
           <CardTitle>URL Ingestion</CardTitle>
           <CardDescription>
-            Add external URLs to the knowledge base. The system will scrape and index the content for improved responses.
+            Add external URLs to the knowledge base. The system will scrape and index the content
+            for improved responses.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -65,7 +66,11 @@ export const IngestionTab: React.FC<IngestionTabProps> = ({
                   onKeyDown={handleKeyDown}
                   disabled={isIngesting}
                 />
-                <AnimatedButton onClick={onSubmit} disabled={isIngesting || !urlInput.trim()} ripple>
+                <AnimatedButton
+                  onClick={onSubmit}
+                  disabled={isIngesting || !urlInput.trim()}
+                  ripple
+                >
                   {isIngesting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -112,8 +117,8 @@ export const IngestionTab: React.FC<IngestionTabProps> = ({
                         entry.status === 'success'
                           ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950'
                           : entry.status === 'exists'
-                          ? 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950'
-                          : 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950'
+                            ? 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950'
+                            : 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950'
                       }`}
                     >
                       <div className="flex items-start justify-between">
@@ -128,8 +133,8 @@ export const IngestionTab: React.FC<IngestionTabProps> = ({
                             entry.status === 'success'
                               ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                               : entry.status === 'exists'
-                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                              : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                                : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                           }`}
                         >
                           {entry.status}

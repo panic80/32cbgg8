@@ -64,14 +64,12 @@ describe('admin chat log routes', () => {
       shortAnswerMode: true,
     });
 
-    const response = await request(app)
-      .get('/api/admin/chat-logs')
-      .query({
-        limit: 1,
-        offset: 0,
-        search: 'visa',
-        ragEnabled: 'false',
-      });
+    const response = await request(app).get('/api/admin/chat-logs').query({
+      limit: 1,
+      offset: 0,
+      search: 'visa',
+      ragEnabled: 'false',
+    });
 
     expect(response.status).toBe(200);
     expect(response.body.data).toHaveLength(1);
@@ -90,14 +88,11 @@ describe('admin chat log routes', () => {
       locale: 'en-CA',
     };
 
-    const visitResponse = await request(app)
-      .post('/api/analytics/visit')
-      .send(visitPayload);
+    const visitResponse = await request(app).post('/api/analytics/visit').send(visitPayload);
 
     expect(visitResponse.status).toBe(202);
 
-    const summaryResponse = await request(app)
-      .get('/api/admin/analytics/visits');
+    const summaryResponse = await request(app).get('/api/admin/analytics/visits');
 
     expect(summaryResponse.status).toBe(200);
     expect(summaryResponse.body.data.totalVisits).toBeGreaterThanOrEqual(1);
@@ -130,8 +125,7 @@ describe('admin chat log routes', () => {
 
     expect(writeResponse.status).toBe(503);
 
-    const readResponse = await request(app)
-      .get('/api/admin/analytics/visits');
+    const readResponse = await request(app).get('/api/admin/analytics/visits');
 
     expect(readResponse.status).toBe(503);
 

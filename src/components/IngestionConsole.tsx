@@ -19,7 +19,12 @@ interface IngestionConsoleProps {
   className?: string;
 }
 
-export default function IngestionConsole({ url, progressEndpoint, onComplete, className }: IngestionConsoleProps) {
+export default function IngestionConsole({
+  url,
+  progressEndpoint,
+  onComplete,
+  className,
+}: IngestionConsoleProps) {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [currentStep, setCurrentStep] = useState<string | null>(null);
@@ -29,7 +34,7 @@ export default function IngestionConsole({ url, progressEndpoint, onComplete, cl
   useEffect(() => {
     // Initial log
     addLog('info', `Starting ingestion for: ${url}`);
-    
+
     // Connect to SSE endpoint
     const connectToProgress = () => {
       addLog('info', 'Connecting to progress stream...');
@@ -59,7 +64,7 @@ export default function IngestionConsole({ url, progressEndpoint, onComplete, cl
         setIsConnected(false);
         addLog('error', 'Lost connection to progress stream');
         es.close();
-        
+
         // Retry connection after 2 seconds
         setTimeout(() => {
           addLog('info', 'Attempting to reconnect...');
@@ -91,9 +96,9 @@ export default function IngestionConsole({ url, progressEndpoint, onComplete, cl
       timestamp: new Date(),
       type,
       message,
-      details
+      details,
     };
-    setLogs(prev => [...prev, entry]);
+    setLogs((prev) => [...prev, entry]);
   };
 
   const handleProgressUpdate = (data: any) => {
@@ -196,7 +201,7 @@ export default function IngestionConsole({ url, progressEndpoint, onComplete, cl
   };
 
   return (
-    <Card className={cn("w-full", className)}>
+    <Card className={cn('w-full', className)}>
       <div className="p-4 border-b">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -204,46 +209,40 @@ export default function IngestionConsole({ url, progressEndpoint, onComplete, cl
             <h3 className="font-semibold">Ingestion Console</h3>
           </div>
           <div className="flex items-center gap-2 text-sm">
-            <div className={cn(
-              "flex items-center gap-1",
-              isConnected ? "text-green-600" : "text-red-600"
-            )}>
-              <div className={cn(
-                "h-2 w-2 rounded-full",
-                isConnected ? "bg-green-600" : "bg-red-600"
-              )} />
-              {isConnected ? "Connected" : "Disconnected"}
+            <div
+              className={cn(
+                'flex items-center gap-1',
+                isConnected ? 'text-green-600' : 'text-red-600',
+              )}
+            >
+              <div
+                className={cn('h-2 w-2 rounded-full', isConnected ? 'bg-green-600' : 'bg-red-600')}
+              />
+              {isConnected ? 'Connected' : 'Disconnected'}
             </div>
           </div>
         </div>
       </div>
-      
+
       <ScrollArea className="h-[400px] w-full">
-        <div 
-          ref={scrollRef}
-          className="p-4 font-mono text-xs space-y-1"
-        >
+        <div ref={scrollRef} className="p-4 font-mono text-xs space-y-1">
           {logs.map((log) => (
-            <div 
-              key={log.id} 
+            <div
+              key={log.id}
               className="flex items-start gap-2 hover:bg-muted/50 px-2 py-0.5 rounded"
             >
               <span className="text-muted-foreground flex-shrink-0">
                 [{formatTimestamp(log.timestamp)}]
               </span>
               <span className="flex-shrink-0">{getLogIcon(log.type)}</span>
-              <span className={cn("break-all", getLogColor(log.type))}>
-                {log.message}
-              </span>
+              <span className={cn('break-all', getLogColor(log.type))}>{log.message}</span>
             </div>
           ))}
-          
+
           {currentStep && (
             <div className="flex items-center gap-2 mt-2 px-2">
               <Loader2 className="h-3 w-3 animate-spin text-blue-600" />
-              <span className="text-blue-600 text-xs">
-                Processing: {currentStep}...
-              </span>
+              <span className="text-blue-600 text-xs">Processing: {currentStep}...</span>
             </div>
           )}
         </div>

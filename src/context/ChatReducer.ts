@@ -11,7 +11,7 @@ export const initialState: ChatState = {
   isSimplifyMode: false,
   networkError: null,
   conversationStarted: false,
-  travelInstructions: null
+  travelInstructions: null,
 };
 
 export const chatReducer = (state: ChatState, action: ChatAction): ChatState => {
@@ -20,42 +20,40 @@ export const chatReducer = (state: ChatState, action: ChatAction): ChatState => 
       return {
         ...state,
         messages: action.messages,
-        conversationStarted: action.messages.length > 0
+        conversationStarted: action.messages.length > 0,
       };
 
     case 'ADD_MESSAGE':
       return {
         ...state,
         messages: [...state.messages, action.message],
-        conversationStarted: true
+        conversationStarted: true,
       };
 
     case 'UPDATE_MESSAGE':
       return {
         ...state,
-        messages: state.messages.map(msg =>
-          msg.id === action.messageId
-            ? { ...msg, ...action.updates }
-            : msg
-        )
+        messages: state.messages.map((msg) =>
+          msg.id === action.messageId ? { ...msg, ...action.updates } : msg,
+        ),
       };
 
     case 'SET_LOADING':
       return {
         ...state,
-        isLoading: action.isLoading
+        isLoading: action.isLoading,
       };
 
     case 'SET_TYPING':
       return {
         ...state,
-        isTyping: action.isTyping
+        isTyping: action.isTyping,
       };
 
     case 'SET_INPUT':
       return {
         ...state,
-        input: action.input
+        input: action.input,
       };
 
     case 'SET_THEME':
@@ -64,44 +62,44 @@ export const chatReducer = (state: ChatState, action: ChatAction): ChatState => 
       document.documentElement.classList.add(action.theme);
       return {
         ...state,
-        theme: action.theme
+        theme: action.theme,
       };
 
     case 'SET_FONT_SIZE':
       localStorage.setItem('chatFontSize', String(action.fontSize));
       return {
         ...state,
-        fontSize: action.fontSize
+        fontSize: action.fontSize,
       };
 
     case 'SET_SHOW_AVATARS':
       return {
         ...state,
-        showAvatars: action.showAvatars
+        showAvatars: action.showAvatars,
       };
 
     case 'SET_SIMPLIFY_MODE':
       return {
         ...state,
-        isSimplifyMode: action.isSimplifyMode
+        isSimplifyMode: action.isSimplifyMode,
       };
 
     case 'SET_NETWORK_ERROR':
       return {
         ...state,
-        networkError: action.error
+        networkError: action.error,
       };
 
     case 'SET_CONVERSATION_STARTED':
       return {
         ...state,
-        conversationStarted: action.started
+        conversationStarted: action.started,
       };
 
     case 'SET_TRAVEL_INSTRUCTIONS':
       return {
         ...state,
-        travelInstructions: action.instructions
+        travelInstructions: action.instructions,
       };
 
     case 'CLEAR_CHAT':
@@ -109,7 +107,7 @@ export const chatReducer = (state: ChatState, action: ChatAction): ChatState => 
         ...state,
         messages: [],
         conversationStarted: false,
-        networkError: null
+        networkError: null,
       };
 
     default:
