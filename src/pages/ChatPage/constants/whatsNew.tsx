@@ -21,6 +21,12 @@ export const WHATS_NEW_BY_DATE: WhatsNewDateGroup[] = [
     updates: [
       {
         icon: <Zap className="w-4 h-4" />,
+        text: 'LangGraph caching upgrade',
+        description:
+          'Hooked every LangGraph prompt into LangChain’s async chat interface and cleaned up caching by serializing documents explicitly. Switched retrieval to the supported aget_relevant_documents path and kept table metadata plus synthesized answers flowing through the new helper.',
+      },
+      {
+        icon: <Zap className="w-4 h-4" />,
         text: 'LangChain backend refresh',
         description:
           'Updated all LangChain imports to the new core modules and repaired the ensemble retriever weights for steadier answers.',
