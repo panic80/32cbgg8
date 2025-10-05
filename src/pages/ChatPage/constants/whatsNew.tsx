@@ -13,9 +13,26 @@ export interface WhatsNewDateGroup {
 }
 
 // Bump this when you add new release notes
-export const WHATS_NEW_VERSION = '2025-09-17';
+export const WHATS_NEW_VERSION = '2025-10-05';
 
 export const WHATS_NEW_BY_DATE: WhatsNewDateGroup[] = [
+  {
+    date: 'Sunday, October 5, 2025',
+    updates: [
+      {
+        icon: <Zap className="w-4 h-4" />,
+        text: 'LangChain backend refresh',
+        description:
+          'Updated all LangChain imports to the new core modules and repaired the ensemble retriever weights for steadier answers.',
+      },
+      {
+        icon: <FileText className="w-4 h-4" />,
+        text: 'Service restart clean-up',
+        description:
+          'Restarted the RAG API and Express gateway to ensure the accuracy regressions you saw are resolved.',
+      },
+    ],
+  },
   {
     date: 'Wednesday, September 17, 2025',
     updates: [
