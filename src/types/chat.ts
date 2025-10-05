@@ -42,6 +42,7 @@ export interface Message {
   isFormatted?: boolean;
   followUpQuestions?: FollowUpQuestion[];
   modelMode?: 'fast' | 'smart';
+  shortAnswerMode?: boolean;
 }
 
 export interface Attachment {

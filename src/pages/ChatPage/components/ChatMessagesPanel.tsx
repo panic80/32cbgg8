@@ -1,6 +1,6 @@
 import React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Sparkles, Zap, Loader2 } from 'lucide-react';
+import { Sparkles, Zap, Loader2, Minimize2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { SkeletonChatMessage } from '@/components/ui/skeleton';
 import { ChatMessage } from './ChatMessage';
@@ -27,6 +27,7 @@ interface ChatMessagesPanelProps {
   onVoiceAction: () => void;
   currentModel: string;
   modelMode: 'fast' | 'smart';
+  shortAnswerMode: boolean;
   isLoading: boolean;
   pendingMessage: Message | null;
   onFollowUpClick: (question: string) => void;
@@ -55,6 +56,7 @@ export const ChatMessagesPanel: React.FC<ChatMessagesPanelProps> = ({
   onVoiceAction,
   currentModel,
   modelMode,
+  shortAnswerMode,
   isLoading,
   pendingMessage,
   onFollowUpClick,
@@ -119,6 +121,11 @@ export const ChatMessagesPanel: React.FC<ChatMessagesPanelProps> = ({
                     onVoice={() => onVoiceAction()}
                     currentModel={currentModel}
                     modelMode={message.modelMode || modelMode}
+                    shortAnswerMode={
+                      typeof message.shortAnswerMode === 'boolean'
+                        ? message.shortAnswerMode
+                        : shortAnswerMode
+                    }
                     isLoading={isLoading}
                     isLatestMessage={messageIndex === combinedMessages.length - 1}
                     onFollowUpClick={onFollowUpClick}
@@ -135,7 +142,7 @@ export const ChatMessagesPanel: React.FC<ChatMessagesPanelProps> = ({
               exit={{ opacity: 0, y: -20 }}
             >
               <motion.div
-                className="flex items-center gap-2 mb-3 ml-12"
+                className="flex items-center gap-2 mb-3 ml-12 flex-wrap"
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
@@ -160,6 +167,12 @@ export const ChatMessagesPanel: React.FC<ChatMessagesPanelProps> = ({
                     </>
                   )}
                 </div>
+                {(pendingMessage?.shortAnswerMode ?? shortAnswerMode) && (
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                    <Minimize2 size={12} />
+                    <span>Short answers</span>
+                  </div>
+                )}
                 <span className="text-xs text-[var(--text-secondary)]">
                   {modelMode === 'smart'
                     ? 'Detailed answers but slower. Select Fast mode in the menu for quicker responses.'

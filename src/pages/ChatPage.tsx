@@ -295,6 +295,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
             onVoiceAction={handleVoiceInput}
             currentModel={currentModel}
             modelMode={modelMode}
+            shortAnswerMode={shortAnswerMode}
             isLoading={isLoading}
             pendingMessage={pendingMessage}
             onFollowUpClick={handleFollowUpClick}

@@ -3,7 +3,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { ChevronDown, Sparkles, Zap } from 'lucide-react';
+import { ChevronDown, Sparkles, Zap, Minimize2 } from 'lucide-react';
 import { MarkdownRenderer } from '@/components/ui/markdown-renderer';
 import { MessageActions } from './MessageActions';
 import SuggestionController from '@/components/SuggestionController';
@@ -22,6 +22,7 @@ interface ChatMessageProps {
   onVoice: () => void;
   currentModel: string;
   modelMode?: 'fast' | 'smart';
+  shortAnswerMode: boolean;
   isLoading: boolean;
   isLatestMessage: boolean;
   onFollowUpClick: (question: string) => void;
@@ -37,6 +38,7 @@ const ChatMessageInner: React.FC<ChatMessageProps> = ({
   onVoice,
   currentModel,
   modelMode,
+  shortAnswerMode,
   isLoading,
   isLatestMessage,
   onFollowUpClick,
@@ -149,7 +151,7 @@ const ChatMessageInner: React.FC<ChatMessageProps> = ({
               {/* Mode Indicator for Assistant Messages */}
               {message.sender === 'assistant' && modelMode && (
                 <motion.div
-                  className="flex items-center gap-2 mb-3"
+                  className="flex items-center gap-2 mb-3 flex-wrap"
                   initial={prefersReducedMotion ? undefined : { opacity: 0, y: -10 }}
                   animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 }}
@@ -174,6 +176,12 @@ const ChatMessageInner: React.FC<ChatMessageProps> = ({
                       </>
                     )}
                   </div>
+                  {shortAnswerMode && (
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                      <Minimize2 size={12} />
+                      <span>Short answers</span>
+                    </div>
+                  )}
                   <span className="text-xs text-[var(--text-secondary)]">
                     {modelMode === 'smart'
                       ? 'Detailed answers but slower. Select Fast mode in the menu for quicker responses.'
@@ -334,6 +342,7 @@ export const ChatMessage = React.memo(ChatMessageInner, (prev, next) => {
     prev.isLoading === next.isLoading &&
     prev.isLatestMessage === next.isLatestMessage &&
     prev.currentModel === next.currentModel &&
-    prev.modelMode === next.modelMode
+    prev.modelMode === next.modelMode &&
+    prev.shortAnswerMode === next.shortAnswerMode
   );
 });

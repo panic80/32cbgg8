@@ -163,6 +163,7 @@ export const useStreamingChat = ({
         sender: 'user',
         timestamp: Date.now(),
         modelMode,
+        shortAnswerMode,
       };
 
       dispatch({ type: 'ADD_MESSAGE', message: userMessage });
@@ -245,6 +246,7 @@ export const useStreamingChat = ({
           sources: undefined,
           followUpQuestions: undefined,
           modelMode,
+          shortAnswerMode,
         };
         dispatch({ type: 'SET_PENDING', message: { ...pendingMessageRef.current } });
 
@@ -351,6 +353,7 @@ export const useStreamingChat = ({
                     sources: sources.length > 0 ? sources : undefined,
                     followUpQuestions: followUpQuestions.length > 0 ? followUpQuestions : undefined,
                     modelMode,
+                    shortAnswerMode,
                   };
                   dispatch({ type: 'FINALIZE_MESSAGE', message: finalMessage });
                   pendingMessageRef.current = null;
@@ -413,6 +416,7 @@ export const useStreamingChat = ({
           content: `Sorry, I encountered an error while processing your request. Please try again. Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
           sender: 'assistant',
           timestamp: Date.now(),
+          shortAnswerMode,
         };
         dispatch({ type: 'ADD_MESSAGE', message: errorMessage });
         dispatch({ type: 'SET_LOADING', value: false });
