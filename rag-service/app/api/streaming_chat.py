@@ -14,6 +14,7 @@ from fastapi.responses import StreamingResponse
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 from app.api.chat import get_llm
+from app.api.prompt_constants import SHORT_ANSWER_PROMPT
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.models.query import ChatRequest, Provider, Source, FollowUpRequest
@@ -425,6 +426,8 @@ async def _run_streaming_flow(
         perf_monitor.record_latency("context_build_latency_ms", 0)
 
     messages: List[SystemMessage | HumanMessage | AIMessage] = [SystemMessage(content=SYSTEM_PROMPT)]
+    if chat_request.short_answer_mode:
+        messages.append(SystemMessage(content=SHORT_ANSWER_PROMPT))
     messages.extend(_build_history_messages(chat_request))
 
     if context:

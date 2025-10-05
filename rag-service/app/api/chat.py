@@ -27,6 +27,7 @@ from app.services.performance_monitor import get_performance_monitor
 from app.utils.langchain_utils import RetryableLLM, handle_llm_error
 from app.utils.metrics import compute_quality_metrics
 from app.api.streaming import create_streaming_response
+from app.api.prompt_constants import SHORT_ANSWER_PROMPT
 from app.components.result_processor import ResultProcessor
 # Removed unused imports - now using ParallelRetrievalPipeline which includes these internally
 from app.services.llm_pool import LLMPool
@@ -497,6 +498,9 @@ SPECIAL INSTRUCTION FOR CLASS A RESERVISTS:
 - If there are differences in rates, allowances, or procedures for Class A members, highlight them.
 - Common Class A specific considerations include travel time limits and restrictions, meal allowance eligibility during training, accommodation entitlements, kilometric rate applications, and Temporary Duty (TD) limitations.
 """
+
+        if chat_request.short_answer_mode:
+            system_prompt = f"{system_prompt}\n\n{SHORT_ANSWER_PROMPT}"
         
         # DIAGNOSTIC: Log system prompt details
         logger.info(f"[PROMPT_DIAG] Using chat.py endpoint")
