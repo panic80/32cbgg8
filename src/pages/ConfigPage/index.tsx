@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { EnhancedBackButton } from '@/components/ui/enhanced-back-button';
 import { toast } from 'sonner';
-import { 
+import {
   Brain, Globe, Trash2, FileText
 } from 'lucide-react';
 import { ModelSettingsTab } from './tabs/ModelSettingsTab';
@@ -11,13 +11,15 @@ import { DatabaseTab } from './tabs/DatabaseTab';
 import { LogsTab } from './tabs/LogsTab';
 import { LLM_MODELS, type LLMModel, DEFAULT_MODEL_ID } from '@/constants/models';
 import { useModelPreferences } from './hooks/useModelPreferences';
-import { useIngestionHistory } from './hooks/useIngestionHistory';
 import { useActivityLog } from './hooks/useActivityLog';
 import { useDatabasePanel } from './hooks/useDatabasePanel';
-import type { LogFilters, ModelProvider, IngestionHistoryEntry } from './types';
+import type { LogFilters, ModelProvider } from './types';
 import { LOGS_FILTER_DEFAULTS } from './types';
 import { useLogsPanel } from './hooks/useLogsPanel';
 import { useVisitSummary } from './hooks/useVisitSummary';
+import { useIngestionController } from './hooks/useIngestionController';
+import { apiClient, ApiError } from '@/api/client';
+import { apiClient, ApiError } from '@/api/client';
 
 // Ensure LLM_MODELS is always an array
 const MODELS: LLMModel[] = Array.isArray(LLM_MODELS) ? LLM_MODELS : [];
@@ -38,19 +40,14 @@ export default function ConfigPage() {
     resetPreferences,
   } = useModelPreferences(MODELS, DEFAULT_MODEL_ID, DEFAULT_PROVIDER);
   
-  // URL Ingestion state
-  const [urlInput, setUrlInput] = useState('');
-  const [isIngesting, setIsIngesting] = useState(false);
-  const [forceRefresh, setForceRefresh] = useState(false);
-  const { ingestionHistory, recordHistoryEntry, clearIngestionHistory } = useIngestionHistory();
-  const [showIngestionProgress, setShowIngestionProgress] = useState(false);
-  const [currentIngestionUrl, setCurrentIngestionUrl] = useState('');
-  const [ingestionProgressEndpoint, setIngestionProgressEndpoint] = useState<string | null>('/api/rag/ingest/progress');
-  
   // Database management state
   const [isPurging, setIsPurging] = useState(false);
   const { activityLog, appendActivityLog } = useActivityLog();
   const [showActivityLog, setShowActivityLog] = useState(false);
+
+  const addActivityLogEntry = useCallback((action: string, details: string) => {
+    appendActivityLog(action, details);
+  }, [appendActivityLog]);
 
   const formatDateDisplay = useCallback((value: string | null, includeTime = false) => {
     if (!value) return null;
@@ -76,6 +73,25 @@ export default function ConfigPage() {
     refreshMetrics: refreshDatabaseMetrics,
   } = useDatabasePanel(formatDateDisplay);
 
+  const {
+    urlInput,
+    setUrlInput,
+    isIngesting,
+    forceRefresh,
+    setForceRefresh,
+    ingestionHistory,
+    showIngestionProgress,
+    currentIngestionUrl,
+    ingestionProgressEndpoint,
+    handleIngestURL,
+    handleIngestionProgressComplete,
+    clearIngestionHistory,
+  } = useIngestionController({
+    activeTab,
+    onActivityLog: addActivityLogEntry,
+    refreshDatabaseMetrics,
+  });
+
   // Chat logs panel state
   const [logsInitialized, setLogsInitialized] = useState(false);
   const {
@@ -99,12 +115,6 @@ export default function ConfigPage() {
     visitSummaryInitialized,
     loadVisitSummary,
   } = useVisitSummary();
-
-  const resetIngestionProgress = useCallback(() => {
-    setShowIngestionProgress(false);
-    setCurrentIngestionUrl('');
-    setIngestionProgressEndpoint('/api/rag/ingest/progress');
-  }, []);
 
   const formatBooleanLabel = useCallback((value: boolean | null) => {
     if (value === null) return 'Unknown';
@@ -193,10 +203,6 @@ export default function ConfigPage() {
     resetPreferences();
   }, [resetPreferences]);
 
-  const addActivityLogEntry = useCallback((action: string, details: string) => {
-    appendActivityLog(action, details);
-  }, [appendActivityLog]);
-
   useEffect(() => {
     if (activeTab === 'database') {
       refreshDatabaseMetrics();
@@ -207,29 +213,31 @@ export default function ConfigPage() {
     setIsPurging(true);
     
     try {
-      const response = await fetch('/api/v2/database/purge', {
-        method: 'POST',
+      await apiClient.postJson<void>('/api/v2/database/purge', undefined, {
         headers: {
           'Content-Type': 'application/json',
         },
       });
 
-      const data = await response.json();
-      
-      if (response.ok) {
-        toast.success('Database purged successfully');
-        // Clear ingestion history as well
-        clearIngestionHistory();
-        // Add to activity log
-        addActivityLogEntry('Database Purged', 'All documents removed from vector database');
-        // Reload database stats
-        await refreshDatabaseMetrics();
-      } else {
-        toast.error(data.message || 'Failed to purge database');
-      }
+      toast.success('Database purged successfully');
+      // Clear ingestion history as well
+      clearIngestionHistory();
+      // Add to activity log
+      addActivityLogEntry('Database Purged', 'All documents removed from vector database');
+      // Reload database stats
+      await refreshDatabaseMetrics();
     } catch (error) {
+      if (error instanceof ApiError) {
+        const message = typeof (error.data as any)?.message === 'string'
+          ? (error.data as any).message
+          : error.statusText || error.message;
+        toast.error(message || 'Failed to purge database');
+      } else if (error instanceof Error) {
+        toast.error(error.message || 'Failed to purge database');
+      } else {
+        toast.error('Failed to purge database');
+      }
       console.error('Database purge error:', error);
-      toast.error('Network error during database purge');
     } finally {
       setIsPurging(false);
     }
@@ -263,152 +271,6 @@ export default function ConfigPage() {
     toast.success('Database statistics exported');
     addActivityLogEntry('Stats Exported', 'Database statistics exported to JSON');
   };
-
-  const handleIngestURL = async () => {
-    if (!urlInput.trim()) {
-      toast.error('Please enter a URL');
-      return;
-    }
-
-    // Validate URL
-    try {
-      new URL(urlInput.trim());
-    } catch {
-      toast.error('Please enter a valid URL');
-      return;
-    }
-
-    const normalizedUrl = urlInput.trim();
-
-    setIsIngesting(true);
-    setShowIngestionProgress(false);
-    setCurrentIngestionUrl('');
-    setIngestionProgressEndpoint('/api/rag/ingest/progress');
-
-    try {
-      const ingestionTargets = [
-        { submit: '/api/v2/ingest', progress: '/api/v2/ingest/progress' },
-        { submit: '/api/rag/ingest', progress: '/api/rag/ingest/progress' },
-      ] as const;
-
-      let responseData: any = null;
-      let responseStatus = 0;
-      let responseOk = false;
-      let targetUsed: typeof ingestionTargets[number] | null = null;
-      let lastError: string | null = null;
-
-      for (const target of ingestionTargets) {
-        try {
-          const response = await fetch(target.submit, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              url: normalizedUrl,
-              type: 'web',
-              forceRefresh: forceRefresh,
-              metadata: {
-                source: 'manual_ingestion',
-                ingested_from: 'config_page'
-              }
-            }),
-          });
-
-          responseStatus = response.status;
-          responseOk = response.ok;
-          try {
-            responseData = await response.json();
-          } catch (parseError) {
-            responseData = null;
-          }
-
-          if (response.status === 404) {
-            lastError = typeof responseData?.message === 'string'
-              ? responseData.message
-              : 'Endpoint not found';
-            continue;
-          }
-
-          targetUsed = target;
-          break;
-        } catch (networkError) {
-          console.error('Ingestion request error:', networkError);
-          lastError = 'Network error during ingestion';
-        }
-      }
-
-      if (!targetUsed) {
-        toast.error(lastError || 'Unable to reach ingestion service');
-        return;
-      }
-
-      const data = responseData || {};
-      if (targetUsed.progress) {
-        setCurrentIngestionUrl(normalizedUrl);
-        setIngestionProgressEndpoint(targetUsed.progress);
-        setShowIngestionProgress(true);
-      } else {
-        resetIngestionProgress();
-      }
-      
-      if (responseOk) {
-        if (data.status === 'success') {
-          toast.success(`Successfully ingested ${data.chunks_created} chunks from URL`);
-        } else if (data.status === 'exists') {
-          toast.info('Document already exists in the database. Use force refresh to re-ingest.');
-          resetIngestionProgress();
-        } else {
-          toast.info(data.message || 'Ingestion request received. Monitoring progress...');
-        }
-
-        // Add to history
-        const historyEntry: IngestionHistoryEntry = {
-          url: normalizedUrl,
-          status: data.status === 'exists' ? 'exists' : data.status || 'pending',
-          timestamp: new Date().toISOString(),
-        };
-        recordHistoryEntry(historyEntry);
-        
-        // Add to activity log
-        addActivityLogEntry('Document Ingested', `${normalizedUrl} - ${data.chunks_created ?? 0} chunks`);
-        
-        // Clear input and reset force refresh
-        setUrlInput('');
-        setForceRefresh(false);
-        
-        // Reload database stats if on database tab
-        if (activeTab === 'database') {
-          void refreshDatabaseMetrics();
-        }
-      } else {
-        const errorMessage = data?.message || lastError || 'Failed to ingest URL';
-        toast.error(errorMessage);
-        resetIngestionProgress();
-
-        // Add failed entry to history
-        recordHistoryEntry({
-          url: normalizedUrl,
-          status: 'failed',
-          timestamp: new Date().toISOString(),
-        });
-      }
-    } catch (error) {
-      console.error('Ingestion error:', error);
-      toast.error('Network error during ingestion');
-      resetIngestionProgress();
-    } finally {
-      setIsIngesting(false);
-      // Progress will auto-hide after completion
-    }
-  };
-
-  const handleIngestionProgressComplete = useCallback((_success: boolean) => {
-    resetIngestionProgress();
-    if (activeTab === 'database') {
-      void refreshDatabaseMetrics();
-    }
-  }, [activeTab, resetIngestionProgress, refreshDatabaseMetrics]);
 
   const handleToggleActivityLog = useCallback(() => {
     setShowActivityLog((prev) => !prev);

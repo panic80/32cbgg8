@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
+import { apiClient, ApiError } from '@/api/client';
 import type { DatabaseSource, DatabaseStats } from '../types';
 
 type SourceSort = 'date' | 'count' | 'name';
@@ -53,81 +54,68 @@ const fetchDatabaseStats = async (): Promise<DatabaseStats> => {
     lastIngestedAt: null,
   };
 
-  const tryParse = async (response: Response) => {
-    try {
-      return await response.json();
-    } catch (error) {
-      console.error('Failed to parse database stats response', error);
-      return null;
-    }
-  };
-
   try {
-    const statsResponse = await fetch('/api/v2/sources/stats');
-    if (statsResponse.ok) {
-      const data = await statsResponse.json();
-      if (data) {
-        return {
-          totalDocuments: typeof data.total_documents === 'number' ? data.total_documents : data.totalDocuments ?? 0,
-          totalChunks: typeof data.total_chunks === 'number' ? data.total_chunks : data.totalChunks ?? 0,
-          totalSources: typeof data.total_sources === 'number' ? data.total_sources : data.totalSources ?? 0,
-          lastIngestedAt: typeof data.last_ingested_at === 'string'
-            ? data.last_ingested_at
-            : typeof data.lastIngestedAt === 'string'
-              ? data.lastIngestedAt
-              : null,
-        };
-      }
-    } else {
-      const errorPayload = await tryParse(statsResponse);
-      console.error('Source stats error response:', {
-        status: statsResponse.status,
-        body: errorPayload,
-      });
+    const data = await apiClient.getJson<any>('/api/v2/sources/stats');
+    if (data) {
+      return {
+        totalDocuments: typeof data.total_documents === 'number' ? data.total_documents : data.totalDocuments ?? 0,
+        totalChunks: typeof data.total_chunks === 'number' ? data.total_chunks : data.totalChunks ?? 0,
+        totalSources: typeof data.total_sources === 'number' ? data.total_sources : data.totalSources ?? 0,
+        lastIngestedAt: typeof data.last_ingested_at === 'string'
+          ? data.last_ingested_at
+          : typeof data.lastIngestedAt === 'string'
+            ? data.lastIngestedAt
+            : null,
+      };
     }
   } catch (error) {
-    console.error('Source stats request failed:', error);
+    if (error instanceof ApiError) {
+      console.error('Source stats error response:', {
+        status: error.status,
+        body: error.data,
+      });
+    } else {
+      console.error('Source stats request failed:', error);
+    }
   }
 
   try {
-    const countResponse = await fetch('/api/v2/sources/count');
-    if (countResponse.ok) {
-      const countData = await countResponse.json();
-      const count = typeof countData.count === 'number' ? countData.count : 0;
-      const totalSources = typeof countData.total_sources === 'number'
-        ? countData.total_sources
-        : typeof countData.totalSources === 'number'
-          ? countData.totalSources
-          : 0;
+    const countData = await apiClient.getJson<any>('/api/v2/sources/count');
+    const count = typeof countData.count === 'number' ? countData.count : 0;
+    const totalSources = typeof countData.total_sources === 'number'
+      ? countData.total_sources
+      : typeof countData.totalSources === 'number'
+        ? countData.totalSources
+        : 0;
 
+    return {
+      totalDocuments: count,
+      totalChunks: typeof countData.total_chunks === 'number' ? countData.total_chunks : count,
+      totalSources: totalSources || count,
+      lastIngestedAt: null,
+    };
+  } catch (error) {
+    if (!(error instanceof ApiError)) {
+      console.error('Source count request failed:', error);
+    }
+  }
+
+  try {
+    const healthData = await apiClient.getJson<any>('/health?checkRag=true');
+    const vectorStore = healthData?.ragService?.components?.vector_store;
+    if (vectorStore) {
+      const documentCount = typeof vectorStore.document_count === 'number' ? vectorStore.document_count : 0;
       return {
-        totalDocuments: count,
-        totalChunks: typeof countData.total_chunks === 'number' ? countData.total_chunks : count,
-        totalSources: totalSources || count,
+        totalDocuments: documentCount,
+        totalChunks: documentCount,
+        totalSources: 0,
         lastIngestedAt: null,
       };
     }
   } catch (error) {
-    console.error('Source count request failed:', error);
-  }
-
-  try {
-    const healthResponse = await fetch('/health?checkRag=true');
-    if (healthResponse.ok) {
-      const healthData = await healthResponse.json();
-      const vectorStore = healthData?.ragService?.components?.vector_store;
-      if (vectorStore) {
-        const documentCount = typeof vectorStore.document_count === 'number' ? vectorStore.document_count : 0;
-        return {
-          totalDocuments: documentCount,
-          totalChunks: documentCount,
-          totalSources: 0,
-          lastIngestedAt: null,
-        };
-      }
+    if (!(error instanceof ApiError)) {
+      console.error('Health endpoint request failed:', error);
     }
-  } catch (error) {
-    console.error('Health endpoint request failed:', error);
   }
 
   return empty;
@@ -135,12 +123,7 @@ const fetchDatabaseStats = async (): Promise<DatabaseStats> => {
 
 const fetchDatabaseSources = async (): Promise<DatabaseSource[]> => {
   try {
-    const response = await fetch('/api/v2/sources?page=1&page_size=100');
-    if (!response.ok) {
-      throw new Error(`Failed to load sources (status ${response.status})`);
-    }
-
-    const payload = await response.json();
+    const payload = await apiClient.getJson<any>('/api/v2/sources?page=1&page_size=100');
     if (Array.isArray(payload?.data)) {
       return normaliseSources(payload.data);
     }
@@ -156,7 +139,10 @@ const fetchDatabaseSources = async (): Promise<DatabaseSource[]> => {
     return [];
   } catch (error) {
     console.error('Source fetch failed:', error);
-    throw error instanceof Error ? error : new Error('Failed to load sources');
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('Failed to load sources');
   }
 };
 

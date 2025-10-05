@@ -9,8 +9,8 @@ _Last updated: 2025-08-19_
 - [x] Convert `src/api/travelInstructions.js` + `travelInstructions.d.ts` and `src/api/gemini.jsx` to TypeScript modules with shared fetch helpers so the network layer has compile-time validation.
 - [x] Promote environment/config loading in `server/main.js:1` to a reusable config module to decouple app bootstrap from configuration parsing.
 - [x] Retire unused UI prototypes and utilities (`BackButtonShowcase`, `Logo`, `SimpleIngestionProgress`, `LandingConceptPage`, `OPIPageConcept`, `OPIPage/FluentDesignView`, `bubbleExtractor`, `useRetry`, `server/travelData`).
-- [ ] Remove committed runtime artifacts (`*.log`, `public_html.backup`, `rag-service/venv/`, tarballs) or relocate them under a gitignored `backups/` directory to keep deploy diffs readable.
-- [ ] Add Vitest smoke coverage for `src/pages/ChatPage.tsx`, `src/components/TripPlanner.tsx`, and `src/pages/ConfigPage.tsx` before deep refactors to guard behaviour.
+- [x] Remove committed runtime artifacts (`*.log`, `public_html.backup`, `rag-service/venv/`, tarballs) or relocate them under a gitignored `backups/` directory to keep deploy diffs readable.
+- [x] Add Vitest smoke coverage for `src/pages/ChatPage.tsx`, `src/components/TripPlanner.tsx`, and `src/pages/ConfigPage.tsx` before deep refactors to guard behaviour.
 
 ## Workstream A – React Client (UI Agent)
 - **Hotspots to restructure**
@@ -18,11 +18,11 @@ _Last updated: 2025-08-19_
   - `src/pages/OPIPage/ReimaginedOPIView.jsx:1` and `src/pages/LandingPage*.jsx` share large hero/section blocks—replace with data-driven section config and shared layout primitives. *(Legacy prototypes `OPIPageConcept` and `OPIPage/FluentDesignView` have been removed.)*
   - `src/components/TripPlanner.tsx:1` (482 LOC) interleaves fetching, autocomplete management, and presentation—split hooks (`useTripPlan`, `useDistanceMatrix`) and move Google-maps adapters under `src/api/maps/`.
   - `src/pages/AdminToolsPage/*.jsx` replicate similar tab structures; consolidate under a single `AdminToolsShell` with lazy-loaded feature modules.
-  - `src/pages/ChatPage.tsx:1` still holds orchestration logic (e.g. export helpers, streaming glue); finish extraction into `src/pages/ChatPage/utils` and create integration tests for the new hook boundaries.
+  - `src/pages/ChatPage.tsx:1` still holds orchestration logic (e.g. export helpers, streaming glue); finish extraction into `src/pages/ChatPage/utils` and create integration tests for the new hook boundaries. *(Command palette/dialog logic and the scrolling message panel now live in dedicated components to shrink the top-level file.)*
 - **Supporting refactors**
   - [ ] Replace scattered `useState` + `localStorage` access with existing `useLocalStorage` hook and a centralized `StorageKeys` map in `src/constants`.
   - [ ] Move command palette data, follow-up questions, and suggestion builders into dedicated modules to simplify memo dependencies.
-  - [ ] Introduce a typed API client in `src/api/index.ts` that wraps `fetch`/`axios` usage; update pages/components to consume it instead of importing server URLs directly.
+  - [x] Introduce a typed API client in `src/api/client.ts` that wraps `fetch` usage; update pages/components to consume it instead of importing server URLs directly.
   - [ ] Normalize component styling by creating shared layout primitives (e.g., `Section`, `MetricCard`) under `src/components/ui` to reduce repeated Tailwind groupings across landing/admin pages.
   - [ ] Audit `src/components` for dead exports (e.g., legacy `ChatInterface*`, unused CSS files) and remove or archive them alongside Storybook-like docs.
   - [ ] Tighten bundle splitting: ensure heavy admin/config pages register with `React.lazy` plus route-level code-splitting hints (prefetch only chat essentials).
@@ -31,6 +31,10 @@ _Last updated: 2025-08-19_
 ## Workstream B – Express Gateway (Gateway Agent)
 - **Structural debt**
   - `server/main.js:1` (2,373 LOC) acts as bootstrapper, router, controller, and service. Extract into `server/app.js` (app factory), `server/routes/*`, and `server/controllers/*` so each endpoint calls a dedicated handler.
+    - ✅ Initial extraction complete: core app setup now lives in `server/app.js` with `server/main.js` handling startup/shutdown only.
+    - ✅ Admin endpoints and ingestion APIs now live under dedicated routers (`server/routes/admin.js`, `server/routes/ingestion.js`).
+    - ✅ Chat endpoints (`/api/gemini/generateContent`, `/api/v2/chat*`) extracted to `server/routes/chat.js`.
+    - ✅ Follow-up questions and travel-instruction proxy now live in `server/routes/support.js`; analytics visit logging in `server/routes/analytics.js`; Google Maps distance proxy in `server/routes/maps.js`.
   - SSE/chat streaming logic repeats across `/api/v2/chat`, `/api/v2/chat/stream`, `/api/v2/chat/rag`; consolidate into a streaming service module and share error handling + retry policies.
   - Ingestion endpoints (`/api/rag/ingest`, `/api/v2/ingest`, `/api/v2/ingest/canada-ca`) share validation and logging—create schema validators (e.g., zod or custom) under `server/middleware/validators`.
   - Environment bootstrap currently reads `/etc/cbthis/env` synchronously every start; move to `server/config/index.js` with memoized load order and unit tests.

@@ -1,3 +1,4 @@
+import { apiClient, ApiError } from '@/api/client';
 import { parseApiResponse, ParsedChatResponse } from '../utils/chatUtils';
 import { ChatError, ChatErrorType } from '../utils/chatErrors';
 
@@ -122,32 +123,17 @@ export const callGeminiAPI = async (
         method: 'POST',
       });
 
-      const response = await fetch(url, {
+      const response = await apiClient.request(url, {
         method: 'POST',
         headers,
         body: JSON.stringify(requestBody),
+        parseErrorResponse: true,
       });
 
       console.log('[DEBUG] Received response:', {
         status: response.status,
         statusText: response.statusText,
       });
-
-      if (!response.ok) {
-        console.error('[DEBUG] Response not OK:', response.status, response.statusText);
-
-        if (response.status === 429) {
-          throw new Error('Rate limit exceeded. Please try again later.');
-        }
-
-        if (!enableRetry || retries >= MAX_RETRIES) {
-          throw new Error(`Failed to fetch from Gemini API: ${response.status} ${response.statusText}`);
-        }
-
-        retries += 1;
-        await delay(RETRY_DELAY * 2 ** (retries - 1));
-        continue;
-      }
 
       try {
         const data: any = await response.json();
@@ -172,6 +158,13 @@ export const callGeminiAPI = async (
         throw parseError;
       }
     } catch (error) {
+      if (error instanceof ApiError) {
+        console.error('[DEBUG] Response not OK:', error.status, error.statusText);
+        if (error.status === 429) {
+          throw new Error('Rate limit exceeded. Please try again later.');
+        }
+      }
+
       const normalised = toError(error);
       const message = normalised.message ?? '';
 
@@ -179,7 +172,8 @@ export const callGeminiAPI = async (
         enableRetry &&
         retries < MAX_RETRIES &&
         !message.includes('API key') &&
-        !message.includes('Invalid response format')
+        !message.includes('Invalid response format') &&
+        !(error instanceof ApiError && error.status === 429)
       ) {
         retries += 1;
         await delay(RETRY_DELAY * 2 ** (retries - 1));

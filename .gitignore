@@ -11,6 +11,7 @@ dist
 # Backup files
 *.backup
 *.backup.*
+public_html.backup/
 .env.backup*
 backups/
 *.tar

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { KeyboardEvent, RefObject } from 'react';
+import { apiClient, ApiError } from '@/api/client';
 
 interface Prediction {
   description: string;
@@ -85,13 +86,9 @@ export const usePlaceAutocomplete = ({
         components: `country:${countryRestriction}`,
       });
 
-      const response = await fetch(`/api/maps/autocomplete?${params}`);
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch predictions');
-      }
-
-      const data = await response.json();
+      const data = await apiClient.getJson<any>(`/api/maps/autocomplete?${params}`, {
+        parseErrorResponse: false,
+      });
 
       if (data.status && data.status !== 'OK') {
         setPredictions([]);
@@ -105,7 +102,11 @@ export const usePlaceAutocomplete = ({
         setShowDropdown(true);
       }
     } catch (err) {
-      console.error('Error fetching predictions:', err);
+      if (err instanceof ApiError) {
+        console.error('Error fetching predictions:', err.status, err.statusText);
+      } else {
+        console.error('Error fetching predictions:', err);
+      }
       setPredictions([]);
       resetDropdownState();
       setError('Location search unavailable');
@@ -123,20 +124,21 @@ export const usePlaceAutocomplete = ({
         sessiontoken: sessionTokenRef.current,
       });
 
-      const response = await fetch(`/api/maps/place-details?${params}`);
+      const data = await apiClient.getJson<any>(`/api/maps/place-details?${params}`, {
+        parseErrorResponse: false,
+      });
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.result?.formatted_address) {
-          onChange(data.result.formatted_address);
-        } else {
-          onChange(prediction.description);
-        }
+      if (data.result?.formatted_address) {
+        onChange(data.result.formatted_address);
       } else {
         onChange(prediction.description);
       }
     } catch (err) {
-      console.error('Error fetching place details:', err);
+      if (err instanceof ApiError) {
+        console.error('Error fetching place details:', err.status, err.statusText);
+      } else {
+        console.error('Error fetching place details:', err);
+      }
       onChange(prediction.description);
     }
 

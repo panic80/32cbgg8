@@ -1,3 +1,4 @@
+import { apiClient, ApiError } from '@/api/client';
 import { FollowUpQuestion, Source } from '@/types/chat';
 
 interface FollowUpGenerationParams {
@@ -21,30 +22,27 @@ export const generateFollowUpQuestions = async (
 
   try {
     // Call the dedicated follow-up endpoint
-    const response = await fetch('/api/v2/followup', {
-      method: 'POST',
+    const data = await apiClient.postJson<FollowUpResponse>('/api/v2/followup', {
+      userQuestion,
+      aiResponse,
+      sources,
+      conversationHistory,
+      model: localStorage.getItem('selectedLLMModel') || 'gpt-4',
+      provider: localStorage.getItem('selectedLLMProvider') || 'openai',
+    }, {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        userQuestion,
-        aiResponse,
-        sources,
-        conversationHistory,
-        model: localStorage.getItem('selectedLLMModel') || 'gpt-4',
-        provider: localStorage.getItem('selectedLLMProvider') || 'openai'
-      }),
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data.followUpQuestions || [];
+    return data?.followUpQuestions || [];
 
   } catch (error) {
-    console.error('Error generating follow-up questions:', error);
+    if (error instanceof ApiError) {
+      console.error('Error generating follow-up questions:', error.status, error.statusText, error.data);
+    } else {
+      console.error('Error generating follow-up questions:', error);
+    }
     // Return fallback questions based on context analysis
     return generateFallbackQuestions(userQuestion, aiResponse, sources);
   }

@@ -1,3 +1,5 @@
+import { apiClient, ApiError } from './client';
+
 export type VisitSummary = {
   totalVisits: number;
   firstVisit: string | null;
@@ -23,22 +25,23 @@ type VisitEventPayload = {
 
 export async function sendVisitEvent(event: VisitEventPayload): Promise<boolean> {
   try {
-    const response = await fetch('/api/analytics/visit', {
+    await apiClient.request('/api/analytics/visit', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(event),
       keepalive: true,
+      parseErrorResponse: false,
     });
-
-    if (!response.ok && response.status !== 503) {
-      console.warn('Visit event call failed', response.status, await response.text());
+    return true;
+  } catch (error) {
+    if (error instanceof ApiError) {
+      if (error.status !== 503) {
+        console.warn('Visit event call failed', error.status, error.statusText);
+      }
       return false;
     }
-
-    return response.ok;
-  } catch (error) {
     console.warn('Unable to record visit event', error);
     return false;
   }
@@ -60,28 +63,24 @@ export async function fetchVisitSummary(filters: VisitSummaryFilters = {}): Prom
   const query = params.toString();
   const url = query.length > 0 ? `/api/admin/analytics/visits?${query}` : '/api/admin/analytics/visits';
 
-  const response = await fetch(url);
+  try {
+    const data = await apiClient.getJson<{ data?: VisitSummary }>(url, { parseErrorResponse: true });
 
-  if (!response.ok) {
-    let errorMessage = `Failed to load visit analytics (${response.status})`;
-    try {
-      const errorBody = await response.json();
-      if (typeof errorBody?.message === 'string') {
-        errorMessage = errorBody.message;
-      }
-    } catch (error) {
-      // Ignore JSON parse errors and fall back to default message
+    return data?.data ?? {
+      totalVisits: 0,
+      firstVisit: null,
+      lastVisit: null,
+      dailyCounts: [],
+    };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      const message = typeof (error.data as any)?.message === 'string'
+        ? (error.data as any).message
+        : `Failed to load visit analytics (${error.status})`;
+      throw new Error(message);
     }
 
-    throw new Error(errorMessage);
+    throw error;
   }
-
-  const data = await response.json();
-
-  return data?.data ?? {
-    totalVisits: 0,
-    firstVisit: null,
-    lastVisit: null,
-    dailyCounts: [],
-  };
 }
+import { apiClient, ApiError } from './client';

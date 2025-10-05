@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useReducer, useRef } from 'react';
 import type { SetStateAction } from 'react';
+import { apiClient, ApiError } from '@/api/client';
 import { getModelDisplayName } from '@/constants/models';
 import type { Message, Source, FollowUpQuestion } from '@/types/chat';
 import { formatPlainTextToMarkdown } from '../utils/formatting';
@@ -213,25 +214,16 @@ const flushPendingMessage = useCallback(() => {
         })),
       });
 
-      const response = await fetch(endpoint, {
+      const response = await apiClient.request(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'text/event-stream',
+          Accept: 'text/event-stream',
         },
         body: requestBody,
         signal: controller.signal,
+        parseErrorResponse: false,
       });
-
-      if (!response.ok) {
-        const errorBody = await response.text();
-        console.error('Streaming service error response:', {
-          status: response.status,
-          statusText: response.statusText,
-          body: errorBody,
-        });
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
 
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
@@ -379,7 +371,14 @@ const flushPendingMessage = useCallback(() => {
       dispatch({ type: 'SET_LOADING', value: false });
       dispatch({ type: 'SET_RETRIEVAL_STATUS', status: null });
     } catch (error) {
-      console.error('Error with streaming chat:', error);
+      if (error instanceof ApiError) {
+        console.error('Streaming service error response:', {
+          status: error.status,
+          statusText: error.statusText,
+        });
+      } else {
+        console.error('Error with streaming chat:', error);
+      }
 
       if (error instanceof DOMException && error.name === 'AbortError') {
         dispatch({ type: 'SET_LOADING', value: false });

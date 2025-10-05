@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
+import { apiClient, ApiError } from '@/api/client';
 import type { ChatLogEntry, LogFilters } from '../types';
 
 const LOGS_PAGE_SIZE = 20;
@@ -51,17 +52,7 @@ export const useLogsPanel = (initialFilters: LogFilters) => {
     setError(null);
 
     try {
-      const response = await fetch(`/api/admin/chat-logs?${query}`);
-      if (!response.ok) {
-        if (response.status === 503) {
-          setLogs([]);
-          setPagination((prev) => ({ ...prev, hasMore: false, nextOffset: null }));
-          throw new Error('Logging is disabled on the server. Enable ENABLE_LOGGING to view analytics.');
-        }
-        throw new Error(`Failed to load logs (status ${response.status})`);
-      }
-
-      const body = await response.json();
+      const body = await apiClient.getJson<any>(`/api/admin/chat-logs?${query}`, { parseErrorResponse: true });
       const rows: ChatLogEntry[] = Array.isArray(body?.data)
         ? body.data
         : Array.isArray(body?.rows)
@@ -94,7 +85,14 @@ export const useLogsPanel = (initialFilters: LogFilters) => {
       });
       setFilters(appliedFilters);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to load chat logs';
+      let message = err instanceof Error ? err.message : 'Failed to load chat logs';
+      if (err instanceof ApiError) {
+        if (err.status === 503) {
+          message = 'Logging is disabled on the server. Enable ENABLE_LOGGING to view analytics.';
+        } else if (typeof (err.data as any)?.message === 'string') {
+          message = (err.data as any).message;
+        }
+      }
       setError(message);
       setLogs([]);
       setPagination((prev) => ({ ...prev, hasMore: false, nextOffset: null }));

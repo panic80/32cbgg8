@@ -1,3 +1,4 @@
+import { apiClient, ApiError } from '@/api/client';
 import type {
   ErrorRateSummary,
   MetricSample,
@@ -124,20 +125,19 @@ export interface FetchPerformanceOptions {
 export async function fetchPerformanceMetrics(options: FetchPerformanceOptions = {}): Promise<PerformanceMetrics> {
   const { signal, forceRefresh = false } = options;
   const query = forceRefresh ? '?forceRefresh=true' : '';
-  const response = await fetch(`/api/admin/performance${query}`, {
-    method: 'GET',
-    headers: {
-      Accept: 'application/json',
-    },
-    signal,
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text().catch(() => response.statusText);
-    throw new Error(`Failed to load performance metrics (${response.status}): ${errorText}`);
+  let payload: any;
+  try {
+    payload = await apiClient.getJson<any>(`/api/admin/performance${query}`, {
+      signal,
+      parseErrorResponse: true,
+    });
+  } catch (error) {
+    if (error instanceof ApiError) {
+      const detail = typeof (error.data as any)?.message === 'string' ? (error.data as any).message : error.statusText;
+      throw new Error(`Failed to load performance metrics (${error.status}): ${detail}`);
+    }
+    throw error;
   }
-
-  const payload = await response.json();
 
   return {
     latency: {

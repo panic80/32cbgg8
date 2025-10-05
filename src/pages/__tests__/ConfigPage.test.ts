@@ -212,11 +212,11 @@ describe('ConfigPage', () => {
     fireEvent.click(screen.getByRole('tab', { name: /database/i }));
 
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith('/api/v2/sources/stats');
+      expect(fetchMock).toHaveBeenCalledWith('/api/v2/sources/stats', expect.anything());
     });
 
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith('/api/v2/sources?page=1&page_size=100');
+      expect(fetchMock).toHaveBeenCalledWith('/api/v2/sources?page=1&page_size=100', expect.anything());
     });
 
     expect(await screen.findByText('Handbook Overview')).toBeInTheDocument();
@@ -409,7 +409,7 @@ describe('ConfigPage', () => {
     fireEvent.click(screen.getByRole('tab', { name: /logs/i }));
 
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith('/api/admin/analytics/visits');
+      expect(fetchMock).toHaveBeenCalledWith('/api/admin/analytics/visits', expect.anything());
     });
 
     await screen.findByText('Visit Analytics');

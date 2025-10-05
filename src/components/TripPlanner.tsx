@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { apiClient, ApiError } from '@/api/client';
 import { CalendarIcon, MapIcon, CheckCircle2 } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import {
@@ -120,28 +121,28 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
 
       const mode = transportModeMap[tripData.transportMethod] || 'driving';
 
-      const response = await fetch('/api/maps/distance', {
-        method: 'POST',
+      const data = await apiClient.postJson<DistanceData>('/api/maps/distance', {
+        origin,
+        destination,
+        mode,
+      }, {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          origin,
-          destination,
-          mode
-        }),
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to calculate distance');
-      }
-
-      const data = await response.json();
       setDistanceData(data);
     } catch (error) {
       console.error('Error fetching distance:', error);
-      setDistanceError(error instanceof Error ? error.message : 'Failed to calculate distance');
+      if (error instanceof ApiError) {
+        const message = typeof (error.data as any)?.error === 'string'
+          ? (error.data as any).error
+          : error.statusText || error.message;
+        setDistanceError(message || 'Failed to calculate distance');
+      } else if (error instanceof Error) {
+        setDistanceError(error.message);
+      } else {
+        setDistanceError('Failed to calculate distance');
+      }
       setDistanceData(null);
     } finally {
       setIsLoadingDistance(false);

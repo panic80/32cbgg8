@@ -1,3 +1,4 @@
+import { apiClient, ApiError } from '@/api/client';
 import { formatText } from '../utils/chatUtils';
 import { ChatError, ChatErrorType } from '../utils/chatErrors';
 
@@ -100,48 +101,49 @@ export const fetchWithRetry = async (apiUrl: string, maxRetries = 3): Promise<Re
   // eslint-disable-next-line no-constant-condition
   while (true) {
     try {
-      const response = await fetch(apiUrl, {
+      const response = await apiClient.request(apiUrl, {
         headers: {
           Accept: 'application/json',
           'Cache-Control': 'no-cache',
         },
+        parseErrorResponse: false,
       });
 
-      if (response.ok) return response;
-
-      if (response.status === 404) {
-        throw new ChatError(ChatErrorType.ENDPOINT_NOT_FOUND, {
-          status: response.status,
-          url: apiUrl,
-        });
-      }
-
-      console.warn(`Retry attempt ${maxRetries - retries + 1}: Server responded with ${response.status}`);
-      retries -= 1;
-
-      if (retries <= 0) {
-        if (response.status >= 500) {
-          throw new ChatError(ChatErrorType.SERVICE, { status: response.status });
-        }
-        throw new ChatError(ChatErrorType.UNKNOWN, {
-          status: response.status,
-          message: `Server responded with ${response.status} after multiple attempts`,
-        });
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, 1000 * 2 ** (maxRetries - retries)));
+      return response;
     } catch (error) {
-      console.error(`Fetch error (attempt ${maxRetries - retries + 1}):`, error);
-      retries -= 1;
+      if (error instanceof ApiError) {
+        if (error.status === 404) {
+          throw new ChatError(ChatErrorType.ENDPOINT_NOT_FOUND, {
+            status: error.status,
+            url: apiUrl,
+          });
+        }
 
-      if (retries <= 0) {
-        if (error instanceof ChatError) {
-          throw error;
+        console.warn(`Retry attempt ${maxRetries - retries + 1}: Server responded with ${error.status}`);
+        retries -= 1;
+
+        if (retries <= 0) {
+          if (error.status >= 500) {
+            throw new ChatError(ChatErrorType.SERVICE, { status: error.status });
+          }
+          throw new ChatError(ChatErrorType.UNKNOWN, {
+            status: error.status,
+            message: `Server responded with ${error.status} after multiple attempts`,
+          });
         }
-        if (error instanceof TypeError || (error as Error).message.includes('network')) {
-          throw new ChatError(ChatErrorType.NETWORK, error);
+      } else {
+        console.error(`Fetch error (attempt ${maxRetries - retries + 1}):`, error);
+        retries -= 1;
+
+        if (retries <= 0) {
+          if (error instanceof ChatError) {
+            throw error;
+          }
+          if (error instanceof TypeError || (error as Error).message.includes('network')) {
+            throw new ChatError(ChatErrorType.NETWORK, error);
+          }
+          throw new ChatError(ChatErrorType.UNKNOWN, error);
         }
-        throw new ChatError(ChatErrorType.UNKNOWN, error);
       }
 
       await new Promise((resolve) => setTimeout(resolve, 1000 * 2 ** (maxRetries - retries)));
