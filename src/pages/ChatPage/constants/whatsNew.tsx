@@ -25,12 +25,6 @@ export const WHATS_NEW_BY_DATE: WhatsNewDateGroup[] = [
         description:
           'Updated all LangChain imports to the new core modules and repaired the ensemble retriever weights for steadier answers.',
       },
-      {
-        icon: <FileText className="w-4 h-4" />,
-        text: 'Service restart clean-up',
-        description:
-          'Restarted the RAG API and Express gateway to ensure the accuracy regressions you saw are resolved.',
-      },
     ],
   },
   {
