@@ -182,7 +182,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               )}
             />
             {showSuggestionTicker && (
-              <div className="pointer-events-none absolute inset-0 flex items-center pl-4 pr-28 sm:pr-36 text-[16px] sm:text-lg text-[var(--text-secondary)]/50">
+              <div className="pointer-events-none absolute inset-0 flex items-center pl-4 pr-28 sm:pr-36 text-sm sm:text-base text-[var(--text-secondary)]/50">
                 <div className="overflow-hidden h-[1.5em] sm:h-[1.75em]">
                   <AnimatePresence mode="popLayout">
                     <motion.span
