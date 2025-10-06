@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -6,6 +6,7 @@ import { AnimatedButton } from '@/components/ui/animated-button';
 import { Input } from '@/components/ui/input';
 import { X, Send, Paperclip } from 'lucide-react';
 import { toast } from 'sonner';
+import { CATEGORIZED_SUGGESTIONS } from '../constants/suggestions';
 
 interface ChatInputProps {
   input: string;
@@ -50,6 +51,23 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const prefersReducedMotion = useReducedMotion();
+  const popularQuestions = useMemo(() => {
+    return (
+      CATEGORIZED_SUGGESTIONS.find((category) => category.id === 'popular')?.questions.map(
+        (question) => question.title,
+      ) || []
+    );
+  }, []);
+  const [tickerIndex, setTickerIndex] = useState(0);
+  useEffect(() => {
+    if (popularQuestions.length <= 1) return;
+    const interval = window.setInterval(() => {
+      setTickerIndex((current) => (current + 1) % popularQuestions.length);
+    }, 3600);
+    return () => window.clearInterval(interval);
+  }, [popularQuestions.length]);
+  const showSuggestionTicker = input.length === 0 && popularQuestions.length > 0;
+  const currentSuggestion = showSuggestionTicker ? popularQuestions[tickerIndex] : '';
 
   return (
     <motion.div
@@ -158,8 +176,29 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               onKeyDown={handleKeyPress}
               placeholder="Ask a question..."
               aria-label="Message input"
-              className="h-[44px] sm:h-[56px] w-full pr-28 sm:pr-36 pl-4 rounded-3xl border-[var(--border)] bg-[var(--card)] focus:bg-[var(--background-secondary)] transition-all duration-300 text-[16px] sm:text-lg text-[var(--text)] placeholder:text-[var(--text-secondary)]"
+              className={cn(
+                'h-[44px] sm:h-[56px] w-full pr-28 sm:pr-36 pl-4 rounded-3xl border-[var(--border)] bg-[var(--card)] focus:bg-[var(--background-secondary)] transition-all duration-300 text-[16px] sm:text-lg text-[var(--text)] placeholder:text-[var(--text-secondary)]',
+                showSuggestionTicker && 'placeholder:text-transparent',
+              )}
             />
+            {showSuggestionTicker && (
+              <div className="pointer-events-none absolute inset-0 flex items-center pl-4 pr-28 sm:pr-36 text-[16px] sm:text-lg text-[var(--text-secondary)]/50">
+                <div className="overflow-hidden h-[1.5em] sm:h-[1.75em]">
+                  <AnimatePresence mode="popLayout">
+                    <motion.span
+                      key={currentSuggestion}
+                      className="block whitespace-nowrap overflow-hidden text-ellipsis"
+                      initial={prefersReducedMotion ? { opacity: 0 } : { y: '100%', opacity: 0 }}
+                      animate={prefersReducedMotion ? { opacity: 1 } : { y: '0%', opacity: 1 }}
+                      exit={prefersReducedMotion ? { opacity: 0 } : { y: '-100%', opacity: 0 }}
+                      transition={{ duration: prefersReducedMotion ? 0.2 : 0.45, ease: prefersReducedMotion ? 'linear' : 'easeOut' }}
+                    >
+                      {`Try asking: ${currentSuggestion}`}
+                    </motion.span>
+                  </AnimatePresence>
+                </div>
+              </div>
+            )}
 
             {/* Trailing controls */}
             {/* Vertically center trailing controls within the input field */}
