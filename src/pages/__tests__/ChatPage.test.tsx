@@ -3,6 +3,7 @@ import React from 'react';
 import { vi } from 'vitest';
 
 import ChatPage from '../ChatPage';
+import { ThemeProvider } from '@/context/ThemeContext';
 
 vi.mock('react-router-dom', () => ({
   useLocation: () => ({ search: '' }),
@@ -99,7 +100,11 @@ describe('ChatPage', () => {
   });
 
   it('renders chat layout scaffolding', () => {
-    render(<ChatPage />);
+    render(
+      <ThemeProvider>
+        <ChatPage />
+      </ThemeProvider>,
+    );
 
     expect(screen.getByTestId('chat-header')).toBeInTheDocument();
     expect(screen.getByTestId('chat-input')).toBeInTheDocument();

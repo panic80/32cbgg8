@@ -1,40 +1,22 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Send, RefreshCw } from 'lucide-react';
-import { Button } from '../components/ui/button';
-import { cn } from '../lib/utils';
-import { MarkdownRenderer } from '@/components/ui/markdown-renderer';
-import { useMobileKeyboard } from '../hooks/useMobileKeyboard';
+import { cn } from '@/lib/utils';
+import { useMobileKeyboard } from '@/hooks/useMobileKeyboard';
+import type { Message as ChatMessage } from '@/types/chat';
+import { AnimatedButton } from '@/components/chat/AnimatedButton';
+import { ChatMessageBubble } from '@/components/chat/ChatMessageBubble';
+import { AssistantTypingIndicator } from '@/components/chat/AssistantTypingIndicator';
+import { useChatPullToRefresh } from '@/hooks/useChatPullToRefresh';
+import { copyTextToClipboard } from '@/utils/clipboard';
 import './ChatInterface.css';
 
-interface Message {
-  id: string;
-  content: string;
-  sender: 'user' | 'assistant';
-  timestamp: Date;
-  status?: 'sending' | 'sent' | 'delivered' | 'error';
-  isFormatted?: boolean;
-}
-
 interface ChatInterfaceProps {
-  messages: Message[];
+  messages: ChatMessage[];
   onSendMessage: (message: string) => void;
   isLoading?: boolean;
   className?: string;
   assistant?: string;
 }
-
-const AnimatedButton = ({ children, className, ...props }: any) => (
-  <Button
-    className={cn(
-      'transition-colors duration-200 ease-out',
-      'focus:ring-2 focus:ring-primary/20',
-      className,
-    )}
-    {...props}
-  >
-    {children}
-  </Button>
-);
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({
   messages,
@@ -44,14 +26,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   assistant = 'assistant',
 }) => {
   const [inputValue, setInputValue] = useState('');
-  const [pullOffset, setPullOffset] = useState(0);
-  const [isPulling, setIsPulling] = useState(false);
-  const [touchStartY, setTouchStartY] = useState(0);
 
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const { isKeyboardVisible, keyboardHeight } = useMobileKeyboard();
+  const { pullOffset, handleTouchStart, handleTouchMove, handleTouchEnd } = useChatPullToRefresh(
+    messagesContainerRef,
+  );
 
   //   // Detect user scroll position
   //   useEffect(() => {
@@ -108,46 +90,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     //     }, 300);
   }, []);
 
-  const copyToClipboard = useCallback(async (text: string) => {
+  const handleCopy = useCallback(async (text: string) => {
     try {
-      await navigator.clipboard.writeText(text);
-    } catch (err) {
-      console.error('Failed to copy text: ', err);
+      await copyTextToClipboard(text);
+    } catch (error) {
+      console.error('Failed to copy text:', error);
     }
   }, []);
 
-  const formatTime = useCallback((date: Date) => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  }, []);
-
-  // Mobile touch handlers
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    if (messagesContainerRef.current?.scrollTop === 0) {
-      setTouchStartY(e.touches[0].clientY);
-      setIsPulling(true);
-    }
-  }, []);
-
-  const handleTouchMove = useCallback(
-    (e: React.TouchEvent) => {
-      if (isPulling && messagesContainerRef.current?.scrollTop === 0) {
-        const currentY = e.touches[0].clientY;
-        const diff = currentY - touchStartY;
-
-        if (diff > 0) {
-          setPullOffset(Math.min(diff, 100));
-          if (diff > 80) {
-            // Trigger refresh action
-          }
-        }
-      }
-    },
-    [isPulling, touchStartY],
-  );
-
-  const handleTouchEnd = useCallback(() => {
-    setIsPulling(false);
-    setPullOffset(0);
+  const formatTime = useCallback((timestamp: number) => {
+    return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }, []);
 
   // Memoized message list for performance
@@ -157,73 +109,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       const showAvatar = index === 0 || messages[index - 1].sender !== message.sender;
 
       return (
-        <div
+        <ChatMessageBubble
           key={message.id}
-          className={`message-wrapper ${isUser ? 'user-message' : 'assistant-message'}`}
-        >
-          {showAvatar && !isUser && (
-            <div className="message-avatar">
-              <div className="avatar assistant-avatar">
-                <span>CF</span>
-              </div>
-            </div>
-          )}
-          <div
-            className={
-              isUser
-                ? 'message-bubble user-bubble bg-primary text-primary-foreground animate-fade-up'
-                : 'assistant-plain-content'
-            }
-          >
-            <div className="message-content">
-              {message.sender === assistant && message.isFormatted ? (
-                <MarkdownRenderer>{message.content}</MarkdownRenderer>
-              ) : (
-                message.content
-              )}
-            </div>
-
-            <div className="message-meta">
-              <span className="timestamp">{formatTime(message.timestamp)}</span>
-              {message.status && (
-                <span className="status-indicator">
-                  {message.status === 'sending' && '⏳'}
-                  {message.status === 'sent' && '✓'}
-                  {message.status === 'delivered' && '✓✓'}
-                  {message.status === 'error' && '⚠️'}
-                </span>
-              )}
-              <button
-                className="copy-button p-1 hover:bg-muted rounded transition-colors"
-                onClick={() => copyToClipboard(message.content)}
-                title="Copy message"
-              >
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                  <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          {showAvatar && isUser && (
-            <div className="message-avatar">
-              <div className="avatar user-avatar">
-                <span>You</span>
-              </div>
-            </div>
-          )}
-        </div>
+          message={message}
+          assistantId={assistant}
+          showAvatar={showAvatar}
+          formatTimestamp={formatTime}
+          onCopy={handleCopy}
+        />
       );
     });
-  }, [messages, formatTime, copyToClipboard, assistant]);
+  }, [messages, assistant, formatTime, handleCopy]);
 
   return (
     <div className={cn('chat-interface', className)} data-keyboard-visible={isKeyboardVisible}>
@@ -274,28 +170,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         {messageList}
 
         {/* Typing Indicator */}
-        {isLoading && (
-          <div className="message-wrapper assistant-message">
-            <div className="message-avatar">
-              <div className="avatar assistant-avatar">
-                <span>CF</span>
-              </div>
-            </div>
-            <div className="assistant-plain-content">
-              <div className="typing-indicator">
-                <div className="typing-dot animate-typing-dot-bounce"></div>
-                <div
-                  className="typing-dot animate-typing-dot-bounce"
-                  style={{ animationDelay: '0.1s' }}
-                ></div>
-                <div
-                  className="typing-dot animate-typing-dot-bounce"
-                  style={{ animationDelay: '0.2s' }}
-                ></div>
-              </div>
-            </div>
-          </div>
-        )}
+        <AssistantTypingIndicator isVisible={isLoading} />
       </div>
 
       {/* Input Area */}

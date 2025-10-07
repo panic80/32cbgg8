@@ -623,13 +623,18 @@ const rateLimiter = (req, res, next) => {
 
 const performanceHandler = createPerformanceHandler();
 
+app.use('/api/admin', requireAdminAuth);
+
 const adminRouter = createAdminRoutes({
   rateLimiter,
   performanceHandler,
   chatLogger,
 });
 
-app.use('/api/admin', requireAdminAuth, adminRouter);
+app.use('/api/admin', adminRouter);
+
+const logsRouter = createLogsRoutes({ rateLimiter });
+app.use(logsRouter);
 
 const ingestionRouter = createIngestionRoutes({
   rateLimiter,
