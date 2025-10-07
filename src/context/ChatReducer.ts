@@ -1,3 +1,5 @@
+import { StorageKeys } from '@/constants/storage';
+import { getLocalStorageItem, setLocalStorageItem } from '@/utils/storage';
 import { ChatState, ChatAction } from './ChatTypes';
 
 export const initialState: ChatState = {
@@ -5,8 +7,7 @@ export const initialState: ChatState = {
   isLoading: false,
   isTyping: false,
   input: '',
-  theme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
-  fontSize: Number(localStorage.getItem('chatFontSize')) || 16,
+  fontSize: Number(getLocalStorageItem(StorageKeys.fontSize)) || 16,
   showAvatars: true,
   isSimplifyMode: false,
   networkError: null,
@@ -56,17 +57,8 @@ export const chatReducer = (state: ChatState, action: ChatAction): ChatState => 
         input: action.input,
       };
 
-    case 'SET_THEME':
-      localStorage.setItem('cf-travel-bot-theme', action.theme);
-      document.documentElement.classList.remove('dark', 'light');
-      document.documentElement.classList.add(action.theme);
-      return {
-        ...state,
-        theme: action.theme,
-      };
-
     case 'SET_FONT_SIZE':
-      localStorage.setItem('chatFontSize', String(action.fontSize));
+      setLocalStorageItem(StorageKeys.fontSize, String(action.fontSize));
       return {
         ...state,
         fontSize: action.fontSize,

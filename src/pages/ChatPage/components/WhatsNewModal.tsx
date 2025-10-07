@@ -10,8 +10,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Calendar } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { StorageKeys } from '@/constants/storage';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { WHATS_NEW_BY_DATE, WHATS_NEW_VERSION } from '../constants/whatsNew';
-import { useLocalStorage } from '../hooks/useLocalStorage';
 
 interface WhatsNewModalProps {
   open: boolean;
@@ -19,7 +20,10 @@ interface WhatsNewModalProps {
 }
 
 export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ open, onOpenChange }) => {
-  const [lastSeenVersion, setLastSeenVersion] = useLocalStorage<string>('whatsNewLastSeen', '');
+  const [lastSeenVersion, setLastSeenVersion] = useLocalStorage<string>(
+    StorageKeys.whatsNewLastSeen,
+    '',
+  );
 
   const markSeen = () => setLastSeenVersion(WHATS_NEW_VERSION);
 

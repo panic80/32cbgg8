@@ -50,7 +50,7 @@ vi.mock('../ChatPage/hooks', () => ({
     showNewPill: false,
     scrollToBottom: scrollToBottomMock,
   }),
-  useTheme: vi.fn(),
+  useChatTheme: vi.fn(),
   useMessageOperations: () => ({
     copyMessage: vi.fn(),
     regenerateMessage: vi.fn(),

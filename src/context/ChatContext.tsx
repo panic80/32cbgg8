@@ -81,13 +81,6 @@ export const useChat = () => {
     context.dispatch({ type: 'CLEAR_CHAT' });
   }, [context]);
 
-  const setTheme = useCallback(
-    (theme: 'light' | 'dark') => {
-      context.dispatch({ type: 'SET_THEME', theme });
-    },
-    [context],
-  );
-
   const setFontSize = useCallback(
     (fontSize: number) => {
       context.dispatch({ type: 'SET_FONT_SIZE', fontSize });
@@ -122,7 +115,6 @@ export const useChat = () => {
       addMessage,
       updateMessage,
       clearChat,
-      setTheme,
       setFontSize,
       setShowAvatars,
       setSimplifyMode,

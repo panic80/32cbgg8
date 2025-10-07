@@ -2,6 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { StorageKeys } from '@/constants/storage';
+import { getLocalStorageItem, setLocalStorageItem } from '@/utils/storage';
 import { CATEGORIZED_SUGGESTIONS } from '../constants/suggestions';
 
 interface CategorizedSuggestionsProps {
@@ -18,9 +20,9 @@ export const CategorizedSuggestions: React.FC<CategorizedSuggestionsProps> = ({
     if (typeof window === 'undefined') return 'A';
     const params = new URLSearchParams(window.location.search);
     const qp = (params.get('tabsVariant') || '').toUpperCase();
-    let v = qp || (localStorage.getItem('tabs_ab_variant') || '').toUpperCase();
+    let v = qp || (getLocalStorageItem(StorageKeys.tabsVariant) || '').toUpperCase();
     if (v !== 'A' && v !== 'B') v = Math.random() < 0.5 ? 'A' : 'B';
-    localStorage.setItem('tabs_ab_variant', v);
+    setLocalStorageItem(StorageKeys.tabsVariant, v);
     return v;
   }, []);
 

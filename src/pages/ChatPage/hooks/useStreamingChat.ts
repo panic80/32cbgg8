@@ -2,6 +2,8 @@ import { useCallback, useEffect, useReducer, useRef } from 'react';
 import type { SetStateAction } from 'react';
 import { apiClient, ApiError } from '@/api/client';
 import { getModelDisplayName } from '@/constants/models';
+import { StorageKeys } from '@/constants/storage';
+import { getLocalStorageItem } from '@/utils/storage';
 import type { Message, Source, FollowUpQuestion } from '@/types/chat';
 import { formatPlainTextToMarkdown } from '../utils/formatting';
 
@@ -188,10 +190,12 @@ export const useStreamingChat = ({
 
       try {
         const isTripPlannerMessage = messageText.startsWith('📋 **Trip Plan Request**');
-        const userSelectedModel = localStorage.getItem('selectedLLMModel') || DEFAULT_MODEL_ID;
+        const userSelectedModel =
+          getLocalStorageItem(StorageKeys.selectedModel) || DEFAULT_MODEL_ID;
         const selectedModel = isTripPlannerMessage ? 'gpt-5-mini' : userSelectedModel;
         const historyLimit = selectedModel === 'gpt-5-mini' ? 4 : 10;
-        const selectedProvider = localStorage.getItem('selectedLLMProvider') || 'openai';
+        const selectedProvider =
+          getLocalStorageItem(StorageKeys.selectedProvider) || 'openai';
 
         if (!isTripPlannerMessage) {
           const displayModel = getModelDisplayName(selectedModel);

@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
+import { StorageKeys } from '@/constants/storage';
+import { getLocalStorageItem, setLocalStorageItem } from '@/utils/storage';
 import type { LLMModel } from '@/constants/models';
 import type { ModelProvider } from '../types';
-
-const MODEL_STORAGE_KEY = 'selectedLLMModel';
-const PROVIDER_STORAGE_KEY = 'selectedLLMProvider';
 
 const isModelProvider = (value: string | null): value is ModelProvider => {
   return value === 'openai' || value === 'google' || value === 'anthropic';
@@ -37,23 +36,19 @@ export const useModelPreferences = (
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   useEffect(() => {
-    try {
-      const savedModel = localStorage.getItem(MODEL_STORAGE_KEY);
-      const savedProvider = localStorage.getItem(PROVIDER_STORAGE_KEY);
+    const savedModel = getLocalStorageItem(StorageKeys.selectedModel);
+    const savedProvider = getLocalStorageItem(StorageKeys.selectedProvider);
 
-      const initialModel = models.find((model) => model.id === savedModel)?.id || defaultModelId;
-      const initialProvider = isModelProvider(savedProvider)
-        ? savedProvider
-        : (models.find((model) => model.id === initialModel)?.provider as ModelProvider) ||
-          defaultProvider;
+    const initialModel = models.find((model) => model.id === savedModel)?.id || defaultModelId;
+    const initialProvider = isModelProvider(savedProvider)
+      ? savedProvider
+      : (models.find((model) => model.id === initialModel)?.provider as ModelProvider) ||
+        defaultProvider;
 
-      setSelectedModel(initialModel);
-      setSelectedProvider(initialProvider);
-      setTempSelectedModel(initialModel);
-      setTempSelectedProvider(initialProvider);
-    } catch (error) {
-      console.warn('Failed to load model preferences from storage', error);
-    }
+    setSelectedModel(initialModel);
+    setSelectedProvider(initialProvider);
+    setTempSelectedModel(initialModel);
+    setTempSelectedProvider(initialProvider);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultModelId, defaultProvider, models]);
 
@@ -90,12 +85,8 @@ export const useModelPreferences = (
     setSelectedProvider(provider);
     setHasUnsavedChanges(false);
 
-    try {
-      localStorage.setItem(MODEL_STORAGE_KEY, tempSelectedModel);
-      localStorage.setItem(PROVIDER_STORAGE_KEY, provider);
-    } catch (error) {
-      console.warn('Failed to persist model preferences', error);
-    }
+    setLocalStorageItem(StorageKeys.selectedModel, tempSelectedModel);
+    setLocalStorageItem(StorageKeys.selectedProvider, provider);
 
     return model;
   }, [models, tempSelectedModel, tempSelectedProvider]);

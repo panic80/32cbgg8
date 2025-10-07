@@ -2,11 +2,11 @@ import React, { lazy, Suspense, useMemo } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import './index.css';
-import { useTheme } from './context/ThemeContext';
-import ScrollToTop from './components/ScrollToTop';
-import useRoutePrefetch from './hooks/useRoutePrefetch';
-import useMobileFlag from './hooks/useMobileFlag';
-import useVisitAnalytics from './hooks/useVisitAnalytics';
+import { useTheme } from '@/context/ThemeContext';
+import ScrollToTop from '@/components/ScrollToTop';
+import useRoutePrefetch from '@/hooks/useRoutePrefetch';
+import useMobileFlag from '@/hooks/useMobileFlag';
+import useVisitAnalytics from '@/hooks/useVisitAnalytics';
 
 function VisitAnalyticsListener() {
   useVisitAnalytics();
@@ -14,25 +14,25 @@ function VisitAnalyticsListener() {
 }
 
 // Lazy load components
-const FAQPage = lazy(() => import('./pages/FAQPage'));
-const LandingPage = lazy(() => import('./pages/LandingPage.jsx'));
-const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
-const ChatPage = lazy(() => import('./pages/ChatPage'));
-const LoadingDebugPage = lazy(() => import('./pages/LoadingDebugPage'));
-const OPIPage = lazy(() => import('./pages/OPIPage'));
-const OPIPageTest = lazy(() => import('./pages/OPIPageTest'));
-const AdminToolsPage = lazy(() => import('./pages/AdminToolsPage'));
-const ConfigPage = lazy(() => import('./pages/ConfigPage'));
-const UIShowcase = lazy(() => import('./components/UIShowcase'));
-const LandingPageV2 = lazy(() => import('./pages/LandingPageV2.jsx'));
-const LandingPageTest = lazy(() => import('./pages/LandingPageTest.jsx'));
-const PerformanceDashboard = lazy(() => import('./pages/PerformanceDashboard'));
-import RouteSkeleton from './components/RouteSkeleton';
+const FAQPage = lazy(() => import('@/pages/FAQPage'));
+const LandingPage = lazy(() => import('@/pages/LandingPage.jsx'));
+const PrivacyPage = lazy(() => import('@/pages/PrivacyPage'));
+const ChatPage = lazy(() => import('@/pages/ChatPage'));
+const LoadingDebugPage = lazy(() => import('@/pages/LoadingDebugPage'));
+const OPIPage = lazy(() => import('@/pages/OPIPage'));
+const OPIPageTest = lazy(() => import('@/pages/OPIPageTest'));
+const AdminToolsPage = lazy(() => import('@/pages/AdminToolsPage'));
+const ConfigPage = lazy(() => import('@/pages/ConfigPage'));
+const UIShowcase = lazy(() => import('@/components/UIShowcase'));
+const LandingPageV2 = lazy(() => import('@/pages/LandingPageV2.jsx'));
+const LandingPageTest = lazy(() => import('@/pages/LandingPageTest.jsx'));
+const PerformanceDashboard = lazy(() => import('@/pages/PerformanceDashboard'));
+import RouteSkeleton from '@/components/RouteSkeleton';
 
 function App() {
   // Use global theme context
   const { theme, toggleTheme } = useTheme();
-  const prefetchTargets = useMemo(() => [() => import('./pages/ChatPage')], []);
+  const prefetchTargets = useMemo(() => [() => import('@/pages/ChatPage')], []);
 
   useRoutePrefetch(prefetchTargets);
   useMobileFlag();

@@ -17,7 +17,6 @@ import { useLogsPanel } from './hooks/useLogsPanel';
 import { useVisitSummary } from './hooks/useVisitSummary';
 import { useIngestionController } from './hooks/useIngestionController';
 import { apiClient, ApiError } from '@/api/client';
-import { apiClient, ApiError } from '@/api/client';
 
 // Ensure LLM_MODELS is always an array
 const MODELS: LLMModel[] = Array.isArray(LLM_MODELS) ? LLM_MODELS : [];

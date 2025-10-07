@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { getModelDisplayName, DEFAULT_MODEL_ID } from '../constants/models';
+import { getModelDisplayName, DEFAULT_MODEL_ID } from '@/constants/models';
+import { StorageKeys } from '@/constants/storage';
+import { getLocalStorageItem, removeLocalStorageItem } from '@/utils/storage';
 import { DisclaimerModal } from '@/components/DisclaimerModal';
 import { BackgroundEffects } from './ChatPage/components/BackgroundEffects';
 import { ChatHeader } from './ChatPage/components/ChatHeader';
@@ -14,7 +16,7 @@ import {
   useModelMode,
   useScrollBehavior,
   useStreamingChat,
-  useTheme,
+  useChatTheme,
   useMessageWindow,
 } from './ChatPage/hooks';
 import { toast } from 'sonner';
@@ -22,6 +24,7 @@ import { useLocation } from 'react-router-dom';
 import { exportConversationAsMarkdown } from '@/utils/exportConversation';
 import { ChatCommandPalette } from './ChatPage/components/ChatCommandPalette';
 import { ChatMessagesPanel } from './ChatPage/components/ChatMessagesPanel';
+import { useTheme as useThemeContext } from '@/context/ThemeContext';
 
 interface ChatPageProps {
   theme?: string;
@@ -38,10 +41,13 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
   const [collapsedMessages, setCollapsedMessages] = useState<Set<string>>(new Set());
   const [showHelpDialog, setShowHelpDialog] = useState(false);
   const [useRAG] = useState(true);
-  const [shortAnswerMode, setShortAnswerMode] = useLocalStorage('shortAnswerMode', false);
+  const [shortAnswerMode, setShortAnswerMode] = useLocalStorage(
+    StorageKeys.shortAnswerMode,
+    false,
+  );
   // Model mode state for FAST/SMART toggle
   const [modelMode, setModelMode] = useState<'fast' | 'smart'>(() => {
-    const savedModel = localStorage.getItem('selectedLLMModel');
+    const savedModel = getLocalStorageItem(StorageKeys.selectedModel);
     return savedModel === 'gpt-5-mini' ? 'smart' : 'fast';
   });
   const [menuOpen, setMenuOpen] = useState(false);
@@ -53,13 +59,10 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
   const [inputHeight, setInputHeight] = useState<number>(96);
   const pillMargin = 12;
   const location = useLocation();
+  const { theme: contextTheme, toggleTheme: contextToggleTheme } = useThemeContext();
 
   useEffect(() => {
-    try {
-      localStorage.removeItem('useHybridSearch');
-    } catch (error) {
-      console.warn('Failed to remove legacy useHybridSearch flag', error);
-    }
+    removeLocalStorageItem(StorageKeys.hybridSearch);
   }, []);
 
   // Measure ChatInput (fixed footer) height with ResizeObserver
@@ -116,9 +119,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
 
   // Motion values removed to fix flickering issue
 
-  // Use theme from props or fall back to local detection for standalone usage
-  const theme =
-    propTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  const theme = propTheme ?? contextTheme;
 
   // Simulate initial loading
   useEffect(() => {
@@ -129,7 +130,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
   }, []);
 
   // Apply theme changes
-  useTheme(theme, propTheme);
+  useChatTheme(theme, propTheme);
 
   // Mouse movement handler removed to fix flickering issue
 
@@ -164,7 +165,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
   const { showDisclaimer, setShowDisclaimer } = useDisclaimer();
 
   // Use provided toggle function or create a no-op if not provided
-  const toggleTheme = propToggleTheme || (() => {});
+  const toggleTheme = propToggleTheme ?? contextToggleTheme;
 
   const { isAtBottom, showNewPill, scrollToBottom } = useScrollBehavior({
     scrollAreaRef,

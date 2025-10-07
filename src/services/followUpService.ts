@@ -1,4 +1,6 @@
 import { apiClient, ApiError } from '@/api/client';
+import { StorageKeys } from '@/constants/storage';
+import { getLocalStorageItem } from '@/utils/storage';
 import { FollowUpQuestion, Source } from '@/types/chat';
 
 interface FollowUpGenerationParams {
@@ -29,8 +31,8 @@ export const generateFollowUpQuestions = async (
         aiResponse,
         sources,
         conversationHistory,
-        model: localStorage.getItem('selectedLLMModel') || 'gpt-4',
-        provider: localStorage.getItem('selectedLLMProvider') || 'openai',
+        model: getLocalStorageItem(StorageKeys.selectedModel) || 'gpt-4',
+        provider: getLocalStorageItem(StorageKeys.selectedProvider) || 'openai',
       },
       {
         headers: {

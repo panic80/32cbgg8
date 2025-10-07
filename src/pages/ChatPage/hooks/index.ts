@@ -6,5 +6,5 @@ export * from './useMessageOperations';
 export * from './useModelMode';
 export * from './useScrollBehavior';
 export * from './useStreamingChat';
-export * from './useTheme';
+export * from './useChatTheme';
 export * from './useMessageWindow';

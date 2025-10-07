@@ -1,6 +1,9 @@
-import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, ReactNode } from 'react';
+import { StorageKeys } from '@/constants/storage';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { applyThemeToDocument, getSystemTheme, type ThemeMode } from '@/utils/theme';
 
-type Theme = 'light' | 'dark';
+type Theme = ThemeMode;
 
 interface ThemeContextType {
   theme: Theme;
@@ -10,19 +13,11 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // Initialize theme from localStorage or system preference
-  const [theme, setTheme] = useState<Theme>(() => {
-    const storedTheme = localStorage.getItem('cf-travel-bot-theme') as Theme;
-    if (storedTheme) return storedTheme;
-
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  });
+  const [theme, setTheme] = useLocalStorage<Theme>(StorageKeys.theme, () => getSystemTheme());
 
   // Update document class, data-theme attribute and localStorage when theme changes
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', theme === 'dark');
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('cf-travel-bot-theme', theme);
+    applyThemeToDocument(theme);
   }, [theme]);
 
   // Toggle between light and dark

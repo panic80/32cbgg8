@@ -10,6 +10,8 @@ import { WHATS_NEW_VERSION } from '@/pages/ChatPage/constants/whatsNew';
 import { HamburgerMenu } from '@/components/HamburgerMenu';
 import LogoImage from '@/components/LogoImage';
 import { Button } from '@/components/ui/button';
+import { StorageKeys } from '@/constants/storage';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
 
 interface ChatHeaderProps {
   theme: string;
@@ -51,13 +53,10 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 
   // Track if there's unseen updates
   // We keep this local to the header since it owns the modal in this component
-  const [lastSeenVersion, setLastSeenVersion] = useState<string>(() => {
-    try {
-      return JSON.parse(localStorage.getItem('whatsNewLastSeen') || '""');
-    } catch {
-      return '';
-    }
-  });
+  const [lastSeenVersion, setLastSeenVersion] = useLocalStorage<string>(
+    StorageKeys.whatsNewLastSeen,
+    '',
+  );
   const hasWhatsNew = lastSeenVersion !== WHATS_NEW_VERSION;
   const prefersReducedMotion = useReducedMotion();
 
@@ -145,10 +144,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         open={showWhatsNew}
         onOpenChange={(open) => {
           if (!open) {
-            try {
-              localStorage.setItem('whatsNewLastSeen', JSON.stringify(WHATS_NEW_VERSION));
-              setLastSeenVersion(WHATS_NEW_VERSION);
-            } catch {}
+            setLastSeenVersion(WHATS_NEW_VERSION);
           }
           setShowWhatsNew(open);
         }}

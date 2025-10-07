@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { sendVisitEvent } from '@/api/analytics';
-
-const SESSION_STORAGE_KEY = 'cbthis.analytics.sessionId';
+import { StorageKeys } from '@/constants/storage';
+import { getLocalStorageItem, setLocalStorageItem } from '@/utils/storage';
 
 const generateSessionId = (): string | null => {
   if (typeof window === 'undefined') {
@@ -22,25 +22,16 @@ const generateSessionId = (): string | null => {
 };
 
 const ensureSessionId = (): string | null => {
-  if (typeof window === 'undefined') {
-    return null;
+  const existing = getLocalStorageItem(StorageKeys.analyticsSessionId);
+  if (existing) {
+    return existing;
   }
 
-  try {
-    const existing = window.localStorage.getItem(SESSION_STORAGE_KEY);
-    if (existing) {
-      return existing;
-    }
-
-    const created = generateSessionId();
-    if (created) {
-      window.localStorage.setItem(SESSION_STORAGE_KEY, created);
-    }
-    return created;
-  } catch (error) {
-    console.warn('Failed to persist visit session id', error);
-    return generateSessionId();
+  const created = generateSessionId();
+  if (created) {
+    setLocalStorageItem(StorageKeys.analyticsSessionId, created);
   }
+  return created;
 };
 
 const collectViewport = (): string | null => {

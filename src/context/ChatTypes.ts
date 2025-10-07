@@ -18,7 +18,6 @@ export interface ChatState {
   isLoading: boolean;
   isTyping: boolean;
   input: string;
-  theme: 'light' | 'dark';
   fontSize: number;
   showAvatars: boolean;
   isSimplifyMode: boolean;
@@ -34,7 +33,6 @@ export type ChatAction =
   | { type: 'SET_LOADING'; isLoading: boolean }
   | { type: 'SET_TYPING'; isTyping: boolean }
   | { type: 'SET_INPUT'; input: string }
-  | { type: 'SET_THEME'; theme: 'light' | 'dark' }
   | { type: 'SET_FONT_SIZE'; fontSize: number }
   | { type: 'SET_SHOW_AVATARS'; showAvatars: boolean }
   | { type: 'SET_SIMPLIFY_MODE'; isSimplifyMode: boolean }
