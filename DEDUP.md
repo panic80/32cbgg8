@@ -25,7 +25,6 @@ Last updated: 2025-08-31
   - `src/hooks` and `src/components/hooks` both define:
     - `use-copy-to-clipboard`
     - `use-autosize-textarea`
-    - `use-audio-recording`
 - Multiple ChatPage backups not imported:
   - `src/pages/ChatPage.tsx.*` (several variants: backup, bak2, bubble_backup, etc.)
 - Legacy proxy (`server/proxy.js`) has been removed; keep gateway logic consolidated in `server/main.js` and delete stale references.
@@ -59,7 +58,6 @@ Last updated: 2025-08-31
 - [x] Consolidate hooks to `src/hooks` and update imports:
   - [x] Unify `use-copy-to-clipboard`
   - [x] Unify `use-autosize-textarea`
-  - [x] Unify `use-audio-recording`
   - [x] Replace imports in `src/components`, `src/pages`, `src/lib`
 - [x] Handle ChatPage backups:
   - [x] Verify no imports of `src/pages/ChatPage.tsx.*`

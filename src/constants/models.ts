@@ -48,7 +48,7 @@ export const LLM_MODELS: LLMModel[] = [
     id: 'gpt-4o',
     name: 'GPT-4o',
     provider: 'openai',
-    description: 'Flagship model with audio, vision, and text capabilities',
+    description: 'Flagship multimodal model with vision and text capabilities',
   },
   {
     id: 'gpt-4o-mini',

@@ -47,7 +47,7 @@ export interface Message {
 
 export interface Attachment {
   id: string;
-  type: 'image' | 'document' | 'audio' | 'video' | 'link';
+  type: 'image' | 'document' | 'video' | 'link';
   url: string;
   name?: string;
   size?: number;
