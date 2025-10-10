@@ -27,6 +27,8 @@ const UIShowcase = lazy(() => import('@/components/UIShowcase'));
 const LandingPageV2 = lazy(() => import('@/pages/LandingPageV2.jsx'));
 const LandingPageTest = lazy(() => import('@/pages/LandingPageTest.jsx'));
 const PerformanceDashboard = lazy(() => import('@/pages/PerformanceDashboard'));
+
+
 import RouteSkeleton from '@/components/RouteSkeleton';
 
 function App() {
