@@ -180,6 +180,13 @@ class Settings(BaseSettings):
     llm_pool_max_connections: int = 10  # Maximum total connections
     llm_pool_health_check_interval: int = 60  # Health check interval in seconds
     
+    # LangGraph Stateful Retrieval Configuration
+    enable_stateful_retrieval: bool = True  # Enable LangGraph persistence and cycles
+    max_retrieval_iterations: int = 2  # Maximum refinement iterations before giving up
+    relevance_threshold: float = 0.4  # Minimum avg relevance to proceed (0-1 scale)
+    checkpoint_critical_nodes_only: bool = True  # Only checkpoint key nodes to reduce latency
+    stateful_retrieval_session_ttl: int = 3600  # Session TTL in seconds (1 hour)
+    
     # Logging
     log_level: str = "INFO"
     log_format: str = "json"

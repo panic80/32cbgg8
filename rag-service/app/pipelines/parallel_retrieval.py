@@ -390,6 +390,8 @@ def create_parallel_pipeline(
     retriever_configs: Optional[Dict[str, Dict[str, Any]]] = None,
     enable_unified: bool = None,
     enable_reranker: bool = True,
+    enable_stateful: bool = None,
+    redis_client = None,
 ) -> ParallelRetrievalPipeline:
     """Create a parallel retrieval pipeline with default retrievers."""
     from app.pipelines.retriever_factory import HybridRetrieverFactory, RetrieverConfig, RetrieverMode
@@ -510,7 +512,7 @@ def create_parallel_pipeline(
     # Create table ranker for table-specific queries
     table_ranker = TableRanker()
     
-    return ParallelRetrievalPipeline(
+    pipeline = ParallelRetrievalPipeline(
         retrievers=retrievers,
         weights=weights,
         concurrency_limit=settings.parallel_retrieval_limit,
@@ -518,3 +520,25 @@ def create_parallel_pipeline(
         reranker=reranker,
         table_ranker=table_ranker
     )
+    
+    # Wrap with stateful pipeline if requested
+    if enable_stateful is None:
+        enable_stateful = settings.enable_stateful_retrieval
+        
+    if enable_stateful:
+        from app.pipelines.stateful_retrieval import StatefulRetrievalPipeline
+        from app.pipelines.query_optimizer import QueryOptimizer
+        
+        logger.info("Wrapping pipeline with stateful retrieval (LangGraph + Redis)")
+        query_optimizer = QueryOptimizer(llm=llm)
+        
+        return StatefulRetrievalPipeline(
+            parallel_pipeline=pipeline,
+            query_optimizer=query_optimizer,
+            redis_client=redis_client,
+            max_iterations=settings.max_retrieval_iterations,
+            relevance_threshold=settings.relevance_threshold,
+            enable_checkpointing=bool(redis_client)
+        )
+    
+    return pipeline

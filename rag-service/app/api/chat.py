@@ -303,6 +303,11 @@ async def chat(request: Request, chat_request: ChatRequest) -> ChatResponse:
                 retrieval_pipeline = pipeline_cache[pipeline_cache_key]
                 logger.info(f"Using cached retrieval pipeline: {pipeline_cache_key}")
             else:
+                # Get Redis client for stateful retrieval (if enabled)
+                redis_client = None
+                if cache_service and hasattr(cache_service, 'redis_client'):
+                    redis_client = cache_service.redis_client
+                    
                 retrieval_pipeline = await asyncio.to_thread(
                     create_parallel_pipeline,
                     vector_store_manager=vector_store,
@@ -312,6 +317,8 @@ async def chat(request: Request, chat_request: ChatRequest) -> ChatResponse:
                     retriever_configs=retriever_configs,
                     enable_reranker=not is_smart_gpt5,
                     # HYBRID_SEARCH_TOGGLE_END
+                    enable_stateful=settings.enable_stateful_retrieval,
+                    redis_client=redis_client,
                 )
                 if pipeline_cache is not None:
                     pipeline_cache[pipeline_cache_key] = retrieval_pipeline
@@ -345,10 +352,21 @@ async def chat(request: Request, chat_request: ChatRequest) -> ChatResponse:
                 
                 # Retrieve using parallel pipeline
                 retrieval_start = time.perf_counter()
-                results = await retrieval_pipeline.retrieve(
-                    query=query,
-                    k=settings.max_chunks_per_query
-                )
+                
+                # Check if this is a stateful pipeline and pass session_id
+                from app.pipelines.stateful_retrieval import StatefulRetrievalPipeline
+                if isinstance(retrieval_pipeline, StatefulRetrievalPipeline):
+                    # Use conversation_id as session_id for persistence
+                    results = await retrieval_pipeline.retrieve(
+                        query=query,
+                        k=settings.max_chunks_per_query,
+                        session_id=conversation_id
+                    )
+                else:
+                    results = await retrieval_pipeline.retrieve(
+                        query=query,
+                        k=settings.max_chunks_per_query
+                    )
                 if is_smart_gpt5:
                     smart_chunk_limit = getattr(settings, "smart_mode_max_chunks", 0)
                     if smart_chunk_limit:
@@ -526,7 +544,7 @@ SPECIAL INSTRUCTION FOR CLASS A RESERVISTS:
 
 User Question: {chat_request.message}
 
-⚠️ IMPORTANT: If this is a trip plan request, DO NOT show any summary table at the beginning.
+⚠︝ IMPORTANT: If this is a trip plan request, DO NOT show any summary table at the beginning.
 Show trip details and calculations first, then the summary table at the very END.
 
 Instructions:

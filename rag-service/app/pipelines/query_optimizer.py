@@ -355,6 +355,91 @@ Provide your classification:""",
             "expanded_queries": unique_expansions,
             "requires_translation": language != "en"
         }
+    
+    def expand_query_for_retry(self, query: str) -> str:
+        """Expand query with synonyms and related terms for better retrieval.
+        
+        Used in first retry iteration to cast a wider net.
+        
+        Args:
+            query: Original query
+            
+        Returns:
+            Expanded query with additional context terms
+        """
+        # Expand abbreviations
+        expanded = self.expand_abbreviations(query)
+        
+        # Add domain context terms
+        domain_terms = []
+        query_lower = query.lower()
+        
+        # Add relevant context based on query content
+        if any(term in query_lower for term in ["rate", "allowance", "cost", "amount"]):
+            domain_terms.extend(["rates", "allowances", "amounts", "values"])
+        if any(term in query_lower for term in ["meal", "food", "breakfast", "lunch", "dinner"]):
+            domain_terms.extend(["meal allowance", "per diem", "daily rates"])
+        if any(term in query_lower for term in ["travel", "trip", "journey"]):
+            domain_terms.extend(["travel directive", "TD", "travel instructions"])
+        if any(term in query_lower for term in ["vehicle", "car", "driving", "km"]):
+            domain_terms.extend(["kilometric", "private vehicle", "POMV", "mileage"])
+        if any(term in query_lower for term in ["hotel", "accommodation", "lodging"]):
+            domain_terms.extend(["accommodation", "lodging", "hotel rates"])
+            
+        # Combine original with domain terms (avoid duplication)
+        if domain_terms:
+            expanded = f"{expanded} {' '.join(set(domain_terms))}"
+            
+        logger.debug(f"Expanded query: '{query}' -> '{expanded}'")
+        return expanded
+    
+    def simplify_query_for_retry(self, query: str) -> str:
+        """Simplify query to core terms, removing complex phrasing.
+        
+        Used in second retry iteration to focus on essential keywords.
+        
+        Args:
+            query: Original query
+            
+        Returns:
+            Simplified query with only core terms
+        """
+        # Remove question words and common phrases
+        remove_patterns = [
+            r'\b(what|where|when|why|how|can|could|would|should|do|does|did|is|are|am|was|were)\b',
+            r'\b(the|a|an|my|your|our|their)\b',
+            r'\b(please|kindly|help|tell|explain|show|give)\b',
+            r'\b(me|you|us|them|i|we|they)\b',
+        ]
+        
+        simplified = query.lower()
+        for pattern in remove_patterns:
+            simplified = re.sub(pattern, ' ', simplified, flags=re.IGNORECASE)
+            
+        # Clean up extra spaces
+        simplified = ' '.join(simplified.split())
+        
+        # Expand abbreviations for clarity
+        simplified = self.expand_abbreviations(simplified)
+        
+        # Extract key nouns and terms (keep numbers, proper nouns, domain terms)
+        words = simplified.split()
+        key_terms = []
+        
+        for word in words:
+            # Keep if: has number, is long (>4 chars), or is known domain term
+            if (
+                any(c.isdigit() for c in word) or
+                len(word) > 4 or
+                word in self.ABBREVIATIONS or
+                word in ["rate", "meal", "km", "trip", "cost", "travel", "caf", "td"]
+            ):
+                key_terms.append(word)
+                
+        simplified = ' '.join(key_terms) if key_terms else simplified
+        
+        logger.debug(f"Simplified query: '{query}' -> '{simplified}'")
+        return simplified if simplified else query  # Fallback to original if empty
 
 
 class QueryRewriter:
