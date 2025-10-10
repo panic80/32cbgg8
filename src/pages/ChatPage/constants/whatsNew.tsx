@@ -13,9 +13,32 @@ export interface WhatsNewDateGroup {
 }
 
 // Bump this when you add new release notes
-export const WHATS_NEW_VERSION = '2025-10-05';
+export const WHATS_NEW_VERSION = '2025-10-10';
 
 export const WHATS_NEW_BY_DATE: WhatsNewDateGroup[] = [
+  {
+    date: 'Friday, October 10, 2025',
+    updates: [
+      {
+        icon: <Zap className="w-4 h-4" />,
+        text: 'Stateful retrieval with automatic refinement',
+        description:
+          'Integrated LangGraph with Redis persistence to enable iterative query refinement. Low-quality retrieval now automatically triggers up to 2 refinement cycles, expanding then simplifying queries for better results. Adds ~300ms average overhead but dramatically improves answers for vague questions.',
+      },
+      {
+        icon: <Zap className="w-4 h-4" />,
+        text: 'Redis-backed conversation continuity',
+        description:
+          'All retrieval sessions now persist to Redis with checkpointing at critical workflow nodes. This enables conversation state tracking, better debugging, and provides a complete audit trail for compliance.',
+      },
+      {
+        icon: <FileText className="w-4 h-4" />,
+        text: 'Smart query optimization strategies',
+        description:
+          'When retrieval quality is below threshold (avg relevance < 0.4), the system automatically reformulates queries: first by expanding with domain terms and synonyms, then by simplifying to core keywords. Typically improves results from 30% to 70% relevance.',
+      },
+    ],
+  },
   {
     date: 'Sunday, October 5, 2025',
     updates: [
