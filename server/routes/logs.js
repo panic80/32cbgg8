@@ -15,10 +15,12 @@ const sanitizeString = (value) => {
   return trimmed.length > 0 ? trimmed : undefined;
 };
 
-const createLogsRoutes = ({ rateLimiter }) => {
+const createLogsRoutes = ({ rateLimiter, requireAdminAuth }) => {
   const router = Router();
 
-  router.get('/api/admin/chat-logs', rateLimiter, (req, res) => {
+  const adminMiddleware = requireAdminAuth ? [requireAdminAuth, rateLimiter] : [rateLimiter];
+
+  router.get('/api/admin/chat-logs', ...adminMiddleware, (req, res) => {
     if (process.env.ENABLE_LOGGING !== 'true') {
       return res.status(503).json({
         error: 'LoggingDisabled',
@@ -67,7 +69,7 @@ const createLogsRoutes = ({ rateLimiter }) => {
     });
   });
 
-  router.get('/api/admin/analytics/visits', rateLimiter, (req, res) => {
+  router.get('/api/admin/analytics/visits', ...adminMiddleware, (req, res) => {
     if (process.env.ENABLE_LOGGING !== 'true') {
       return res.status(503).json({
         error: 'LoggingDisabled',

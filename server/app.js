@@ -636,6 +636,13 @@ app.use('/api/admin', adminRouter);
 const logsRouter = createLogsRoutes({ rateLimiter });
 app.use(logsRouter);
 
+const logsRouter = createLogsRoutes({
+  rateLimiter,
+  requireAdminAuth,
+});
+
+app.use(logsRouter);
+
 const ingestionRouter = createIngestionRoutes({
   rateLimiter,
   requireAdminAuth,
@@ -802,7 +809,7 @@ app.get('/api/config', (req, res) => {
       rateLimit: config.rateLimitMax,
     },
     models: {
-      default: 'gpt-4.1-mini',
+      default: 'gpt-4.1',
       providers: {
         google: !!geminiClient,
         openai: !!openaiClient,
