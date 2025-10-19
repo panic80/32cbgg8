@@ -7,6 +7,7 @@ from fastapi import APIRouter, Request, HTTPException
 from typing import Dict, Any, Optional
 from datetime import datetime
 import uuid
+import random
 
 from langchain_openai import ChatOpenAI
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -61,19 +62,21 @@ def get_llm(provider: Provider, model: Optional[str] = None):
         # Check if GPT-5 Mini/Nano or GPT-4.1 Mini (doesn't support temperature)
         is_gpt5_mini = (model_name and model_name.strip().lower() == 'gpt-5-mini')
         is_gpt5_nano = (model_name and model_name.strip().lower() == 'gpt-5-nano')
-        is_gpt41_mini = (model_name and model_name.strip().lower() == 'gpt-4.1-mini')
+        model_name_normalized = model_name.strip().lower() if model_name else ""
+        is_gpt41 = model_name_normalized == 'gpt-4.1'
+        is_gpt41_mini = model_name_normalized == 'gpt-4.1-mini'
         
         # Debug logging
         logger.info(f"Model check - model_name: '{model_name}', is_o_series: {is_o_series}, is_gpt5_mini: {is_gpt5_mini}, is_gpt5_nano: {is_gpt5_nano}, is_gpt41_mini: {is_gpt41_mini}")
         
-        # O-series models, GPT-5 Mini/Nano, and GPT-4.1 Mini don't support temperature parameter
+        # O-series models, GPT-5 Mini/Nano, and GPT-4.1 variants don't support temperature parameter
         try:
-            if is_o_series or is_gpt5_mini or is_gpt5_nano or is_gpt41_mini:
+            if is_o_series or is_gpt5_mini or is_gpt5_nano or is_gpt41 or is_gpt41_mini:
                 logger.info(f"Using {model_name}, temperature parameter disabled")
                 llm = ChatOpenAI(
                     api_key=settings.openai_api_key,
                     model=model_name,
-                    max_tokens=8192  # O-series and GPT-5 Mini models require max_tokens
+                    max_tokens=2048  # Trim completion window for faster smart-mode responses
                 )
             else:
                 logger.info(f"Creating OpenAI LLM for model: {model_name}")
@@ -151,9 +154,10 @@ async def chat(request: Request, chat_request: ChatRequest) -> ChatResponse:
         
         # Initialize advanced cache if available
         advanced_cache = None
+        cache_context_hash: Optional[str] = None
         if cache_service:
             advanced_cache = AdvancedCacheService(cache_service)
-        
+            
         # Initialize components using asyncio.to_thread for blocking operations
         logger.info("Creating LLM...")
         llm = await asyncio.to_thread(get_llm, chat_request.provider, chat_request.model)
@@ -176,10 +180,10 @@ async def chat(request: Request, chat_request: ChatRequest) -> ChatResponse:
             cached_response = None
             if advanced_cache:
                 # Create a simple context hash for cache key (will be updated after retrieval)
-                context_hash = hashlib.md5(f"{chat_request.message}:{chat_request.provider}".encode()).hexdigest()
+                cache_context_hash = hashlib.md5(f"{chat_request.message}:{chat_request.provider}".encode()).hexdigest()
                 cached_response = await advanced_cache.get_response(
                     query=chat_request.message,
-                    context_hash=context_hash,
+                    context_hash=cache_context_hash,
                     model=chat_request.model or "default"
                 )
                 
@@ -251,73 +255,122 @@ async def chat(request: Request, chat_request: ChatRequest) -> ChatResponse:
                 except Exception as _e:
                     logger.warning(f"Unable to apply default location bias: {_e}")
             
-            # Create or reuse parallel retrieval pipeline (cached by provider/model/hybrid)
-            logger.info("Preparing ParallelRetrievalPipeline (with cache)...")
+            query_for_retrieval = optimized_query if optimized_query != chat_request.message else chat_request.message
+            coordinator_used = False
+            coordinator = getattr(app.state, "retrieval_coordinator", None)
+            rollout = getattr(settings, "gated_retrieval_rollout_percentage", 1.0)
+            use_coordinator = (
+                chat_request.use_rag
+                and getattr(settings, "enable_gated_retrieval", False)
+                and coordinator is not None
+            )
+            if use_coordinator and rollout < 1.0:
+                rollout = max(0.0, min(1.0, rollout))
+                use_coordinator = random.random() < rollout
 
-            # Check if unified retrieval is enabled
-            enable_unified = getattr(settings, 'enable_unified_retrieval', False)
+            retrieval_results = []
+            retrieval_time_ms = 0.0
+            retrieval_count = 0
 
-            # HYBRID_SEARCH_TOGGLE_START - Handle hybrid search configuration
-            # Configure retriever based on hybrid search setting
-            retriever_configs = None
-            if chat_request.use_hybrid_search:
-                logger.info("Hybrid search enabled - configuring BM25 + Vector retrievers")
-                retriever_configs = {
-                    "vector_similarity": {
-                        "type": "vector",
-                        "search_type": "similarity",
-                        "k": 10
-                    },
-                    "bm25": {
-                        "type": "bm25",
-                        "k": 10
+            if use_coordinator:
+                try:
+                    logger.info("Attempting retrieval via GatedRetrievalCoordinator")
+                    coordinator_start = time.perf_counter()
+                    coordinator_docs, coordinator_metrics = await coordinator.retrieve(
+                        query=query_for_retrieval,
+                        max_final_docs=settings.max_chunks_per_query
+                    )
+                    retrieval_time_ms = coordinator_metrics.retrieval_execution_time_ms
+                    retrieval_results = [
+                        (doc, doc.metadata.get("score") or doc.metadata.get("similarity") or 1.0)
+                        for doc in coordinator_docs
+                    ]
+                    retrieval_count = len(retrieval_results)
+                    perf_monitor.record_latency("search_latency_ms", retrieval_time_ms)
+                    perf_monitor.record_latency("retriever_latency_ms", retrieval_time_ms)
+                    perf_monitor.increment_counter("retrieval_operations", 1)
+                    perf_monitor.increment_counter("retrieved_documents_total", retrieval_count)
+                    coordinator_used = retrieval_count > 0
+                    logger.info(
+                        "Coordinator retrieval complete (cache_hit=%s, docs=%s, elapsed=%.2fms)",
+                        coordinator_metrics.cache_hit,
+                        retrieval_count,
+                        (time.perf_counter() - coordinator_start) * 1000,
+                    )
+                    if not coordinator_used:
+                        logger.info("Coordinator returned no documents; will fall back to parallel pipeline")
+                except Exception as coordinator_error:
+                    logger.warning(
+                        "Gated retrieval coordinator failed: %s. Falling back to parallel pipeline.",
+                        coordinator_error,
+                    )
+                    coordinator_used = False
+                    retrieval_results = []
+
+            if not coordinator_used:
+                # Create or reuse parallel retrieval pipeline (cached by provider/model/hybrid)
+                logger.info("Preparing ParallelRetrievalPipeline (with cache)...")
+
+                enable_unified = getattr(settings, 'enable_unified_retrieval', False)
+
+                retriever_configs = None
+                if chat_request.use_hybrid_search:
+                    logger.info("Hybrid search enabled - configuring BM25 + Vector retrievers")
+                    retriever_configs = {
+                        "vector_similarity": {
+                            "type": "vector",
+                            "search_type": "similarity",
+                            "k": 10
+                        },
+                        "bm25": {
+                            "type": "bm25",
+                            "k": 10
+                        }
                     }
-                }
-                # Add multi-query if LLM is available
-                if llm:
-                    retriever_configs["multi_query"] = {
-                        "type": "multi_query",
-                        "base_retriever": "vector_similarity",
-                        "llm": llm
+                    if llm:
+                        retriever_configs["multi_query"] = {
+                            "type": "multi_query",
+                            "base_retriever": "vector_similarity",
+                            "llm": llm
+                        }
+
+                if retriever_configs is None and is_smart_gpt5:
+                    logger.info("Smart GPT-5 Mini detected - using streamlined vector retriever configuration")
+                    retriever_configs = {
+                        "vector_similarity": {
+                            "type": "vector",
+                            "search_type": "similarity",
+                            "k": max(8, getattr(settings, "smart_mode_max_chunks", 4) * 2),
+                        }
                     }
-            # HYBRID_SEARCH_TOGGLE_END
 
-            if retriever_configs is None and is_smart_gpt5:
-                logger.info("Smart GPT-5 Mini detected - using streamlined vector retriever configuration")
-                retriever_configs = {
-                    "vector_similarity": {
-                        "type": "vector",
-                        "search_type": "similarity",
-                        "k": max(8, getattr(settings, "smart_mode_max_chunks", 4) * 2),
-                    }
-                }
+                provider_key = str(chat_request.provider)
+                model_key = chat_request.model or "default"
+                hybrid_key = "hybrid" if chat_request.use_hybrid_search else "vector"
+                pipeline_cache_key = f"{hybrid_key}|unified={enable_unified}|{provider_key}|{model_key}"
 
-            # Build a cache key for the pipeline
-            provider_key = str(chat_request.provider)
-            model_key = chat_request.model or "default"
-            hybrid_key = "hybrid" if chat_request.use_hybrid_search else "vector"
-            pipeline_cache_key = f"{hybrid_key}|unified={enable_unified}|{provider_key}|{model_key}"
+                pipeline_cache = getattr(app.state, 'retrieval_pipeline_cache', None)
+                if pipeline_cache is not None and pipeline_cache_key in pipeline_cache:
+                    retrieval_pipeline = pipeline_cache[pipeline_cache_key]
+                    logger.info(f"Using cached retrieval pipeline: {pipeline_cache_key}")
+                else:
+                    pipeline_llm = None if is_smart_gpt5 else llm
+                    retrieval_pipeline = await asyncio.to_thread(
+                        create_parallel_pipeline,
+                        vector_store_manager=vector_store,
+                        llm=pipeline_llm,
+                        enable_unified=enable_unified,
+                        retriever_configs=retriever_configs,
+                        enable_reranker=not is_smart_gpt5,
+                        l2_cache=getattr(app.state, "retrieval_l2_cache", None),
+                    )
+                    if pipeline_cache is not None:
+                        pipeline_cache[pipeline_cache_key] = retrieval_pipeline
+                        logger.info(f"Cached retrieval pipeline: {pipeline_cache_key}")
 
-            pipeline_cache = getattr(app.state, 'retrieval_pipeline_cache', None)
-            if pipeline_cache is not None and pipeline_cache_key in pipeline_cache:
-                retrieval_pipeline = pipeline_cache[pipeline_cache_key]
-                logger.info(f"Using cached retrieval pipeline: {pipeline_cache_key}")
+                logger.info("ParallelRetrievalPipeline ready")
             else:
-                retrieval_pipeline = await asyncio.to_thread(
-                    create_parallel_pipeline,
-                    vector_store_manager=vector_store,
-                    llm=llm,
-                    enable_unified=enable_unified,
-                    # HYBRID_SEARCH_TOGGLE_START
-                    retriever_configs=retriever_configs,
-                    enable_reranker=not is_smart_gpt5,
-                    # HYBRID_SEARCH_TOGGLE_END
-                )
-                if pipeline_cache is not None:
-                    pipeline_cache[pipeline_cache_key] = retrieval_pipeline
-                    logger.info(f"Cached retrieval pipeline: {pipeline_cache_key}")
-
-            logger.info("ParallelRetrievalPipeline ready")
+                retrieval_pipeline = None
         
         # Generate conversation ID if not provided
         conversation_id = chat_request.conversation_id or str(uuid.uuid4())
@@ -328,13 +381,12 @@ async def chat(request: Request, chat_request: ChatRequest) -> ChatResponse:
         
         if chat_request.use_rag:
             logger.info("Retrieving context for query")
-            
-            # Use enhanced retrieval
-            if retrieval_pipeline:
-                # Use optimized query if available
+
+            results = retrieval_results
+
+            if not results and retrieval_pipeline:
                 query = optimized_query if optimized_query != chat_request.message else chat_request.message
-                
-                # Build conversation history format for the pipeline
+
                 conversation_history = []
                 if chat_request.chat_history:
                     for msg in chat_request.chat_history:
@@ -342,30 +394,28 @@ async def chat(request: Request, chat_request: ChatRequest) -> ChatResponse:
                             "role": msg.role,
                             "content": msg.content
                         })
-                
-                # Retrieve using parallel pipeline
+
                 retrieval_start = time.perf_counter()
                 results = await retrieval_pipeline.retrieve(
                     query=query,
                     k=settings.max_chunks_per_query
                 )
-                if is_smart_gpt5:
-                    smart_chunk_limit = getattr(settings, "smart_mode_max_chunks", 0)
-                    if smart_chunk_limit:
-                        results = results[:smart_chunk_limit]
-                retrieval_results = results
                 search_time_ms = (time.perf_counter() - retrieval_start) * 1000
+                retrieval_results = results
                 perf_monitor.record_latency("search_latency_ms", search_time_ms)
                 perf_monitor.record_latency("retriever_latency_ms", search_time_ms)
                 perf_monitor.increment_counter("retrieval_operations", 1)
                 perf_monitor.increment_counter("retrieved_documents_total", len(results))
+                logger.info(f"Retrieved {len(results)} documents in {search_time_ms:.2f} ms via fallback pipeline")
 
-                # Results are already in (doc, score) format
-                logger.info(f"Retrieved {len(results)} documents in {search_time_ms:.2f} ms")
-            else:
-                # This shouldn't happen, but handle it gracefully
-                logger.error("Retrieval pipeline not initialized despite RAG being enabled")
+            if not results:
                 results = []
+
+            if is_smart_gpt5:
+                smart_chunk_limit = getattr(settings, "smart_mode_max_chunks", 0)
+                if smart_chunk_limit:
+                    results = results[:smart_chunk_limit]
+                    retrieval_results = results
 
             # Convert results to context and sources
             context_build_start = time.perf_counter()
@@ -711,6 +761,17 @@ Please inform the user that no relevant information is available in the current 
                 )
             except Exception as repo_error:
                 logger.warning("Failed to record query sources: %s", repo_error)
+
+        if advanced_cache and cache_context_hash:
+            try:
+                await advanced_cache.set_response(
+                    query=chat_request.message,
+                    context_hash=cache_context_hash,
+                    response=chat_response.model_dump(),
+                    model=chat_request.model or "default"
+                )
+            except Exception as cache_error:
+                logger.warning("Failed to cache chat response: %s", cache_error)
 
         return chat_response
         

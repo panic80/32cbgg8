@@ -62,6 +62,17 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
     }
   }, []);
 
+  useEffect(() => {
+    try {
+      const legacyModel = localStorage.getItem('selectedLLMModel');
+      if (legacyModel === 'gpt-4.1-mini') {
+        localStorage.setItem('selectedLLMModel', 'gpt-4.1');
+      }
+    } catch (error) {
+      console.warn('Failed to migrate legacy model preference', error);
+    }
+  }, []);
+
   // Measure ChatInput (fixed footer) height with ResizeObserver
   useEffect(() => {
     const el = document.querySelector('[data-chat-input]') as HTMLElement | null;

@@ -29,7 +29,7 @@ export const generateFollowUpQuestions = async (
         aiResponse,
         sources,
         conversationHistory,
-        model: localStorage.getItem('selectedLLMModel') || 'gpt-4',
+        model: localStorage.getItem('selectedLLMModel') || 'gpt-4.1',
         provider: localStorage.getItem('selectedLLMProvider') || 'openai',
       },
       {

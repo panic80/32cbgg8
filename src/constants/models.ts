@@ -27,7 +27,7 @@ export const LLM_MODELS: LLMModel[] = [
   },
   {
     id: 'gpt-4.1-mini',
-    name: 'GPT-4.1 Mini',
+    name: 'GPT-4.1 Mini (Legacy)',
     provider: 'openai',
     description: 'Lightweight version of GPT-4.1 for everyday coding needs',
   },

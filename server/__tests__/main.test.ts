@@ -70,7 +70,7 @@ describe('server/main routes', () => {
   it('rejects chat requests without a message', async () => {
     const response = await request(app)
       .post('/api/v2/chat')
-      .send({ model: 'gpt-4.1-mini', provider: 'openai' });
+      .send({ model: 'gpt-4.1', provider: 'openai' });
 
     expect(response.status).toBe(400);
     expect(response.body.message).toMatch(/Message must be a non-empty string/);
@@ -79,12 +79,12 @@ describe('server/main routes', () => {
   it('returns configuration errors when provider lacks credentials', async () => {
     const response = await request(app)
       .post('/api/v2/chat')
-      .send({ message: 'Hello there', model: 'gpt-4.1-mini', provider: 'openai' });
+      .send({ message: 'Hello there', model: 'gpt-4.1', provider: 'openai' });
 
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({
       response: 'mock-openai',
-      model: 'gpt-4.1-mini',
+      model: 'gpt-4.1',
     });
   });
 

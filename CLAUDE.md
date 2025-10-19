@@ -29,10 +29,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Health Checks & Deployment
 
-- `npm run health-check:local` - Verify local services
-- `npm run deploy:staging:script` - Deploy to staging
-- `npm run deploy:production:script` - Deploy to production
-- `npm run rollback:production:script` - Rollback production deployment
+- `npm run health-check` - Verify the local Express health endpoint
+- `npm run deploy:staging` - Build and deploy to staging via PM2
+- `npm run deploy:production` - Build and deploy to production via PM2
+- `npm run rollback:staging` - Revert the most recent staging deployment via PM2
+- `npm run rollback:production` - Revert the most recent production deployment via PM2
 
 ## Architecture Overview
 

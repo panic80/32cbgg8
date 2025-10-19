@@ -170,7 +170,8 @@ class VectorStoreManager:
                 )
                 all_ids.extend(ids)
                 
-                logger.info(f"Added batch {i//batch_size + 1}: {len(batch)} documents")
+                batch_index = (i // actual_batch_size) + 1 if actual_batch_size else (i + 1)
+                logger.info(f"Added batch {batch_index}: {len(batch)} documents")
                 
             return all_ids
             

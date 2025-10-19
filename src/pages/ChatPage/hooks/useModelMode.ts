@@ -6,7 +6,7 @@ export const useModelMode = (
   setCurrentModel: (model: string) => void,
 ) => {
   useEffect(() => {
-    const modelId = modelMode === 'smart' ? 'gpt-5-mini' : 'gpt-4.1-mini';
+    const modelId = modelMode === 'smart' ? 'gpt-5-mini' : 'gpt-4.1';
     localStorage.setItem('selectedLLMModel', modelId);
     localStorage.setItem('selectedLLMProvider', 'openai');
     setCurrentModel(getModelDisplayName(modelId));

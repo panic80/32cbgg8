@@ -19,6 +19,12 @@ from app.services.cache import CacheService
 from app.services.llm_pool import initialize_llm_pool, shutdown_llm_pool
 from app.services.query_logger import query_logger
 from app.services.source_repository import SourceRepository
+from app.services.retrieval_cache import create_retrieval_l2_cache
+from app.components.bm25_retriever import TravelBM25Retriever
+from app.components.gated_retrieval_coordinator import create_gated_retrieval_coordinator, CoordinatorConfiguration
+
+from typing import Optional, List
+from langchain_core.documents import Document
 
 # Set up logging
 setup_logging(settings.log_level, settings.log_format)
@@ -29,12 +35,13 @@ document_store: DocumentStore = None
 vector_store_manager: VectorStoreManager = None
 cache_service: CacheService = None
 source_repository: SourceRepository = None
+retrieval_coordinator = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage application lifecycle."""
-    global document_store, vector_store_manager, cache_service, source_repository
+    global document_store, vector_store_manager, cache_service, source_repository, retrieval_coordinator
     
     logger.info("Starting RAG service...")
     
@@ -53,8 +60,11 @@ async def lifespan(app: FastAPI):
         vector_store_manager = VectorStoreManager()
         await vector_store_manager.initialize()
         logger.info("Vector store initialized")
-        await asyncio.to_thread(vector_store_manager.get_all_documents, True)
-        logger.info("Vector store corpus preloaded for retrieval")
+        if getattr(settings, "preload_vector_corpus", True):
+            await asyncio.to_thread(vector_store_manager.get_all_documents, True)
+            logger.info("Vector store corpus preloaded for retrieval")
+        else:
+            logger.info("Vector store corpus preload skipped (preload_vector_corpus=False)")
 
         # Initialize source repository (stores canonical source metadata)
         source_repository = SourceRepository()
@@ -88,6 +98,65 @@ async def lifespan(app: FastAPI):
         app.state.source_repository = source_repository
         # Cache for retrieval pipelines (keyed by provider/model/hybrid flags)
         app.state.retrieval_pipeline_cache = {}
+        if getattr(settings, "enable_l2_retrieval_cache", False) and cache_service and cache_service.enabled:
+            ttl_seconds = getattr(settings, "l2_cache_ttl_days", 7) * 86400
+            app.state.retrieval_l2_cache = create_retrieval_l2_cache(
+                cache_service,
+                ttl=ttl_seconds,
+                enable_stats=True
+            )
+        else:
+            app.state.retrieval_l2_cache = None
+
+        retrieval_coordinator = None
+        if getattr(settings, "enable_gated_retrieval", False):
+            async def dense_retriever_fn(query: str, k: int) -> List[Document]:
+                results = await vector_store_manager.search(
+                    query=query,
+                    k=k,
+                    search_type="similarity"
+                )
+                return [doc for doc, _ in results]
+
+            async def sparse_retriever_fn(query: str, k: int) -> List[Document]:
+                results = await vector_store_manager.search(
+                    query=query,
+                    k=k,
+                    search_type="mmr"
+                )
+                return [doc for doc, _ in results]
+
+            def bm25_retriever_fn(query: str, k: int) -> List[Document]:
+                try:
+                    documents = vector_store_manager.get_all_documents()
+                    bm25_retriever = TravelBM25Retriever(documents=documents, k=k)
+                    return bm25_retriever.get_relevant_documents(query)
+                except Exception as bm25_error:
+                    logger.warning("BM25 retriever failed: %s", bm25_error)
+                    return []
+
+            coordinator_config = CoordinatorConfiguration(
+                enable_l2_cache=getattr(settings, "enable_l2_retrieval_cache", False),
+                enable_parallel_execution=True,
+                max_parallel_workers=getattr(settings, "parallel_retrieval_limit", 5),
+                retrieval_timeout_ms=float(getattr(settings, "retriever_timeout", 10.0)) * 1000.0,
+                cache_threshold_docs=5,
+                fallback_on_errors=True,
+            )
+
+            retrieval_coordinator = create_gated_retrieval_coordinator(
+                dense_retriever=dense_retriever_fn,
+                sparse_retriever=sparse_retriever_fn,
+                bm25_retriever=bm25_retriever_fn,
+                hybrid_retriever=None,
+                l2_cache=app.state.retrieval_l2_cache,
+                config=coordinator_config,
+            )
+            logger.info("Gated retrieval coordinator ready")
+        else:
+            logger.info("Gated retrieval coordinator disabled by configuration")
+
+        app.state.retrieval_coordinator = retrieval_coordinator
         
     except Exception as e:
         logger.error(f"Failed to initialize services: {e}")
@@ -107,6 +176,8 @@ async def lifespan(app: FastAPI):
         await cache_service.disconnect()
     if vector_store_manager:
         await vector_store_manager.close()
+    if retrieval_coordinator:
+        retrieval_coordinator.close()
 
 
 # Create FastAPI app

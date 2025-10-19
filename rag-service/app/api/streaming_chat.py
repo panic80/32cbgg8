@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import logging
 import time
 import uuid
 from datetime import datetime
 from typing import AsyncGenerator, Iterable, List, Optional, Tuple, Dict, Any
+import random
 
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
@@ -22,6 +24,7 @@ from app.models.query import ChatRequest, Provider, Source, FollowUpRequest
 from app.pipelines.parallel_retrieval import create_parallel_pipeline
 from app.pipelines.query_optimizer import QueryOptimizer
 from app.components.result_processor import ResultProcessor
+from app.services.advanced_cache import AdvancedCacheService
 from app.services.performance_monitor import get_performance_monitor
 from app.services.llm_pool import llm_pool
 from app.services.query_logger import get_query_logger
@@ -81,7 +84,7 @@ def _resolve_model(provider: Provider, requested_model: Optional[str]) -> str:
     if requested_model:
         return requested_model
     if provider == Provider.OPENAI:
-        return getattr(settings, "openai_chat_model", "gpt-4.1-mini")
+        return getattr(settings, "openai_chat_model", "gpt-4.1")
     if provider == Provider.ANTHROPIC:
         return getattr(settings, "anthropic_chat_model", "claude-3-sonnet-20240229")
     if provider == Provider.GOOGLE:
@@ -193,6 +196,8 @@ async def _create_retrieval_pipeline(vector_store_manager, app_state, llm_wrappe
     requested_model = (chat_request.model or "").strip().lower()
     is_smart_gpt5 = requested_model == "gpt-5-mini"
 
+    helper_llm = None if is_smart_gpt5 else llm_wrapper
+
     if _should_use_hybrid(chat_request):
         logger.info("Hybrid search enabled - configuring BM25 + Vector retrievers")
         retriever_configs = {
@@ -206,11 +211,11 @@ async def _create_retrieval_pipeline(vector_store_manager, app_state, llm_wrappe
                 "k": 10,
             },
         }
-        if llm_wrapper:
+        if helper_llm:
             retriever_configs["multi_query"] = {
                 "type": "multi_query",
                 "base_retriever": "vector_similarity",
-                "llm": llm_wrapper,
+                "llm": helper_llm,
             }
 
     if retriever_configs is None and is_smart_gpt5:
@@ -234,13 +239,15 @@ async def _create_retrieval_pipeline(vector_store_manager, app_state, llm_wrappe
         pipeline = pipeline_cache_store[cache_key]
         logger.info("Using cached retrieval pipeline: %s", cache_key)
     else:
+        pipeline_llm = helper_llm
         pipeline = await asyncio.to_thread(
             create_parallel_pipeline,
             vector_store_manager=vector_store_manager,
-            llm=llm_wrapper,
+            llm=pipeline_llm,
             enable_unified=enable_unified,
             retriever_configs=retriever_configs,
             enable_reranker=not is_smart_gpt5,
+            l2_cache=getattr(app_state, "retrieval_l2_cache", None),
         )
         if pipeline_cache_store is not None:
             pipeline_cache_store[cache_key] = pipeline
@@ -383,10 +390,62 @@ async def _run_streaming_flow(
     if await request.is_disconnected():
         return
 
+    cache_service = getattr(app_state, "cache_service", None)
+    advanced_cache: Optional[AdvancedCacheService] = None
+    cache_context_hash: Optional[str] = None
+    cached_payload: Optional[Dict[str, Any]] = None
+
+    if cache_service:
+        advanced_cache = AdvancedCacheService(cache_service)
+        cache_context_hash = hashlib.md5(f"{chat_request.message}:{chat_request.provider}".encode()).hexdigest()
+        cached_payload = await advanced_cache.get_response(
+            query=chat_request.message,
+            context_hash=cache_context_hash,
+            model=chat_request.model or "default",
+        )
+        perf_monitor.record_cache_hit("l3", cached_payload is not None)
+    else:
+        cached_payload = None
+
     provider_enum = _ensure_provider(chat_request.provider)
     resolved_model_name = _resolve_model(provider_enum, chat_request.model)
     requested_model = (chat_request.model or resolved_model_name or "").strip().lower()
     is_smart_gpt5 = requested_model == "gpt-5-mini"
+
+    if cached_payload:
+        cache_latency_ms = (time.perf_counter() - request_timer) * 1000
+        sources_payload = cached_payload.get("sources") or []
+        follow_up_payload = cached_payload.get("follow_up_questions") or []
+        response_text = cached_payload.get("response", "")
+        tokens_used = cached_payload.get("tokens_used")
+
+        source_objects = [Source(**item) for item in sources_payload] if sources_payload else []
+        quality_metrics = compute_quality_metrics(response_text, source_objects, None)
+        for key, value in quality_metrics.items():
+            perf_monitor.record_value(key, value)
+
+        perf_monitor.record_latency("total_request_latency_ms", cache_latency_ms)
+        perf_monitor.record_latency("answer_generation_latency_ms", cache_latency_ms)
+        perf_monitor.record_latency("llm_latency_ms", cache_latency_ms)
+        perf_monitor.record_latency("search_latency_ms", 0)
+        perf_monitor.record_latency("context_build_latency_ms", 0)
+        if tokens_used is not None:
+            try:
+                perf_monitor.record_token_usage(str(chat_request.provider), int(tokens_used))
+            except (TypeError, ValueError):
+                logger.debug("Cached streaming tokens not numeric: %s", tokens_used)
+        perf_monitor.increment_counter("successful_requests")
+
+        yield f"data: {json.dumps({'type': 'retrieval_start', 'cached': True})}\n\n"
+        yield f"data: {json.dumps({'type': 'retrieval_complete', 'duration': 0, 'count': len(source_objects)})}\n\n"
+        if sources_payload:
+            yield f"data: {json.dumps({'type': 'sources', 'sources': sources_payload})}\n\n"
+        if response_text:
+            yield f"data: {json.dumps({'type': 'token', 'content': response_text})}\n\n"
+        yield f"data: {json.dumps({'type': 'complete', 'duration': cache_latency_ms / 1000, 'cached': True})}\n\n"
+        if follow_up_payload:
+            yield f"data: {json.dumps({'type': 'metadata', 'follow_up_questions': follow_up_payload})}\n\n"
+        return
 
     optimizer_llm = None if is_smart_gpt5 else llm_wrapper
     query_optimizer = QueryOptimizer(optimizer_llm)
@@ -416,22 +475,73 @@ async def _run_streaming_flow(
 
     if chat_request.use_rag:
         yield f"data: {json.dumps({'type': 'retrieval_start'})}\n\n"
-        retrieval_pipeline = await _create_retrieval_pipeline(vector_store, app_state, llm_wrapper, chat_request)
-        retrieval_start = time.perf_counter()
-        results = await retrieval_pipeline.retrieve(
-            query=optimized_query,
-            k=getattr(settings, "max_chunks_per_query", 6),
+
+        coordinator = getattr(app_state, "retrieval_coordinator", None)
+        rollout = getattr(settings, "gated_retrieval_rollout_percentage", 1.0)
+        use_coordinator = (
+            getattr(settings, "enable_gated_retrieval", False)
+            and coordinator is not None
         )
+        if use_coordinator and rollout < 1.0:
+            rollout = max(0.0, min(1.0, rollout))
+            use_coordinator = random.random() < rollout
+
+        results: List[Tuple] = []
+        retrieval_pipeline = None
+
+        if use_coordinator:
+            try:
+                logger.info("Streaming flow using gated retrieval coordinator")
+                coordinator_docs, coordinator_metrics = await coordinator.retrieve(
+                    query=optimized_query,
+                    max_final_docs=getattr(settings, "max_chunks_per_query", 6)
+                )
+                retrieval_time_ms = coordinator_metrics.retrieval_execution_time_ms
+                results = [
+                    (doc, doc.metadata.get("score") or doc.metadata.get("similarity") or 1.0)
+                    for doc in coordinator_docs
+                ]
+                retrieval_results = results
+                retrieval_count = len(results)
+                logger.info(
+                    "Coordinator produced %s documents (cache_hit=%s)",
+                    retrieval_count,
+                    coordinator_metrics.cache_hit,
+                )
+                if retrieval_count == 0:
+                    results = []
+            except Exception as coordinator_error:
+                logger.warning(
+                    "Coordinator retrieval failed: %s. Falling back to parallel pipeline.",
+                    coordinator_error,
+                )
+                results = []
+
+        if not results:
+            retrieval_pipeline = await _create_retrieval_pipeline(vector_store, app_state, llm_wrapper, chat_request)
+            retrieval_start = time.perf_counter()
+            results = await retrieval_pipeline.retrieve(
+                query=optimized_query,
+                k=getattr(settings, "max_chunks_per_query", 6),
+            )
+            retrieval_time_ms = (time.perf_counter() - retrieval_start) * 1000
+            retrieval_results = results
+            retrieval_count = len(results)
+            logger.info("Parallel retrieval pipeline produced %s documents in %.2f ms", retrieval_count, retrieval_time_ms)
+
         if is_smart_gpt5:
             smart_chunk_limit = getattr(settings, "smart_mode_max_chunks", 0)
             if smart_chunk_limit:
                 results = results[:smart_chunk_limit]
-        retrieval_results = results
-        retrieval_time_ms = (time.perf_counter() - retrieval_start) * 1000
-        retrieval_count = len(results)
-        yield f"data: {json.dumps({'type': 'retrieval_complete', 'duration': retrieval_time_ms / 1000, 'count': retrieval_count})}\n\n"
+                retrieval_results = results
+                retrieval_count = len(results)
 
-        perf_monitor.record_latency("search_latency_ms", retrieval_time_ms)
+        event_duration = retrieval_time_ms
+        yield f"data: {json.dumps({'type': 'retrieval_complete', 'duration': event_duration / 1000 if event_duration else 0, 'count': retrieval_count})}\n\n"
+
+        perf_monitor.record_latency("search_latency_ms", event_duration)
+        perf_monitor.increment_counter("retrieval_operations", 1)
+        perf_monitor.increment_counter("retrieved_documents_total", retrieval_count)
 
         if results:
             context_build_start = time.perf_counter()
@@ -601,6 +711,25 @@ async def _run_streaming_flow(
         )
     except Exception as log_exc:  # pragma: no cover - avoid breaking stream on logging
         logger.warning("Failed to log streaming query: %s", log_exc)
+
+    if advanced_cache and cache_context_hash:
+        cache_payload = {
+            "response": full_response,
+            "sources": [source.model_dump() for source in sources] if sources else [],
+            "follow_up_questions": follow_up_questions_payload,
+            "tokens_used": token_usage_total,
+            "provider": str(chat_request.provider),
+            "model": chat_request.model or getattr(llm, "model_name", "unknown"),
+        }
+        try:
+            await advanced_cache.set_response(
+                query=chat_request.message,
+                context_hash=cache_context_hash,
+                response=cache_payload,
+                model=chat_request.model or "default",
+            )
+        except Exception as cache_error:
+            logger.warning("Failed to cache streaming response: %s", cache_error)
 
 
 @router.post("/chat/stream")

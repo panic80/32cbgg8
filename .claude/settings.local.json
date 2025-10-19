@@ -84,7 +84,9 @@
       "Bash(echo \"CONFIG_PANEL_PASSWORD is: $CONFIG_PANEL_PASSWORD:+SET\")",
       "Bash(echo \"Length: $#CONFIG_PANEL_PASSWORD\")",
       "Bash(git add:*)",
-      "Bash(timeout:*)"
+      "Bash(timeout:*)",
+      "Bash(sudo grep -c \"GOOGLE_MAPS_API_KEY\" /etc/cbthis/env)",
+      "Bash(xargs:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

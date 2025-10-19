@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     openai_api_key: Optional[str] = None
     openai_embedding_model: str = "text-embedding-3-large"
     openai_embedding_dimensions: int = 3072  # Maximum dimensions for text-embedding-3-large
-    openai_chat_model: str = "gpt-4.1-mini"  # Updated to gpt-4.1-mini
+    openai_chat_model: str = "gpt-4.1"  # Default conversational model
     openai_smart_model: str = "gpt-5-mini"  # Preferred GPT-5 model for Smart mode
     
     # Google Configuration
@@ -43,6 +43,7 @@ class Settings(BaseSettings):
     vector_store_type: str = "chroma"  # chroma or qdrant
     chroma_persist_directory: str = "./chroma_db"
     chroma_collection_name: str = "travel_instructions"
+    preload_vector_corpus: bool = True  # Preload all documents for BM25 support
     
     # Document Processing
     chunk_size: int = 1024

@@ -24,19 +24,12 @@
     "deploy:setup": "pm2 deploy production setup",
     "deploy:staging": "npm run build:staging && pm2 deploy staging",
     "deploy:production": "npm run build:prod && pm2 deploy production",
-    "deploy:staging:script": "./scripts/deploy.sh staging",
-    "deploy:production:script": "./scripts/deploy.sh production",
     "rollback:staging": "pm2 deploy staging revert 1",
     "rollback:production": "pm2 deploy production revert 1",
-    "rollback:staging:script": "./scripts/rollback.sh staging",
-    "rollback:production:script": "./scripts/rollback.sh production",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "health-check": "curl -f http://localhost:3000/health || exit 1",
-    "health-check:staging": "./scripts/health-check.sh http://staging.32cbgg8.com/health",
-    "health-check:production": "./scripts/health-check.sh http://32cbgg8.com/health",
-    "health-check:local": "./scripts/health-check.sh http://localhost:3000/health"
+    "health-check": "curl -f http://localhost:3000/health || exit 1"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.27.3",

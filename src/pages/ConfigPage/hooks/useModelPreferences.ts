@@ -41,7 +41,13 @@ export const useModelPreferences = (
       const savedModel = localStorage.getItem(MODEL_STORAGE_KEY);
       const savedProvider = localStorage.getItem(PROVIDER_STORAGE_KEY);
 
-      const initialModel = models.find((model) => model.id === savedModel)?.id || defaultModelId;
+      const migratedModel =
+        savedModel === 'gpt-4.1-mini'
+          ? 'gpt-4.1'
+          : savedModel;
+
+      const initialModel =
+        models.find((model) => model.id === migratedModel)?.id || defaultModelId;
       const initialProvider = isModelProvider(savedProvider)
         ? savedProvider
         : (models.find((model) => model.id === initialModel)?.provider as ModelProvider) ||

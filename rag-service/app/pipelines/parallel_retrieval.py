@@ -1,6 +1,7 @@
 """Parallel retrieval pipeline for concurrent retriever execution."""
 
 import asyncio
+from collections import Counter
 from typing import List, Dict, Any, Optional, Tuple, Set
 from datetime import datetime
 import time
@@ -13,8 +14,10 @@ from app.core.logging import get_logger
 from app.core.config import settings
 from app.components.reranker import CrossEncoderReranker
 from app.components.table_ranker import TableRanker
+from app.components.rrf_merger import RRFDocument
 from app.unified_retrieval.unified_retriever import UnifiedRetriever
 from app.services.performance_monitor import get_performance_monitor
+from app.services.retrieval_cache import RetrievalL2Cache
 
 logger = get_logger(__name__)
 
@@ -65,7 +68,8 @@ class ParallelRetrievalPipeline:
         timeout_per_retriever: float = 10.0,
         circuit_breaker: Optional[CircuitBreaker] = None,
         reranker: Optional[CrossEncoderReranker] = None,
-        table_ranker: Optional[TableRanker] = None
+        table_ranker: Optional[TableRanker] = None,
+        l2_cache: Optional[RetrievalL2Cache] = None
     ):
         """
         Initialize parallel retrieval pipeline.
@@ -86,6 +90,7 @@ class ParallelRetrievalPipeline:
         self.circuit_breaker = circuit_breaker or CircuitBreaker()
         self.reranker = reranker
         self.table_ranker = table_ranker
+        self.l2_cache = l2_cache
         
         # Normalize weights
         total_weight = sum(self.weights.values())
@@ -176,6 +181,11 @@ class ParallelRetrievalPipeline:
         
         monitor = get_performance_monitor()
 
+        retriever_name_list = list(active_retrievers.keys())
+        cached_results = await self._get_cached_results(query, retriever_name_list, k, merge_strategy)
+        if cached_results is not None:
+            return cached_results
+
         # Execute with concurrency limit
         results_by_retriever = {}
         latencies = {}
@@ -210,44 +220,64 @@ class ParallelRetrievalPipeline:
         
         # Merge results based on strategy
         merged_results = self._merge_results(results_by_retriever, k * 2 if self.reranker else k, merge_strategy)
+        final_results = merged_results
         
         # Apply reranking if available
         if self.reranker and merged_results:
-            # Extract documents from tuples
-            documents = [doc for doc, _ in merged_results]
-            
-            # Check if this is a table query or trip planning query needing rates
-            query_lower = query.lower()
-            is_table_query = any(term in query_lower for term in ["rate", "allowance", "table", "$", "meal", "incidental", "kilometric", "per km"])
-            
-            # Also check for trip planning queries that need rate information
-            is_trip_planning = any(term in query_lower for term in ["trip", "travel", "journey", "planning"])
-            needs_cost_info = any(term in query_lower for term in ["cost", "expense", "estimate", "budget", "how much"])
-            
-            # If it's a trip planning query with cost estimation, treat it as needing table data
-            if is_trip_planning and needs_cost_info:
-                is_table_query = True
-                logger.info("Detected trip planning query with cost estimation - applying table ranking")
-            
-            # Apply table-specific ranking first if it's a table query
-            if is_table_query and self.table_ranker:
-                logger.info("Applying table-specific ranking")
-                documents = self.table_ranker.filter_and_rerank(
-                    documents,
-                    query,
-                    top_k=min(len(documents), k * 2),  # Keep more for final reranking
-                    query_type="table"
+            if self._should_skip_reranker(query, merged_results):
+                logger.info(
+                    "Skipping reranker for query '%s' due to high-confidence heuristics",
+                    query[:80],
                 )
-            
-            # Apply general reranking
-            logger.info(f"Applying reranking to {len(documents)} documents")
-            reranked_docs = await self.reranker.arerank(query, documents, k)
-            
-            # Convert back to tuples with scores
-            merged_results = [(doc, 1.0 - (i * 0.1)) for i, doc in enumerate(reranked_docs)]
-            logger.info(f"Reranking complete, returning {len(merged_results)} documents")
+                final_results = merged_results[:k]
+            else:
+                documents = [doc for doc, _ in merged_results]
+                
+                # Check if this is a table query or trip planning query needing rates
+                query_lower = query.lower()
+                is_table_query = any(term in query_lower for term in ["rate", "allowance", "table", "$", "meal", "incidental", "kilometric", "per km"])
+                
+                # Also check for trip planning queries that need rate information
+                is_trip_planning = any(term in query_lower for term in ["trip", "travel", "journey", "planning"])
+                needs_cost_info = any(term in query_lower for term in ["cost", "expense", "estimate", "budget", "how much"])
+                
+                # If it's a trip planning query with cost estimation, treat it as needing table data
+                if is_trip_planning and needs_cost_info:
+                    is_table_query = True
+                    logger.info("Detected trip planning query with cost estimation - applying table ranking")
+                
+                # Apply table-specific ranking first if it's a table query
+                if is_table_query and self.table_ranker:
+                    logger.info("Applying table-specific ranking")
+                    documents = self.table_ranker.filter_and_rerank(
+                        documents,
+                        query,
+                        top_k=min(len(documents), k * 2),  # Keep more for final reranking
+                        query_type="table"
+                    )
+                
+                # Apply general reranking
+                logger.info(f"Applying reranking to {len(documents)} documents")
+                reranked_docs = await self.reranker.arerank(query, documents, k)
+                
+                # Convert back to tuples with scores
+                final_results = [(doc, 1.0 - (i * 0.1)) for i, doc in enumerate(reranked_docs)]
+                logger.info(f"Reranking complete, returning {len(final_results)} documents")
         
-        return merged_results
+        retriever_stats_snapshot = {
+            "latencies": latencies,
+            "documents": {name: len(docs) for name, docs in results_by_retriever.items()},
+        }
+        await self._store_cached_results(
+            query,
+            retriever_name_list,
+            k,
+            merge_strategy,
+            final_results,
+            retriever_stats_snapshot,
+        )
+
+        return final_results
     
     def _merge_results(
         self,
@@ -383,6 +413,118 @@ class ParallelRetrievalPipeline:
         }
         return stats
 
+    def _should_skip_reranker(
+        self,
+        query: str,
+        merged_results: List[Tuple[Document, float]]
+    ) -> bool:
+        """Return True if reranking can be skipped."""
+        similarity_threshold = getattr(settings, "reranker_skip_similarity_threshold", None)
+        redundancy_threshold = getattr(settings, "reranker_skip_redundancy_threshold", None)
+
+        if similarity_threshold is None and redundancy_threshold is None:
+            return False
+
+        top_document, fused_score = merged_results[0]
+        metadata = getattr(top_document, "metadata", {}) or {}
+        similarity_score = metadata.get("score") or metadata.get("similarity") or fused_score
+
+        skip_due_to_similarity = (
+            similarity_threshold is not None
+            and isinstance(similarity_score, (int, float))
+            and similarity_score >= similarity_threshold
+        )
+
+        skip_due_to_redundancy = False
+        if redundancy_threshold is not None and redundancy_threshold > 0:
+            window = merged_results[: max(redundancy_threshold + 1, 5)]
+            source_keys = []
+            for doc, _ in window:
+                meta = getattr(doc, "metadata", {}) or {}
+                identifier = meta.get("source_id") or meta.get("id") or meta.get("source")
+                if identifier:
+                    source_keys.append(identifier)
+
+            if source_keys:
+                most_common = Counter(source_keys).most_common(1)[0][1]
+                skip_due_to_redundancy = most_common >= redundancy_threshold
+
+        if skip_due_to_similarity or skip_due_to_redundancy:
+            logger.debug(
+                "Reranker skip: query='%s', similarity_skip=%s, redundancy_skip=%s",
+                query[:80],
+                skip_due_to_similarity,
+                skip_due_to_redundancy,
+            )
+
+        return skip_due_to_similarity or skip_due_to_redundancy
+
+    async def _get_cached_results(
+        self,
+        query: str,
+        active_retrievers: List[str],
+        k: int,
+        merge_strategy: str
+    ) -> Optional[List[Tuple[Document, float]]]:
+        """Attempt to load merged results from the L2 retrieval cache."""
+        if not self.l2_cache or not getattr(settings, "enable_l2_retrieval_cache", False):
+            return None
+
+        dedup_params = {"merge_strategy": merge_strategy}
+        cached = await self.l2_cache.get(
+            query=query,
+            retriever_names=active_retrievers,
+            rrf_k=k,
+            dedup_params=dedup_params,
+            max_docs=k,
+        )
+        if not cached:
+            return None
+
+        cached_docs, _stats = cached
+        logger.info("L2 retrieval cache hit for query '%s'", query[:80])
+        return [(rrf_doc.document, rrf_doc.rrf_score) for rrf_doc in cached_docs[:k]]
+
+    async def _store_cached_results(
+        self,
+        query: str,
+        active_retrievers: List[str],
+        k: int,
+        merge_strategy: str,
+        merged_results: List[Tuple[Document, float]],
+        retriever_stats: Dict[str, Any]
+    ) -> None:
+        """Persist merged results into the L2 retrieval cache."""
+        if not self.l2_cache or not getattr(settings, "enable_l2_retrieval_cache", False):
+            return
+
+        if not merged_results:
+            return
+
+        dedup_params = {"merge_strategy": merge_strategy}
+        rrf_documents = [
+            RRFDocument(
+                document=doc,
+                rrf_score=score,
+                retriever_ranks={},
+                retriever_scores={},
+            )
+            for doc, score in merged_results
+        ]
+
+        try:
+            await self.l2_cache.set(
+                query=query,
+                retriever_names=active_retrievers,
+                rrf_k=k,
+                dedup_params=dedup_params,
+                rrf_documents=rrf_documents,
+                retriever_stats=retriever_stats,
+                max_docs=k,
+            )
+        except Exception as cache_error:
+            logger.warning("Failed to cache retrieval results: %s", cache_error)
+
 
 def create_parallel_pipeline(
     vector_store_manager,
@@ -390,6 +532,7 @@ def create_parallel_pipeline(
     retriever_configs: Optional[Dict[str, Dict[str, Any]]] = None,
     enable_unified: bool = None,
     enable_reranker: bool = True,
+    l2_cache: Optional[RetrievalL2Cache] = None,
 ) -> ParallelRetrievalPipeline:
     """Create a parallel retrieval pipeline with default retrievers."""
     from app.pipelines.retriever_factory import HybridRetrieverFactory, RetrieverConfig, RetrieverMode
@@ -516,5 +659,6 @@ def create_parallel_pipeline(
         concurrency_limit=settings.parallel_retrieval_limit,
         timeout_per_retriever=settings.retriever_timeout,
         reranker=reranker,
-        table_ranker=table_ranker
+        table_ranker=table_ranker,
+        l2_cache=l2_cache,
     )

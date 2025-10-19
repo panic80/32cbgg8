@@ -797,7 +797,7 @@ app.get('/api/config', (req, res) => {
       rateLimit: config.rateLimitMax,
     },
     models: {
-      default: 'gpt-4.1-mini',
+      default: 'gpt-4.1',
       providers: {
         google: !!geminiClient,
         openai: !!openaiClient,

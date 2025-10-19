@@ -84,7 +84,7 @@ _Last updated: 2025-08-19_
 - [ ] `npm run test:coverage` (React)
 - [ ] `npm run build` (React bundle integrity)
 - [ ] `npm run dev:server` smoke test after Express changes
-- [ ] `npm run health-check:local` and `curl` SSE endpoint sanity checks
+- [ ] `npm run health-check` and manual `curl` SSE endpoint sanity checks
 - [ ] `pytest` or `uvicorn` test suite inside `rag-service` (document command in `rag-service/README.md`)
 
 ## Notes & References

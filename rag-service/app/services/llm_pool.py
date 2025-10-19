@@ -97,7 +97,7 @@ class LLMPool:
         if self.min_connections > 0:
             warm_configs: List[tuple[Provider, str]] = []
 
-            default_openai = getattr(settings, 'openai_chat_model', 'gpt-4.1-mini')
+            default_openai = getattr(settings, 'openai_chat_model', 'gpt-4.1')
             smart_openai = getattr(settings, 'openai_smart_model', 'gpt-5-mini')
 
             warm_configs.append((Provider.OPENAI, default_openai))
@@ -172,15 +172,17 @@ class LLMPool:
             
             # GPT-5 Mini/Nano and GPT-4.1 Mini don't support temperature parameter
             is_gpt5_mini = (model and model.strip().lower() == 'gpt-5-mini')
-            is_gpt5_nano = (model and model.strip().lower() == 'gpt-5-nano')
-            is_gpt41_mini = (model and model.strip().lower() == 'gpt-4.1-mini')
+            model_normalized = model.strip().lower() if model else ""
+            is_gpt5_nano = model_normalized == 'gpt-5-nano'
+            is_gpt41 = model_normalized == 'gpt-4.1'
+            is_gpt41_mini = model_normalized == 'gpt-4.1-mini'
             
             # Models that don't support temperature parameter
-            if is_o_series or is_gpt5_mini or is_gpt5_nano or is_gpt41_mini:
+            if is_o_series or is_gpt5_mini or is_gpt5_nano or is_gpt41 or is_gpt41_mini:
                 llm = ChatOpenAI(
                     api_key=settings.openai_api_key,
                     model=model,
-                    max_tokens=8192
+                    max_tokens=2048
                 )
             else:
                 llm = ChatOpenAI(

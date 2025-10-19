@@ -188,7 +188,11 @@ export const useStreamingChat = ({
 
       try {
         const isTripPlannerMessage = messageText.startsWith('📋 **Trip Plan Request**');
-        const userSelectedModel = localStorage.getItem('selectedLLMModel') || DEFAULT_MODEL_ID;
+        const storedModel = localStorage.getItem('selectedLLMModel');
+        const userSelectedModel =
+          storedModel === 'gpt-4.1-mini'
+            ? 'gpt-4.1'
+            : storedModel || DEFAULT_MODEL_ID;
         const selectedModel = isTripPlannerMessage ? 'gpt-5-mini' : userSelectedModel;
         const historyLimit = selectedModel === 'gpt-5-mini' ? 4 : 10;
         const selectedProvider = localStorage.getItem('selectedLLMProvider') || 'openai';

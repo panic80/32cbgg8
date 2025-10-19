@@ -13,9 +13,32 @@ export interface WhatsNewDateGroup {
 }
 
 // Bump this when you add new release notes
-export const WHATS_NEW_VERSION = '2025-10-05';
+export const WHATS_NEW_VERSION = '2025-10-19';
 
 export const WHATS_NEW_BY_DATE: WhatsNewDateGroup[] = [
+  {
+    date: 'Sunday, October 19, 2025',
+    updates: [
+      {
+        icon: <Zap className="w-4 h-4" />,
+        text: 'Gated retrieval coordinator is live',
+        description:
+          'Chat and streaming requests now flow through the uncertainty-aware coordinator first, with automatic fallbacks to the classic pipeline when needed.',
+      },
+      {
+        icon: <Zap className="w-4 h-4" />,
+        text: 'Fast mode upgraded to GPT‑4.1',
+        description:
+          'The default OpenAI selection now uses the full GPT‑4.1 model. Legacy GPT‑4.1 Mini preferences migrate automatically.',
+      },
+      {
+        icon: <FileText className="w-4 h-4" />,
+        text: 'UI & follow-up polish',
+        description:
+          'Model badges, follow-up generation, and client caching all respect the new defaults for a consistent experience.',
+      },
+    ],
+  },
   {
     date: 'Sunday, October 5, 2025',
     updates: [
