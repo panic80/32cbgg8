@@ -11,12 +11,17 @@ dist
 # Backup files
 *.backup
 *.backup.*
+*.backup_*
+*.bak
 public_html.backup/
 .env.backup*
 backups/
 *.tar
 *.tar.gz
 *.zip
+
+# Installer artifacts
+rag-service/=*
 
 # Logs
 *.log
@@ -36,3 +41,7 @@ rag-service/.keys/
 Thumbs.db
 .DS_Store
 ._*
+
+# RAG vector store artifacts
+rag-service/chroma_db_backup*/
+rag-service/data/chromadb/
