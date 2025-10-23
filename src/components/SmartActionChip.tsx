@@ -5,9 +5,10 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { HelpCircle, ArrowRight, Lightbulb, Search } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { FollowUpQuestion } from '@/types/chat';
 import { cn } from '@/lib/utils';
+import { getSuggestionCategoryIcon } from '@/utils/suggestionCategories';
 
 interface SmartActionChipProps {
   question: FollowUpQuestion;
@@ -15,23 +16,6 @@ interface SmartActionChipProps {
   index: number;
   className?: string;
 }
-
-const getCategoryIcon = (category?: string) => {
-  switch (category) {
-    case 'clarification':
-      return <HelpCircle size={12} className="text-blue-600 dark:text-blue-400" />;
-    case 'related':
-      return <Search size={12} className="text-green-600 dark:text-green-400" />;
-    case 'practical':
-      return <Lightbulb size={12} className="text-orange-600 dark:text-orange-400" />;
-    case 'explore':
-      return <ArrowRight size={12} className="text-purple-600 dark:text-purple-400" />;
-    default:
-      return (
-        <HelpCircle size={12} className="text-gray-600 dark:text-gray-500 dark:text-gray-400" />
-      );
-  }
-};
 
 const getCategoryColor = (category?: string) => {
   switch (category) {
@@ -107,7 +91,7 @@ const SmartActionChip: React.FC<SmartActionChipProps> = ({
         whileHover={{ rotate: 15 }}
         transition={{ type: 'spring', stiffness: 300 }}
       >
-        {getCategoryIcon(question?.category)}
+        {getSuggestionCategoryIcon(question?.category, { variant: 'chip', size: 12 })}
       </motion.div>
 
       {/* Question text */}

@@ -1,45 +1,19 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { HelpCircle, ArrowRight, Lightbulb, Search } from 'lucide-react';
+import { HelpCircle, ArrowRight } from 'lucide-react';
 import { FollowUpQuestion } from '@/types/chat';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+  getSuggestionCategoryIcon,
+  getSuggestionCategoryLabel,
+} from '@/utils/suggestionCategories';
 
 interface FollowUpQuestionsProps {
   questions: FollowUpQuestion[];
   onQuestionClick: (question: string) => void;
   className?: string;
 }
-
-const getCategoryIcon = (category?: string) => {
-  switch (category) {
-    case 'clarification':
-      return <HelpCircle size={14} className="text-blue-500" />;
-    case 'related':
-      return <Search size={14} className="text-green-500" />;
-    case 'practical':
-      return <Lightbulb size={14} className="text-orange-500" />;
-    case 'explore':
-      return <ArrowRight size={14} className="text-purple-500" />;
-    default:
-      return <HelpCircle size={14} className="text-gray-500" />;
-  }
-};
-
-const getCategoryLabel = (category?: string) => {
-  switch (category) {
-    case 'clarification':
-      return 'Clarification';
-    case 'related':
-      return 'Related Topic';
-    case 'practical':
-      return 'Practical';
-    case 'explore':
-      return 'Explore More';
-    default:
-      return 'Question';
-  }
-};
 
 const FollowUpQuestions: React.FC<FollowUpQuestionsProps> = ({
   questions,
@@ -110,13 +84,13 @@ const FollowUpQuestions: React.FC<FollowUpQuestionsProps> = ({
                     whileHover={{ rotate: 15 }}
                     transition={{ type: 'spring', stiffness: 300 }}
                   >
-                    {getCategoryIcon(question.category)}
+                    {getSuggestionCategoryIcon(question.category, { variant: 'card', size: 14 })}
                   </motion.div>
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-xs font-medium text-[var(--text-secondary)] opacity-80">
-                        {getCategoryLabel(question.category)}
+                        {getSuggestionCategoryLabel(question.category)}
                       </span>
                       <AnimatePresence>
                         {question.confidence && question.confidence > 0.8 && (
