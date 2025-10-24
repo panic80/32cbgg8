@@ -4,6 +4,8 @@ This module wraps ParallelRetrievalPipeline with LangGraph's StateGraph to enabl
 - Redis-backed state persistence for conversation continuity
 - Iterative refinement cycles when retrieval quality is low
 - Automatic query reformulation for better results
+
+Updated for LangGraph 1.0+ with official Redis checkpoint support.
 """
 
 import asyncio
@@ -16,6 +18,14 @@ from langchain_core.retrievers import BaseRetriever
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
 import redis.asyncio as redis
+
+# LangGraph 1.0+ official Redis checkpoint support
+try:
+    from langgraph.checkpoint.redis.aio import AsyncRedisSaver
+    REDIS_CHECKPOINT_AVAILABLE = True
+except ImportError:
+    REDIS_CHECKPOINT_AVAILABLE = False
+    AsyncRedisSaver = None
 
 from app.core.config import settings
 from app.core.logging import get_logger
@@ -38,102 +48,6 @@ class RetrievalState(TypedDict):
     finalized: bool
 
 
-class RedisCheckpointer:
-    """Custom Redis-based checkpointer for LangGraph state persistence."""
-    
-    def __init__(self, redis_client: redis.Redis, ttl: int = 3600):
-        """Initialize Redis checkpointer.
-        
-        Args:
-            redis_client: Async Redis client
-            ttl: Time-to-live for checkpoints in seconds
-        """
-        self.redis_client = redis_client
-        self.ttl = ttl
-        self.checkpoint_prefix = "langgraph:checkpoint:"
-        
-    async def aput(self, config: Dict[str, Any], checkpoint: Dict[str, Any]) -> None:
-        """Save checkpoint to Redis.
-        
-        Args:
-            config: Configuration with thread_id
-            checkpoint: State snapshot to save
-        """
-        thread_id = config.get("configurable", {}).get("thread_id")
-        if not thread_id:
-            logger.warning("No thread_id in config, skipping checkpoint")
-            return
-            
-        key = f"{self.checkpoint_prefix}{thread_id}"
-        
-        # Serialize checkpoint (simplified - in production use pickle or msgpack)
-        import json
-        try:
-            # Convert documents to serializable format
-            serializable_checkpoint = self._make_serializable(checkpoint)
-            value = json.dumps(serializable_checkpoint)
-            await self.redis_client.setex(key, self.ttl, value)
-            logger.debug(f"Saved checkpoint for thread {thread_id}")
-        except Exception as e:
-            logger.error(f"Failed to save checkpoint: {e}")
-            
-    async def aget(self, config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Load checkpoint from Redis.
-        
-        Args:
-            config: Configuration with thread_id
-            
-        Returns:
-            Checkpoint state or None if not found
-        """
-        thread_id = config.get("configurable", {}).get("thread_id")
-        if not thread_id:
-            return None
-            
-        key = f"{self.checkpoint_prefix}{thread_id}"
-        
-        try:
-            value = await self.redis_client.get(key)
-            if value:
-                import json
-                checkpoint = json.loads(value)
-                return self._deserialize_checkpoint(checkpoint)
-            return None
-        except Exception as e:
-            logger.error(f"Failed to load checkpoint: {e}")
-            return None
-            
-    def _make_serializable(self, checkpoint: Dict[str, Any]) -> Dict[str, Any]:
-        """Convert checkpoint to JSON-serializable format."""
-        serializable = {}
-        for key, value in checkpoint.items():
-            if key == "documents" and isinstance(value, list):
-                # Convert document tuples to dicts
-                serializable[key] = [
-                    {
-                        "page_content": doc.page_content if isinstance(doc, Document) else doc[0].page_content,
-                        "metadata": doc.metadata if isinstance(doc, Document) else doc[0].metadata,
-                        "score": score if isinstance(doc, tuple) else 1.0
-                    }
-                    for doc, score in (value if value and isinstance(value[0], tuple) else [(d, 1.0) for d in value])
-                ]
-            else:
-                serializable[key] = value
-        return serializable
-        
-    def _deserialize_checkpoint(self, checkpoint: Dict[str, Any]) -> Dict[str, Any]:
-        """Convert checkpoint back from JSON format."""
-        deserialized = {}
-        for key, value in checkpoint.items():
-            if key == "documents" and isinstance(value, list):
-                # Convert dicts back to document tuples
-                deserialized[key] = [
-                    (Document(page_content=item["page_content"], metadata=item["metadata"]), item.get("score", 1.0))
-                    for item in value
-                ]
-            else:
-                deserialized[key] = value
-        return deserialized
 
 
 class StatefulRetrievalPipeline:
@@ -164,16 +78,25 @@ class StatefulRetrievalPipeline:
         self.relevance_threshold = relevance_threshold or settings.relevance_threshold
         self.enable_checkpointing = enable_checkpointing
         self.perf_monitor = get_performance_monitor()
-        
-        # Setup checkpointer
-        if enable_checkpointing and redis_client:
-            self.checkpointer = RedisCheckpointer(
-                redis_client,
-                ttl=settings.stateful_retrieval_session_ttl
-            )
+        self.redis_client = redis_client
+
+        # Setup checkpointer with LangGraph 1.0+ official Redis support
+        self.checkpointer = None
+        if enable_checkpointing and redis_client and REDIS_CHECKPOINT_AVAILABLE:
+            try:
+                # Use official AsyncRedisSaver for LangGraph 1.0+
+                # Get Redis connection URL from settings
+                redis_url = settings.redis_url or "redis://localhost:6379"
+                self.checkpointer = AsyncRedisSaver.from_conn_string(redis_url)
+                logger.info("Using official AsyncRedisSaver for checkpointing")
+            except Exception as e:
+                logger.warning(f"Failed to initialize Redis checkpointer: {e}. Falling back to MemorySaver")
+                self.checkpointer = MemorySaver()
         else:
+            if enable_checkpointing and not REDIS_CHECKPOINT_AVAILABLE:
+                logger.warning("langgraph-checkpoint-redis not available. Install with: pip install langgraph-checkpoint-redis")
             self.checkpointer = MemorySaver()  # Fallback to in-memory
-            
+
         # Build the workflow graph
         self.workflow = self._build_workflow()
         
@@ -208,16 +131,15 @@ class StatefulRetrievalPipeline:
         
         # Set entry point
         workflow.set_entry_point("retrieve")
-        
-        # Compile with checkpointer
-        if self.enable_checkpointing and isinstance(self.checkpointer, RedisCheckpointer):
-            # For custom checkpointers, we need to handle this differently
-            # LangGraph 0.2.38 may not support custom async checkpointers directly
-            # For now, compile without checkpointer and handle persistence manually
-            compiled = workflow.compile()
-        else:
+
+        # Compile with checkpointer (LangGraph 1.0+ supports official checkpointers)
+        if self.checkpointer:
             compiled = workflow.compile(checkpointer=self.checkpointer)
-            
+            logger.debug("Compiled workflow with checkpointer support")
+        else:
+            compiled = workflow.compile()
+            logger.debug("Compiled workflow without checkpointing")
+
         return compiled
         
     async def _retrieve_node(self, state: RetrievalState) -> RetrievalState:
@@ -453,21 +375,13 @@ class StatefulRetrievalPipeline:
             "error": None,
             "finalized": False
         }
-        
-        # Manual checkpoint save for custom Redis checkpointer
-        if isinstance(self.checkpointer, RedisCheckpointer):
-            await self.checkpointer.aput(config, initial_state)
-        
+
         try:
-            # Execute workflow
+            # Execute workflow (checkpointing is handled automatically by LangGraph 1.0+)
             logger.info(f"Starting stateful retrieval for query: '{query}' (thread_id={thread_id})")
-            
+
             result = await self.workflow.ainvoke(initial_state, config)
-            
-            # Manual checkpoint save for final state
-            if isinstance(self.checkpointer, RedisCheckpointer):
-                await self.checkpointer.aput(config, result)
-            
+
             # Extract documents from final state
             documents = result.get("documents", [])
             
