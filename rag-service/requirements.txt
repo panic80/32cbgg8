@@ -5,17 +5,17 @@ python-multipart>=0.0.20,<0.1  # Updated for file uploads
 python-dotenv>=1.0.1,<2.0
 websockets>=14.1,<15.0  # Latest stable
 
-# LangChain ecosystem - upgraded to latest versions
-langchain>=0.3.14,<0.4  # Latest stable 0.3.x series
-langchain-core>=0.3.30,<0.4
-langchain-community>=0.3.14,<0.4
-langchain-openai>=0.2.14,<0.3
-langchain-google-genai>=2.0.6,<3.0  # Major version bump
-langchain-anthropic>=0.3.7,<0.4
+# LangChain ecosystem - upgraded to latest stable versions
+langchain>=0.3.0,<0.4  # Latest 0.3.x (1.0 has dependency conflicts)
+langchain-core>=0.3.0,<0.4
+langchain-community>=0.3.0,<0.4
+langchain-openai>=0.2.0,<0.3
+langchain-google-genai>=2.0.0,<3.0  # Major version bump
+langchain-anthropic>=0.3.0,<0.4
 langchain-chroma>=0.1.4,<0.2
-langchain-experimental>=0.3.14,<0.4
-langchain-text-splitters>=0.3.6,<0.4
-langgraph>=1.0.20,<2.0  # Upgraded to 1.0.x series
+langchain-experimental>=0.3.0,<0.4
+langchain-text-splitters>=0.3.0,<0.4
+langgraph>=1.0.0,<2.0  # Upgraded to 1.0.x series
 langgraph-checkpoint-redis>=0.1.1,<0.2  # Official Redis checkpointer
 
 # Vector store and embeddings

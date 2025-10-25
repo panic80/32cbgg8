@@ -232,7 +232,7 @@ def check_dependencies():
 
     required = {
         "pytest": "pytest",
-        "pytest-asyncio": "pytest-asyncio",
+        "pytest-asyncio": "pytest_asyncio",  # Import name uses underscore
         "packaging": "packaging",
         "langgraph": "langgraph",
         "langchain": "langchain",
