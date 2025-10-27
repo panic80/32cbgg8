@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { vi } from 'vitest';
 
-import { TripPlanner } from '../TripPlanner';
+import { TripPlanner, generateTripPlanMessage, TripData, DistanceData } from '../TripPlanner';
 
 vi.mock('@/components/ui/sheet', () => ({
   Sheet: ({ children }: { children: React.ReactNode }) => <div data-testid="sheet">{children}</div>,
@@ -75,5 +75,38 @@ describe('TripPlanner', () => {
 
     expect(screen.getByText('Trip Planner (Beta)')).toBeInTheDocument();
     expect(screen.getByText('Generate Trip Plan')).toBeInTheDocument();
+  });
+
+  it('includes cost estimates in the generated trip plan message', () => {
+    const tripData: TripData = {
+      transportMethod: 'personal-vehicle',
+      departureDate: new Date('2024-01-01T00:00:00Z'),
+      returnDate: new Date('2024-01-03T00:00:00Z'),
+      departureLocation: 'CFB Toronto, Toronto, ON',
+      arrivalLocation: 'CFB Ottawa, Ottawa, ON',
+      rnqProvided: true,
+      travelAuthority: true,
+      purpose: 'Training exercise',
+      additionalNotes: '',
+    };
+
+    const distanceData: DistanceData = {
+      distance: { text: '450 km', value: 450000 },
+      duration: { text: '4 hours 30 mins', value: 16200 },
+      origin: 'Toronto, ON',
+      destination: 'Ottawa, ON',
+      mode: 'driving',
+    };
+
+    const plan = generateTripPlanMessage(tripData, distanceData);
+
+    expect(plan).toContain('💵 **Estimated Costs:**');
+    expect(plan).toContain('Incidentals (3 days): CA$51.90');
+    expect(plan).toContain(
+      'Use RAG to retrieve the current private-vehicle kilometric rate covering travel between CFB Toronto, Toronto, ON → CFB Ottawa, Ottawa, ON (Ontario). Apply it to 450 km to estimate mileage cost.',
+    );
+    expect(plan).toContain(
+      '**Please combine the RAG-derived kilometric mileage cost with the incidentals above to present the total trip estimate.**',
+    );
   });
 });

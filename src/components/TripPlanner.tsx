@@ -12,7 +12,6 @@ import {
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -33,7 +32,7 @@ interface TripPlannerProps {
   onOpenChange?: (open: boolean) => void;
 }
 
-interface TripData {
+export interface TripData {
   transportMethod: string;
   departureDate: Date | undefined;
   returnDate: Date | undefined;
@@ -45,7 +44,7 @@ interface TripData {
   additionalNotes: string;
 }
 
-interface DistanceData {
+export interface DistanceData {
   distance: {
     text: string;
     value: number;
@@ -68,6 +67,213 @@ const transportMethods = [
   { value: 'rental', label: 'Rental Vehicle' },
   { value: 'other', label: 'Other' },
 ];
+
+const INCIDENT_ALLOWANCE_STANDARD_RATE = 17.3;
+const INCIDENT_ALLOWANCE_REDUCED_RATE = 13;
+const INCIDENT_ALLOWANCE_STANDARD_DAYS = 30;
+
+const currencyFormatter = new Intl.NumberFormat('en-CA', {
+  style: 'currency',
+  currency: 'CAD',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+const formatCurrency = (value: number) => currencyFormatter.format(value);
+
+const calculateTripDurationInDays = (departure?: Date, returnDate?: Date) => {
+  if (!departure || !returnDate) {
+    return null;
+  }
+
+  return differenceInDays(returnDate, departure) + 1;
+};
+
+const calculateIncidentalCost = (tripDuration: number | null) => {
+  if (!tripDuration || tripDuration <= 0) {
+    return null;
+  }
+
+  if (tripDuration <= INCIDENT_ALLOWANCE_STANDARD_DAYS) {
+    return tripDuration * INCIDENT_ALLOWANCE_STANDARD_RATE;
+  }
+
+  if (tripDuration === INCIDENT_ALLOWANCE_STANDARD_DAYS + 1) {
+    return (INCIDENT_ALLOWANCE_STANDARD_DAYS + 1) * INCIDENT_ALLOWANCE_STANDARD_RATE;
+  }
+
+  const intermediateDays = tripDuration - (INCIDENT_ALLOWANCE_STANDARD_DAYS + 1);
+  const standardDaysCost = INCIDENT_ALLOWANCE_STANDARD_DAYS * INCIDENT_ALLOWANCE_STANDARD_RATE;
+  const reducedDaysCost = Math.max(intermediateDays, 0) * INCIDENT_ALLOWANCE_REDUCED_RATE;
+  const finalDayCost = INCIDENT_ALLOWANCE_STANDARD_RATE;
+
+  return standardDaysCost + reducedDaysCost + finalDayCost;
+};
+
+const PROVINCE_MAP: Record<string, string> = {
+  ab: 'Alberta',
+  alberta: 'Alberta',
+  bc: 'British Columbia',
+  'british columbia': 'British Columbia',
+  mb: 'Manitoba',
+  manitoba: 'Manitoba',
+  nb: 'New Brunswick',
+  'new brunswick': 'New Brunswick',
+  nl: 'Newfoundland and Labrador',
+  'newfoundland and labrador': 'Newfoundland and Labrador',
+  nfld: 'Newfoundland and Labrador',
+  'st. john\'s': 'Newfoundland and Labrador',
+  ns: 'Nova Scotia',
+  'nova scotia': 'Nova Scotia',
+  nt: 'Northwest Territories',
+  'northwest territories': 'Northwest Territories',
+  'northwest territory': 'Northwest Territories',
+  nu: 'Nunavut',
+  nunavut: 'Nunavut',
+  on: 'Ontario',
+  ont: 'Ontario',
+  ontario: 'Ontario',
+  pe: 'Prince Edward Island',
+  'prince edward island': 'Prince Edward Island',
+  pei: 'Prince Edward Island',
+  qc: 'Quebec',
+  québec: 'Quebec',
+  quebec: 'Quebec',
+  sk: 'Saskatchewan',
+  saskatchewan: 'Saskatchewan',
+  yt: 'Yukon',
+  yukon: 'Yukon',
+};
+
+const extractProvince = (location: string | undefined) => {
+  if (!location) return null;
+
+  const parts = location
+    .split(',')
+    .map((part) => part.trim().toLowerCase())
+    .filter(Boolean);
+
+  for (let i = parts.length - 1; i >= 0; i -= 1) {
+    const normalized = parts[i];
+    if (PROVINCE_MAP[normalized]) {
+      return PROVINCE_MAP[normalized];
+    }
+    if (normalized.length === 2 && PROVINCE_MAP[normalized]) {
+      return PROVINCE_MAP[normalized];
+    }
+  }
+
+  return null;
+};
+
+const buildCostEstimateSection = (
+  data: TripData,
+  distance: DistanceData | null,
+  tripDuration: number | null,
+) => {
+  const incidentalCost = calculateIncidentalCost(tripDuration);
+
+  const lines: string[] = [];
+
+  if (incidentalCost !== null) {
+    const durationLabel = tripDuration === 1 ? '1 day' : `${tripDuration} days`;
+    lines.push(`• Incidentals (${durationLabel}): ${formatCurrency(incidentalCost)}`);
+  }
+
+  const departureLocation = data.departureLocation || 'departure location';
+  const arrivalLocation = data.arrivalLocation || 'arrival location';
+  const routeDescription = `${departureLocation} → ${arrivalLocation}`;
+  const destinationProvince =
+    extractProvince(data.arrivalLocation) || extractProvince(data.departureLocation);
+
+  if (distance?.distance.text && distance.distance.value) {
+    const locationHint = destinationProvince ? `${destinationProvince}` : routeDescription;
+    lines.push(
+      `• Use RAG to retrieve the current private-vehicle kilometric rate covering travel between ${routeDescription} (${locationHint}). Apply it to ${distance.distance.text} to estimate mileage cost.`,
+    );
+  } else {
+    lines.push(
+      `• Once distance is confirmed for ${routeDescription}, use RAG to fetch the applicable private-vehicle kilometric rate and calculate mileage cost.`,
+    );
+  }
+
+  if (!lines.length) {
+    return '';
+  }
+
+  let section = `
+💵 **Estimated Costs:**
+${lines.join('\n')}
+`;
+
+  section += `**Please combine the RAG-derived kilometric mileage cost with the incidentals above to present the total trip estimate.**
+`;
+
+  return section;
+};
+
+export const generateTripPlanMessage = (data: TripData, distance: DistanceData | null): string => {
+  const transport =
+    transportMethods.find((t) => t.value === data.transportMethod)?.label || 'Not specified';
+  const departure = data.departureDate
+    ? format(data.departureDate, 'MMMM dd, yyyy')
+    : 'Not specified';
+  const returnDate = data.returnDate ? format(data.returnDate, 'MMMM dd, yyyy') : 'Not specified';
+  const tripDuration = calculateTripDurationInDays(data.departureDate, data.returnDate);
+
+  let plan = `📋 **Trip Plan Request**
+
+`;
+  plan += `🚗 **Transportation:** ${transport}
+`;
+  plan += `📅 **Travel Dates:** ${departure} - ${returnDate}
+`;
+
+  if (tripDuration) {
+    plan += `📊 **Trip Duration:** ${tripDuration} days
+`;
+
+    if (tripDuration > 30) {
+      const reducedRangeEnd = tripDuration - 1;
+      const hasReducedRange = reducedRangeEnd > 30;
+      plan += `
+⚠️ **Extended Stay Note:** This trip exceeds 30 days.
+• Days 1-30: Incidental allowance \$17.30/day
+${hasReducedRange ? `• Days 31-${reducedRangeEnd}: Reduced to \$13.00/day (75%)\n` : ''}• Day ${tripDuration} (Last day - CIL): Returns to \$17.30/day
+
+`;
+    }
+  }
+
+  plan += `🏠 **R&Q Provided:** ${data.rnqProvided ? 'Yes' : 'No'}
+`;
+  plan += `✅ **Travel Authority:** ${data.travelAuthority ? 'Obtained' : 'Not Obtained'}
+`;
+  plan += `🎯 **Purpose:** ${data.purpose || 'Not specified'}
+`;
+  plan += `📍 **Route:** ${data.departureLocation || 'Not specified'} → ${data.arrivalLocation || 'Not specified'}
+`;
+
+  if (distance) {
+    plan += `📏 **Distance:** ${distance.distance.text}
+`;
+    plan += `⏱️ **Estimated Travel Time:** ${distance.duration.text}
+`;
+  }
+
+  if (data.additionalNotes) {
+    plan += `
+**Additional Details:** ${data.additionalNotes}`;
+  }
+
+  const costSection = buildCostEstimateSection(data, distance, tripDuration);
+  if (costSection) {
+    plan += `
+${costSection}`;
+  }
+
+  return plan;
+};
 
 export const TripPlanner: React.FC<TripPlannerProps> = ({
   onSubmit,
@@ -163,7 +369,7 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
 
   const handleSubmit = () => {
     // Generate formatted trip plan
-    const tripPlan = generateTripPlan(tripData);
+    const tripPlan = generateTripPlanMessage(tripData, distanceData);
     onSubmit(tripPlan);
 
     // Reset form and close sheet
@@ -181,64 +387,6 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
     setDistanceData(null);
     setDistanceError(null);
     setOpen(false);
-  };
-
-  const generateTripPlan = (data: TripData): string => {
-    const transport =
-      transportMethods.find((t) => t.value === data.transportMethod)?.label || 'Not specified';
-    const departure = data.departureDate
-      ? format(data.departureDate, 'MMMM dd, yyyy')
-      : 'Not specified';
-    const returnDate = data.returnDate ? format(data.returnDate, 'MMMM dd, yyyy') : 'Not specified';
-
-    let plan = `📋 **Trip Plan Request**
-
-`;
-    plan += `🚗 **Transportation:** ${transport}
-`;
-    plan += `📅 **Travel Dates:** ${departure} - ${returnDate}
-`;
-
-    // Calculate trip duration
-    if (data.departureDate && data.returnDate) {
-      const tripDuration = differenceInDays(data.returnDate, data.departureDate) + 1; // +1 to include both start and end dates
-      plan += `📊 **Trip Duration:** ${tripDuration} days
-`;
-
-      // Add extended stay note if trip exceeds 30 days
-      if (tripDuration > 30) {
-        plan += `
-⚠️ **Extended Stay Note:** This trip exceeds 30 days.
-• Days 1-30: Incidental allowance \$17.30/day
-• Days 31-${tripDuration - 1}: Reduced to \$13.00/day (75%)
-• Day ${tripDuration} (Last day - CIL): Returns to \$17.30/day
-
-`;
-      }
-    }
-
-    plan += `🏠 **R&Q Provided:** ${data.rnqProvided ? 'Yes' : 'No'}
-`;
-    plan += `✅ **Travel Authority:** ${data.travelAuthority ? 'Obtained' : 'Not Obtained'}
-`;
-    plan += `🎯 **Purpose:** ${data.purpose || 'Not specified'}
-`;
-    plan += `📍 **Route:** ${data.departureLocation || 'Not specified'} → ${data.arrivalLocation || 'Not specified'}
-`;
-
-    if (distanceData) {
-      plan += `📏 **Distance:** ${distanceData.distance.text}
-`;
-      plan += `⏱️ **Estimated Travel Time:** ${distanceData.duration.text}
-`;
-    }
-
-    if (data.additionalNotes) {
-      plan += `
-**Additional Details:** ${data.additionalNotes}`;
-    }
-
-    return plan;
   };
 
   const isFormValid = () => {
