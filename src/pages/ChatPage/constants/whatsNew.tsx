@@ -13,11 +13,11 @@ export interface WhatsNewDateGroup {
 }
 
 // Bump this when you add new release notes
-export const WHATS_NEW_VERSION = '2025-10-29';
+export const WHATS_NEW_VERSION = '2025-10-28';
 
 export const WHATS_NEW_BY_DATE: WhatsNewDateGroup[] = [
   {
-    date: 'Wednesday, October 29, 2025',
+    date: 'Tuesday, October 28, 2025',
     updates: [
       {
         icon: <Zap className="w-4 h-4" />,
@@ -31,11 +31,6 @@ export const WHATS_NEW_BY_DATE: WhatsNewDateGroup[] = [
         description:
           'Streaming inherits the sync flow’s perks: advanced response caching, stateful retrieval reuse, glossary injections, rich logging, and source audit trails for every answer.',
       },
-    ],
-  },
-  {
-    date: 'Tuesday, October 28, 2025',
-    updates: [
       {
         icon: <Zap className="w-4 h-4" />,
         text: 'Stable, deterministic retrieval results',
