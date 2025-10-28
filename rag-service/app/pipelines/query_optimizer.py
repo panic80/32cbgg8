@@ -58,6 +58,7 @@ class QueryOptimizer:
         "DCBA": "director compensation and benefits administration",
         "CAF": "Canadian Armed Forces",
         "CF": "Canadian Forces",
+        "GMT": "Government Motor Transport",
         "mbr": "member",
         "approx": "approximately",
         "incl": "including",

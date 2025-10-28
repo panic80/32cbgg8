@@ -71,7 +71,7 @@ Critical environment variables:
 - `ENABLE_CACHE` - Cache toggle
 - `ENABLE_RATE_LIMIT` - Rate limiting toggle
 - `RAG_SERVICE_URL` - RAG service endpoint (default: http://localhost:8000)
-- `RAG_DEFAULT_LOCATION` - Optional default location appended to location-agnostic queries (e.g., `Ontario, Canada`)
+- `RAG_DEFAULT_LOCATION` - Optional default location appended to location-agnostic queries (not recommended - leave unset for location-agnostic behavior)
 - `VITE_API_BASE_URL` - Backend API URL (default: http://localhost:3000)
 
 ## Testing

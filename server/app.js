@@ -468,6 +468,7 @@ const cache = config.cacheEnabled
 
 // Rate limiting setup (conditionally enabled)
 const rateLimitBuckets = config.rateLimitEnabled ? new Map() : null;
+const apiRequestCounts = config.rateLimitEnabled ? new Map() : null;
 let rateLimitSweepCursor = 0;
 
 // Initialize AI clients
@@ -588,12 +589,18 @@ const rateLimiter = (req, res, next) => {
       count: 1,
       expiresAt: now + windowMs,
     });
+    if (apiRequestCounts) {
+      apiRequestCounts.set(clientIP, 1);
+    }
     rateLimitSweepCursor++;
     if (rateLimitSweepCursor >= 500) {
       rateLimitSweepCursor = 0;
       for (const [ip, entry] of rateLimitBuckets.entries()) {
         if (entry.expiresAt <= now) {
           rateLimitBuckets.delete(ip);
+          if (apiRequestCounts) {
+            apiRequestCounts.delete(ip);
+          }
         }
       }
     }
@@ -618,6 +625,9 @@ const rateLimiter = (req, res, next) => {
   }
 
   bucket.count += 1;
+  if (apiRequestCounts) {
+    apiRequestCounts.set(clientIP, bucket.count);
+  }
   next();
 };
 
@@ -632,9 +642,6 @@ const adminRouter = createAdminRoutes({
 });
 
 app.use('/api/admin', adminRouter);
-
-const logsRouter = createLogsRoutes({ rateLimiter });
-app.use(logsRouter);
 
 const logsRouter = createLogsRoutes({
   rateLimiter,

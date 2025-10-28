@@ -141,6 +141,7 @@ pipelines:
             CAF: 'Canadian Armed Forces'
             LTA: 'Leave Travel Assistance'
             IRP: 'Integrated Relocation Program'
+            GMT: 'Government Motor Transport'
 
       # Advanced domain expansion
       - type: EnhancedQueryStrategy

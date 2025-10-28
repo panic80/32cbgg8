@@ -111,6 +111,7 @@ advanced:
             R&Q: 'Rations and Quarters'
             CF: 'Canadian Forces'
             CAF: 'Canadian Armed Forces'
+            GMT: 'Government Motor Transport'
         order: 3
 
       # Metadata filtering

@@ -347,6 +347,7 @@ class AdvancedQueryExpander:
             "irp": "integrated relocation program",
             "pmv": "personal motor vehicle",
             "pov": "privately owned vehicle",
+            "gmt": "government motor transport",
             "pld": "post living differential",
             "foa": "financial operations and administration",
             "cfao": "canadian forces administrative order",

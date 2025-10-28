@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import axios from 'axios';
 import { PassThrough } from 'stream';
+import { TRAVEL_PLANNER_ADDITIONAL_INSTRUCTIONS } from '../constants/travelPlannerInstructions.js';
 
 const DEFAULT_RAG_SERVICE_URL = process.env.RAG_SERVICE_URL || 'http://localhost:8000';
 
@@ -78,11 +79,17 @@ const createChatRoutes = ({
       });
     }
 
+    const isTripPlannerMessage = message?.startsWith('📋 **Trip Plan Request**');
+    const forcedModel = 'gpt-5-mini';
+    const forcedProvider = 'openai';
+    const effectiveModel = isTripPlannerMessage ? forcedModel : model;
+    const effectiveProvider = isTripPlannerMessage ? forcedProvider : provider;
+
     try {
       console.log('Processing RAG chat request', {
         message: message?.substring(0, 50),
-        model,
-        provider,
+        model: effectiveModel,
+        provider: effectiveProvider,
         hasHistory: !!chatHistory,
         conversationId,
       });
@@ -93,8 +100,8 @@ const createChatRoutes = ({
           message: message.trim(),
           chat_history: chatHistory || [],
           conversation_id: conversationId,
-          provider: provider || 'openai',
-          model,
+          provider: effectiveProvider || 'openai',
+          model: effectiveModel,
           use_rag: useRAG,
           include_sources: true,
         },
@@ -121,73 +128,10 @@ const createChatRoutes = ({
         return res.status(error.response.status).json(error.response.data);
       }
 
-      console.log('RAG service unavailable, falling back to regular chat');
-
-      try {
-        let responseText = '';
-
-        switch (provider) {
-          case 'google':
-            if (!geminiClient) {
-              return res.status(500).json({
-                error: 'Configuration Error',
-                message: 'Google API key is not configured.',
-              });
-            }
-            responseText = await geminiClient
-              .getGenerativeModel({ model })
-              .generateContent(message.trim())
-              .then((result) => result.response.text());
-            break;
-
-          case 'openai':
-            if (!openaiClient) {
-              return res.status(500).json({
-                error: 'Configuration Error',
-                message: 'OpenAI API key is not configured.',
-              });
-            }
-            responseText = await openaiClient.chat.completions
-              .create(buildOpenAIParams(model, [{ role: 'user', content: message.trim() }]))
-              .then((completion) => completion.choices[0].message.content);
-            break;
-
-          case 'anthropic':
-            if (!anthropicClient) {
-              return res.status(500).json({
-                error: 'Configuration Error',
-                message: 'Anthropic API key is not configured.',
-              });
-            }
-            responseText = await anthropicClient.messages
-              .create({
-                model,
-                max_tokens: 4096,
-                messages: [{ role: 'user', content: message.trim() }],
-              })
-              .then((anthropicMessage) => anthropicMessage.content[0].text);
-            break;
-
-          default:
-            return res.status(400).json({
-              error: 'Bad Request',
-              message: `Unsupported provider: ${provider}`,
-            });
-        }
-
-        return res.json({
-          response: responseText,
-          sources: [],
-          conversation_id: null,
-          model,
-        });
-      } catch (fallbackError) {
-        console.error('Fallback chat error:', fallbackError);
-        return res.status(500).json({
-          error: 'Internal Server Error',
-          message: 'Both RAG and fallback chat services failed.',
-        });
-      }
+      return res.status(502).json({
+        error: 'RAG Service Unavailable',
+        message: 'Upstream retrieval service failed and no fallback is configured.',
+      });
     }
   });
 
@@ -201,14 +145,20 @@ const createChatRoutes = ({
       });
     }
 
-    if (!model) {
+    const isTripPlannerMessage = message?.startsWith('📋 **Trip Plan Request**');
+    const forcedModel = 'gpt-5-mini';
+    const forcedProvider = 'openai';
+    const effectiveModel = isTripPlannerMessage ? forcedModel : model;
+    const effectiveProvider = isTripPlannerMessage ? forcedProvider : provider;
+
+    if (!effectiveModel) {
       return res.status(400).json({
         error: 'Bad Request',
         message: 'Model parameter is required.',
       });
     }
 
-    if (!provider) {
+    if (!effectiveProvider) {
       return res.status(400).json({
         error: 'Bad Request',
         message: 'Provider parameter is required.',
@@ -218,7 +168,7 @@ const createChatRoutes = ({
     try {
       let responseText = '';
 
-      switch (provider) {
+      switch (effectiveProvider) {
         case 'google':
           if (!geminiClient) {
             return res.status(500).json({
@@ -227,7 +177,7 @@ const createChatRoutes = ({
             });
           }
           responseText = await geminiClient
-            .getGenerativeModel({ model })
+            .getGenerativeModel({ model: effectiveModel })
             .generateContent(message.trim())
             .then((result) => result.response.text());
           break;
@@ -240,7 +190,9 @@ const createChatRoutes = ({
             });
           }
           responseText = await openaiClient.chat.completions
-            .create(buildOpenAIParams(model, [{ role: 'user', content: message.trim() }]))
+            .create(
+              buildOpenAIParams(effectiveModel, [{ role: 'user', content: message.trim() }]),
+            )
             .then((completion) => completion.choices[0].message.content);
           break;
 
@@ -253,7 +205,7 @@ const createChatRoutes = ({
           }
           responseText = await anthropicClient.messages
             .create({
-              model,
+              model: effectiveModel,
               max_tokens: 4096,
               messages: [{ role: 'user', content: message.trim() }],
             })
@@ -263,7 +215,7 @@ const createChatRoutes = ({
         default:
           return res.status(400).json({
             error: 'Bad Request',
-            message: `Unsupported provider: ${provider}`,
+            message: `Unsupported provider: ${effectiveProvider}`,
           });
       }
 
@@ -273,8 +225,8 @@ const createChatRoutes = ({
           timestamp: loggedAt,
           question: message.trim(),
           answer: responseText,
-          model,
-          provider,
+          model: effectiveModel,
+          provider: effectiveProvider,
           ragEnabled: false,
           metadata: { route: '/api/v2/chat' },
         });
@@ -284,7 +236,7 @@ const createChatRoutes = ({
         response: responseText,
         sources: [],
         conversation_id: null,
-        model,
+        model: effectiveModel,
       });
     } catch (error) {
       console.error('Error processing chat request:', error);
@@ -294,8 +246,8 @@ const createChatRoutes = ({
           timestamp: new Date().toISOString(),
           question: message.trim(),
           answer: null,
-          model,
-          provider,
+          model: effectiveModel,
+          provider: effectiveProvider,
           ragEnabled: false,
           metadata: {
             route: '/api/v2/chat',
@@ -346,28 +298,25 @@ const createChatRoutes = ({
       });
     }
 
+    const isTripPlannerMessage = message?.startsWith('📋 **Trip Plan Request**');
+    const forcedModel = 'gpt-5-mini';
+    const forcedProvider = 'openai';
+    const effectiveModel = isTripPlannerMessage ? forcedModel : model;
+    const effectiveProvider = isTripPlannerMessage ? forcedProvider : provider;
+
     try {
+
       console.log('Processing streaming chat request', {
         message: message?.substring(0, 50),
-        model,
-        provider,
+        model: effectiveModel,
+        provider: effectiveProvider,
         hasHistory: !!chatHistory,
         conversationId,
       });
 
-      const recentHistoryText = Array.isArray(chatHistory)
-        ? chatHistory
-            .slice(-5)
-            .map((h) => (h && typeof h.content === 'string' ? h.content : ''))
-            .join(' \n ')
-        : '';
-      const combinedText = `${message}\n${recentHistoryText}`.toLowerCase();
-      const locationRegex =
-        /\b(ontario|canada|alberta|british columbia|manitoba|saskatchewan|qu[eé]bec|nova scotia|new brunswick|newfoundland|labrador|prince edward island|pei|yukon|nunavut|northwest territories|toronto|ottawa|vancouver|calgary|edmonton|montreal|winnipeg|regina|halifax|saint john|st\.?\s*john'?s|charlottetown)\b/;
-      const hasExplicitLocation = locationRegex.test(combinedText);
-      const jurisdiction = hasExplicitLocation
-        ? undefined
-        : { region: 'Ontario', country: 'Canada' };
+      // Location detection removed - system is now location-agnostic by default
+      // Users must explicitly specify location in their queries
+      const jurisdiction = undefined;
 
       const ragServiceUrl = DEFAULT_RAG_SERVICE_URL;
       const ragStreamTimeout = parseInt(process.env.RAG_STREAM_TIMEOUT || '120000', 10);
@@ -379,12 +328,15 @@ const createChatRoutes = ({
           message: (message || '').trim(),
           chat_history: chatHistory || [],
           conversation_id: conversationId,
-          provider: provider || 'openai',
-          model,
+          provider: effectiveProvider || 'openai',
+          model: effectiveModel,
           use_rag: useRAG,
           include_sources: true,
           short_answer_mode: shortAnswerMode,
           use_hybrid_search: useHybridSearch,
+          ...(isTripPlannerMessage
+            ? { additionalInstructions: TRAVEL_PLANNER_ADDITIONAL_INSTRUCTIONS }
+            : {}),
           ...(reasoningEffort ? { reasoning_effort: reasoningEffort } : {}),
           ...(responseVerbosity ? { response_verbosity: responseVerbosity } : {}),
           ...(jurisdiction ? { jurisdiction } : {}),
@@ -467,8 +419,8 @@ const createChatRoutes = ({
             timestamp: new Date().toISOString(),
             question: message.trim(),
             answer: aggregatedAnswer,
-            model,
-            provider,
+            model: effectiveModel,
+            provider: effectiveProvider,
             ragEnabled: useRAG,
             conversationId: remoteConversationId,
             latencyMs: Date.now() - streamStart,
@@ -496,8 +448,8 @@ const createChatRoutes = ({
           timestamp: new Date().toISOString(),
           question: message.trim(),
           answer: null,
-          model,
-          provider,
+          model: effectiveModel,
+          provider: effectiveProvider,
           ragEnabled: useRAG,
           metadata: {
             route: '/api/v2/chat/stream',

@@ -134,7 +134,7 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
   const toolsItems: MenuItem[] = [
     {
       type: 'button',
-      label: 'Travel Planner',
+      label: 'Travel Planner (Currently under update)',
       icon: <Plane className="w-4 h-4" />,
       onClick: () => {
         setOpen(false);

@@ -99,6 +99,118 @@ const createMapsRoutes = ({ rateLimiter, googleMapsClient }) => {
     }
   });
 
+  router.get('/api/maps/autocomplete', rateLimiter, async (req, res) => {
+    try {
+      const { input, sessiontoken, components } = req.query;
+
+      if (!input) {
+        return res.status(400).json({
+          error: 'Input parameter is required',
+        });
+      }
+
+      if (!googleMapsClient) {
+        return res.status(503).json({
+          error: 'Google Maps service is not configured',
+        });
+      }
+
+      console.log(`[Maps API] Autocomplete request for: ${input}`);
+
+      const params = {
+        input,
+        key: process.env.GOOGLE_MAPS_API_KEY,
+      };
+
+      if (sessiontoken) {
+        params.sessiontoken = sessiontoken;
+      }
+
+      if (components) {
+        params.components = components;
+      }
+
+      const response = await googleMapsClient.placeAutocomplete({
+        params,
+        timeout: 5000,
+      });
+
+      return res.json(response.data);
+    } catch (error) {
+      if (error.response) {
+        console.error('[Maps API] Autocomplete error response:', error.response.status, error.response.data);
+      } else {
+        console.error('[Maps API] Autocomplete error:', error.message);
+      }
+
+      if (error.response?.status === 403) {
+        return res.status(403).json({
+          error: 'Forbidden',
+          message: 'Ensure the Google Maps API key has Places API enabled.',
+        });
+      }
+
+      return res.status(500).json({
+        error: 'Failed to fetch autocomplete predictions',
+        message: error.message,
+      });
+    }
+  });
+
+  router.get('/api/maps/place-details', rateLimiter, async (req, res) => {
+    try {
+      const { place_id, sessiontoken } = req.query;
+
+      if (!place_id) {
+        return res.status(400).json({
+          error: 'place_id parameter is required',
+        });
+      }
+
+      if (!googleMapsClient) {
+        return res.status(503).json({
+          error: 'Google Maps service is not configured',
+        });
+      }
+
+      console.log(`[Maps API] Place details request for: ${place_id}`);
+
+      const params = {
+        place_id,
+        key: process.env.GOOGLE_MAPS_API_KEY,
+      };
+
+      if (sessiontoken) {
+        params.sessiontoken = sessiontoken;
+      }
+
+      const response = await googleMapsClient.placeDetails({
+        params,
+        timeout: 5000,
+      });
+
+      return res.json(response.data);
+    } catch (error) {
+      if (error.response) {
+        console.error('[Maps API] Place details error response:', error.response.status, error.response.data);
+      } else {
+        console.error('[Maps API] Place details error:', error.message);
+      }
+
+      if (error.response?.status === 403) {
+        return res.status(403).json({
+          error: 'Forbidden',
+          message: 'Ensure the Google Maps API key has Places API enabled.',
+        });
+      }
+
+      return res.status(500).json({
+        error: 'Failed to fetch place details',
+        message: error.message,
+      });
+    }
+  });
+
   return router;
 };
 

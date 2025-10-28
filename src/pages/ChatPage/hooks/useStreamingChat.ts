@@ -194,8 +194,8 @@ export const useStreamingChat = ({
           getLocalStorageItem(StorageKeys.selectedModel) || DEFAULT_MODEL_ID;
         const selectedModel = isTripPlannerMessage ? 'gpt-5-mini' : userSelectedModel;
         const historyLimit = selectedModel === 'gpt-5-mini' ? 4 : 10;
-        const selectedProvider =
-          getLocalStorageItem(StorageKeys.selectedProvider) || 'openai';
+        const storedProvider = getLocalStorageItem(StorageKeys.selectedProvider) || 'openai';
+        const selectedProvider = isTripPlannerMessage ? 'openai' : storedProvider;
 
         if (!isTripPlannerMessage) {
           const displayModel = getModelDisplayName(selectedModel);

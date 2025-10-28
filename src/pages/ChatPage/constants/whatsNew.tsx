@@ -61,7 +61,7 @@ export const WHATS_NEW_BY_DATE: WhatsNewDateGroup[] = [
     updates: [
       {
         icon: <FileText className="w-4 h-4" />,
-        text: 'DOA Matrix and DOA Policy ingested',
+        text: 'Authority matrix and policy ingested',
         description:
           'Both documents are now part of the retrieval set so the chatbot can reference the latest guidance.',
       },

@@ -449,7 +449,12 @@ async def _run_streaming_flow(
         perf_monitor.record_latency("search_latency_ms", 0)
         perf_monitor.record_latency("context_build_latency_ms", 0)
 
-    messages: List[SystemMessage | HumanMessage | AIMessage] = [SystemMessage(content=SYSTEM_PROMPT)]
+    # Build system prompt with additional instructions if provided
+    system_prompt = SYSTEM_PROMPT
+    if chat_request.additional_instructions:
+        system_prompt = f"{SYSTEM_PROMPT}\n\nADDITIONAL DIRECTIVES:\n{chat_request.additional_instructions.strip()}"
+
+    messages: List[SystemMessage | HumanMessage | AIMessage] = [SystemMessage(content=system_prompt)]
     if chat_request.short_answer_mode:
         messages.append(SystemMessage(content=SHORT_ANSWER_PROMPT))
     messages.extend(_build_history_messages(chat_request))

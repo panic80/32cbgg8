@@ -190,13 +190,13 @@ export default function LandingPageTest() {
             <Link
               to="/chat"
               className="lpt-minimal-card"
-              title="Interactive, RAG powered AI chat to answer travel, benefits and DOA related questions."
-              aria-label="Policy Assistant – Interactive, RAG powered AI chat to answer travel, benefits and DOA related questions."
+              title="Interactive, RAG powered AI chat to answer travel, benefits, and finance policy questions."
+              aria-label="Policy Assistant – Interactive, RAG powered AI chat to answer travel, benefits, and finance policy questions."
             >
               <CircleHelp className="lpt-minimal-card-icon" aria-hidden="true" />
               <span className="lpt-minimal-card-label">Policy Assistant</span>
               <span className="lpt-minimal-card-subtitle">
-                Interactive, RAG powered AI chat to answer travel, benefits and DOA related
+                Interactive, RAG powered AI chat to answer travel, benefits, and finance policy
                 questions.
               </span>
             </Link>

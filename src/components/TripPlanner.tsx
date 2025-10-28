@@ -81,6 +81,16 @@ const currencyFormatter = new Intl.NumberFormat('en-CA', {
 
 const formatCurrency = (value: number) => currencyFormatter.format(value);
 
+const getTransportLabel = (transportMethod: string) =>
+  transportMethods.find((t) => t.value === transportMethod)?.label || 'Not specified';
+
+const formatKilometres = (value: number) => {
+  if (!Number.isFinite(value)) {
+    return '';
+  }
+  return Number.isInteger(value) ? `${value.toFixed(0)} km` : `${value.toFixed(1)} km`;
+};
+
 const calculateTripDurationInDays = (departure?: Date, returnDate?: Date) => {
   if (!departure || !returnDate) {
     return null;
@@ -108,6 +118,56 @@ const calculateIncidentalCost = (tripDuration: number | null) => {
   const finalDayCost = INCIDENT_ALLOWANCE_STANDARD_RATE;
 
   return standardDaysCost + reducedDaysCost + finalDayCost;
+};
+
+interface MealEntitlementDay {
+  dayLabel: string;
+  meals: string[];
+}
+
+const calculateMealEntitlements = (
+  tripDuration: number | null,
+  rnqProvided: boolean,
+): MealEntitlementDay[] => {
+  if (!tripDuration || tripDuration <= 0) {
+    return [];
+  }
+
+  if (tripDuration === 1) {
+    return [
+      {
+        dayLabel: 'Day 1 (Same-day travel)',
+        meals: ['Lunch'],
+      },
+    ];
+  }
+
+  const entitlements: MealEntitlementDay[] = [
+    {
+      dayLabel: 'Day 1 (Departure)',
+      meals: ['Lunch', 'Dinner'],
+    },
+  ];
+
+  if (!rnqProvided && tripDuration > 2) {
+    for (let day = 2; day <= tripDuration - 1; day += 1) {
+      entitlements.push({
+        dayLabel: `Day ${day}`,
+        meals: ['Breakfast', 'Lunch', 'Dinner'],
+      });
+    }
+  }
+
+  entitlements.push({
+    dayLabel: `Day ${tripDuration} (Return)`,
+    meals: ['Breakfast', 'Lunch'],
+  });
+
+  if (rnqProvided) {
+    return entitlements.filter((entry, index) => index === 0 || index === entitlements.length - 1);
+  }
+
+  return entitlements;
 };
 
 const PROVINCE_MAP: Record<string, string> = {
@@ -161,40 +221,146 @@ const extractProvince = (location: string | undefined) => {
     if (normalized.length === 2 && PROVINCE_MAP[normalized]) {
       return PROVINCE_MAP[normalized];
     }
+
+    const tokens = normalized.split(/[\s-]+/).map((token) => token.replace(/[^a-z]/g, ''));
+    for (const token of tokens) {
+      if (token && PROVINCE_MAP[token]) {
+        return PROVINCE_MAP[token];
+      }
+    }
   }
 
   return null;
+};
+
+interface MileageContext {
+  locationLabel: string;
+  locationLabelLower: string;
+  distanceText: string | null;
+  roundTripDistanceText: string | null;
+  distanceKm: number | null;
+  roundTripKm: number | null;
+}
+
+const buildMileageContext = (data: TripData, distance: DistanceData | null): MileageContext => {
+  const departureProvince = extractProvince(data.departureLocation);
+  const destinationProvince = extractProvince(data.arrivalLocation);
+  const locationLabel = departureProvince || destinationProvince || 'departure region';
+  const distanceValue = distance?.distance.value;
+  const distanceKm = typeof distanceValue === 'number' ? distanceValue / 1000 : null;
+  const roundTripKm = distanceKm !== null ? distanceKm * 2 : null;
+  const distanceText = distance?.distance.text ?? null;
+  const roundTripDistanceText = roundTripKm !== null
+    ? formatKilometres(roundTripKm)
+    : distanceText
+      ? `2 × ${distanceText}`
+      : null;
+
+  return {
+    locationLabel,
+    locationLabelLower: locationLabel.toLowerCase(),
+    distanceText,
+    roundTripDistanceText,
+    distanceKm,
+    roundTripKm,
+  };
 };
 
 const buildCostEstimateSection = (
   data: TripData,
   distance: DistanceData | null,
   tripDuration: number | null,
+  mealEntitlements: MealEntitlementDay[],
 ) => {
   const incidentalCost = calculateIncidentalCost(tripDuration);
 
   const lines: string[] = [];
+  const costRows: Array<{ label: string; value: string }> = [];
+  const internalNotes: string[] = [];
 
   if (incidentalCost !== null) {
     const durationLabel = tripDuration === 1 ? '1 day' : `${tripDuration} days`;
     lines.push(`• Incidentals (${durationLabel}): ${formatCurrency(incidentalCost)}`);
+    costRows.push({
+      label: `Incidentals (${durationLabel})`,
+      value: formatCurrency(incidentalCost),
+    });
+  } else {
+    costRows.push({
+      label: 'Incidentals',
+      value: 'No entitlement calculated',
+    });
+  }
+
+  if (mealEntitlements.length) {
+    const mealSummary = mealEntitlements
+      .map((entry) => `${entry.dayLabel}: ${entry.meals.join(', ')}`)
+      .join('; ');
+    const rnqMessage = data.rnqProvided ? ' (travel days only — R&Q provided)' : '';
+    lines.push(
+      `• Meals: ${mealSummary}${rnqMessage}. Retrieve destination meal per diems (breakfast/lunch/dinner) and multiply accordingly.`,
+    );
+    costRows.push({
+      label: 'Meals',
+      value: `${mealSummary}${data.rnqProvided ? ' (travel days only)' : ''}`,
+    });
+    internalNotes.push('Lookup current meal per diem table for the destination and calculate eligible meals.');
+  } else {
+    lines.push(
+      '• Meals: Not entitled based on travel timing and provided R&Q coverage.',
+    );
+    costRows.push({
+      label: 'Meals',
+      value: 'No entitlement (timing/R&Q).',
+    });
   }
 
   const departureLocation = data.departureLocation || 'departure location';
   const arrivalLocation = data.arrivalLocation || 'arrival location';
   const routeDescription = `${departureLocation} → ${arrivalLocation}`;
-  const destinationProvince =
-    extractProvince(data.arrivalLocation) || extractProvince(data.departureLocation);
+  const transportLabel = getTransportLabel(data.transportMethod);
+  const mileageContext = buildMileageContext(data, distance);
+  const {
+    locationLabel,
+    locationLabelLower,
+    distanceText,
+    roundTripDistanceText,
+  } = mileageContext;
+  const roundTripDisplay = roundTripDistanceText ?? 'round-trip distance';
 
-  if (distance?.distance.text && distance.distance.value) {
-    const locationHint = destinationProvince ? `${destinationProvince}` : routeDescription;
-    lines.push(
-      `• Use RAG to retrieve the current private-vehicle kilometric rate covering travel between ${routeDescription} (${locationHint}). Apply it to ${distance.distance.text} to estimate mileage cost.`,
-    );
+  if (data.transportMethod === 'personal-vehicle') {
+    if (distance?.distance.text && distance.distance.value) {
+      lines.push(
+        `• Mileage: Retrieve the current private-vehicle kilometric rate for ${locationLabel} (cents per kilometre) and apply it to ${distanceText} each way (${roundTripDisplay} total) to determine the mileage cost.`,
+      );
+      costRows.push({
+        label: 'Mileage',
+        value: `${roundTripDisplay} × current ${locationLabel} POMV rate`,
+      });
+      internalNotes.push(
+        `Query the policy for the ${locationLabel} private-vehicle kilometric rate and multiply it by ${roundTripDisplay} (round trip), converting to dollars if the rate is quoted in cents per kilometre.`,
+      );
+      internalNotes.push(
+        `Explicit retrieval hint: "${locationLabelLower} private vehicle kilometric rate" (express in cents per kilometre).`,
+      );
+    } else {
+      lines.push(
+        `• Mileage: Await confirmed distance for ${routeDescription} and then apply the current ${locationLabel} POMV rate (cents per kilometre) to both legs of travel.`,
+      );
+      costRows.push({
+        label: 'Mileage',
+        value: 'Awaiting confirmed distance for round-trip POMV calculation',
+      });
+      internalNotes.push(
+        `Fetch the ${locationLabel} private-vehicle kilometric rate once the travel distance is confirmed, then multiply by the full round-trip distance (convert units as required).`,
+      );
+    }
   } else {
-    lines.push(
-      `• Once distance is confirmed for ${routeDescription}, use RAG to fetch the applicable private-vehicle kilometric rate and calculate mileage cost.`,
-    );
+    lines.push(`• Mileage: Not entitled when travelling by ${transportLabel}.`);
+    costRows.push({
+      label: 'Mileage',
+      value: `Not entitled (${transportLabel} is Crown-provided transport).`,
+    });
   }
 
   if (!lines.length) {
@@ -209,17 +375,41 @@ ${lines.join('\n')}
   section += `**Please combine the RAG-derived kilometric mileage cost with the incidentals above to present the total trip estimate.**
 `;
 
+  if (costRows.length) {
+    const tableRows = costRows.map((row) => `| ${row.label} | ${row.value} |`).join('\n');
+    section += `
+| Component | Estimated Cost / Notes |
+| --- | --- |
+${tableRows}
+`;
+  }
+
+  if (internalNotes.length) {
+    const noteLines = internalNotes.map((note) => `- ${note}`).join('\n');
+    section += `
+<details>
+<summary>Internal calculation notes</summary>
+${noteLines}
+</details>
+`;
+  }
+
   return section;
 };
 
 export const generateTripPlanMessage = (data: TripData, distance: DistanceData | null): string => {
-  const transport =
-    transportMethods.find((t) => t.value === data.transportMethod)?.label || 'Not specified';
+  const transport = getTransportLabel(data.transportMethod);
   const departure = data.departureDate
     ? format(data.departureDate, 'MMMM dd, yyyy')
     : 'Not specified';
   const returnDate = data.returnDate ? format(data.returnDate, 'MMMM dd, yyyy') : 'Not specified';
   const tripDuration = calculateTripDurationInDays(data.departureDate, data.returnDate);
+  const mealEntitlements = calculateMealEntitlements(tripDuration, data.rnqProvided);
+  const mileageContext = buildMileageContext(data, distance);
+  const mileageRegion = mileageContext.locationLabel;
+  const roundTripDistanceText = mileageContext.roundTripDistanceText;
+  const roundTripDistanceDisplay = roundTripDistanceText ?? 'round-trip distance';
+  const mileageRegionLower = mileageContext.locationLabelLower;
 
   let plan = `📋 **Trip Plan Request**
 
@@ -259,6 +449,25 @@ ${hasReducedRange ? `• Days 31-${reducedRangeEnd}: Reduced to \$13.00/day (75%
 `;
     plan += `⏱️ **Estimated Travel Time:** ${distance.duration.text}
 `;
+    if (roundTripDistanceText) {
+      plan += `🔁 **Round-Trip Distance:** ${roundTripDistanceText}
+`;
+    }
+  }
+
+  if (mealEntitlements.length) {
+    const mealLines = mealEntitlements
+      .map((entry) => `• ${entry.dayLabel}: ${entry.meals.join(', ')}`)
+      .join('\n');
+    const rnqLabel = data.rnqProvided ? ' (travel days only — R&Q provided)' : '';
+    plan += `
+🍽️ **Meals (Assuming depart 12:00 & return 15:00):**${rnqLabel}
+${mealLines}
+`;
+  } else {
+    plan += `
+🍽️ **Meals:** No meal entitlement based on the assumed departure/return times and R&Q coverage.
+`;
   }
 
   if (data.additionalNotes) {
@@ -266,11 +475,19 @@ ${hasReducedRange ? `• Days 31-${reducedRangeEnd}: Reduced to \$13.00/day (75%
 **Additional Details:** ${data.additionalNotes}`;
   }
 
-  const costSection = buildCostEstimateSection(data, distance, tripDuration);
+  const costSection = buildCostEstimateSection(data, distance, tripDuration, mealEntitlements);
   if (costSection) {
     plan += `
 ${costSection}`;
   }
+
+  plan += `
+🔍 **Required Retrieval Tasks:**
+• Determine the current private-vehicle kilometric rate for ${mileageRegion} and apply it to the full round-trip distance (${roundTripDistanceDisplay}); convert the result to dollars if the rate is expressed in cents per kilometre.
+• Retrieve the applicable meal per diem rates (breakfast, lunch, dinner) for the destination and apply them to the eligible meals determined by the 12:00 departure / 15:00 return assumption.
+• If the exact mileage rate is not immediately present, explicitly query for "${mileageRegionLower} private vehicle kilometric rate" and use the value retrieved from policy tables.
+• Confirm the total trip estimate by combining incidentals, the round-trip mileage calculation, and the meal totals derived from those rates.
+`;
 
   return plan;
 };

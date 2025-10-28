@@ -95,6 +95,7 @@ class TravelBM25Retriever(BaseRetriever, BaseComponent):
             "tdy": "temporary duty",
             "cf": "canadian forces",
             "caf": "canadian armed forces",
+            "gmt": "government motor transport",
             "per diem": "daily allowance",
             "km": "kilometer kilometre",
             "govt": "government",

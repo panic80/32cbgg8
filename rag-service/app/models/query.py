@@ -50,6 +50,11 @@ class ChatRequest(BaseModel):
     # HYBRID_SEARCH_TOGGLE_START - Remove this line to disable hybrid search
     use_hybrid_search: bool = Field(False, description="Enable hybrid BM25+Vector search for improved accuracy")
     # HYBRID_SEARCH_TOGGLE_END
+    additional_instructions: Optional[str] = Field(
+        default=None,
+        description="Extra system prompt guidance specific to the request",
+        alias="additionalInstructions",
+    )
     reasoning_effort: Optional[str] = Field(
         None,
         description="Hint for OpenAI reasoning effort",

@@ -143,7 +143,7 @@ async def stream_chat_response(
             # Build messages
             from langchain_core.messages import SystemMessage, HumanMessage
             
-            system_prompt = """You are a helpful assistant for Canadian Forces members seeking information about travel instructions and policies.
+            base_system_prompt = """You are a helpful assistant for Canadian Forces members seeking information about travel instructions and policies.
 Always provide accurate, specific information based on the official documentation provided.
 If you're not certain about something, clearly state that.
 
@@ -167,6 +167,11 @@ CRITICAL: When answering questions about rates, allowances, or tables:
 - For incidental allowances, include the daily rates
 - If the documentation contains a complete table, reproduce it in your response
 - Do not summarize or generalize when specific values are available"""
+
+            system_prompt = base_system_prompt
+
+            if chat_request.additional_instructions:
+                system_prompt = f"{base_system_prompt}\n\nADDITIONAL DIRECTIVES:\n{chat_request.additional_instructions.strip()}"
 
             messages = [SystemMessage(content=system_prompt)]
             

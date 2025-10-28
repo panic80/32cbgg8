@@ -456,7 +456,8 @@ class AbbreviationExpansionStrategy(BaseStrategy):
             "hg&e": "household goods and effects",
             "dhh": "dependent household and effects",
             "km": "kilometer",
-            "govt": "government"
+            "govt": "government",
+            "gmt": "government motor transport"
         }
     
     def _expand_abbreviations(self, text: str) -> str:

@@ -37,7 +37,7 @@ const sections = [
     description:
       'The retrieved passages are woven into a policy-focused system prompt that enforces tone, formatting, and jurisdiction awareness.',
     bullets: [
-      'Structured hints (like defaulting to Ontario if no location is provided) keep answers grounded in the right region.',
+      'Location context from your query helps provide region-specific answers from Canadian travel policy.',
       'The system prompt carries mandatory instructions so policy language stays accurate and consistent.',
       'Follow-up questions are generated asynchronously after the main answer completes, so you get suggestions without delaying the response.',
     ],

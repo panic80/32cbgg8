@@ -491,7 +491,7 @@ async def chat(request: Request, chat_request: ChatRequest) -> ChatResponse:
                 logger.info(f"Content preview: {sources[0].text[:100]}...")
             
         # Build prompt
-        system_prompt = """You are a helpful assistant for Canadian Forces members seeking information about travel instructions and policies.
+        base_system_prompt = """You are a helpful assistant for Canadian Forces members seeking information about travel instructions and policies.
 Always provide accurate, specific information based on the official documentation provided.
 If you're not certain about something, clearly state that.
 
@@ -516,6 +516,11 @@ SPECIAL INSTRUCTION FOR CLASS A RESERVISTS:
 - If there are differences in rates, allowances, or procedures for Class A members, highlight them.
 - Common Class A specific considerations include travel time limits and restrictions, meal allowance eligibility during training, accommodation entitlements, kilometric rate applications, and Temporary Duty (TD) limitations.
 """
+
+        system_prompt = base_system_prompt
+
+        if chat_request.additional_instructions:
+            system_prompt = f"{base_system_prompt}\n\nADDITIONAL DIRECTIVES:\n{chat_request.additional_instructions.strip()}"
 
         if chat_request.short_answer_mode:
             system_prompt = f"{system_prompt}\n\n{SHORT_ANSWER_PROMPT}"
