@@ -1,6 +1,7 @@
 """Parallel retrieval pipeline for concurrent retriever execution."""
 
 import asyncio
+import hashlib
 from typing import List, Dict, Any, Optional, Tuple, Set
 from datetime import datetime
 import time
@@ -17,6 +18,8 @@ from app.unified_retrieval.unified_retriever import UnifiedRetriever
 from app.services.performance_monitor import get_performance_monitor
 
 logger = get_logger(__name__)
+
+_FLOAT_EPSILON = 1e-9
 
 
 class CircuitBreaker:
@@ -90,6 +93,58 @@ class ParallelRetrievalPipeline:
         # Normalize weights
         total_weight = sum(self.weights.values())
         self.weights = {k: v / total_weight for k, v in self.weights.items()}
+
+    def _get_document_key(self, doc: Document) -> str:
+        """Return a deterministic identifier for a document."""
+        metadata = getattr(doc, "metadata", {}) or {}
+        if hasattr(metadata, "model_dump"):
+            metadata = metadata.model_dump()
+        if not isinstance(metadata, dict):
+            metadata = {}
+
+        for field in (
+            "id",
+            "chunk_id",
+            "document_id",
+            "parent_id",
+            "source_id",
+            "page_id",
+            "uid",
+        ):
+            value = metadata.get(field)
+            if value:
+                return f"{field}:{value}"
+
+        content = doc.page_content or ""
+        return hashlib.md5(content.encode("utf-8")).hexdigest()
+
+    def _should_replace_candidate(
+        self,
+        existing: Dict[str, Any],
+        candidate: Dict[str, Any]
+    ) -> bool:
+        """Determine if candidate should replace existing document entry."""
+        if candidate["score"] > existing["score"] + _FLOAT_EPSILON:
+            return True
+        if existing["score"] > candidate["score"] + _FLOAT_EPSILON:
+            return False
+
+        if candidate["weight"] > existing["weight"] + _FLOAT_EPSILON:
+            return True
+        if existing["weight"] > candidate["weight"] + _FLOAT_EPSILON:
+            return False
+
+        if candidate["position"] < existing["position"]:
+            return True
+        if candidate["position"] > existing["position"]:
+            return False
+
+        if candidate["retriever"] < existing["retriever"]:
+            return True
+        if candidate["retriever"] > existing["retriever"]:
+            return False
+
+        return candidate["key"] < existing["key"]
         
     async def _retrieve_with_timeout(
         self,
@@ -267,36 +322,56 @@ class ParallelRetrievalPipeline:
             logger.warning(f"Unknown merge strategy: {strategy}, using weighted")
             return self._weighted_merge(results_by_retriever, k)
     
+    def _ordered_retriever_items(
+        self,
+        results_by_retriever: Dict[str, List[Document]]
+    ) -> List[Tuple[str, List[Document]]]:
+        """Return retriever results in deterministic priority order."""
+        return sorted(
+            results_by_retriever.items(),
+            key=lambda item: (-self.weights.get(item[0], 0.0), item[0])
+        )
+    
     def _weighted_merge(
         self,
         results_by_retriever: Dict[str, List[Document]],
         k: int
     ) -> List[Tuple[Document, float]]:
         """Merge results using weighted scores."""
-        # Track unique documents by content hash
-        seen_hashes: Set[int] = set()
-        merged_results: List[Tuple[Document, float]] = []
+        merged: Dict[str, Dict[str, Any]] = {}
         
-        # Score each document based on retriever weight and position
-        for retriever_name, docs in results_by_retriever.items():
+        for retriever_name, docs in self._ordered_retriever_items(results_by_retriever):
             weight = self.weights.get(retriever_name, 1.0)
             
-            for i, doc in enumerate(docs):
-                # Create content hash for deduplication
-                content_hash = hash(doc.page_content)
+            for position, doc in enumerate(docs):
+                key = self._get_document_key(doc)
+                position_score = 1.0 / (position + 1)
+                final_score = weight * position_score
                 
-                if content_hash not in seen_hashes:
-                    seen_hashes.add(content_hash)
-                    
-                    # Calculate score based on position and weight
-                    position_score = 1.0 / (i + 1)  # Higher score for earlier positions
-                    final_score = weight * position_score
-                    
-                    merged_results.append((doc, final_score))
+                candidate = {
+                    "doc": doc,
+                    "score": final_score,
+                    "weight": weight,
+                    "position": position,
+                    "retriever": retriever_name,
+                    "key": key,
+                }
+                
+                existing = merged.get(key)
+                if existing is None or self._should_replace_candidate(existing, candidate):
+                    merged[key] = candidate
         
-        # Sort by score and return top k
-        merged_results.sort(key=lambda x: x[1], reverse=True)
-        return merged_results[:k]
+        ordered = sorted(
+            merged.values(),
+            key=lambda item: (
+                -item["score"],
+                -item["weight"],
+                item["position"],
+                item["retriever"],
+                item["key"],
+            )
+        )
+        return [(item["doc"], item["score"]) for item in ordered[:k]]
     
     def _round_robin_merge(
         self,
@@ -304,40 +379,54 @@ class ParallelRetrievalPipeline:
         k: int
     ) -> List[Tuple[Document, float]]:
         """Merge results using round-robin selection."""
-        seen_hashes: Set[str] = set()
+        seen_keys: Set[str] = set()
         merged_results: List[Tuple[Document, float]] = []
         
-        # Create iterators for each retriever's results
-        iterators = {
-            name: iter(docs)
-            for name, docs in results_by_retriever.items()
-        }
+        ordered_items = self._ordered_retriever_items(results_by_retriever)
+        iterators = {name: iter(docs) for name, docs in ordered_items}
+        ordered_names = [name for name, _ in ordered_items]
         
-        # Round-robin through retrievers
-        while len(merged_results) < k and iterators:
-            empty_iterators = []
+        while len(merged_results) < k and ordered_names:
+            exhausted: List[str] = []
             
-            for name, iterator in iterators.items():
-                try:
-                    doc = next(iterator)
-                    content_hash = hash(doc.page_content)
+            for name in ordered_names:
+                iterator = iterators[name]
+                while True:
+                    try:
+                        doc = next(iterator)
+                    except StopIteration:
+                        exhausted.append(name)
+                        break
                     
-                    if content_hash not in seen_hashes:
-                        seen_hashes.add(content_hash)
-                        # Use retriever weight as score
-                        score = self.weights.get(name, 1.0)
-                        merged_results.append((doc, score))
-                        
-                        if len(merged_results) >= k:
-                            break
-                            
-                except StopIteration:
-                    empty_iterators.append(name)
+                    key = self._get_document_key(doc)
+                    if key in seen_keys:
+                        # Try next document from the same retriever
+                        continue
+                    
+                    seen_keys.add(key)
+                    score = self.weights.get(name, 1.0)
+                    merged_results.append((doc, score))
+                    
+                    if len(merged_results) >= k:
+                        break
+                    
+                    # move to next retriever after recording a result
+                    break
+                
+                if len(merged_results) >= k:
+                    break
             
-            # Remove exhausted iterators
-            for name in empty_iterators:
-                del iterators[name]
+            # Remove exhausted retrievers from the rotation
+            if exhausted:
+                ordered_names = [name for name in ordered_names if name not in exhausted]
         
+        # Deterministic ordering for returned results
+        merged_results.sort(
+            key=lambda item: (
+                -item[1],
+                self._get_document_key(item[0]),
+            )
+        )
         return merged_results[:k]
     
     def _score_based_merge(
@@ -346,27 +435,52 @@ class ParallelRetrievalPipeline:
         k: int
     ) -> List[Tuple[Document, float]]:
         """Merge results based on metadata scores if available."""
-        seen_hashes: Set[str] = set()
-        all_results: List[Tuple[Document, float]] = []
+        merged: Dict[str, Dict[str, Any]] = {}
         
-        for retriever_name, docs in results_by_retriever.items():
+        for retriever_name, docs in self._ordered_retriever_items(results_by_retriever):
             weight = self.weights.get(retriever_name, 1.0)
             
-            for doc in docs:
-                content_hash = hash(doc.page_content)
+            for position, doc in enumerate(docs):
+                key = self._get_document_key(doc)
                 
-                if content_hash not in seen_hashes:
-                    seen_hashes.add(content_hash)
-                    
-                    # Try to get score from metadata
-                    metadata_score = doc.metadata.get("score", 0.5)
-                    final_score = weight * metadata_score
-                    
-                    all_results.append((doc, final_score))
+                metadata = getattr(doc, "metadata", {}) or {}
+                if hasattr(metadata, "model_dump"):
+                    metadata = metadata.model_dump()
+                if not isinstance(metadata, dict):
+                    metadata = {}
+                
+                metadata_score = metadata.get("score", 0.5)
+                try:
+                    metadata_score = float(metadata_score)
+                except (TypeError, ValueError):
+                    metadata_score = 0.5
+                
+                final_score = weight * metadata_score
+                
+                candidate = {
+                    "doc": doc,
+                    "score": final_score,
+                    "weight": weight,
+                    "position": position,
+                    "retriever": retriever_name,
+                    "key": key,
+                }
+                
+                existing = merged.get(key)
+                if existing is None or self._should_replace_candidate(existing, candidate):
+                    merged[key] = candidate
         
-        # Sort by score and return top k
-        all_results.sort(key=lambda x: x[1], reverse=True)
-        return all_results[:k]
+        ordered = sorted(
+            merged.values(),
+            key=lambda item: (
+                -item["score"],
+                -item["weight"],
+                item["position"],
+                item["retriever"],
+                item["key"],
+            )
+        )
+        return [(item["doc"], item["score"]) for item in ordered[:k]]
     
     def get_retriever_stats(self) -> Dict[str, Any]:
         """Get statistics about retriever performance."""

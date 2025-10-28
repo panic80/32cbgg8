@@ -58,7 +58,7 @@ class QueryOptimizer:
         "DCBA": "director compensation and benefits administration",
         "CAF": "Canadian Armed Forces",
         "CF": "Canadian Forces",
-        "GMT": "Government Motor Transport",
+        "GMT": "Government Motor Transport OR Crown vehicle OR government vehicle",
         "mbr": "member",
         "approx": "approximately",
         "incl": "including",
@@ -136,8 +136,12 @@ Provide your classification:""",
             
             # Check if abbreviation exists
             if re.search(pattern, expanded, re.IGNORECASE):
-                # Add full form in parentheses after abbreviation
-                replacement = f"{abbrev} ({full_form})"
+                # For GMT specifically, bias toward Crown vehicle phrasing the corpus uses
+                if abbrev.upper() == "GMT":
+                    replacement = f"{abbrev} (Crown vehicle / government vehicle / {full_form}) Crown vehicle government vehicle"
+                else:
+                    # Add full form in parentheses after abbreviation
+                    replacement = f"{abbrev} ({full_form})"
                 expanded = re.sub(pattern, replacement, expanded, flags=re.IGNORECASE)
                 
         if expanded != query:
@@ -269,7 +273,15 @@ Provide your classification:""",
         
     def expand_query(self, query: str, intent: QueryIntent) -> List[str]:
         """Expand query based on intent."""
-        expanded_queries = [query]  # Always include original
+        # Always include original, but allow domain-specific variant to lead
+        expanded_queries: List[str] = []
+        query_lower = query.lower()
+
+        gmt_terms = ["gmt", "government motor transport", "crown vehicle", "government vehicle"]
+        if any(term in query_lower for term in gmt_terms):
+            primary_variant = f"{query} Crown vehicle government vehicle Government Motor Transport"
+            expanded_queries.append(primary_variant)
+        expanded_queries.append(query)
         
         # Get expansion templates for this intent
         templates = self.EXPANSION_TEMPLATES.get(intent, [])
@@ -280,8 +292,6 @@ Provide your classification:""",
                 expanded_queries.append(expanded)
                 
         # Add specific expansions based on content
-        query_lower = query.lower()
-        
         # Meal-related expansions
         if "meal" in query_lower:
             if "yukon" not in query_lower:
@@ -296,7 +306,24 @@ Provide your classification:""",
             
         # POMV/vehicle expansions
         if any(term in query_lower for term in ["pomv", "vehicle", "kilometric"]):
-            expanded_queries.append(f"{query} per kilometer cents privately owned")
+            pomv_expansion = f"{query} per kilometer cents privately owned"
+            if pomv_expansion not in expanded_queries:
+                expanded_queries.append(pomv_expansion)
+        
+        # GMT / Crown vehicle expansions
+        if any(term in query_lower for term in ["gmt", "government motor transport", "crown vehicle", "government vehicle"]):
+            gmt_variants = [
+                query.replace("GMT", "Crown vehicle").replace("gmt", "Crown vehicle"),
+                query.replace("GMT", "government vehicle").replace("gmt", "government vehicle"),
+                f"{query} crown vehicle versus private motor vehicle government transport",
+            ]
+            # Prioritize the first variant by inserting it immediately after the original
+            first_variant = gmt_variants.pop(0)
+            if first_variant not in expanded_queries:
+                expanded_queries.insert(1, first_variant)
+            for variant in gmt_variants:
+                if variant not in expanded_queries:
+                    expanded_queries.append(variant)
             
         # Appendix C/D specific expansions
         if "appendix c" in query_lower or "appendix d" in query_lower:
@@ -384,6 +411,8 @@ Provide your classification:""",
             domain_terms.extend(["travel directive", "TD", "travel instructions"])
         if any(term in query_lower for term in ["vehicle", "car", "driving", "km"]):
             domain_terms.extend(["kilometric", "private vehicle", "POMV", "mileage"])
+        if any(term in query_lower for term in ["gmt", "government motor transport", "crown vehicle", "government vehicle"]):
+            domain_terms.extend(["Crown vehicle", "government vehicle", "Government Motor Transport"])
         if any(term in query_lower for term in ["hotel", "accommodation", "lodging"]):
             domain_terms.extend(["accommodation", "lodging", "hotel rates"])
             

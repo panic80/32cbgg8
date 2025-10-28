@@ -9,8 +9,6 @@ from datetime import datetime
 import uuid
 
 from langchain_openai import ChatOpenAI
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 
 from app.core.config import settings
@@ -49,80 +47,53 @@ def get_llm(provider: Provider, model: Optional[str] = None):
         if not settings.openai_api_key:
             raise ValueError("OpenAI API key not configured")
         
-        # Check if it's an O-series reasoning model
         model_name = model or settings.openai_chat_model
-        is_o_series = (model_name and (
-            model_name.startswith('o3') or 
-            model_name.startswith('o4') or
-            model_name == 'o1' or
-            model_name == 'o1-mini'
-        ))
-        
-        # Check if GPT-5 Mini/Nano or GPT-4.1 Mini (doesn't support temperature)
-        is_gpt5_mini = (model_name and model_name.strip().lower() == 'gpt-5-mini')
-        is_gpt5_nano = (model_name and model_name.strip().lower() == 'gpt-5-nano')
-        is_gpt41_mini = (model_name and model_name.strip().lower() == 'gpt-4.1-mini')
-        
-        # Debug logging
-        logger.info(f"Model check - model_name: '{model_name}', is_o_series: {is_o_series}, is_gpt5_mini: {is_gpt5_mini}, is_gpt5_nano: {is_gpt5_nano}, is_gpt41_mini: {is_gpt41_mini}")
-        
-        # O-series models, GPT-5 Mini/Nano, and GPT-4.1 Mini don't support temperature parameter
+        model_name_lower = (model_name or "").strip().lower()
+        allowed_deterministic_models = {"gpt-5-mini", "gpt-4.1-mini"}
+
+        is_reasoning_model = bool(model_name_lower) and (
+            model_name_lower.startswith("o1")
+            or model_name_lower.startswith("o3")
+            or model_name_lower.startswith("o4")
+        )
+        is_allowed_deterministic = model_name_lower in allowed_deterministic_models
+
+        if not (is_reasoning_model or is_allowed_deterministic):
+            raise ValueError(
+                f"Unsupported OpenAI chat model '{model_name}'. "
+                "For deterministic retrieval runs, use gpt-5-mini, gpt-4.1-mini, "
+                "or an O-series reasoning model."
+            )
+
+        logger.info(
+            "Creating deterministic OpenAI LLM for model: %s "
+            "(reasoning_model=%s)",
+            model_name,
+            is_reasoning_model,
+        )
+
         try:
-            if is_o_series or is_gpt5_mini or is_gpt5_nano or is_gpt41_mini:
-                logger.info(f"Using {model_name}, temperature parameter disabled")
-                llm = ChatOpenAI(
-                    api_key=settings.openai_api_key,
-                    model=model_name,
-                    max_tokens=8192  # O-series and GPT-5 Mini models require max_tokens
-                )
-            else:
-                logger.info(f"Creating OpenAI LLM for model: {model_name}")
-                llm = ChatOpenAI(
-                    api_key=settings.openai_api_key,
-                    model=model_name,
-                    temperature=0.7
-                )
-            logger.info(f"Successfully created OpenAI LLM for model: {model_name}")
+            llm_kwargs: Dict[str, Any] = {
+                "api_key": settings.openai_api_key,
+                "model": model_name,
+            }
+
+            # Reasoning and GPT-5 Mini benefit from explicit max_tokens
+            if is_reasoning_model or model_name_lower == "gpt-5-mini":
+                llm_kwargs["max_tokens"] = 8192
+
+            llm = ChatOpenAI(**llm_kwargs)
+            logger.info("Successfully created OpenAI LLM for model: %s", model_name)
             return RetryableLLM(llm)
         except Exception as e:
             logger.error(f"Failed to create OpenAI LLM: {type(e).__name__}: {str(e)}")
             raise
         
-    elif provider == Provider.GOOGLE:
-        if not settings.google_api_key:
-            raise ValueError("Google API key not configured")
-        llm = ChatGoogleGenerativeAI(
-            google_api_key=settings.google_api_key,
-            model=model or settings.google_chat_model,
-            temperature=0.7
+    elif provider in (Provider.GOOGLE, Provider.ANTHROPIC):
+        raise ValueError(
+            f"Provider '{provider}' is temporarily disabled to enforce deterministic retrieval."
         )
-        return RetryableLLM(llm)
-        
-    elif provider == Provider.ANTHROPIC:
-        if not settings.anthropic_api_key:
-            raise ValueError("Anthropic API key not configured")
-        
-        # Check if this is Claude Sonnet 4 and enable thinking mode
-        model_name = model or settings.anthropic_chat_model
-        extra_kwargs = {}
-        
-        if model_name == "claude-sonnet-4-20250514":
-            # Enable extended thinking for Claude Sonnet 4
-            # Note: thinking parameter is not directly supported by langchain-anthropic yet
-            # We'll need to use the beta API directly or wait for langchain support
-            logger.info(f"Claude Sonnet 4 detected - thinking mode requires direct API usage")
-            # For now, use standard settings
-            temperature = 1.0
-        else:
-            temperature = 0.7
-        
-        llm = ChatAnthropic(
-            api_key=settings.anthropic_api_key,
-            model=model_name,
-            temperature=temperature
-        )
-        return RetryableLLM(llm)
-        
+    
     else:
         raise ValueError(f"Unsupported provider: {provider}")
 
@@ -390,6 +361,8 @@ async def chat(request: Request, chat_request: ChatRequest) -> ChatResponse:
             context_parts = []
             sources = []
             
+            query_lower = query.lower()
+            glossary_source = None
             for i, (doc, score) in enumerate(results):
                 # Check if this is table content
                 metadata_dict = doc.metadata.model_dump() if hasattr(doc.metadata, 'model_dump') else doc.metadata
@@ -470,6 +443,35 @@ async def chat(request: Request, chat_request: ChatRequest) -> ChatResponse:
                 )
                 sources.append(source)
             
+            # Inject glossary context for abbreviations not present in corpus vocabulary
+            if "gmt" in query_lower:
+                glossary_note = (
+                    "Government Motor Transport (GMT) refers to the Crown or government vehicle that the employer "
+                    "provides for official duty travel. When policies compare PMV and GMT options, treat GMT as the "
+                    "employer-supplied Crown vehicle."
+                )
+                # Prepend glossary note so it is always available to the model
+                glossary_block = f"[Glossary - Government Motor Transport]\n{glossary_note}\n"
+                if glossary_block not in context_parts:
+                    context_parts.insert(0, glossary_block)
+                
+                glossary_source = Source(
+                    id="glossary_gmt",
+                    source_id="glossary_gmt",
+                    text=glossary_note,
+                    title="Government Motor Transport (GMT) definition",
+                    url=None,
+                    section="Glossary",
+                    page=None,
+                    score=1.0,
+                    metadata={
+                        "source": "cbthis glossary",
+                        "source_type": "glossary",
+                        "content_type": "definition",
+                        "tags": ["glossary", "gmt", "crown vehicle"],
+                    }
+                )
+            
             context = "\n".join(context_parts)
             if is_smart_gpt5:
                 char_limit = getattr(settings, "smart_mode_context_char_limit", 0)
@@ -480,6 +482,12 @@ async def chat(request: Request, chat_request: ChatRequest) -> ChatResponse:
             
             # Log context size for debugging
             logger.info(f"Retrieved {len(sources)} sources, total context length: {len(context)} characters")
+            
+            if glossary_source and chat_request.include_sources:
+                sources.insert(0, glossary_source)
+                logger.info("Injected GMT glossary source into retrieved sources")
+            elif glossary_source:
+                logger.info("Glossary context added without source citation (include_sources disabled)")
             
             # Log if we found table content
             has_tables = any("|" in part for part in context_parts)
@@ -508,6 +516,7 @@ IMPORTANT RULES:
    - For kilometric rates, include the cents-per-kilometre values.
    - For incidental allowances, include the daily rates.
    - Do not summarize when specific values are available.
+9. If the context contains a block labelled "[Glossary - ...]", treat that definition as authoritative and incorporate it directly into your answer.
 
 SPECIAL INSTRUCTION FOR CLASS A RESERVISTS:
 - After providing the general answer, ALWAYS add a section titled "**For Class A Reservists:**".
@@ -647,6 +656,17 @@ Please inform the user that no relevant information is available in the current 
         logger.info(f"[RESPONSE_DIAG] Response length: {len(response_text)}")
         logger.info(f"[RESPONSE_DIAG] Response contains pipe chars: {'|' in response_text}")
         logger.info(f"[RESPONSE_DIAG] Response contains markdown table indicators: {any(indicator in response_text for indicator in ['|', '---', '| ---'])}")
+        
+        # If glossary context was injected but the response still indicates missing GMT info, append clarification
+        if glossary_source:
+            clarification = (
+                "\n\n**Glossary Note:** Government Motor Transport (GMT) refers to the Crown or government vehicle "
+                "that the employer provides for official duty travel. Treat GMT as the employer-supplied Crown vehicle "
+                "when comparing it with a member's privately owned motor vehicle (PMV)."
+            )
+            if "government motor transport" not in response_text.lower() or "crown vehicle" not in response_text.lower():
+                response_text += clarification
+                logger.info("Appended glossary clarification to response for GMT query")
         
         # Calculate processing time
         processing_time = (datetime.utcnow() - start_time).total_seconds()

@@ -58,6 +58,8 @@ CRITICAL: When answering questions about rates, allowances, or tables:
 - If the documentation contains a complete table, reproduce it in your response
 - Do not summarize or generalize when specific values are available
 
+If the context contains a block labelled "[Glossary - ...]", treat that definition as authoritative and incorporate it directly into your answer.
+
 SPECIAL INSTRUCTION FOR CLASS A RESERVISTS:
 - After providing the general answer, ALWAYS add a section titled "**For Class A Reservists:**"
 - In this section, provide specific information that applies to Class A Primary Reserve members
@@ -436,6 +438,38 @@ async def _run_streaming_flow(
         if results:
             context_build_start = time.perf_counter()
             context, sources = await _process_retrieval_results(result_processor, results, optimized_query)
+            # Inject GMT glossary if query mentions GMT but corpus lacks the acronym wording
+            if "gmt" in (chat_request.message or "").lower():
+                glossary_note = (
+                    "Government Motor Transport (GMT) refers to the Crown or government vehicle that the employer "
+                    "provides for official duty travel. When policies compare PMV and GMT options, treat GMT as the "
+                    "employer-supplied Crown vehicle."
+                )
+                glossary_block = f"[Glossary - Government Motor Transport]\n{glossary_note}\n"
+                if "government motor transport" not in context.lower():
+                    context = f"{glossary_block}\n{context}" if context else glossary_block
+                # Ensure a visible source entry for clients that display citations
+                try:
+                    sources = [
+                        Source(
+                            id="glossary_gmt",
+                            source_id="glossary_gmt",
+                            text=glossary_note,
+                            title="Government Motor Transport (GMT) definition",
+                            url=None,
+                            section="Glossary",
+                            page=None,
+                            score=1.0,
+                            metadata={
+                                "source": "cbthis glossary",
+                                "source_type": "glossary",
+                                "content_type": "definition",
+                                "tags": ["glossary", "gmt", "crown vehicle"],
+                            },
+                        )
+                    ] + (sources or [])
+                except Exception:
+                    logger.debug("Failed to append GMT glossary source to streaming sources list")
             if is_smart_gpt5:
                 char_limit = getattr(settings, "smart_mode_context_char_limit", 0)
                 if char_limit and len(context) > char_limit:
