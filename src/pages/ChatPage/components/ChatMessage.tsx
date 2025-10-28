@@ -371,6 +371,7 @@ export const ChatMessage = React.memo(ChatMessageInner, (prev, next) => {
     prev.currentModel === next.currentModel &&
     prev.modelMode === next.modelMode &&
     prev.shortAnswerMode === next.shortAnswerMode &&
+    prev.onFollowUpClick === next.onFollowUpClick &&
     prev.onModePillClick === next.onModePillClick &&
     prev.onShortAnswerPillClick === next.onShortAnswerPillClick
   );
