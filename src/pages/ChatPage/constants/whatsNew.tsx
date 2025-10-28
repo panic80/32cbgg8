@@ -13,9 +13,32 @@ export interface WhatsNewDateGroup {
 }
 
 // Bump this when you add new release notes
-export const WHATS_NEW_VERSION = '2025-10-10';
+export const WHATS_NEW_VERSION = '2025-10-28';
 
 export const WHATS_NEW_BY_DATE: WhatsNewDateGroup[] = [
+  {
+    date: 'Tuesday, October 28, 2025',
+    updates: [
+      {
+        icon: <Zap className="w-4 h-4" />,
+        text: 'Stable, deterministic retrieval results',
+        description:
+          'Reworked the result merge to use stable IDs and explicit tie‑breakers across all strategies. Eliminates answer wobble between runs and keeps top sources consistent.',
+      },
+      {
+        icon: <Zap className="w-4 h-4" />,
+        text: 'Smart/Fast behavior aligned',
+        description:
+          'Streaming (Smart mode) now honors glossary definitions the same way as the sync path. Prompts were aligned to treat [Glossary] blocks as authoritative.',
+      },
+      {
+        icon: <FileText className="w-4 h-4" />,
+        text: 'More consistent model behavior',
+        description:
+          'Restricted LLM choices to deterministic OpenAI models for RAG prompts to reduce variance in query classification and multi‑query expansion.',
+      },
+    ],
+  },
   {
     date: 'Friday, October 10, 2025',
     updates: [
