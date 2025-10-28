@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import re
 import uuid
 from typing import Any, Dict, Optional
 
@@ -24,6 +25,47 @@ from app.utils.langchain_utils import RetryableLLM
 
 router = APIRouter()
 logger = get_logger(__name__)
+
+
+def normalize_followup_question(text: str, max_length: int = 80) -> str:
+    """Trim filler phrases, collapse whitespace, and enforce a short question."""
+    if not text:
+        return text
+
+    trimmed = re.sub(
+        r"^(?:please|kindly)\s+",
+        "",
+        text,
+        flags=re.IGNORECASE,
+    )
+    trimmed = re.sub(
+        r"^(?:can|could|would|will|do)\s+you\s+(?:please\s+)?",
+        "",
+        trimmed,
+        flags=re.IGNORECASE,
+    )
+    trimmed = re.sub(r"\s+", " ", trimmed).strip()
+    trimmed = trimmed.rstrip(".! ")
+
+    if len(trimmed) > max_length:
+        words = trimmed.split()
+        shortened_words = []
+        total_length = 0
+        for word in words:
+            proposed = total_length + len(word) + (1 if shortened_words else 0)
+            if proposed >= max_length:
+                break
+            shortened_words.append(word)
+            total_length = proposed
+        if shortened_words:
+            trimmed = " ".join(shortened_words)
+        else:
+            trimmed = trimmed[: max_length].rstrip()
+
+    if not trimmed.endswith("?"):
+        trimmed = trimmed.rstrip("?") + "?"
+
+    return trimmed
 
 
 def get_llm(provider: Provider, model: Optional[str] = None) -> RetryableLLM:
@@ -113,15 +155,16 @@ async def generate_followup(
 
         prompt = (
             f"Based on this conversation, generate {followup_request.max_questions} relevant "
-            "follow-up questions that would help the user learn more:\n\n"
+            "follow-up questions that help the user continue the discussion:\n\n"
             f"User Question: \"{followup_request.user_question}\"\n"
             f"AI Response: \"{followup_request.ai_response}\""
             f"{sources_text}\n\n"
-            "Generate follow-up questions that:\n"
-            "1. Explore related topics mentioned in the response\n"
-            "2. Clarify specific details\n"
-            "3. Ask about practical applications\n\n"
-            "Format each question on a new line, starting with \"Q:\"."
+            "Guidelines:\n"
+            "1. Keep each question sharply focused on the key details above.\n"
+            "2. Limit every question to 12 words and no more than 80 characters.\n"
+            "3. Avoid filler phrases such as \"Could you\" or \"Please\".\n"
+            "4. Balance clarification, related insights, and practical next steps.\n\n"
+            "Format each question on its own line beginning with \"Q:\"."
         )
 
         response = await llm.ainvoke([HumanMessage(content=prompt)])
@@ -138,6 +181,10 @@ async def generate_followup(
             else:
                 continue
 
+            if not question_text:
+                continue
+
+            question_text = normalize_followup_question(question_text)
             if not question_text:
                 continue
 
@@ -163,25 +210,31 @@ async def generate_followup(
                 break
 
         if not questions:
+            fallback_definitions = [
+                (
+                    "followup_default_1",
+                    "Need an example that fits this situation?",
+                    "clarification",
+                ),
+                (
+                    "followup_default_2",
+                    "Which requirements apply to this scenario?",
+                    "requirements",
+                ),
+                (
+                    "followup_default_3",
+                    "Where is the official reference for this?",
+                    "resources",
+                ),
+            ]
             questions = [
                 FollowUpQuestion(
-                    id="followup_default_1",
-                    question="Can you provide more specific examples?",
-                    category="clarification",
+                    id=fallback_id,
+                    question=normalize_followup_question(fallback_text),
+                    category=fallback_category,
                     confidence=0.5,
-                ),
-                FollowUpQuestion(
-                    id="followup_default_2",
-                    question="What are the key requirements I should know?",
-                    category="requirements",
-                    confidence=0.5,
-                ),
-                FollowUpQuestion(
-                    id="followup_default_3",
-                    question="Where can I find the official documentation?",
-                    category="resources",
-                    confidence=0.5,
-                ),
+                )
+                for fallback_id, fallback_text, fallback_category in fallback_definitions
             ]
 
         return FollowUpResponse(questions=questions[: followup_request.max_questions])
@@ -192,7 +245,7 @@ async def generate_followup(
             questions=[
                 FollowUpQuestion(
                     id="followup_error",
-                    question="Could you clarify your question?",
+                    question=normalize_followup_question("Need more detail on that?"),
                     category="clarification",
                     confidence=0.3,
                 )
