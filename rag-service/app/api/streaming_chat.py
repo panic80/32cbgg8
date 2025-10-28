@@ -3,70 +3,47 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import logging
 import time
 import uuid
 from datetime import datetime
-from typing import AsyncGenerator, Iterable, List, Optional, Tuple, Dict, Any
+from typing import AsyncGenerator, Dict, List, Optional, Tuple, Any
 
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 
 from app.api.chat import get_llm
-from app.api.prompt_constants import SHORT_ANSWER_PROMPT
+from app.api.chat import generate_followup
+from app.api.prompt_constants import (
+    CHAT_SYSTEM_PROMPT,
+    GMT_GLOSSARY_NOTE,
+    NO_CONTEXT_PROMPT_TEMPLATE,
+    SHORT_ANSWER_PROMPT,
+    TRIP_PLAN_INSTRUCTION,
+)
+from app.components.result_processor import ResultProcessor
 from app.core.config import settings
 from app.core.logging import get_logger
-from app.models.query import ChatRequest, Provider, Source, FollowUpRequest
+from app.models.query import ChatRequest, ChatResponse, Provider, Source, FollowUpRequest
+from app.models.query_history import QueryStatus
 from app.pipelines.parallel_retrieval import create_parallel_pipeline
 from app.pipelines.query_optimizer import QueryOptimizer
-from app.components.result_processor import ResultProcessor
-from app.services.performance_monitor import get_performance_monitor
+from app.services.advanced_cache import AdvancedCacheService, create_context_hash
 from app.services.llm_pool import llm_pool
+from app.services.performance_monitor import get_performance_monitor
 from app.services.query_logger import get_query_logger
-from app.models.query_history import QueryStatus
+from app.utils.message_utils import build_history_messages
 from app.utils.metrics import compute_quality_metrics
-from app.api.chat import generate_followup
+from app.utils.streaming_utils import (
+    extract_chunk_text,
+    extract_token_usage_from_chunk,
+)
 
 logger = get_logger(__name__)
 router = APIRouter()
-
-# Reuse the same system prompt as the synchronous chat endpoint to keep behaviour aligned.
-SYSTEM_PROMPT = """You are a helpful assistant for Canadian Forces members seeking information about travel instructions and policies.
-Always provide accurate, specific information based on the official documentation provided.
-If you're not certain about something, clearly state that.
-
-IMPORTANT RULES:
-1. When multiple sources are present, prioritize the source that provides the most specific and complete information (e.g., actual dollar amounts over references to appendices)
-2. NEVER mention source numbers, citations, or reference which source you used
-3. Do NOT say things like "according to Source X" or "as stated in the documentation"
-4. Give direct, clear answers without referencing the documentation structure
-5. If specific values are found, state them directly without qualification
-6. Always use proper markdown formatting in your responses:
-   - Tables for structured data
-   - **Bold** for important values or headers
-   - Bullet points or numbered lists for multiple items
-   - Clear section headers when appropriate
-
-CRITICAL: When answering questions about rates, allowances, or tables:
-- ALWAYS include the actual dollar amounts or specific values found in the documentation
-- If you find a table structure (with | characters), preserve and present it as a markdown table
-- For meal allowances, include breakfast, lunch, and dinner rates with specific dollar amounts
-- For kilometric rates, include the cents per kilometer values
-- For incidental allowances, include the daily rates
-- If the documentation contains a complete table, reproduce it in your response
-- Do not summarize or generalize when specific values are available
-
-If the context contains a block labelled "[Glossary - ...]", treat that definition as authoritative and incorporate it directly into your answer.
-
-SPECIAL INSTRUCTION FOR CLASS A RESERVISTS:
-- After providing the general answer, ALWAYS add a section titled "**For Class A Reservists:**"
-- In this section, provide specific information that applies to Class A Primary Reserve members
-- Include any special conditions, restrictions, or entitlements that specifically apply to Class A service
-- If there are differences in rates, allowances, or procedures for Class A members, highlight them
-- Common Class A specific considerations include travel time limits, meal allowance eligibility during training, accommodation entitlements, kilometric rate applications, and TD limitations
-"""
 
 
 def _ensure_provider(provider: Provider | str) -> Provider:
@@ -91,99 +68,6 @@ def _resolve_model(provider: Provider, requested_model: Optional[str]) -> str:
     return "default"
 
 
-def _coerce_to_text(payload: Any) -> str:
-    """Safely coerce OpenAI streaming payload structures into plain text."""
-    if payload is None:
-        return ""
-
-    if isinstance(payload, str):
-        return payload
-
-    if isinstance(payload, (int, float)):
-        return str(payload)
-
-    # Handle mapping-like payloads
-    if isinstance(payload, dict):
-        # Prefer common text-bearing keys
-        for key in ("text", "output_text", "content", "delta", "message"):
-            if key in payload:
-                text_value = _coerce_to_text(payload[key])
-                if text_value:
-                    return text_value
-        # Fallback: iterate values
-        fragments = [_coerce_to_text(value) for value in payload.values()]
-        return "".join(fragment for fragment in fragments if fragment)
-
-    # Handle objects with helpful attributes (LangChain/OpenAI delta classes)
-    for attr in ("content", "text", "output_text", "delta", "message"):
-        if hasattr(payload, attr):
-            text_value = _coerce_to_text(getattr(payload, attr))
-            if text_value:
-                return text_value
-
-    if hasattr(payload, "additional_kwargs"):
-        # Message-like payload with no textual delta yet
-        return ""
-
-    # Handle iterable collections (lists/tuples of blocks)
-    if isinstance(payload, Iterable):
-        fragments = [_coerce_to_text(item) for item in payload]
-        return "".join(fragment for fragment in fragments if fragment)
-
-    return ""
-
-
-def _extract_chunk_text(chunk) -> str:
-    """Extract textual content from a LangChain chunk object."""
-    if chunk is None:
-        return ""
-
-    if isinstance(chunk, str):
-        return chunk
-
-    return _coerce_to_text(chunk)
-
-
-def _extract_token_usage_from_chunk(chunk) -> Optional[int]:
-    """Best-effort extraction of token usage from a streaming chunk."""
-    if chunk is None:
-        return None
-
-    candidate_maps = []
-    for attr in ("generation_info", "response_metadata", "metadata", "info"):
-        value = getattr(chunk, attr, None)
-        if isinstance(value, dict):
-            candidate_maps.append(value)
-    if isinstance(chunk, dict):
-        candidate_maps.append(chunk)
-
-    for mapping in candidate_maps:
-        for key in ("token_usage", "usage", "usage_metadata"):
-            usage = mapping.get(key)
-            if isinstance(usage, dict):
-                for token_key in ("total_tokens", "total", "totalTokens", "completion_tokens"):
-                    token_value = usage.get(token_key)
-                    if isinstance(token_value, (int, float)):
-                        return int(token_value)
-    return None
-
-
-def _build_history_messages(chat_request: ChatRequest) -> List[SystemMessage | HumanMessage | AIMessage]:
-    history_messages: List[SystemMessage | HumanMessage | AIMessage] = []
-    if not chat_request.chat_history:
-        return history_messages
-
-    for item in chat_request.chat_history:
-        if item.role == "user":
-            history_messages.append(HumanMessage(content=item.content))
-        elif item.role == "assistant":
-            history_messages.append(AIMessage(content=item.content))
-        else:
-            # Skip system messages from history to avoid stacking prompts
-            logger.debug("Skipping non user/assistant history role: %s", item.role)
-    return history_messages
-
-
 def _should_use_hybrid(chat_request: ChatRequest) -> bool:
     return getattr(chat_request, "use_hybrid_search", False)
 
@@ -194,6 +78,10 @@ async def _create_retrieval_pipeline(vector_store_manager, app_state, llm_wrappe
 
     requested_model = (chat_request.model or "").strip().lower()
     is_smart_gpt5 = requested_model == "gpt-5-mini"
+
+    cache_service = getattr(app_state, "cache_service", None)
+    redis_client = getattr(cache_service, "redis_client", None) if cache_service and hasattr(cache_service, "redis_client") else None
+    enable_stateful = getattr(settings, "enable_stateful_retrieval", False)
 
     if _should_use_hybrid(chat_request):
         logger.info("Hybrid search enabled - configuring BM25 + Vector retrievers")
@@ -243,6 +131,8 @@ async def _create_retrieval_pipeline(vector_store_manager, app_state, llm_wrappe
             enable_unified=enable_unified,
             retriever_configs=retriever_configs,
             enable_reranker=not is_smart_gpt5,
+            enable_stateful=enable_stateful,
+            redis_client=redis_client,
         )
         if pipeline_cache_store is not None:
             pipeline_cache_store[cache_key] = pipeline
@@ -295,6 +185,151 @@ async def _process_retrieval_results(
     return "\n".join(context_parts), sources
 
 
+def _coerce_chat_response(payload: Any) -> Optional[ChatResponse]:
+    """Coerce cached payloads into a ChatResponse model."""
+
+    if isinstance(payload, ChatResponse):
+        return payload
+
+    if payload is None:
+        return None
+
+    if isinstance(payload, dict):
+        return ChatResponse(**payload)
+
+    dump_method = getattr(payload, "model_dump", None)
+    if callable(dump_method):
+        return ChatResponse(**dump_method())
+
+    dict_method = getattr(payload, "dict", None)
+    if callable(dict_method):
+        return ChatResponse(**dict_method())
+
+    logger.debug("Unable to coerce cached payload into ChatResponse: %s", type(payload))
+    return None
+
+
+def _coerce_source(payload: Any) -> Optional[Source]:
+    """Coerce cached source payloads into Source models."""
+
+    if isinstance(payload, Source):
+        return payload
+
+    if payload is None:
+        return None
+
+    if isinstance(payload, dict):
+        return Source(**payload)
+
+    dump_method = getattr(payload, "model_dump", None)
+    if callable(dump_method):
+        return Source(**dump_method())
+
+    dict_method = getattr(payload, "dict", None)
+    if callable(dict_method):
+        return Source(**dict_method())
+
+    logger.debug("Unable to coerce cached source payload: %s", type(payload))
+    return None
+
+
+async def _stream_cached_response(
+    chat_request: ChatRequest,
+    conversation_id: str,
+    cached_response: ChatResponse,
+    perf_monitor,
+    start_time: datetime,
+    request_timer: float,
+    query_logger,
+    source_repository: Any,
+) -> AsyncGenerator[str, None]:
+    """Emit SSE events for a cached chat response."""
+
+    cache_latency_ms = (time.perf_counter() - request_timer) * 1000
+    response_seconds = cache_latency_ms / 1000 if cache_latency_ms else 0.0
+
+    perf_monitor.record_latency("search_latency_ms", 0)
+    perf_monitor.record_latency("context_build_latency_ms", 0)
+    perf_monitor.record_latency("answer_generation_latency_ms", cache_latency_ms)
+    perf_monitor.record_latency("llm_latency_ms", cache_latency_ms)
+    perf_monitor.record_latency("total_request_latency_ms", cache_latency_ms)
+    perf_monitor.record_latency("first_token_latency_ms", cache_latency_ms)
+
+    tokens_used = cached_response.tokens_used
+    if tokens_used is not None:
+        try:
+            perf_monitor.record_token_usage(str(chat_request.provider), int(tokens_used))
+        except (TypeError, ValueError):
+            logger.debug("Cached tokens_used not numeric: %s", tokens_used)
+
+    raw_sources = cached_response.sources or []
+    sources: List[Source] = []
+    for item in raw_sources:
+        coerced = _coerce_source(item)
+        if coerced:
+            sources.append(coerced)
+
+    yield f"data: {json.dumps({'type': 'retrieval_start'})}\n\n"
+    yield f"data: {json.dumps({'type': 'retrieval_complete', 'duration': 0, 'count': len(sources)})}\n\n"
+
+    if chat_request.include_sources and sources:
+        yield f"data: {json.dumps({'type': 'sources', 'sources': [src.model_dump() for src in sources]})}\n\n"
+
+    perf_monitor.increment_counter("successful_requests")
+
+    quality_metrics = compute_quality_metrics(cached_response.response, sources, None)
+    for key, value in quality_metrics.items():
+        perf_monitor.record_value(key, value)
+
+    yield f"data: {json.dumps({'type': 'first_token', 'latency': cache_latency_ms})}\n\n"
+    yield f"data: {json.dumps({'type': 'token', 'content': cached_response.response})}\n\n"
+    yield f"data: {json.dumps({'type': 'complete', 'duration': response_seconds})}\n\n"
+
+    processing_time = (datetime.utcnow() - start_time).total_seconds()
+
+    metadata = {
+        "temperature": chat_request.temperature,
+        "max_tokens": chat_request.max_tokens,
+        "include_sources": chat_request.include_sources,
+        "retrieval_count": len(sources),
+        "retrieval_ms": 0,
+        "context_build_ms": 0,
+        "follow_up_count": 0,
+        "cache_hit": True,
+    }
+
+    query_id = str(uuid.uuid4())
+    model_name = cached_response.model or chat_request.model or "unknown"
+
+    try:
+        await query_logger.log_query(
+            query_id=query_id,
+            user_query=chat_request.message,
+            provider=str(chat_request.provider),
+            model=model_name,
+            use_rag=chat_request.use_rag,
+            response=cached_response.response,
+            sources_count=len(sources),
+            processing_time=processing_time,
+            tokens_used=tokens_used,
+            conversation_id=conversation_id,
+            status=QueryStatus.SUCCESS,
+            metadata=metadata,
+        )
+    except Exception as exc:  # pragma: no cover - defensive logging
+        logger.warning("Failed to log cached streaming query: %s", exc)
+
+    if source_repository and chat_request.include_sources and sources:
+        try:
+            await source_repository.record_query_sources(
+                query_id,
+                [source.model_dump() for source in sources],
+            )
+        except Exception as repo_error:  # pragma: no cover - defensive logging
+            logger.warning("Failed to record cached query sources: %s", repo_error)
+
+
+
 async def _stream_events(
     request: Request,
     chat_request: ChatRequest,
@@ -321,6 +356,10 @@ async def _stream_events(
     if vector_store is None:
         raise RuntimeError("Vector store manager is not configured")
 
+    cache_service = getattr(request.app.state, "cache_service", None)
+    advanced_cache = AdvancedCacheService(cache_service) if cache_service else None
+    source_repository = getattr(request.app.state, "source_repository", None)
+
     llm_wrapper = None
     from_pool = False
 
@@ -339,6 +378,9 @@ async def _stream_events(
                     perf_monitor=perf_monitor,
                     start_time=start_time,
                     request_timer=request_timer,
+                    advanced_cache=advanced_cache,
+                    source_repository=source_repository,
+                    query_logger=query_logger,
                 ):
                     yield event
             return
@@ -355,6 +397,9 @@ async def _stream_events(
                 perf_monitor=perf_monitor,
                 start_time=start_time,
                 request_timer=request_timer,
+                advanced_cache=advanced_cache,
+                source_repository=source_repository,
+                query_logger=query_logger,
             ):
                 yield event
     except asyncio.CancelledError:
@@ -381,6 +426,9 @@ async def _run_streaming_flow(
     perf_monitor,
     start_time: datetime,
     request_timer: float,
+    advanced_cache: Optional[AdvancedCacheService],
+    source_repository: Any,
+    query_logger: Any,
 ) -> AsyncGenerator[str, None]:
     if await request.is_disconnected():
         return
@@ -396,6 +444,50 @@ async def _run_streaming_flow(
 
     retrieval_results: List[Tuple] = []
     follow_up_questions_payload: List[Dict[str, Any]] = []
+    context = ""
+    sources: List[Source] = []
+    retrieval_count = 0
+    retrieval_time_ms = 0.0
+    context_time_ms = 0.0
+    glossary_source: Optional[Source] = None
+    glossary_injected = False
+
+    cached_response: Optional[ChatResponse] = None
+    cache_model = chat_request.model or "default"
+    cache_lookup_hash = None
+
+    if advanced_cache:
+        cache_lookup_hash = hashlib.md5(f"{chat_request.message}:{chat_request.provider}".encode()).hexdigest()
+        try:
+            cached_payload = await advanced_cache.get_response(
+                query=chat_request.message,
+                context_hash=cache_lookup_hash,
+                model=cache_model,
+            )
+        except Exception as cache_error:  # pragma: no cover - defensive logging
+            logger.warning("Advanced cache lookup failed: %s", cache_error)
+            cached_payload = None
+
+        if cached_payload:
+            cached_response = _coerce_chat_response(cached_payload)
+            if cached_response:
+                perf_monitor.record_cache_hit("l3", True)
+                async for event in _stream_cached_response(
+                    chat_request=chat_request,
+                    conversation_id=conversation_id,
+                    cached_response=cached_response,
+                    perf_monitor=perf_monitor,
+                    start_time=start_time,
+                    request_timer=request_timer,
+                    query_logger=query_logger,
+                    source_repository=source_repository,
+                ):
+                    yield event
+                return
+            logger.debug("Cached payload not coercible to ChatResponse; treating as miss")
+            perf_monitor.record_cache_hit("l3", False)
+        else:
+            perf_monitor.record_cache_hit("l3", False)
 
     optimized_query = chat_request.message
     try:
@@ -409,13 +501,6 @@ async def _run_streaming_flow(
             optimized_query = f"{optimized_query} {settings.default_location}"
     except Exception as exc:
         logger.warning("Query optimisation skipped due to error: %s", exc)
-
-    context = ""
-    sources: List[Source] = []
-    retrieval_count = 0
-    retrieval_time_ms = 0.0
-    context_time_ms = 0.0
-
     if chat_request.use_rag:
         yield f"data: {json.dumps({'type': 'retrieval_start'})}\n\n"
         retrieval_pipeline = await _create_retrieval_pipeline(vector_store, app_state, llm_wrapper, chat_request)
@@ -438,69 +523,68 @@ async def _run_streaming_flow(
         if results:
             context_build_start = time.perf_counter()
             context, sources = await _process_retrieval_results(result_processor, results, optimized_query)
-            # Inject GMT glossary if query mentions GMT but corpus lacks the acronym wording
+
             if "gmt" in (chat_request.message or "").lower():
-                glossary_note = (
-                    "Government Motor Transport (GMT) refers to the Crown or government vehicle that the employer "
-                    "provides for official duty travel. When policies compare PMV and GMT options, treat GMT as the "
-                    "employer-supplied Crown vehicle."
-                )
-                glossary_block = f"[Glossary - Government Motor Transport]\n{glossary_note}\n"
+                glossary_block = f"[Glossary - Government Motor Transport]\n{GMT_GLOSSARY_NOTE}\n"
                 if "government motor transport" not in context.lower():
                     context = f"{glossary_block}\n{context}" if context else glossary_block
-                # Ensure a visible source entry for clients that display citations
-                try:
-                    sources = [
-                        Source(
-                            id="glossary_gmt",
-                            source_id="glossary_gmt",
-                            text=glossary_note,
-                            title="Government Motor Transport (GMT) definition",
-                            url=None,
-                            section="Glossary",
-                            page=None,
-                            score=1.0,
-                            metadata={
-                                "source": "cbthis glossary",
-                                "source_type": "glossary",
-                                "content_type": "definition",
-                                "tags": ["glossary", "gmt", "crown vehicle"],
-                            },
-                        )
-                    ] + (sources or [])
-                except Exception:
-                    logger.debug("Failed to append GMT glossary source to streaming sources list")
+                    glossary_source = Source(
+                        id="glossary_gmt",
+                        source_id="glossary_gmt",
+                        text=GMT_GLOSSARY_NOTE,
+                        title="Government Motor Transport (GMT) definition",
+                        url=None,
+                        section="Glossary",
+                        page=None,
+                        score=1.0,
+                        metadata={
+                            "source": "cbthis glossary",
+                            "source_type": "glossary",
+                            "content_type": "definition",
+                            "tags": ["glossary", "gmt", "crown vehicle"],
+                        },
+                    )
+                    sources = [glossary_source] + (sources or [])
+                    glossary_injected = True
+
             if is_smart_gpt5:
                 char_limit = getattr(settings, "smart_mode_context_char_limit", 0)
                 if char_limit and len(context) > char_limit:
                     context = context[:char_limit]
+
             context_time_ms = (time.perf_counter() - context_build_start) * 1000
             perf_monitor.record_latency("context_build_latency_ms", context_time_ms)
 
-            if sources:
+            if chat_request.include_sources and sources:
                 yield f"data: {json.dumps({'type': 'sources', 'sources': [s.model_dump() for s in sources]})}\n\n"
+        else:
+            perf_monitor.record_latency("context_build_latency_ms", 0)
     else:
         perf_monitor.record_latency("search_latency_ms", 0)
         perf_monitor.record_latency("context_build_latency_ms", 0)
 
-    # Build system prompt with additional instructions if provided
-    system_prompt = SYSTEM_PROMPT
+    system_prompt = CHAT_SYSTEM_PROMPT
     if chat_request.additional_instructions:
-        system_prompt = f"{SYSTEM_PROMPT}\n\nADDITIONAL DIRECTIVES:\n{chat_request.additional_instructions.strip()}"
+        system_prompt = f"{CHAT_SYSTEM_PROMPT}\n\nADDITIONAL DIRECTIVES:\n{chat_request.additional_instructions.strip()}"
 
-    messages: List[SystemMessage | HumanMessage | AIMessage] = [SystemMessage(content=system_prompt)]
+    messages: List[Any] = [SystemMessage(content=system_prompt)]
     if chat_request.short_answer_mode:
         messages.append(SystemMessage(content=SHORT_ANSWER_PROMPT))
-    messages.extend(_build_history_messages(chat_request))
+    messages.extend(build_history_messages(chat_request))
 
     if context:
         context_prompt = (
             "Based on the following official documentation, answer the user's question:\n\n"
-            f"{context}\n\nUser Question: {chat_request.message}"
+            f"{context}{TRIP_PLAN_INSTRUCTION}\n"
+            f"User Question: {chat_request.message}"
         )
         messages.append(HumanMessage(content=context_prompt))
     else:
-        messages.append(HumanMessage(content=chat_request.message))
+        if chat_request.use_rag:
+            no_context_prompt = NO_CONTEXT_PROMPT_TEMPLATE.format(question=chat_request.message)
+            messages.append(HumanMessage(content=no_context_prompt))
+        else:
+            messages.append(HumanMessage(content=chat_request.message))
 
     llm = getattr(llm_wrapper, "llm", llm_wrapper)
 
@@ -511,20 +595,17 @@ async def _run_streaming_flow(
 
     stream_kwargs: Dict[str, Any] = {}
     underlying_llm = getattr(llm, "llm", llm)
-    model_name = getattr(underlying_llm, "model_name", requested_model)
+    model_name = getattr(underlying_llm, "model_name", resolved_model_name)
     model_name_lower = (model_name or "").strip().lower()
 
     if provider_enum == Provider.OPENAI:
         if model_name_lower.startswith("o") and chat_request.reasoning_effort:
             stream_kwargs["reasoning"] = {"effort": chat_request.reasoning_effort}
-        verbosity_value = None
         if chat_request.response_verbosity:
             if model_name_lower.startswith("o"):
                 stream_kwargs.setdefault("reasoning", {})["verbosity"] = chat_request.response_verbosity
             else:
                 logger.debug("Skipping response_verbosity for non-reasoning model %s", model_name)
-            if isinstance(chat_request.response_verbosity, str):
-                verbosity_value = chat_request.response_verbosity.lower()
         if chat_request.max_tokens:
             stream_kwargs["max_tokens"] = int(chat_request.max_tokens)
 
@@ -543,13 +624,13 @@ async def _run_streaming_flow(
             logger.debug("[STREAM_CHUNK_DEBUG] %s", repr(chunk))
             chunk_debug_counter += 1
 
-        token_text = _extract_chunk_text(chunk)
+        token_text = extract_chunk_text(chunk)
         if not token_text:
             continue
 
         full_response_parts.append(token_text)
 
-        usage_from_chunk = _extract_token_usage_from_chunk(chunk)
+        usage_from_chunk = extract_token_usage_from_chunk(chunk)
         if usage_from_chunk is not None:
             token_usage_total = usage_from_chunk
 
@@ -562,6 +643,13 @@ async def _run_streaming_flow(
         yield f"data: {json.dumps({'type': 'token', 'content': token_text})}\n\n"
 
     full_response = "".join(full_response_parts).strip()
+
+    if glossary_injected:
+        normalized_response = full_response.lower()
+        if "government motor transport" not in normalized_response or "crown vehicle" not in normalized_response:
+            glossary_note_text = f"\n\n**Glossary Note:** {GMT_GLOSSARY_NOTE}"
+            full_response += glossary_note_text
+            yield f"data: {json.dumps({'type': 'token', 'content': glossary_note_text})}\n\n"
 
     if token_usage_total is not None:
         try:
@@ -615,9 +703,24 @@ async def _run_streaming_flow(
         if follow_up_questions_payload:
             yield f"data: {json.dumps({'type': 'metadata', 'follow_up_questions': follow_up_questions_payload})}\n\n"
 
+    source_ids = [source.source_id or source.id for source in sources] if sources else []
+    metadata = {
+        "temperature": chat_request.temperature,
+        "max_tokens": chat_request.max_tokens,
+        "include_sources": chat_request.include_sources,
+        "retrieval_count": retrieval_count,
+        "retrieval_ms": retrieval_time_ms,
+        "context_build_ms": context_time_ms,
+        "follow_up_count": len(follow_up_questions_payload),
+        "source_ids": source_ids,
+        "cache_hit": False,
+    }
+
+    query_id = str(uuid.uuid4())
+
     try:
         await query_logger.log_query(
-            query_id=str(uuid.uuid4()),
+            query_id=query_id,
             user_query=chat_request.message,
             provider=str(chat_request.provider),
             model=chat_request.model or getattr(llm, "model_name", "unknown"),
@@ -628,18 +731,19 @@ async def _run_streaming_flow(
             tokens_used=token_usage_total,
             conversation_id=conversation_id,
             status=QueryStatus.SUCCESS,
-            metadata={
-                "temperature": chat_request.temperature,
-                "max_tokens": chat_request.max_tokens,
-                "include_sources": chat_request.include_sources,
-                "retrieval_count": retrieval_count,
-                "retrieval_ms": retrieval_time_ms,
-                "context_build_ms": context_time_ms,
-                "follow_up_count": len(follow_up_questions_payload),
-            },
+            metadata=metadata,
         )
     except Exception as log_exc:  # pragma: no cover - avoid breaking stream on logging
         logger.warning("Failed to log streaming query: %s", log_exc)
+
+    if source_repository and sources:
+        try:
+            await source_repository.record_query_sources(
+                query_id,
+                [source.model_dump() for source in sources],
+            )
+        except Exception as repo_error:  # pragma: no cover - defensive logging
+            logger.warning("Failed to record query sources: %s", repo_error)
 
 
 @router.post("/chat/stream")
