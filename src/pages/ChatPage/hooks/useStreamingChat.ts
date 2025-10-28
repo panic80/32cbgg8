@@ -187,6 +187,7 @@ export const useStreamingChat = ({
       let sources: Source[] = [];
       let followUpQuestions: FollowUpQuestion[] = [];
       let streamHasMarkdownSyntax = false;
+      let deltaPayload: import('@/types/policy').DeltaResponse | undefined;
 
       try {
         const isTripPlannerMessage = messageText.startsWith('📋 **Trip Plan Request**');
@@ -337,6 +338,29 @@ export const useStreamingChat = ({
                         },
                       });
                     }
+                  if (event.delta) {
+                    deltaPayload = event.delta as import('@/types/policy').DeltaResponse;
+                    if (pendingMessageRef.current) {
+                      (pendingMessageRef.current as any).delta = deltaPayload;
+                      flushPendingMessage();
+                    } else {
+                      // Attach to the most recent assistant message
+                      dispatch({
+                        type: 'SET_MESSAGES',
+                        updater: (prev) => {
+                          if (prev.length === 0) return prev;
+                          const updated = [...prev];
+                          for (let i = updated.length - 1; i >= 0; i--) {
+                            if (updated[i].sender === 'assistant') {
+                              (updated[i] as any).delta = deltaPayload;
+                              break;
+                            }
+                          }
+                          return updated;
+                        },
+                      });
+                    }
+                  }
                   }
                   break;
                 case 'complete': {
@@ -358,6 +382,7 @@ export const useStreamingChat = ({
                     followUpQuestions: followUpQuestions.length > 0 ? followUpQuestions : undefined,
                     modelMode,
                     shortAnswerMode,
+                    ...(deltaPayload ? { delta: deltaPayload } : {}),
                   };
                   dispatch({ type: 'FINALIZE_MESSAGE', message: finalMessage });
                   pendingMessageRef.current = null;

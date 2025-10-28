@@ -8,6 +8,7 @@ import { MarkdownRenderer } from '@/components/ui/markdown-renderer';
 import { MessageActions } from './MessageActions';
 import SuggestionController from '@/components/SuggestionController';
 import { SourcesDisplay } from '@/components/SourcesDisplay';
+import { DiffPanel } from '@/components/DiffPanel';
 import type { Message as ChatMessageType, FollowUpQuestion } from '@/types/chat';
 
 const ENABLE_MESSAGE_ACTIONS = false;
@@ -124,6 +125,9 @@ const ChatMessageInner: React.FC<ChatMessageProps> = ({
                     <div className="whitespace-pre-wrap break-words overflow-hidden">
                       {displayContent}
                     </div>
+                  )}
+                  {isAssistant && message.delta && (
+                    <DiffPanel delta={message.delta} />
                   )}
 
                   {shouldTruncate && (

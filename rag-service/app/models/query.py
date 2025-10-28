@@ -65,6 +65,10 @@ class ChatRequest(BaseModel):
         description="Hint for OpenAI response verbosity",
         alias="responseVerbosity",
     )
+    audience: Optional[str] = Field(
+        default=None,
+        description="Target audience for differences (e.g., 'classA')",
+    )
 
     model_config = ConfigDict(use_enum_values=True, populate_by_name=True)
 

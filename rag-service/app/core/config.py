@@ -168,13 +168,13 @@ class Settings(BaseSettings):
     delayed_streaming_uncertainty_threshold: float = 0.8  # Threshold for delayed start
     
     # Streaming Retrieval Configuration
-    enable_streaming_retrieval: bool = False  # Enable streaming retrieval for faster TTFT
+    enable_streaming_retrieval: bool = True  # Enable streaming retrieval for faster TTFT
     streaming_initial_k: int = 5  # Number of docs for initial quick retrieval
     streaming_retrieval_timeout: float = 0.5  # Max time for initial retrieval (seconds)
     
     # LLM Pool Configuration
     enable_llm_pool: bool = True  # Master switch for LLM connection pool
-    llm_pool_health_checks: bool = False  # Enable periodic health check pings
+    llm_pool_health_checks: bool = True  # Enable periodic health check pings
     llm_pool_warmup: bool = True  # Enable connection warming on creation
     llm_pool_min_connections: int = 2  # Minimum connections per provider (0 = disabled)
     llm_pool_max_connections: int = 10  # Maximum total connections

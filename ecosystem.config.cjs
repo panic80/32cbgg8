@@ -3,13 +3,15 @@ module.exports = {
     name: 'cf-travel-bot',
     script: './server/main.js',
     cwd: '/var/www/cbthis',
-    instances: 'max',
-    exec_mode: 'cluster',
+    instances: 1,
+    exec_mode: 'fork',
     env: {
       NODE_ENV: 'production',
       PORT: 3000,
       RAG_SERVICE_URL: 'http://127.0.0.1:8000',
       ENABLE_LOGGING: 'true',
+      LOG_LEVEL: process.env.LOG_LEVEL || 'info',
+      LOG_DIR: process.env.LOG_DIR || '/var/log/cbthis',
       CONFIG_PANEL_USER: process.env.CONFIG_PANEL_USER || 'admin',
       CONFIG_PANEL_PASSWORD: process.env.CONFIG_PANEL_PASSWORD || ''
     },

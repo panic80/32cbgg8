@@ -13,7 +13,7 @@ export interface WhatsNewDateGroup {
 }
 
 // Bump this when you add new release notes
-export const WHATS_NEW_VERSION = '2025-10-28';
+export const WHATS_NEW_VERSION = '2025-10-28-ops';
 
 export const WHATS_NEW_BY_DATE: WhatsNewDateGroup[] = [
   {
@@ -48,6 +48,30 @@ export const WHATS_NEW_BY_DATE: WhatsNewDateGroup[] = [
         text: 'More consistent model behavior',
         description:
           'Restricted LLM choices to deterministic OpenAI models for RAG prompts to reduce variance in query classification and multi‑query expansion.',
+      },
+      {
+        icon: <Zap className="w-4 h-4" />,
+        text: 'Admin Performance Dashboard',
+        description:
+          'Gateway now proxies RAG metrics with caching and optional token.',
+      },
+      {
+        icon: <Zap className="w-4 h-4" />,
+        text: 'Faster first token (TTFT)',
+        description:
+          'Streaming retrieval enabled by default; delayed head streaming tuned; LLM pool warmup and health checks reduce cold starts.',
+      },
+      {
+        icon: <Zap className="w-4 h-4" />,
+        text: 'Aligned rate limiting',
+        description:
+          'Nginx and Express limits aligned with burst support. Added standard X‑RateLimit headers and a Redis-backed shared limiter across processes.',
+      },
+      {
+        icon: <FileText className="w-4 h-4" />,
+        text: 'Ops hardening',
+        description:
+          'Production rebuild + reload completed. OS logrotate active for PM2 and RAG logs. pm2‑logrotate migration planned.',
       },
     ],
   },

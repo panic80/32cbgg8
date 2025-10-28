@@ -70,7 +70,7 @@ const createChatRoutes = ({
   router.post('/api/gemini/generateContent', rateLimiter, handleGeminiGenerateContent);
 
   router.post('/api/v2/chat/rag', rateLimiter, async (req, res) => {
-    const { message, model, provider, chatHistory, conversationId, useRAG = true } = req.body;
+    const { message, model, provider, chatHistory, conversationId, useRAG = true, audience } = req.body;
 
     if (!message || typeof message !== 'string' || message.trim().length === 0) {
       return res.status(400).json({
@@ -104,6 +104,7 @@ const createChatRoutes = ({
           model: effectiveModel,
           use_rag: useRAG,
           include_sources: true,
+          ...(audience ? { audience } : {}),
         },
         {
           timeout: 30000,
@@ -289,6 +290,7 @@ const createChatRoutes = ({
       useHybridSearch = false,
       reasoningEffort,
       responseVerbosity,
+      audience,
     } = req.body;
 
     if (!message || typeof message !== 'string' || message.trim().length === 0) {
@@ -340,6 +342,7 @@ const createChatRoutes = ({
           ...(reasoningEffort ? { reasoning_effort: reasoningEffort } : {}),
           ...(responseVerbosity ? { response_verbosity: responseVerbosity } : {}),
           ...(jurisdiction ? { jurisdiction } : {}),
+          ...(audience ? { audience } : {}),
         },
         {
           responseType: 'stream',

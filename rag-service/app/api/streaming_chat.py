@@ -41,6 +41,9 @@ from app.utils.streaming_utils import (
     extract_chunk_text,
     extract_token_usage_from_chunk,
 )
+from app.services.policy_units import extract_policy_units_from_chunks
+from app.services.policy_diff import match_units, build_delta
+from app.services.policy_delta_summarizer import summarize_delta_with_llm
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -588,6 +591,70 @@ async def _run_streaming_flow(
 
     llm = getattr(llm_wrapper, "llm", llm_wrapper)
 
+    # Compute Class A delta after retrieval and before/around generation.
+    # If audience parameter is not provided, we still compute deltas opportunistically
+    # when Class A sources are present in retrieval results.
+    delta_payload: Optional[dict] = None
+    if chat_request.use_rag and retrieval_results:
+        try:
+            # Split results into baseline vs Class A using metadata heuristics
+            def _is_class_a(meta: Dict[str, Any]) -> bool:
+                audience_tag = (meta.get("audience") or "").strip().lower()
+                title = (meta.get("title") or meta.get("filename") or meta.get("source") or "").lower()
+                section = (meta.get("section") or "").lower()
+                tags = meta.get("tags") or []
+                tags_lower = [str(t).lower() for t in (tags if isinstance(tags, list) else [])]
+                hay = " ".join([audience_tag, title, section, " ".join(tags_lower)])
+                return ("class a" in hay) or (audience_tag == "classa")
+
+            baseline_docs = []
+            class_docs = []
+            for doc, _score in retrieval_results:
+                meta = dict(getattr(doc, "metadata", {}) or {})
+                if _is_class_a(meta):
+                    class_docs.append(doc)
+                else:
+                    baseline_docs.append(doc)
+
+            # Guard: only compute if we have at least one Class A doc
+            if class_docs:
+                baseline_units = await extract_policy_units_from_chunks(
+                    llm_wrapper, baseline_docs, audience="general", max_units=25
+                )
+                class_units = await extract_policy_units_from_chunks(
+                    llm_wrapper, class_docs, audience="classA", max_units=25
+                )
+
+                matches, baseline_only, class_only = match_units(baseline_units, class_units)
+                delta = build_delta(matches, baseline_only, class_only)
+
+                # Filter out items that lack Class A citations (except notApplicable)
+                class_ids = set()
+                for d in class_docs:
+                    m = dict(getattr(d, "metadata", {}) or {})
+                    sid = m.get("id") or m.get("source_id") or m.get("document_id") or m.get("chunk_id")
+                    if sid:
+                        class_ids.add(str(sid))
+
+                def _has_class_citation(item) -> bool:
+                    if not item.citations:
+                        return False
+                    return any((c in class_ids) for c in item.citations)
+
+                delta.stricter = [i for i in delta.stricter if _has_class_citation(i)]
+                delta.looser = [i for i in delta.looser if _has_class_citation(i)]
+                delta.additionalRequirements = [i for i in delta.additionalRequirements if _has_class_citation(i)]
+                delta.exceptions = [i for i in delta.exceptions if _has_class_citation(i)]
+                delta.replacements = [i for i in delta.replacements if _has_class_citation(i)]
+                # notApplicable can remain even without class citations
+                delta.additions = [i for i in delta.additions if _has_class_citation(i)]
+
+                # Summarize into concise bullets
+                delta_summarized = await summarize_delta_with_llm(llm_wrapper, delta)
+                delta_payload = delta_summarized.model_dump()
+        except Exception as delta_exc:
+            logger.warning("Delta computation failed: %s", delta_exc)
+
     generation_start = time.perf_counter()
     first_token_sent = False
     full_response_parts: List[str] = []
@@ -665,6 +732,13 @@ async def _run_streaming_flow(
     perf_monitor.record_latency("answer_generation_latency_ms", answer_latency_ms)
     perf_monitor.record_latency("llm_latency_ms", answer_latency_ms)
     perf_monitor.record_latency("total_request_latency_ms", total_latency_ms)
+
+    # Emit delta (if any) before completing
+    if delta_payload is not None:
+        try:
+            yield f"data: {json.dumps({'type': 'metadata', 'delta': delta_payload})}\n\n"
+        except Exception as emit_exc:
+            logger.debug("Failed to emit delta metadata: %s", emit_exc)
 
     quality_metrics = compute_quality_metrics(full_response, sources, retrieval_results)
     for key, value in quality_metrics.items():

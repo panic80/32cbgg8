@@ -245,7 +245,7 @@ app.use(
     credentials: true,
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-    exposedHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining', 'X-RateLimit-Reset'],
+    exposedHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining', 'X-RateLimit-Reset', 'X-RateLimit-Burst'],
     maxAge: 86400, // Cache preflight requests for 24 hours
   }),
 );
@@ -432,11 +432,14 @@ const config = {
   rateLimitEnabled: process.env.ENABLE_RATE_LIMIT === 'true',
   rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX) || 60, // 60 requests per minute
   rateLimitWindow: parseInt(process.env.RATE_LIMIT_WINDOW) || 60000, // 1 minute in milliseconds
+  // Optional burst allowance to align with upstream proxies (e.g., Nginx limit_req burst)
+  rateLimitBurst: parseInt(process.env.RATE_LIMIT_BURST || '0') || 0,
 
   // Logging configuration
   loggingEnabled: process.env.ENABLE_LOGGING === 'true',
-  logLevel: process.env.LOG_LEVEL || 'debug',
-  logDir: process.env.LOG_DIR || './logs',
+  // Default to 'info' for stable production logging; logDir defaults to /var/log/cbthis
+  logLevel: process.env.LOG_LEVEL || 'info',
+  logDir: process.env.LOG_DIR || '/var/log/cbthis',
 
   // External services
   canadaCaUrl:
@@ -571,8 +574,8 @@ if (config.loggingEnabled) {
   app.use(loggingMiddleware);
 }
 
-// Custom rate limiting middleware (simpler than express-rate-limit)
-const rateLimiter = (req, res, next) => {
+// Custom rate limiting middleware with optional Redis-backed shared counter
+const rateLimiter = async (req, res, next) => {
   if (!config.rateLimitEnabled) {
     return next();
   }
@@ -581,54 +584,70 @@ const rateLimiter = (req, res, next) => {
   const now = Date.now();
   const windowMs = config.rateLimitWindow;
   const retryAfterSeconds = Math.ceil(windowMs / 1000);
+  const limit = (config.rateLimitMax || 0) + (config.rateLimitBurst || 0);
 
-  const bucket = rateLimitBuckets.get(clientIP);
+  // Shared key per window
+  const windowStart = Math.floor(now / windowMs) * windowMs;
+  const windowResetSec = Math.ceil((windowStart + windowMs) / 1000);
 
-  if (!bucket || bucket.expiresAt <= now) {
-    rateLimitBuckets.set(clientIP, {
-      count: 1,
-      expiresAt: now + windowMs,
-    });
-    if (apiRequestCounts) {
-      apiRequestCounts.set(clientIP, 1);
-    }
-    rateLimitSweepCursor++;
-    if (rateLimitSweepCursor >= 500) {
-      rateLimitSweepCursor = 0;
-      for (const [ip, entry] of rateLimitBuckets.entries()) {
-        if (entry.expiresAt <= now) {
-          rateLimitBuckets.delete(ip);
-          if (apiRequestCounts) {
-            apiRequestCounts.delete(ip);
-          }
-        }
+  let count = 0;
+  let usedRedis = false;
+
+  try {
+    // Prefer Redis-backed counter when cache (Redis) is connected
+    if (cache && cache.redisConnected && cache.redisClient) {
+      const key = `rl:${clientIP}:${windowStart}`;
+      // INCR and set expiry when first seen
+      count = await cache.redisClient.incr(key);
+      if (count === 1) {
+        await cache.redisClient.pexpire(key, windowMs);
       }
+      usedRedis = true;
     }
-    return next();
+  } catch (e) {
+    // Fall back to memory on Redis error
+    usedRedis = false;
   }
 
-  if (bucket.count >= config.rateLimitMax) {
+  if (!usedRedis) {
+    // In-memory fallback (per-process)
+    const bucket = rateLimitBuckets.get(clientIP);
+    if (!bucket || bucket.expiresAt <= now) {
+      rateLimitBuckets.set(clientIP, { count: 1, expiresAt: now + windowMs });
+      count = 1;
+    } else {
+      bucket.count += 1;
+      count = bucket.count;
+    }
+  }
+
+  // Track for health/debug
+  if (apiRequestCounts) {
+    const prev = apiRequestCounts.get(clientIP) || 0;
+    apiRequestCounts.set(clientIP, Math.max(prev, count));
+  }
+
+  // Headers
+  res.setHeader('X-RateLimit-Limit', String(config.rateLimitMax));
+  res.setHeader('X-RateLimit-Burst', String(config.rateLimitBurst || 0));
+  res.setHeader('X-RateLimit-Remaining', String(Math.max(0, limit - count)));
+  res.setHeader('X-RateLimit-Reset', String(windowResetSec));
+
+  if (count > limit) {
     if (config.loggingEnabled) {
       chatLogger.log({
         message: 'Rate limit exceeded',
         clientIP,
         path: req.path,
-        requestCount: bucket.count,
+        requestCount: count,
         windowMs,
       });
     }
     res.setHeader('Retry-After', retryAfterSeconds);
-    return res.status(429).json({
-      error: 'Rate limit exceeded',
-      retryAfter: retryAfterSeconds,
-    });
+    return res.status(429).json({ error: 'Rate limit exceeded', retryAfter: retryAfterSeconds });
   }
 
-  bucket.count += 1;
-  if (apiRequestCounts) {
-    apiRequestCounts.set(clientIP, bucket.count);
-  }
-  next();
+  return next();
 };
 
 const performanceHandler = createPerformanceHandler();

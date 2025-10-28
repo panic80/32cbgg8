@@ -43,6 +43,8 @@ export interface Message {
   followUpQuestions?: FollowUpQuestion[];
   modelMode?: 'fast' | 'smart';
   shortAnswerMode?: boolean;
+  // Optional audience-specific policy differences payload
+  delta?: import('./policy').DeltaResponse;
 }
 
 export interface Attachment {
