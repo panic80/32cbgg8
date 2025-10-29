@@ -1,17 +1,18 @@
 import { Router } from 'express';
+import { DEFAULT_MAPS_TIMEOUT_MS, getEnvNumber } from '../config/constants.js';
+import { validateRequest } from '../middleware/validate.js';
+import { distanceRequestSchema } from './schemas/mapsSchemas.js';
 
 const createMapsRoutes = ({ rateLimiter, googleMapsClient }) => {
   const router = Router();
+  const mapsTimeoutMs =
+    getEnvNumber('MAPS_TIMEOUT', DEFAULT_MAPS_TIMEOUT_MS) || DEFAULT_MAPS_TIMEOUT_MS;
 
-  router.post('/api/maps/distance', rateLimiter, async (req, res) => {
+  const validateDistance = validateRequest(distanceRequestSchema);
+
+  router.post('/api/maps/distance', rateLimiter, validateDistance, async (req, res) => {
     try {
       const { origin, destination, mode = 'driving' } = req.body;
-
-      if (!origin || !destination) {
-        return res.status(400).json({
-          error: 'Both origin and destination are required',
-        });
-      }
 
       if (!googleMapsClient) {
         return res.status(503).json({
@@ -29,7 +30,7 @@ const createMapsRoutes = ({ rateLimiter, googleMapsClient }) => {
           units: 'metric',
           key: process.env.GOOGLE_MAPS_API_KEY,
         },
-        timeout: 5000,
+        timeout: mapsTimeoutMs,
       });
 
       const data = response.data;
