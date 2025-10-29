@@ -8,12 +8,10 @@ const buildApp = ({ validateUrlResult = 'https://example.com/doc', httpClient } 
   app.use(express.json());
 
   const validateIngestionUrl = vi.fn().mockResolvedValue(validateUrlResult);
-  const client =
-    httpClient ??
-    ({
-      post: vi.fn(),
-      get: vi.fn(),
-    });
+  const client = httpClient ?? {
+    post: vi.fn(),
+    get: vi.fn(),
+  };
 
   app.use(
     createIngestionRoutes({

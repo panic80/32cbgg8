@@ -331,29 +331,29 @@ export const useStreamingChat = ({
                         },
                       });
                     }
-                  if (event.delta) {
-                    deltaPayload = event.delta as import('@/types/policy').DeltaResponse;
-                    if (pendingMessageRef.current) {
-                      (pendingMessageRef.current as any).delta = deltaPayload;
-                      flushPendingMessage();
-                    } else {
-                      // Attach to the most recent assistant message
-                      dispatch({
-                        type: 'SET_MESSAGES',
-                        updater: (prev) => {
-                          if (prev.length === 0) return prev;
-                          const updated = [...prev];
-                          for (let i = updated.length - 1; i >= 0; i--) {
-                            if (updated[i].sender === 'assistant') {
-                              (updated[i] as any).delta = deltaPayload;
-                              break;
+                    if (event.delta) {
+                      deltaPayload = event.delta as import('@/types/policy').DeltaResponse;
+                      if (pendingMessageRef.current) {
+                        (pendingMessageRef.current as any).delta = deltaPayload;
+                        flushPendingMessage();
+                      } else {
+                        // Attach to the most recent assistant message
+                        dispatch({
+                          type: 'SET_MESSAGES',
+                          updater: (prev) => {
+                            if (prev.length === 0) return prev;
+                            const updated = [...prev];
+                            for (let i = updated.length - 1; i >= 0; i--) {
+                              if (updated[i].sender === 'assistant') {
+                                (updated[i] as any).delta = deltaPayload;
+                                break;
+                              }
                             }
-                          }
-                          return updated;
-                        },
-                      });
+                            return updated;
+                          },
+                        });
+                      }
                     }
-                  }
                   }
                   break;
                 case 'complete': {

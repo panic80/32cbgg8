@@ -6,13 +6,13 @@ deployment markdowns.
 
 ## 1. Service Management
 
-| Component | Manager | Key Commands |
-| --- | --- | --- |
-| Express gateway (Node) | PM2 | `pm2 status`, `pm2 reload ecosystem.config.cjs`, `pm2 logs cf-travel-bot` |
-| Vite static assets | Served by Express | `npm run build`, verify `dist/` |
-| RAG service (FastAPI) | systemd (`rag-service.service`) | `sudo systemctl restart rag-service.service`, `sudo journalctl -u rag-service.service -f` |
-| Redis | systemd (`redis-server`) | `sudo systemctl status redis-server`, `redis-cli ping` |
-| Nginx | systemd (`nginx`) | `sudo systemctl reload nginx`, check `/etc/nginx/sites-available/cbthis` |
+| Component              | Manager                         | Key Commands                                                                              |
+| ---------------------- | ------------------------------- | ----------------------------------------------------------------------------------------- |
+| Express gateway (Node) | PM2                             | `pm2 status`, `pm2 reload ecosystem.config.cjs`, `pm2 logs cf-travel-bot`                 |
+| Vite static assets     | Served by Express               | `npm run build`, verify `dist/`                                                           |
+| RAG service (FastAPI)  | systemd (`rag-service.service`) | `sudo systemctl restart rag-service.service`, `sudo journalctl -u rag-service.service -f` |
+| Redis                  | systemd (`redis-server`)        | `sudo systemctl status redis-server`, `redis-cli ping`                                    |
+| Nginx                  | systemd (`nginx`)               | `sudo systemctl reload nginx`, check `/etc/nginx/sites-available/cbthis`                  |
 
 ### Common Actions
 
@@ -150,14 +150,14 @@ If configuration changed, restart using `/etc/redis/redis.conf.local` overrides.
 
 ## 5. Maintenance Cadence
 
-| Task | Frequency | Notes |
-| --- | --- | --- |
-| System updates (`apt update && apt upgrade`) | Monthly | Reboot if kernel updates |
-| `npm audit` / dependency review | Monthly or pre-release | Document any production-impacting changes |
-| Check disk usage (`df -h`, `du`) | Monthly | Clean old artifacts under `/var/backups` |
-| SSL certificate renewal | Automatic (certbot) | Verify expiry quarterly |
-| Log rotation review | Quarterly | Nginx under `/etc/logrotate.d/nginx`, custom apps follow systemd defaults |
-| Redis persistence health | Quarterly | Confirm `dump.rdb` updated and AOF, if enabled |
+| Task                                         | Frequency              | Notes                                                                     |
+| -------------------------------------------- | ---------------------- | ------------------------------------------------------------------------- |
+| System updates (`apt update && apt upgrade`) | Monthly                | Reboot if kernel updates                                                  |
+| `npm audit` / dependency review              | Monthly or pre-release | Document any production-impacting changes                                 |
+| Check disk usage (`df -h`, `du`)             | Monthly                | Clean old artifacts under `/var/backups`                                  |
+| SSL certificate renewal                      | Automatic (certbot)    | Verify expiry quarterly                                                   |
+| Log rotation review                          | Quarterly              | Nginx under `/etc/logrotate.d/nginx`, custom apps follow systemd defaults |
+| Redis persistence health                     | Quarterly              | Confirm `dump.rdb` updated and AOF, if enabled                            |
 
 ## 6. Incident Response
 

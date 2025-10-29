@@ -32,4 +32,3 @@ Goal: Use pm2-logrotate for gateway logs instead of OS logrotate, then remove du
   - If install fails with “AccessDenied create package.json” under nodeapp, create `/home/nodeapp/.pm2/modules/package.json` (owned by nodeapp) and re‑run install.
   - If PM2 uses bun by default, set `PM2_PACKAGE_MANAGER=npm` before `pm2 install`.
   - If the system PM2 unit (`pm2-nodeapp.service`) restarts, ensure it still points at `/home/nodeapp/.pm2` and that dump files are intact (`pm2 save`).
-

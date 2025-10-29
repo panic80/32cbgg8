@@ -48,17 +48,20 @@ export const FeatureCard: React.FC<FeatureCardProps> = ({
           className,
         )}
       >
-        {badge && <span className={cn('lpt-minimal-card-badge', titleClassName && 'mb-1')}>{badge}</span>}
-        <Icon
-          className={cn('lpt-minimal-card-icon', iconClassName)}
-          aria-hidden="true"
-        />
+        {badge && (
+          <span className={cn('lpt-minimal-card-badge', titleClassName && 'mb-1')}>{badge}</span>
+        )}
+        <Icon className={cn('lpt-minimal-card-icon', iconClassName)} aria-hidden="true" />
         <span className={cn('lpt-minimal-card-label', titleClassName)}>{title}</span>
         {description && (
-          <span className={cn('lpt-minimal-card-subtitle', descriptionClassName)}>{description}</span>
+          <span className={cn('lpt-minimal-card-subtitle', descriptionClassName)}>
+            {description}
+          </span>
         )}
         {footer && (
-          <span className={cn('text-xs text-[var(--text-secondary)]', footerClassName)}>{footer}</span>
+          <span className={cn('text-xs text-[var(--text-secondary)]', footerClassName)}>
+            {footer}
+          </span>
         )}
       </div>
     );
@@ -109,16 +112,28 @@ export const FeatureCard: React.FC<FeatureCardProps> = ({
             isCentered ? 'justify-center' : 'justify-start',
           )}
         >
-          <h3 className={cn('text-lg sm:text-xl md:text-2xl font-semibold', titleClassName)}>{title}</h3>
+          <h3 className={cn('text-lg sm:text-xl md:text-2xl font-semibold', titleClassName)}>
+            {title}
+          </h3>
           {badge}
         </div>
         {description && (
-          <div className={cn('text-sm sm:text-base text-[var(--text)]/80 leading-relaxed', descriptionClassName)}>
+          <div
+            className={cn(
+              'text-sm sm:text-base text-[var(--text)]/80 leading-relaxed',
+              descriptionClassName,
+            )}
+          >
             {description}
           </div>
         )}
         {footer && (
-          <div className={cn('text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed', footerClassName)}>
+          <div
+            className={cn(
+              'text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed',
+              footerClassName,
+            )}
+          >
             {footer}
           </div>
         )}

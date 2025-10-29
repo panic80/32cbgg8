@@ -9,54 +9,38 @@ vi.mock('react-router-dom', () => ({
   useLocation: () => ({ search: '' }),
 }));
 
-const setMessagesMock = vi.fn();
-const handleStreamingChatMock = vi.fn().mockResolvedValue(undefined);
-const scrollToBottomMock = vi.fn();
-const setCommandOpenMock = vi.fn();
-
-vi.mock('../ChatPage/hooks', () => ({
-  useLocalStorage: () => [false, vi.fn()],
-  useModelMode: vi.fn(),
-  useDisclaimer: () => ({
-    showDisclaimer: false,
-    setShowDisclaimer: vi.fn(),
-  }),
-  useCommandPalette: () => ({
-    commandOpen: false,
-    setCommandOpen: setCommandOpenMock,
-    showInlineCommand: false,
-    setShowInlineCommand: vi.fn(),
-    selectedCommandIndex: 0,
-    handleInputChange: vi.fn(),
-    handleKeyPress: vi.fn(),
-    commands: [],
-  }),
-  useStreamingChat: () => ({
-    messages: [],
-    setMessages: setMessagesMock,
-    pendingMessage: null,
-    isLoading: false,
-    retrievalStatus: null,
-    handleStreamingChat: handleStreamingChatMock,
-  }),
-  useMessageWindow: () => ({
-    combinedMessages: [],
-    visibleMessages: [],
-    startIndex: 0,
-    canShowMore: false,
-    showMore: vi.fn(),
-  }),
-  useScrollBehavior: () => ({
-    isAtBottom: true,
-    showNewPill: false,
-    scrollToBottom: scrollToBottomMock,
-  }),
-  useChatTheme: vi.fn(),
-  useMessageOperations: () => ({
-    copyMessage: vi.fn(),
-    regenerateMessage: vi.fn(),
-  }),
-}));
+vi.mock('../ChatPage/hooks', () => {
+  const noop = vi.fn();
+  return {
+    useChatController: () => ({
+      commandPaletteProps: {
+        open: false,
+        onOpenChange: noop,
+        onCommandSelect: noop,
+      },
+      chatHeaderProps: {
+        theme: 'light',
+        toggleTheme: noop,
+        modelMode: 'fast' as const,
+        setModelMode: noop,
+        onTripPlanSubmit: noop,
+        shortAnswerMode: false,
+        setShortAnswerMode: noop,
+        onExportMarkdown: noop,
+        onClearConversation: noop,
+        onInsertExample: noop,
+        menuOpen: false,
+        setMenuOpen: noop,
+        highlightModelMode: false,
+        highlightShortAnswers: false,
+      },
+      messagesPanelProps: {},
+      chatInputProps: {},
+      helpDialogProps: { open: false, onOpenChange: noop },
+      disclaimerProps: { open: false, onOpenChange: noop },
+    }),
+  };
+});
 
 vi.mock('../ChatPage/components/BackgroundEffects', () => ({
   BackgroundEffects: () => <div data-testid="background-effects" />,

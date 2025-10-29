@@ -6,4 +6,3 @@ export async function copyTextToClipboard(text: string) {
     throw error;
   }
 }
-

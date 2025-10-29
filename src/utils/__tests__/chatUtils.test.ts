@@ -1,9 +1,5 @@
 import { describe, expect, it, beforeEach, afterEach } from 'vitest';
-import {
-  hasScrolledUp,
-  isMobileDevice,
-  isScrolledToBottom,
-} from '@/utils/chatUtils';
+import { hasScrolledUp, isMobileDevice, isScrolledToBottom } from '@/utils/chatUtils';
 import { MOBILE_BREAKPOINT_PX, SCROLL_BOTTOM_THRESHOLD_PX } from '@/constants';
 
 describe('chatUtils', () => {

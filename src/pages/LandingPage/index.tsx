@@ -4,11 +4,7 @@ import { ChevronDown, Send } from 'lucide-react';
 import LogoImage from '@/components/LogoImage';
 import '@/styles/landing-test.css';
 import '@/styles/sticky-footer.css';
-import {
-  SITE_CONFIG,
-  getCopyrightText,
-  getLastUpdatedText,
-} from '@/constants/siteConfig';
+import { SITE_CONFIG, getCopyrightText, getLastUpdatedText } from '@/constants/siteConfig';
 import { useTheme } from '@/context/ThemeContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { FeatureCard } from '@/components/ui/feature-card';
@@ -16,7 +12,10 @@ import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
 import { cn } from '@/lib/utils';
 import { footerLinks, landingFeatures, quickAskPrompts } from './landingConfig';
 
-type ScrollHandler = (event: UIEvent<HTMLDivElement>, setIndicator: (value: boolean) => void) => void;
+type ScrollHandler = (
+  event: UIEvent<HTMLDivElement>,
+  setIndicator: (value: boolean) => void,
+) => void;
 
 const handleScrollableContent: ScrollHandler = (event, setIndicator) => {
   const element = event.currentTarget;
@@ -67,7 +66,7 @@ const LandingPage = () => {
     window.location.assign(SITE_CONFIG.SCIP_PORTAL_URL);
   }, [isNavigatingToSCIP]);
 
-  const handleFooterLink = useCallback((id: typeof footerLinks[number]['id']) => {
+  const handleFooterLink = useCallback((id: (typeof footerLinks)[number]['id']) => {
     if (id === 'about') {
       setShowAboutModal(true);
     } else if (id === 'privacy') {
@@ -281,7 +280,8 @@ const LandingPage = () => {
                 AI Processing (OpenAI)
               </h3>
               <p className="text-sm sm:text-base text-[var(--text)] leading-relaxed">
-                This application uses OpenAI&apos;s GPT models. When you interact with our AI features:
+                This application uses OpenAI&apos;s GPT models. When you interact with our AI
+                features:
               </p>
               <ul className="list-disc pl-5 space-y-2 text-sm sm:text-base text-[var(--text)] opacity-80">
                 <li>Your conversations may be processed to improve responses</li>
@@ -290,7 +290,8 @@ const LandingPage = () => {
                 <li>You can opt out of AI features at any time</li>
               </ul>
               <p className="text-xs sm:text-sm text-[var(--text-secondary)] mt-4 sm:mt-6">
-                For more details about OpenAI&apos;s data handling, please visit OpenAI&apos;s privacy policy.
+                For more details about OpenAI&apos;s data handling, please visit OpenAI&apos;s
+                privacy policy.
               </p>
               <div className="pt-2">
                 <button

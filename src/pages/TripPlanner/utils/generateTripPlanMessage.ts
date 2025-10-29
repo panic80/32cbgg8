@@ -83,7 +83,12 @@ ${hasReducedRange ? `• Days ${INCIDENT_ALLOWANCE_STANDARD_DAYS + 1}-${reducedR
 `;
   }
 
-  const costEstimateSection = buildCostEstimateSection(data, distance, tripDuration, mealEntitlements);
+  const costEstimateSection = buildCostEstimateSection(
+    data,
+    distance,
+    tripDuration,
+    mealEntitlements,
+  );
   plan += costEstimateSection;
 
   plan += `

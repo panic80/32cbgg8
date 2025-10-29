@@ -71,9 +71,12 @@ describe('pipeStreamingResponse', () => {
     upstream.end();
 
     expect(onMetadata).toHaveBeenCalledWith(expect.objectContaining({ conversation_id: 'abc' }));
-    expect(logger.warn).toHaveBeenCalledWith('stream.metadataParseError', expect.objectContaining({
-      sample: expect.any(String),
-    }));
+    expect(logger.warn).toHaveBeenCalledWith(
+      'stream.metadataParseError',
+      expect.objectContaining({
+        sample: expect.any(String),
+      }),
+    );
   });
 
   it('emits heartbeat comments on an interval', () => {
@@ -120,9 +123,12 @@ describe('pipeStreamingResponse', () => {
 
     vi.advanceTimersByTime(25);
 
-    expect(logger.error).toHaveBeenCalledWith('stream.idleTimeout', expect.objectContaining({
-      idleTimeoutMs: 20,
-    }));
+    expect(logger.error).toHaveBeenCalledWith(
+      'stream.idleTimeout',
+      expect.objectContaining({
+        idleTimeoutMs: 20,
+      }),
+    );
     expect(res.writableEnded).toBe(true);
   });
 });

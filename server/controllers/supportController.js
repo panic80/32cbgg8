@@ -23,7 +23,7 @@ const parseQuestions = (text) => {
     return questions
       .map((q, idx) => ({
         id: `followup-${Date.now()}-${idx}`,
-        question: typeof q === 'string' ? q : q?.question ?? '',
+        question: typeof q === 'string' ? q : (q?.question ?? ''),
         category: q?.category || 'related',
         confidence: q?.confidence || 0.7,
       }))
@@ -94,10 +94,12 @@ export const createSupportController = ({
 
       return res.json({ followUpQuestions });
     } catch (error) {
-      return res.json({ followUpQuestions: FALLBACK_FOLLOW_UPS.map((item, idx) => ({
-        id: `followup-${Date.now()}-${idx}`,
-        ...item,
-      })) });
+      return res.json({
+        followUpQuestions: FALLBACK_FOLLOW_UPS.map((item, idx) => ({
+          id: `followup-${Date.now()}-${idx}`,
+          ...item,
+        })),
+      });
     }
   };
 

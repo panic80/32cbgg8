@@ -49,36 +49,36 @@ update them as changes land.
 
 ## Low Priority / Hygiene
 
-10. Remove legacy `X-XSS-Protection` once CSP hardened.  
-11. Keep external links using `rel="noopener noreferrer"`.  
-12. Limit `dangerouslySetInnerHTML` to static content.  
-13. Redact sensitive data from error logs.  
+10. Remove legacy `X-XSS-Protection` once CSP hardened.
+11. Keep external links using `rel="noopener noreferrer"`.
+12. Limit `dangerouslySetInnerHTML` to static content.
+13. Redact sensitive data from error logs.
 14. Run `npm audit --production` and `pip-audit` regularly.
 
 ## RAG Service Focus
 
 15. Admin bearer token enforcement (`Authorization: Bearer ...`) – keep token in
-    `/etc/cbthis/rag-env`.  
-16. CORS limited to gateway; continue proxying requests.  
-17. Maintain SSRF guards in Node ingestion routes.  
-18. Replace `pickle.loads` in embedding cache with safe JSON/binary format.  
+    `/etc/cbthis/rag-env`.
+16. CORS limited to gateway; continue proxying requests.
+17. Maintain SSRF guards in Node ingestion routes.
+18. Replace `pickle.loads` in embedding cache with safe JSON/binary format.
 19. Store `RAG_ENCRYPTION_KEY` securely (env or `/etc/cbthis/rag-encryption.key`).
 
 ## Nginx / Operational Items
 
-20. Align security headers with Helmet (HSTS, CSP, nosniff, etc.).  
-21. Default server returns 444; keep for host-header abuse protection.  
-22. Deny dotfiles (`.env` etc.).  
+20. Align security headers with Helmet (HSTS, CSP, nosniff, etc.).
+21. Default server returns 444; keep for host-header abuse protection.
+22. Deny dotfiles (`.env` etc.).
 23. Tune Nginx rate limiting to match app strategy.
 
 ## Validation Checklist
 
-- Verify `req.ip` reflects client IP post `trust proxy`.  
-- Confirm CSP in production rejects inline/eval content.  
-- Test admin POSTs without custom header/content type (expect rejection).  
-- Simulate brute-force attempts to ensure lockout works.  
-- Run audits (`npm audit`, `pip-audit`) and remediate criticals.  
-- Check file permissions on secrets directories.  
+- Verify `req.ip` reflects client IP post `trust proxy`.
+- Confirm CSP in production rejects inline/eval content.
+- Test admin POSTs without custom header/content type (expect rejection).
+- Simulate brute-force attempts to ensure lockout works.
+- Run audits (`npm audit`, `pip-audit`) and remediate criticals.
+- Check file permissions on secrets directories.
 - Ensure Redis only accessible locally.
 
 Update this review file as you eliminate findings or discover new ones. Link to

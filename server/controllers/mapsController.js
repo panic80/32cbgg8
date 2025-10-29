@@ -1,7 +1,4 @@
-import {
-  DEFAULT_MAPS_TIMEOUT_MS,
-  getEnvNumber,
-} from '../config/constants.js';
+import { DEFAULT_MAPS_TIMEOUT_MS, getEnvNumber } from '../config/constants.js';
 import { respondWithError } from '../utils/http.js';
 
 const getTimeout = (config) => {
@@ -250,4 +247,3 @@ export const createMapsController = ({ googleMapsClient, config = {}, logger }) 
     handlePlaceDetails,
   };
 };
-

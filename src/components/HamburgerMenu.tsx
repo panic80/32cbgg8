@@ -307,10 +307,7 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
                       <motion.div
                         key={itemIndex}
                         ref={isModelToggle ? modelSectionRef : undefined}
-                        className={cn(
-                          'space-y-2 rounded-lg',
-                          highlight && 'bg-[var(--primary)]/5',
-                        )}
+                        className={cn('space-y-2 rounded-lg', highlight && 'bg-[var(--primary)]/5')}
                         animate={
                           highlight
                             ? {

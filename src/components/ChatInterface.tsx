@@ -31,9 +31,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const { isKeyboardVisible, keyboardHeight } = useMobileKeyboard();
-  const { pullOffset, handleTouchStart, handleTouchMove, handleTouchEnd } = useChatPullToRefresh(
-    messagesContainerRef,
-  );
+  const { pullOffset, handleTouchStart, handleTouchMove, handleTouchEnd } =
+    useChatPullToRefresh(messagesContainerRef);
 
   //   // Detect user scroll position
   //   useEffect(() => {

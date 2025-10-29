@@ -30,6 +30,7 @@ stateful_retrieval_session_ttl = 3600 # Redis TTL (1 hour)
 ```
 
 Override via environment:
+
 ```bash
 RAG_ENABLE_STATEFUL_RETRIEVAL=true
 RAG_MAX_RETRIEVAL_ITERATIONS=2
@@ -46,6 +47,7 @@ python test_stateful_retrieval.py
 ```
 
 **Expected output:**
+
 ```
 ? Pipeline created successfully
 ? Refinement cycle was triggered
@@ -57,6 +59,7 @@ python test_stateful_retrieval.py
 ### 2. Manual Testing
 
 **Low-quality queries (should trigger refinement):**
+
 ```
 "What meal rate?"
 "Travel costs"
@@ -64,6 +67,7 @@ python test_stateful_retrieval.py
 ```
 
 **High-quality queries (should NOT trigger refinement):**
+
 ```
 "What is the meal allowance rate for Toronto, Ontario?"
 "What are the kilometric rates for private vehicle travel?"
@@ -72,6 +76,7 @@ python test_stateful_retrieval.py
 ### 3. Check Logs
 
 Look for refinement activity:
+
 ```bash
 grep "Quality assessment" logs/app.log
 grep "Refined query" logs/app.log
@@ -79,6 +84,7 @@ grep "Finalized retrieval" logs/app.log
 ```
 
 **Example log output:**
+
 ```
 INFO: Quality assessment: avg_relevance=0.32, threshold=0.40, quality=needs_refinement
 INFO: Refined query using expansion: 'meal rate allowances amounts values'
@@ -88,6 +94,7 @@ INFO: Finalized retrieval: 15 documents, avg_relevance=0.67, iterations=2
 ### 4. Check Redis
 
 View checkpoints:
+
 ```bash
 redis-cli KEYS "langgraph:checkpoint:*"
 redis-cli GET "langgraph:checkpoint:{thread_id}"
@@ -116,11 +123,13 @@ View in performance dashboard:
 ### Issue: High latency (>500ms average)
 
 **Solution 1:** Lower threshold to reduce refinements
+
 ```python
 relevance_threshold = 0.3  # More lenient
 ```
 
 **Solution 2:** Reduce max iterations
+
 ```python
 max_retrieval_iterations = 1  # Only one retry
 ```
@@ -130,6 +139,7 @@ max_retrieval_iterations = 1  # Only one retry
 **Cause:** Threshold too high or reranker returning low scores
 
 **Solution:** Lower threshold
+
 ```python
 relevance_threshold = 0.3  # Accept lower quality
 ```
@@ -139,6 +149,7 @@ relevance_threshold = 0.3  # Accept lower quality
 **Cause:** Threshold too low, refinement not adding value
 
 **Solution:** Raise threshold
+
 ```python
 relevance_threshold = 0.5  # Be more selective
 ```
@@ -148,12 +159,14 @@ relevance_threshold = 0.5  # Be more selective
 **Fallback:** System automatically falls back to in-memory checkpointing
 
 **Fix:** Check Redis connection:
+
 ```bash
 redis-cli ping
 # Expected: PONG
 ```
 
 Update Redis URL:
+
 ```bash
 RAG_REDIS_URL=redis://localhost:6379
 ```
@@ -163,16 +176,19 @@ RAG_REDIS_URL=redis://localhost:6379
 ### Disable Feature
 
 Set environment variable:
+
 ```bash
 RAG_ENABLE_STATEFUL_RETRIEVAL=false
 ```
 
 Or in `.env`:
+
 ```
 RAG_ENABLE_STATEFUL_RETRIEVAL=false
 ```
 
 Restart service:
+
 ```bash
 sudo systemctl restart rag-service.service
 # or
@@ -182,6 +198,7 @@ pm2 restart rag-service
 ### Verify Rollback
 
 Check logs for:
+
 ```
 INFO: Wrapping pipeline with stateful retrieval
 ```
@@ -192,23 +209,23 @@ Should NOT appear after rollback.
 
 ### Latency Breakdown
 
-| Component | Time |
-|-----------|------|
+| Component                   | Time    |
+| --------------------------- | ------- |
 | Redis checkpoint (per node) | 10-50ms |
-| Quality assessment | 5-10ms |
-| Query refinement | 5-10ms |
-| Retrieval cycle | 3-5s |
+| Quality assessment          | 5-10ms  |
+| Query refinement            | 5-10ms  |
+| Retrieval cycle             | 3-5s    |
 
 ### No-Cycle Overhead
 
-- **Redis checkpoints:** 3 nodes × ~30ms = ~90ms
+- **Redis checkpoints:** 3 nodes ï¿½ ~30ms = ~90ms
 - **Assessment logic:** ~10ms
 - **Total:** ~100-200ms
 
 ### With Cycles
 
 - **1 cycle:** Base (200ms) + Retrieval (3-5s) = 3.2-5.2s
-- **2 cycles:** Base (200ms) + 2 × Retrieval (6-10s) = 6.2-10.2s
+- **2 cycles:** Base (200ms) + 2 ï¿½ Retrieval (6-10s) = 6.2-10.2s
 
 ## API Usage
 
@@ -230,6 +247,7 @@ Stateful retrieval is automatic when enabled.
 ### Check Response Metadata
 
 Response includes:
+
 ```json
 {
   "response": "...",
@@ -242,11 +260,13 @@ Response includes:
 ## Files Changed
 
 ### Core Implementation
+
 - `app/pipelines/stateful_retrieval.py` - Main logic
 - `app/pipelines/parallel_retrieval.py` - Factory integration
 - `app/api/chat.py` - API integration
 
 ### Supporting
+
 - `app/pipelines/query_optimizer.py` - Refinement strategies
 - `app/core/config.py` - Configuration
 - `requirements.txt` - Dependencies
@@ -275,6 +295,7 @@ tail -f logs/app.log | grep "stateful"
 ### Debug Mode
 
 Enable debug logging:
+
 ```bash
 RAG_LOG_LEVEL=DEBUG
 ```
@@ -295,4 +316,3 @@ Restart and check logs for detailed state transitions.
 ---
 
 **Questions?** See `LANGGRAPH_IMPLEMENTATION.md` for detailed documentation.
-

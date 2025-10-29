@@ -11,7 +11,9 @@ export interface RouteContext {
   toggleTheme: () => void;
 }
 
-export interface LazyRouteDefinition<TProps extends Record<string, unknown> = Record<string, unknown>> {
+export interface LazyRouteDefinition<
+  TProps extends Record<string, unknown> = Record<string, unknown>,
+> {
   kind: 'lazy';
   path: string;
   component: LazyExoticComponent<ComponentType<TProps>>;

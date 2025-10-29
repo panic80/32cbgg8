@@ -11,7 +11,10 @@ const baseMessage: Message = {
   timestamp: 1700000000000,
 };
 
-const renderBubble = (message: Message, props?: Partial<React.ComponentProps<typeof ChatMessageBubble>>) => {
+const renderBubble = (
+  message: Message,
+  props?: Partial<React.ComponentProps<typeof ChatMessageBubble>>,
+) => {
   const formatTimestamp = vi.fn().mockReturnValue('12:34');
   const onCopy = vi.fn();
 
@@ -61,4 +64,3 @@ describe('ChatMessageBubble', () => {
     expect(screen.getByText('CF')).toBeInTheDocument();
   });
 });
-

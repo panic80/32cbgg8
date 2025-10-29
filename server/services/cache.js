@@ -1,9 +1,6 @@
 import { createClient } from 'redis';
 import { getLogger } from './logger.js';
-import {
-  DEFAULT_CACHE_CLEANUP_INTERVAL_MS,
-  DEFAULT_CACHE_TTL_MS,
-} from '../config/constants.js';
+import { DEFAULT_CACHE_CLEANUP_INTERVAL_MS, DEFAULT_CACHE_TTL_MS } from '../config/constants.js';
 
 /**
  * Unified Cache Service with Redis and In-Memory Fallback
@@ -26,8 +23,7 @@ class CacheService {
 
       defaultTTL: config.defaultTTL ?? DEFAULT_CACHE_TTL_MS,
 
-      memoryCleanupInterval:
-        config.memoryCleanupInterval ?? DEFAULT_CACHE_CLEANUP_INTERVAL_MS,
+      memoryCleanupInterval: config.memoryCleanupInterval ?? DEFAULT_CACHE_CLEANUP_INTERVAL_MS,
       maxMemoryEntries: config.maxMemoryEntries ?? 1000,
 
       redisRetryAttempts: config.redisRetryAttempts ?? 3,

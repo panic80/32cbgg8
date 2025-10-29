@@ -1,10 +1,5 @@
 import { differenceInDays, format } from 'date-fns';
-import type {
-  TripData,
-  DistanceData,
-  MealEntitlementDay,
-  MileageContext,
-} from '../types';
+import type { TripData, DistanceData, MealEntitlementDay, MileageContext } from '../types';
 import {
   INCIDENT_ALLOWANCE_REDUCED_RATE,
   INCIDENT_ALLOWANCE_STANDARD_DAYS,
@@ -160,7 +155,10 @@ export const extractProvince = (location: string | undefined) => {
   return null;
 };
 
-export const buildMileageContext = (data: TripData, distance: DistanceData | null): MileageContext => {
+export const buildMileageContext = (
+  data: TripData,
+  distance: DistanceData | null,
+): MileageContext => {
   const departureProvince = extractProvince(data.departureLocation);
   const destinationProvince = extractProvince(data.arrivalLocation);
   const locationLabel = departureProvince || destinationProvince || 'departure region';
@@ -169,7 +167,11 @@ export const buildMileageContext = (data: TripData, distance: DistanceData | nul
   const roundTripKm = distanceKm !== null ? distanceKm * 2 : null;
   const distanceText = distance?.distance.text ?? null;
   const roundTripDistanceText =
-    roundTripKm !== null ? formatKilometres(roundTripKm) : distanceText ? `2 × ${distanceText}` : null;
+    roundTripKm !== null
+      ? formatKilometres(roundTripKm)
+      : distanceText
+        ? `2 × ${distanceText}`
+        : null;
 
   return {
     locationLabel,
@@ -309,7 +311,9 @@ ${noteLines}
 
 export const describeTripBasics = (data: TripData) => {
   const transport = getTransportLabel(data.transportMethod);
-  const departure = data.departureDate ? format(data.departureDate, 'MMMM dd, yyyy') : 'Not specified';
+  const departure = data.departureDate
+    ? format(data.departureDate, 'MMMM dd, yyyy')
+    : 'Not specified';
   const returnDate = data.returnDate ? format(data.returnDate, 'MMMM dd, yyyy') : 'Not specified';
   return { transport, departure, returnDate };
 };

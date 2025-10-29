@@ -10,16 +10,19 @@ export interface PageSectionProps extends React.HTMLAttributes<HTMLElement> {
 }
 
 export const PageSection = forwardRef<HTMLElement, PageSectionProps>(
-  ({
-    title,
-    subtitle,
-    description,
-    center = false,
-    className,
-    as: Component = 'section',
-    children,
-    ...rest
-  }, ref) => {
+  (
+    {
+      title,
+      subtitle,
+      description,
+      center = false,
+      className,
+      as: Component = 'section',
+      children,
+      ...rest
+    },
+    ref,
+  ) => {
     const alignment = center ? 'text-center items-center' : 'text-left items-start';
 
     return (
@@ -30,10 +33,17 @@ export const PageSection = forwardRef<HTMLElement, PageSectionProps>(
       >
         <div className={cn('flex flex-col gap-4 sm:gap-6 mb-10 sm:mb-12', alignment)}>
           {subtitle && (
-            <span className={cn('text-sm font-medium tracking-wide text-[var(--primary)]')}>{subtitle}</span>
+            <span className={cn('text-sm font-medium tracking-wide text-[var(--primary)]')}>
+              {subtitle}
+            </span>
           )}
           {title && (
-            <h2 className={cn('text-2xl sm:text-3xl md:text-4xl font-bold text-[var(--text)]', center && 'mx-auto max-w-3xl')}>
+            <h2
+              className={cn(
+                'text-2xl sm:text-3xl md:text-4xl font-bold text-[var(--text)]',
+                center && 'mx-auto max-w-3xl',
+              )}
+            >
               {title}
             </h2>
           )}
@@ -55,4 +65,3 @@ export const PageSection = forwardRef<HTMLElement, PageSectionProps>(
 );
 
 PageSection.displayName = 'PageSection';
-

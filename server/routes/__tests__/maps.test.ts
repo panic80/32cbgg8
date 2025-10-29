@@ -37,8 +37,12 @@ describe('maps routes', () => {
       },
     });
 
-    const placeAutocomplete = vi.fn().mockResolvedValue({ data: { predictions: [], status: 'OK' } });
-    const placeDetails = vi.fn().mockResolvedValue({ data: { result: { formatted_address: 'Origin' } } });
+    const placeAutocomplete = vi
+      .fn()
+      .mockResolvedValue({ data: { predictions: [], status: 'OK' } });
+    const placeDetails = vi
+      .fn()
+      .mockResolvedValue({ data: { result: { formatted_address: 'Origin' } } });
 
     const app = express();
     app.use(express.json());
@@ -84,7 +88,9 @@ describe('maps routes', () => {
   it('returns 400 when origin or destination missing', async () => {
     const { app } = buildApp();
 
-    const response = await request(app).post('/api/maps/distance').send({ origin: '', destination: '' });
+    const response = await request(app)
+      .post('/api/maps/distance')
+      .send({ origin: '', destination: '' });
 
     expect(response.status).toBe(400);
     expect(response.body.message).toBe('Validation failed');

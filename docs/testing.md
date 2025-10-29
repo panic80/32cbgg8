@@ -190,7 +190,7 @@ vi.mock('axios', () => ({
 
 Organize tests logically:
 
-```jsx
+````jsx
 describe('Component name', () => {
   describe('Rendering', () => {
     // Tests for rendering behavior
@@ -246,11 +246,12 @@ curl -sS -D - -o /dev/null -H "Content-Type: application/json" \
   -w "trace=$TRACE_ID code=%{http_code} ttfb=%{time_starttransfer}s total=%{time_total}s\n" \
   https://32cbgg8.com/api/rag/api/v1/chat \
   --data '{"message":"What are the current incidental allowance rates for Quebec?","provider":"openai","use_rag":true,"include_sources":true,"use_hybrid_search":false}'
-```
+````
 
 Fix any failing endpoints (e.g., missing imports in `DocumentStore.search`) before
 capturing metrics. Record results in `docs/refactor/reports/<stage>.md` or the
 appropriate RAG document (`docs/rag/performance.md`).
+
 ```
 
 ## Testing Strategy by Component Type
@@ -288,3 +289,4 @@ Aim for:
 - 80%+ overall test coverage
 - 90%+ coverage for critical paths
 - 100% coverage for error handling logic
+```

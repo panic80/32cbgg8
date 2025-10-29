@@ -11,12 +11,7 @@ const createMapsRoutes = ({ rateLimiter, googleMapsClient, config = {} }) => {
 
   const validateDistance = validateRequest(distanceRequestSchema);
 
-  router.post(
-    '/api/maps/distance',
-    rateLimiter,
-    validateDistance,
-    controller.handleDistance,
-  );
+  router.post('/api/maps/distance', rateLimiter, validateDistance, controller.handleDistance);
 
   router.get('/api/maps/autocomplete', rateLimiter, controller.handleAutocomplete);
   router.get('/api/maps/place-details', rateLimiter, controller.handlePlaceDetails);

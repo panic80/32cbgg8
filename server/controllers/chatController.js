@@ -128,9 +128,7 @@ export const createChatController = ({
             });
           }
           responseText = await openaiClient.chat.completions
-            .create(
-              buildOpenAIParams(effectiveModel, [{ role: 'user', content: message.trim() }]),
-            )
+            .create(buildOpenAIParams(effectiveModel, [{ role: 'user', content: message.trim() }]))
             .then((completion) => completion.choices[0].message.content);
           break;
         }
@@ -216,8 +214,15 @@ export const createChatController = ({
   };
 
   const handleRagChat = async (req, res) => {
-    const { message, model, provider, chatHistory, conversationId, useRAG = true, audience } =
-      req.body;
+    const {
+      message,
+      model,
+      provider,
+      chatHistory,
+      conversationId,
+      useRAG = true,
+      audience,
+    } = req.body;
 
     const isTripPlannerMessage = message?.startsWith('📋 **Trip Plan Request**');
     const forcedModel = 'gpt-4.1-mini';

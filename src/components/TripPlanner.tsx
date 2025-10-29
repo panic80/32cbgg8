@@ -38,9 +38,7 @@ interface TripPlannerProps {
 }
 
 const generateMealSummary = (mealEntries: MealEntitlementDay[]) =>
-  mealEntries
-    .map((entry) => `${entry.dayLabel}: ${entry.meals.join(', ')}`)
-    .join('; ');
+  mealEntries.map((entry) => `${entry.dayLabel}: ${entry.meals.join(', ')}`).join('; ');
 
 const TripSummary = ({
   tripData,
@@ -147,7 +145,9 @@ export const TripPlanner = ({ onSubmit, open: controlledOpen, onOpenChange }: Tr
               <Label htmlFor="transportMethod">Transport Method</Label>
               <Select
                 value={tripData.transportMethod}
-                onValueChange={(value) => updateTripData('transportMethod', value as TripData['transportMethod'])}
+                onValueChange={(value) =>
+                  updateTripData('transportMethod', value as TripData['transportMethod'])
+                }
               >
                 <SelectTrigger id="transportMethod">
                   <SelectValue placeholder="Select transport method" />
@@ -175,7 +175,9 @@ export const TripPlanner = ({ onSubmit, open: controlledOpen, onOpenChange }: Tr
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {tripData.departureDate ? tripData.departureDate.toDateString() : 'Select date'}
+                      {tripData.departureDate
+                        ? tripData.departureDate.toDateString()
+                        : 'Select date'}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="p-0" align="start">

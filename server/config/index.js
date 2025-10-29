@@ -65,10 +65,7 @@ export const createGatewayConfig = (overrides = {}) => {
 
     cacheEnabled: toBoolean(ENABLE_CACHE, false),
     cacheTTL: getEnvNumber('CACHE_TTL', DEFAULT_CACHE_TTL_MS),
-    cacheCleanupInterval: getEnvNumber(
-      'CACHE_CLEANUP_INTERVAL',
-      DEFAULT_CACHE_CLEANUP_INTERVAL_MS,
-    ),
+    cacheCleanupInterval: getEnvNumber('CACHE_CLEANUP_INTERVAL', DEFAULT_CACHE_CLEANUP_INTERVAL_MS),
 
     rateLimitEnabled: toBoolean(ENABLE_RATE_LIMIT, false),
     rateLimitMax: getEnvNumber('RATE_LIMIT_MAX', DEFAULT_RATE_LIMIT_MAX),
@@ -92,27 +89,12 @@ export const createGatewayConfig = (overrides = {}) => {
       CANADA_CA_URL ||
       'https://www.canada.ca/en/department-national-defence/services/benefits-military/pay-pension-benefits/benefits/canadian-forces-temporary-duty-travel-instructions.html',
 
-    healthCheckTimeout: getEnvNumber(
-      'HEALTH_CHECK_TIMEOUT_MS',
-      DEFAULT_HEALTH_CHECK_TIMEOUT_MS,
-    ),
-    performanceTimeout: getEnvNumber(
-      'PERFORMANCE_TIMEOUT_MS',
-      DEFAULT_PERFORMANCE_TIMEOUT_MS,
-    ),
-    performanceCacheMs: getEnvNumber(
-      'PERFORMANCE_CACHE_MS',
-      DEFAULT_PERFORMANCE_CACHE_MS,
-    ),
+    healthCheckTimeout: getEnvNumber('HEALTH_CHECK_TIMEOUT_MS', DEFAULT_HEALTH_CHECK_TIMEOUT_MS),
+    performanceTimeout: getEnvNumber('PERFORMANCE_TIMEOUT_MS', DEFAULT_PERFORMANCE_TIMEOUT_MS),
+    performanceCacheMs: getEnvNumber('PERFORMANCE_CACHE_MS', DEFAULT_PERFORMANCE_CACHE_MS),
     sourcesTimeout: getEnvNumber('SOURCES_TIMEOUT_MS', DEFAULT_SOURCES_TIMEOUT_MS),
-    sourcesStatsTimeout: getEnvNumber(
-      'SOURCES_STATS_TIMEOUT_MS',
-      DEFAULT_SOURCES_STATS_TIMEOUT_MS,
-    ),
-    ragStreamTimeout: getEnvNumber(
-      'RAG_STREAM_TIMEOUT_MS',
-      DEFAULT_RAG_STREAM_TIMEOUT_MS,
-    ),
+    sourcesStatsTimeout: getEnvNumber('SOURCES_STATS_TIMEOUT_MS', DEFAULT_SOURCES_STATS_TIMEOUT_MS),
+    ragStreamTimeout: getEnvNumber('RAG_STREAM_TIMEOUT_MS', DEFAULT_RAG_STREAM_TIMEOUT_MS),
   };
 
   return {
@@ -120,4 +102,3 @@ export const createGatewayConfig = (overrides = {}) => {
     ...overrides,
   };
 };
-

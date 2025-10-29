@@ -6,15 +6,15 @@ infrastructure footprint changes.
 
 ## Host Summary
 
-| Item | Value |
-| --- | --- |
-| Provider | Hostinger VPS |
-| Hostname / IP | `46.202.177.230` |
-| Domain | `32cbgg8.com` (`www` CNAME) |
-| OS | Ubuntu 24.04.2 LTS |
-| CPU | AMD EPYC 9354P (2 vCPU assigned) |
-| RAM | 8 GB |
-| Storage | 96 GB (≈83 GB free) |
+| Item          | Value                            |
+| ------------- | -------------------------------- |
+| Provider      | Hostinger VPS                    |
+| Hostname / IP | `46.202.177.230`                 |
+| Domain        | `32cbgg8.com` (`www` CNAME)      |
+| OS            | Ubuntu 24.04.2 LTS               |
+| CPU           | AMD EPYC 9354P (2 vCPU assigned) |
+| RAM           | 8 GB                             |
+| Storage       | 96 GB (≈83 GB free)              |
 
 ## Installed Software
 
@@ -30,28 +30,28 @@ infrastructure footprint changes.
 
 ## Application Layout
 
-| Path | Purpose |
-| --- | --- |
-| `/var/www/cbthis` | Application root |
-| `/var/www/cbthis/dist` | Built Vite assets |
-| `/var/www/cbthis/ecosystem.config.cjs` | PM2 configuration |
-| `/var/www/cbthis/rag-service` | FastAPI service |
-| `/var/www/cbthis/rag-service/venv` | Python virtualenv |
-| `/var/www/cbthis/rag-service/chroma_db` | Vector store artifacts |
-| `/etc/cbthis/env` | Express/gateway environment file |
-| `/etc/cbthis/rag-env` | RAG env overrides |
-| `/etc/nginx/sites-available/cbthis` | Nginx site config |
-| `/var/log/cbthis` | Application log directory (if enabled) |
-| `/var/backups/cbthis` | Optional backup root |
+| Path                                    | Purpose                                |
+| --------------------------------------- | -------------------------------------- |
+| `/var/www/cbthis`                       | Application root                       |
+| `/var/www/cbthis/dist`                  | Built Vite assets                      |
+| `/var/www/cbthis/ecosystem.config.cjs`  | PM2 configuration                      |
+| `/var/www/cbthis/rag-service`           | FastAPI service                        |
+| `/var/www/cbthis/rag-service/venv`      | Python virtualenv                      |
+| `/var/www/cbthis/rag-service/chroma_db` | Vector store artifacts                 |
+| `/etc/cbthis/env`                       | Express/gateway environment file       |
+| `/etc/cbthis/rag-env`                   | RAG env overrides                      |
+| `/etc/nginx/sites-available/cbthis`     | Nginx site config                      |
+| `/var/log/cbthis`                       | Application log directory (if enabled) |
+| `/var/backups/cbthis`                   | Optional backup root                   |
 
 ## Services & Ports
 
-| Service | Port | Manager |
-| --- | --- | --- |
-| Express gateway | `3000` (internal) | PM2 (`cf-travel-bot`) |
-| RAG FastAPI | `8000` (internal) | systemd (`rag-service.service`) |
-| Redis | `6379` | systemd (`redis-server`) |
-| Nginx | `80`/`443` | systemd (`nginx`) |
+| Service         | Port              | Manager                         |
+| --------------- | ----------------- | ------------------------------- |
+| Express gateway | `3000` (internal) | PM2 (`cf-travel-bot`)           |
+| RAG FastAPI     | `8000` (internal) | systemd (`rag-service.service`) |
+| Redis           | `6379`            | systemd (`redis-server`)        |
+| Nginx           | `80`/`443`        | systemd (`nginx`)               |
 
 ## Authentication & Access
 
@@ -63,12 +63,12 @@ infrastructure footprint changes.
 
 ## Resource Allocation Guidelines
 
-| Component | CPU | Memory | Notes |
-| --- | --- | --- | --- |
-| Node.js PM2 cluster | ≤50 % | 2–3 GB | 2 instances recommended |
-| RAG workers (uvicorn) | ≤30 % | 2 GB | adjust workers per CPU |
-| Redis | ≤10 % | 1 GB | enforce `maxmemory` |
-| System buffer | ≤10 % | Remaining | keep headroom for spikes |
+| Component             | CPU   | Memory    | Notes                    |
+| --------------------- | ----- | --------- | ------------------------ |
+| Node.js PM2 cluster   | ≤50 % | 2–3 GB    | 2 instances recommended  |
+| RAG workers (uvicorn) | ≤30 % | 2 GB      | adjust workers per CPU   |
+| Redis                 | ≤10 % | 1 GB      | enforce `maxmemory`      |
+| System buffer         | ≤10 % | Remaining | keep headroom for spikes |
 
 Review actual consumption via `pm2 monit`, `htop`, and system metrics after each
 release.

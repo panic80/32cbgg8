@@ -647,8 +647,7 @@ class ChatLogger {
 
 const chatLogger = new ChatLogger();
 
-export const getLogger = (scope) =>
-  chatLogger.child(scope ? { scope } : {});
+export const getLogger = (scope) => chatLogger.child(scope ? { scope } : {});
 
 export const rootLogger = chatLogger.child({ scope: 'server' });
 

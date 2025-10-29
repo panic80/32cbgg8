@@ -16,15 +16,15 @@ single reference for deploying the CF Travel Bot stack to the production VPS
 
 ## Prerequisites
 
-| Requirement | Notes |
-| --- | --- |
-| SSH access | `ssh root@46.202.177.230` or privileged `deploy` user |
-| Node.js | v20.x installed on the VPS (`node --version`) |
-| Python | 3.12 with virtualenv support |
-| Redis | `redis-server` service enabled and running |
-| PM2 | Globally installed (`pm2 -v`) and boot-enabled (`pm2 startup && pm2 save`) |
-| SSL | Let’s Encrypt configured for `32cbgg8.com` (managed via `certbot`) |
-| Env files | `/etc/cbthis/env` and `/etc/cbthis/rag-env` up to date with current secrets |
+| Requirement | Notes                                                                       |
+| ----------- | --------------------------------------------------------------------------- |
+| SSH access  | `ssh root@46.202.177.230` or privileged `deploy` user                       |
+| Node.js     | v20.x installed on the VPS (`node --version`)                               |
+| Python      | 3.12 with virtualenv support                                                |
+| Redis       | `redis-server` service enabled and running                                  |
+| PM2         | Globally installed (`pm2 -v`) and boot-enabled (`pm2 startup && pm2 save`)  |
+| SSL         | Let’s Encrypt configured for `32cbgg8.com` (managed via `certbot`)          |
+| Env files   | `/etc/cbthis/env` and `/etc/cbthis/rag-env` up to date with current secrets |
 
 ## High-Level Flow
 
@@ -179,11 +179,11 @@ tail -f /var/log/nginx/32cbgg8.com.access.log
 
 Target latency (from LangGraph rollout notes):
 
-| Scenario | Expected Latency |
-| --- | --- |
-| High-quality query | Base + 100‑200 ms |
-| 1 refinement cycle | Base + 3‑5 s |
-| 2 refinement cycles | Base + 6‑10 s |
+| Scenario            | Expected Latency  |
+| ------------------- | ----------------- |
+| High-quality query  | Base + 100‑200 ms |
+| 1 refinement cycle  | Base + 3‑5 s      |
+| 2 refinement cycles | Base + 6‑10 s     |
 
 Alert thresholds and dashboards are documented in `docs/performance-dashboard.md`.
 

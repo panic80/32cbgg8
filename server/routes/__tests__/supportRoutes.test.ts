@@ -3,11 +3,7 @@ import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import createSupportRoutes from '../support.js';
 
-const buildApp = ({
-  geminiClient,
-  cache,
-  httpClient,
-} = {}) => {
+const buildApp = ({ geminiClient, cache, httpClient } = {}) => {
   const app = express();
   app.use(express.json());
 
@@ -55,13 +51,11 @@ describe('support routes', () => {
   it('returns fallback follow-up questions when provider unavailable', async () => {
     const { app } = buildApp();
 
-    const response = await request(app)
-      .post('/api/v2/followup')
-      .send({
-        userQuestion: 'What should I do?',
-        aiResponse: 'You can explore options.',
-        provider: 'openai',
-      });
+    const response = await request(app).post('/api/v2/followup').send({
+      userQuestion: 'What should I do?',
+      aiResponse: 'You can explore options.',
+      provider: 'openai',
+    });
 
     expect(response.status).toBe(200);
     expect(response.body.followUpQuestions).toHaveLength(2);

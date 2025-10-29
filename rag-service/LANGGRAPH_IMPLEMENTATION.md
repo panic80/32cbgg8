@@ -9,12 +9,14 @@ This document describes the implementation of LangGraph-based stateful retrieval
 ### 1. Core Features
 
 #### Persistence with Redis Checkpointing
+
 - Custom `RedisCheckpointer` class for state persistence
 - Stores retrieval state in Redis with configurable TTL (default: 1 hour)
 - Enables conversation continuity across requests
 - Provides audit trail for debugging and compliance
 
 #### Iterative Refinement Cycles
+
 - Automatic retry logic when retrieval quality is low (avg relevance < 0.4)
 - Maximum 2 iterations to prevent excessive latency
 - Query reformulation strategies:
@@ -72,12 +74,14 @@ stateful_retrieval_session_ttl: int = 3600  # 1 hour
 ### 5. Key Files Modified/Created
 
 **New Files:**
+
 - `rag-service/app/pipelines/stateful_retrieval.py` (450+ lines)
   - `RetrievalState` TypedDict
   - `RedisCheckpointer` class
   - `StatefulRetrievalPipeline` class with StateGraph workflow
 
 **Modified Files:**
+
 - `rag-service/requirements.txt` - Added `langgraph==0.2.38`
 - `rag-service/app/core/config.py` - Added configuration settings
 - `rag-service/app/pipelines/parallel_retrieval.py` - Added stateful wrapper option in factory
@@ -99,12 +103,12 @@ Tracked via `PerformanceMonitor`:
 
 ### Expected Latency
 
-| Scenario | Added Latency | Trigger Rate |
-|----------|---------------|--------------|
-| No cycles (high quality) | +100-200ms | ~85% |
-| 1 cycle (expansion) | +3-5 seconds | ~12% |
-| 2 cycles (simplification) | +6-10 seconds | ~3% |
-| **Average** | **~300-400ms** | - |
+| Scenario                  | Added Latency  | Trigger Rate |
+| ------------------------- | -------------- | ------------ |
+| No cycles (high quality)  | +100-200ms     | ~85%         |
+| 1 cycle (expansion)       | +3-5 seconds   | ~12%         |
+| 2 cycles (simplification) | +6-10 seconds  | ~3%          |
+| **Average**               | **~300-400ms** | -            |
 
 ### Latency Breakdown
 
@@ -139,6 +143,7 @@ results = await pipeline.retrieve(
 ### Session ID Format
 
 Thread IDs for Redis persistence follow the format:
+
 ```
 {session_id}:{query_hash[:8]}
 ```
@@ -159,11 +164,13 @@ RAG_ENABLE_STATEFUL_RETRIEVAL=false
 ### Graceful Degradation
 
 If Redis is unavailable:
+
 - Falls back to `MemorySaver` (in-memory checkpointing)
 - Session persistence disabled but cycles still work
 - No impact on core functionality
 
 If stateful pipeline fails:
+
 - Catches exception and falls back to `ParallelRetrievalPipeline`
 - Logs error for monitoring
 - User receives standard retrieval results
@@ -187,6 +194,7 @@ If stateful pipeline fails:
 ### Monitoring
 
 Check logs for:
+
 ```
 INFO: Quality assessment: avg_relevance=0.32, threshold=0.40, quality=needs_refinement
 INFO: Refined query using expansion: 'meal rate allowances amounts values'
@@ -194,6 +202,7 @@ INFO: Finalized retrieval: 15 documents, avg_relevance=0.67, iterations=2
 ```
 
 Check Redis for checkpoints:
+
 ```bash
 redis-cli KEYS "langgraph:checkpoint:*"
 ```
@@ -221,6 +230,7 @@ redis-cli KEYS "langgraph:checkpoint:*"
 ### High Latency
 
 If average latency > 500ms:
+
 - Check `retrieval_iterations_count` histogram
 - If many queries require 2+ iterations, lower `relevance_threshold` to 0.3
 - Check if reranker is causing bottleneck
@@ -228,12 +238,14 @@ If average latency > 500ms:
 ### Low Refinement Trigger Rate
 
 If < 5% of queries trigger refinement:
+
 - Raise `relevance_threshold` to 0.5 or 0.6
 - Check if reranker scores are too optimistic
 
 ### Redis Memory Issues
 
 If Redis memory grows too large:
+
 - Reduce `stateful_retrieval_session_ttl` from 3600 to 1800 (30 min)
 - Enable Redis eviction policy: `maxmemory-policy allkeys-lru`
 
@@ -242,4 +254,3 @@ If Redis memory grows too large:
 - LangGraph Documentation: https://langchain-ai.github.io/langgraph/
 - Implementation Plan: `/add-langgraph-persistence-cycles.plan.md`
 - Performance Dashboard: `/docs/performance-dashboard.md`
-

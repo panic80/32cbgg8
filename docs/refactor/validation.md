@@ -4,14 +4,14 @@ Every stage in `staged-plan.md` must clear the commands below before merging int
 
 ## Core Commands
 
-| Command | Purpose | When to Run | Expected Output |
-| --- | --- | --- | --- |
-| `npm run lint` | Ensure ESLint/Prettier pass across client + server. | Before Stage 1 merges, thereafter each stage. | Exit code `0`; no warnings that gate commits. |
-| `npm run test:coverage` | Verify Vitest suite and coverage thresholds. | Each stage touching React client. | Coverage ≥ configured thresholds. |
-| `npm run build` | Confirm Vite build integrity and bundle metrics. | After React surface changes (Stage 1) and before final rollout (Stage 5). | Build succeeds; capture bundle stats for metrics. |
-| `npm run dev:server -- --check` | Smoke Express gateway without starting long-lived server (use script wrapper). | Stage 2 onwards. | App boots, exits cleanly (no uncaught errors). |
-| `npm run test:server` (Supertest placeholder) | Run future Express integration tests. | Stage 2+ once suite exists. | All tests pass. |
-| `pytest` | Run RAG unit/integration tests. | Stage 3+ and final validation. | All tests pass; coverage reported separately if configured. |
+| Command                                       | Purpose                                                                        | When to Run                                                               | Expected Output                                             |
+| --------------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `npm run lint`                                | Ensure ESLint/Prettier pass across client + server.                            | Before Stage 1 merges, thereafter each stage.                             | Exit code `0`; no warnings that gate commits.               |
+| `npm run test:coverage`                       | Verify Vitest suite and coverage thresholds.                                   | Each stage touching React client.                                         | Coverage ≥ configured thresholds.                           |
+| `npm run build`                               | Confirm Vite build integrity and bundle metrics.                               | After React surface changes (Stage 1) and before final rollout (Stage 5). | Build succeeds; capture bundle stats for metrics.           |
+| `npm run dev:server -- --check`               | Smoke Express gateway without starting long-lived server (use script wrapper). | Stage 2 onwards.                                                          | App boots, exits cleanly (no uncaught errors).              |
+| `npm run test:server` (Supertest placeholder) | Run future Express integration tests.                                          | Stage 2+ once suite exists.                                               | All tests pass.                                             |
+| `pytest`                                      | Run RAG unit/integration tests.                                                | Stage 3+ and final validation.                                            | All tests pass; coverage reported separately if configured. |
 
 ## Supplemental Checks
 

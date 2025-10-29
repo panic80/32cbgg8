@@ -41,37 +41,46 @@ All capabilities previously implemented only in the synchronous handler are port
 
 The streaming path will inherit these features that were only present or richer in the sync handler:
 
-1) Advanced L3 Response Cache (read + metrics + write‑through)
+1. Advanced L3 Response Cache (read + metrics + write‑through)
+
 - Pre‑check L3 cache using (`AdvancedCacheService.get_response`) based on `query` + `context_hash` + `model`.
 - On hit: record metrics (`record_cache_hit('l3', True)`), emit `metadata`, optional `sources`, a single `token` with the cached body (or chunk deterministically), then `complete`.
 - On miss: record miss (`record_cache_hit('l3', False)`), proceed normally; after completion, write‑through (`set_response`) with the computed context hash.
 
-2) Stateful Retrieval Pipeline and Cache‑Key Parity
+2. Stateful Retrieval Pipeline and Cache‑Key Parity
+
 - Use the same cache key shape for the retrieval pipeline (hybrid/unified/provider/model) as sync to maximize reuse.
 - Pass through `enable_stateful_retrieval` and `redis_client` from `app.state` to `create_parallel_pipeline` so streaming benefits from stateful retrieval when enabled.
 
-3) No‑Context Fallback Prompting
+3. No‑Context Fallback Prompting
+
 - If `use_rag` is true and retrieval returns no documents, inject the sync’s explicit “no documentation found” prompt so the model clearly informs the user rather than hallucinating.
 
-4) Prompt Unification and Short‑Answer Mode
+4. Prompt Unification and Short‑Answer Mode
+
 - Promote the sync base system prompt (stricter constraints: don’t invent rates; include restrictions; preserve tables) to `prompt_constants` and reuse in streaming.
 - Keep `SHORT_ANSWER_PROMPT` and apply when `chat_request.short_answer_mode` is set.
 - Preserve trip‑plan instruction: do not show a summary table up front; present details then summary at end.
 
-5) Include‑Sources Semantics
+5. Include‑Sources Semantics
+
 - Gate the SSE `sources` event on `chat_request.include_sources` so streaming matches sync’s response semantics.
 
-6) Glossary Finalization Pass (GMT)
+6. Glossary Finalization Pass (GMT)
+
 - If the query suggests GMT and a glossary block is injected but the model output omits the key wording, emit a final clarification token before `complete` to ensure the definition is visible in the streamed answer.
 
-7) Source Auditing + Richer Query Logs
+7. Source Auditing + Richer Query Logs
+
 - Persist source usage for auditing via `source_repository.record_query_sources`.
 - Extend streaming’s query logging metadata to include `source_ids` and parity fields used by sync (temperature, max_tokens, include_sources, counts, timings, token usage).
 
-8) Telemetry Parity
+8. Telemetry Parity
+
 - Ensure the same metric keys are emitted for latency buckets and counters, including: `total_requests`, `streaming_requests`, `search_latency_ms`, `context_build_latency_ms`, `first_token_latency_ms`, `answer_generation_latency_ms`, `llm_latency_ms`, `total_request_latency_ms`, token usage, cache hit/miss.
 
-9) Model Knobs Parity (OpenAI)
+9. Model Knobs Parity (OpenAI)
+
 - Apply `reasoning.effort` and `reasoning.verbosity` on O‑series models, and `max_tokens` when provided, mirroring sync handling.
 
 ## API Surface and Event Contract
@@ -85,45 +94,55 @@ The streaming path will inherit these features that were only present or richer 
 
 ## Implementation Plan (Steps)
 
-1) Centralize Prompts and Utilities
+1. Centralize Prompts and Utilities
+
 - Move the stricter sync system prompt to `app/api/prompt_constants.py` and import it in streaming.
 - Extract `_coerce_to_text`, `_extract_chunk_text`, `_extract_token_usage_from_chunk` to `app/utils/streaming_utils.py`.
 - Extract `_build_history_messages` to `app/utils/message_utils.py`.
 
-2) Add AdvancedCache to Streaming
+2. Add AdvancedCache to Streaming
+
 - Acquire `cache_service` from `request.app.state`; wrap as `AdvancedCacheService`.
 - Compute `context_hash` after retrieval using `create_context_hash(query, documents, model)`.
 - Pre‑check L3 cache before optimization/retrieval; if hit, stream cached result and short‑circuit.
 - After completion, write‑through L3 response and record cache metrics.
 
-3) Unify Retrieval Pipeline
+3. Unify Retrieval Pipeline
+
 - Reuse the same pipeline cache key shape and building logic: hybrid config, smart‑model vector settings, unified retrieval flag.
 - Pass `enable_stateful_retrieval` and `redis_client` to `create_parallel_pipeline`.
 
-4) No‑Context Fallback + Trip‑Plan Instruction
+4. No‑Context Fallback + Trip‑Plan Instruction
+
 - If `use_rag` and no results: build the explicit fallback prompt (from sync) before generation.
 - Ensure trip‑plan instruction is present in the context prompt for streaming.
 
-5) Include‑Sources Gating
+5. Include‑Sources Gating
+
 - Conditionally emit the `sources` SSE event only if `chat_request.include_sources` is true.
 
-6) Glossary Finalization
+6. Glossary Finalization
+
 - Preserve streaming‑time glossary injection.
 - After streaming all tokens, append a final clarification token if the wording is missing.
 
-7) Query Logging and Auditing
+7. Query Logging and Auditing
+
 - Log success/failure with parity fields and `source_ids`.
 - Call `source_repository.record_query_sources(query_id, sources)` on success when sources exist.
 
-8) Deprecate Sync
+8. Deprecate Sync
+
 - Change `/chat` implementation to return HTTP 410 Gone with a JSON payload pointing to `/chat/stream`.
 - Add deprecation note in docs (README, API docs, and changelog).
 
-9) Tests
+9. Tests
+
 - Unit tests: prompt builder, retrieval builder (keys and flags), glossary injection, cache adapter (hit/miss/write‑through), event gating for `include_sources`.
 - Integration tests: full SSE sequence (success), cache‑hit stream, RAG empty (no‑context prompt), abort mid‑stream, error path.
 
-10) Rollout
+10. Rollout
+
 - Ship behind a short‑lived feature flag if needed; shadow test in staging.
 - Monitor metrics and logs for parity; then remove old sync logic after soak.
 
@@ -164,4 +183,3 @@ The streaming path will inherit these features that were only present or richer 
 - [ ] Extend query logging metadata; add source auditing call.
 - [ ] Deprecate `/chat` with 410 Gone.
 - [ ] Update docs (README/CHANGELOG) and add tests.
-

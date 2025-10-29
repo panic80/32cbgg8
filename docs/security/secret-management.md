@@ -5,11 +5,11 @@ credentials for the CF Travel Bot stack.
 
 ## Storage Locations
 
-| Component | Path | Notes |
-| --- | --- | --- |
-| Express / gateway | `/etc/cbthis/env` | Node/Express secrets (LLM keys, Redis password, feature flags) |
-| RAG service | `/etc/cbthis/rag-env` | FastAPI secrets (LLM keys, `ADMIN_API_TOKEN`, `RAG_ENCRYPTION_KEY`) |
-| Optional keyfile | `/etc/cbthis/rag-encryption.key` | Store Fernet key on disk if not using env var |
+| Component         | Path                             | Notes                                                               |
+| ----------------- | -------------------------------- | ------------------------------------------------------------------- |
+| Express / gateway | `/etc/cbthis/env`                | Node/Express secrets (LLM keys, Redis password, feature flags)      |
+| RAG service       | `/etc/cbthis/rag-env`            | FastAPI secrets (LLM keys, `ADMIN_API_TOKEN`, `RAG_ENCRYPTION_KEY`) |
+| Optional keyfile  | `/etc/cbthis/rag-encryption.key` | Store Fernet key on disk if not using env var                       |
 
 Set permissions to `600` and ensure files are owned by `root` (or the dedicated
 deploy user if required). Never keep secrets in the repo or developer machines

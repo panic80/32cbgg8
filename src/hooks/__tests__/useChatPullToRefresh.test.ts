@@ -38,7 +38,9 @@ describe('useChatPullToRefresh', () => {
     const ref = { current: container };
     const onTrigger = vi.fn();
 
-    const { result } = renderHook(() => useChatPullToRefresh(ref, { triggerOffset: 50, onTrigger }));
+    const { result } = renderHook(() =>
+      useChatPullToRefresh(ref, { triggerOffset: 50, onTrigger }),
+    );
 
     act(() => {
       result.current.handleTouchStart(createTouchEvent(100));

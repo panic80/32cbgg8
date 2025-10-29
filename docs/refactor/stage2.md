@@ -4,60 +4,60 @@ The goal for Stage 2 is to complete the separation of concerns inside the Expres
 
 ## Objectives
 
-1. **Controller/Service Split**  
-   - Extract request handling logic from `server/routes/*.js` into controller modules under `server/controllers/`.  
-   - Move shared domain logic (e.g., RAG chat orchestration, ingestion flows) into services under `server/services/`.  
+1. **Controller/Service Split**
+   - Extract request handling logic from `server/routes/*.js` into controller modules under `server/controllers/`.
+   - Move shared domain logic (e.g., RAG chat orchestration, ingestion flows) into services under `server/services/`.
    - Ensure routes become thin delegators that perform validation, compose dependencies, and forward to controllers.
    - ✅ Chat, support, ingestion, and maps endpoints now delegate through `server/controllers/*`, leaving route files focused on validation and middleware wiring.
 
-2. **Validation & Configuration**  
-   - Introduce schema validation middleware (zod/joi/yup) so every POST/PATCH endpoint checks payload shape up front.  
+2. **Validation & Configuration**
+   - Introduce schema validation middleware (zod/joi/yup) so every POST/PATCH endpoint checks payload shape up front.
    - Consolidate environment-derived configuration in `server/config/` (timeouts, upstream URLs, feature flags) and inject into routes/controllers.
    - ✅ Gateway config now surfaces typed ingestion + maps timeouts (`config.ingestTimeout`, `config.mapsTimeout`, etc.) and is injected into controllers rather than read ad hoc from `process.env`.
 
-3. **Streaming & Error Handling**  
-   - Expand `server/services/streaming.js` into a reusable SSE toolkit (lifecycle hooks, heartbeat, structured logging).  
-   - ✅ Heartbeat, idle-timeout safeguards, and structured stream logging landed in `server/services/streaming.js` with supporting unit tests (`server/services/__tests__/streaming.test.ts`).  
+3. **Streaming & Error Handling**
+   - Expand `server/services/streaming.js` into a reusable SSE toolkit (lifecycle hooks, heartbeat, structured logging).
+   - ✅ Heartbeat, idle-timeout safeguards, and structured stream logging landed in `server/services/streaming.js` with supporting unit tests (`server/services/__tests__/streaming.test.ts`).
    - Standardize error responses (HTTP codes + `{ error, message, traceId }`) and ensure retries/timeouts are consistent across chat endpoints.
 
-4. **Observability & Logging**  
-   - Replace `console.*` calls with structured logging via `server/services/logger.js`.  
-   - ✅ Gateway routes (ingestion, maps, realtime, admin, performance, sources) now rely on the structured logger and shared error helper.  
-   - Add request-scoped metadata (route name, conversationId) to streaming logs and ingestion actions.  
+4. **Observability & Logging**
+   - Replace `console.*` calls with structured logging via `server/services/logger.js`.
+   - ✅ Gateway routes (ingestion, maps, realtime, admin, performance, sources) now rely on the structured logger and shared error helper.
+   - Add request-scoped metadata (route name, conversationId) to streaming logs and ingestion actions.
    - Document logging expectations in `docs/DEPLOYMENT.md`.
    - ✅ Cache service now consumes the gateway config (TTL, Redis toggle) and logs through the shared logger, keeping a single Redis client instance.
 
-5. **Testing & Guardrails**  
-   - Grow the Supertest suite to cover chat, ingestion, maps, analytics, and support routes (happy path + failure scenarios).  
-   - ✅ Added focused Vitest coverage for streaming utilities and stabilized route suites (support, ingestion, maps, analytics, chat).  
-   - Ensure Vitest runs in CI with environment mocks for third-party clients; add fixtures for SSE metadata.  
+5. **Testing & Guardrails**
+   - Grow the Supertest suite to cover chat, ingestion, maps, analytics, and support routes (happy path + failure scenarios).
+   - ✅ Added focused Vitest coverage for streaming utilities and stabilized route suites (support, ingestion, maps, analytics, chat).
+   - Ensure Vitest runs in CI with environment mocks for third-party clients; add fixtures for SSE metadata.
    - Add contract tests verifying proxying to the RAG service with mocked axios responses.
    - ✅ Introduced `scripts/verify-gateway.sh` for post-deploy health and SSE checks.
 
 ## Sequencing
 
-1. **Prep (Current step)**  
-   - Create Supertest scaffolding per route group.  
-   - Mock external clients (OpenAI, Anthropic, Gemini, axios) in a central test utility.  
+1. **Prep (Current step)**
+   - Create Supertest scaffolding per route group.
+   - Mock external clients (OpenAI, Anthropic, Gemini, axios) in a central test utility.
    - Document refactor plan (this file) and link from `docs/refactor/README.md`.
 
-2. **Controllers & Services**  
-   - Migrate chat routes first (highest complexity), followed by ingestion, support, and maps.  
-   - Remove duplicated helper logic (e.g., SSE parsing) while migrating.  
+2. **Controllers & Services**
+   - Migrate chat routes first (highest complexity), followed by ingestion, support, and maps.
+   - Remove duplicated helper logic (e.g., SSE parsing) while migrating.
    - Add unit tests for new controllers/services.
 
-3. **Validation & Config Hardening**  
-   - Introduce shared validators; retrofit chat + ingestion payloads.  
-   - Update tests to ensure 400 responses when validation fails.  
+3. **Validation & Config Hardening**
+   - Introduce shared validators; retrofit chat + ingestion payloads.
+   - Update tests to ensure 400 responses when validation fails.
    - Extend `server/config/index.js` to supply typed config objects to controllers.
 
-4. **Streaming Enhancements & Logging**  
-   - Extend `pipeStreamingResponse` with heartbeat/timeout support and structured logging hooks.  
+4. **Streaming Enhancements & Logging**
+   - Extend `pipeStreamingResponse` with heartbeat/timeout support and structured logging hooks.
    - Standardize error handling for all streaming and proxy routes.
 
-5. **Regression Sweep & Docs**  
-   - Run full validation suite (`npm run test:coverage`, `npm run build`, Supertest suite).  
-   - Update deployment/testing docs with new commands or environment flags.  
+5. **Regression Sweep & Docs**
+   - Run full validation suite (`npm run test:coverage`, `npm run build`, Supertest suite).
+   - Update deployment/testing docs with new commands or environment flags.
    - Capture Stage 2 outcomes in `docs/refactor/reports/stage2.md`.
 
 ## Exit Criteria
