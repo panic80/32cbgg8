@@ -101,9 +101,9 @@ describe('TripPlanner', () => {
     const plan = generateTripPlanMessage(tripData, distanceData);
 
     expect(plan).toContain('💵 **Estimated Costs:**');
-    expect(plan).toContain('Incidentals (3 days): CA$51.90');
+    expect(plan).toContain('Incidentals (3 days): $51.90');
     expect(plan).toContain(
-      'Use RAG to retrieve the current private-vehicle kilometric rate covering travel between CFB Toronto, Toronto, ON → CFB Ottawa, Ottawa, ON (Ontario). Apply it to 450 km to estimate mileage cost.',
+      'Use RAG to retrieve the current private-vehicle kilometric rate covering travel between CFB Toronto, Toronto, ON → CFB Ottawa, Ottawa, ON (Ontario). Apply it to 900 km to estimate mileage cost.',
     );
     expect(plan).toContain(
       '**Please combine the RAG-derived kilometric mileage cost with the incidentals above to present the total trip estimate.**',

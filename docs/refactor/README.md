@@ -13,7 +13,7 @@ This directory captures working artifacts for the staged refactor described in `
 | Stage | Focus | Owner(s) | Target Window | Status | Notes |
 | --- | --- | --- | --- | --- | --- |
 | 0 | Initiative setup & guardrails | _TBD_ | _TBD_ | 🚧 In progress | Create documentation, metrics baseline, CI gate definition. |
-| 1 | React surface consolidation | _TBD_ | _TBD_ | 🚧 In progress | Routing rework + landing page consolidation complete; trip planner split and chat orchestration cleanup pending. |
+| 1 | React surface consolidation | _TBD_ | _TBD_ | 🚧 In progress | Routing rework, landing page consolidation, and Trip Planner modularization complete; chat orchestration cleanup pending. |
 | 2 | Express gateway stabilization | _TBD_ | _TBD_ | ⏳ Planned | Controller/service split, logging, streaming dedupe. |
 | 3 | RAG service modularization | _TBD_ | _TBD_ | ⏳ Planned | Pipeline decomposition, service layer extraction. |
 | 4 | Tooling & docs enablement | _TBD_ | _TBD_ | ⏳ Planned | Lint/CI upgrades, architectural documentation. |
