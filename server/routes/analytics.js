@@ -1,10 +1,12 @@
 import { Router } from 'express';
+import { validateRequest } from '../middleware/validate.js';
+import { visitEventSchema } from './schemas/analyticsSchemas.js';
 
 const createAnalyticsRoutes = ({ rateLimiter, chatLogger }) => {
   const router = Router();
+  const validateVisit = validateRequest(visitEventSchema);
 
-  router.post('/api/analytics/visit', rateLimiter, (req, res) => {
-    console.log('Handling POST /api/analytics/visit');
+  router.post('/api/analytics/visit', rateLimiter, validateVisit, (req, res) => {
     if (process.env.ENABLE_LOGGING !== 'true') {
       return res.status(503).json({
         error: 'LoggingDisabled',
@@ -12,26 +14,16 @@ const createAnalyticsRoutes = ({ rateLimiter, chatLogger }) => {
       });
     }
 
-    const {
-      path: visitPath,
-      referrer,
-      sessionId,
-      locale,
-      title,
-      viewport,
-      metadata,
-    } = req.body || {};
-    const p = typeof visitPath === 'string' ? visitPath.trim() : '';
-    const cleanMetadata = metadata && typeof metadata === 'object' ? metadata : undefined;
+    const { path, referrer, sessionId, locale, title, viewport, metadata } = req.body;
 
     chatLogger.logVisit({
-      path: p,
-      referrer: typeof referrer === 'string' ? referrer : null,
-      sessionId: typeof sessionId === 'string' ? sessionId : null,
-      locale: typeof locale === 'string' ? locale : null,
-      title: typeof title === 'string' ? title : null,
-      viewport: typeof viewport === 'string' ? viewport : null,
-      metadata: cleanMetadata,
+      path,
+      referrer: referrer || null,
+      sessionId: sessionId || null,
+      locale: locale || null,
+      title: title || null,
+      viewport: viewport || null,
+      metadata: metadata && typeof metadata === 'object' ? metadata : undefined,
       userAgent: req.get('user-agent') || null,
     });
 
