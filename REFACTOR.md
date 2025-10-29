@@ -90,4 +90,5 @@ _Last updated: 2025-08-19_
 ## Notes & References
 
 - Previous ChatPage extraction plan (2025-08-15) lives in this file's git history; outstanding tasks are folded into **Workstream A** items above.
+- Stage-level artifacts, validation gates, and metrics live in `docs/refactor/`; see `docs/refactor/README.md` for owners and cadence.
 - Track progress using the checkboxes per workstream and update this document alongside major refactoring PRs.
