@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useReducer, useRef } from 'react';
 import type { SetStateAction } from 'react';
 import { apiClient, ApiError } from '@/api/client';
-import { getModelDisplayName } from '@/constants/models';
-import { StorageKeys } from '@/constants/storage';
+import { StorageKeys, getModelDisplayName, HISTORY_WINDOW_BY_MODEL } from '@/constants';
 import { getLocalStorageItem } from '@/utils/storage';
 import type { Message, Source, FollowUpQuestion } from '@/types/chat';
 import { formatPlainTextToMarkdown } from '../utils/formatting';
+import { mapFollowUpQuestions } from '../utils/followUps';
 
 interface UseStreamingChatOptions {
   conversationId: string | null;
@@ -102,14 +102,6 @@ const toSources = (eventSources: any[] = []): Source[] =>
     metadata: source.metadata,
   }));
 
-const toFollowUps = (messageId: string, items: any[] = []): FollowUpQuestion[] =>
-  items.map((item, index) => ({
-    id: `${messageId}-fu-${index}`,
-    question: item.question || item,
-    category: item.category || 'general',
-    icon: item.icon,
-  }));
-
 export const useStreamingChat = ({
   conversationId,
   setConversationId,
@@ -194,7 +186,8 @@ export const useStreamingChat = ({
         const userSelectedModel =
           getLocalStorageItem(StorageKeys.selectedModel) || DEFAULT_MODEL_ID;
         const selectedModel = isTripPlannerMessage ? 'gpt-5-mini' : userSelectedModel;
-        const historyLimit = selectedModel === 'gpt-5-mini' ? 4 : 10;
+        const historyLimit =
+          HISTORY_WINDOW_BY_MODEL[selectedModel] ?? HISTORY_WINDOW_BY_MODEL.default;
         const storedProvider = getLocalStorageItem(StorageKeys.selectedProvider) || 'openai';
         const selectedProvider = isTripPlannerMessage ? 'openai' : storedProvider;
 
@@ -321,7 +314,7 @@ export const useStreamingChat = ({
                     setConversationId(event.conversation_id);
                   }
                   if (event.follow_up_questions && Array.isArray(event.follow_up_questions)) {
-                    followUpQuestions = toFollowUps(messageId, event.follow_up_questions);
+                    followUpQuestions = mapFollowUpQuestions(messageId, event.follow_up_questions);
                     if (pendingMessageRef.current) {
                       pendingMessageRef.current.followUpQuestions =
                         followUpQuestions.length > 0 ? followUpQuestions : undefined;
