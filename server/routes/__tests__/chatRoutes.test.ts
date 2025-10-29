@@ -3,29 +3,35 @@ import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import createChatRoutes from '../chat.js';
 
-const buildApp = ({ geminiClient } = {}) => {
+const buildApp = ({
+  geminiClient = null,
+  openaiClient = null,
+  anthropicClient = null,
+  configOverrides = {},
+} = {}) => {
   const app = express();
   app.use(express.json());
 
   const chatLogger = { error: vi.fn(), info: vi.fn(), logChat: vi.fn() };
+  const buildOpenAIParams = vi.fn((model, messages) => ({ model, messages }));
 
   app.use(
     createChatRoutes({
       rateLimiter: (_req, _res, next) => next(),
-      config: { loggingEnabled: false },
+      config: { loggingEnabled: false, ...configOverrides },
       chatLogger,
       getRagAuthHeaders: () => ({}),
       decodeUrlParams: (body) => body,
       geminiClient,
-      openaiClient: null,
-      anthropicClient: null,
-      buildOpenAIParams: vi.fn(),
+      openaiClient,
+      anthropicClient,
+      buildOpenAIParams,
       buildSseCorsHeaders: () => ({}),
       setSseHeaders: () => {},
     }),
   );
 
-  return app;
+  return { app, buildOpenAIParams };
 };
 
 describe('/api/gemini/generateContent', () => {
@@ -34,7 +40,7 @@ describe('/api/gemini/generateContent', () => {
   });
 
   it('returns 400 when prompt is missing', async () => {
-    const app = buildApp();
+    const { app } = buildApp();
 
     const response = await request(app).post('/api/gemini/generateContent').send({});
 
@@ -43,7 +49,7 @@ describe('/api/gemini/generateContent', () => {
   });
 
   it('returns 500 when Gemini client is not configured', async () => {
-    const app = buildApp({ geminiClient: null });
+    const { app } = buildApp({ geminiClient: null });
 
     const response = await request(app)
       .post('/api/gemini/generateContent')
@@ -61,7 +67,7 @@ describe('/api/gemini/generateContent', () => {
       getGenerativeModel: vi.fn().mockReturnValue({ generateContent }),
     };
 
-    const app = buildApp({ geminiClient: mockGeminiClient });
+    const { app } = buildApp({ geminiClient: mockGeminiClient });
 
     const response = await request(app)
       .post('/api/gemini/generateContent')
@@ -71,5 +77,61 @@ describe('/api/gemini/generateContent', () => {
     expect(response.body).toEqual({ response: 'mock-gemini-response' });
     expect(mockGeminiClient.getGenerativeModel).toHaveBeenCalledWith({ model: 'gemini-2.0-flash' });
     expect(generateContent).toHaveBeenCalledWith('Hello Gemini');
+  });
+});
+describe('/api/v2/chat', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns 400 when message is missing', async () => {
+    const { app } = buildApp();
+
+    const response = await request(app).post('/api/v2/chat').send({ model: 'gpt-4.1-mini' });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toMatch(/message must be a non-empty string/i);
+  });
+
+  it('returns 500 when OpenAI client is not configured', async () => {
+    const { app } = buildApp();
+
+    const response = await request(app)
+      .post('/api/v2/chat')
+      .send({ message: 'Hello', model: 'gpt-4.1-mini', provider: 'openai' });
+
+    expect(response.status).toBe(500);
+    expect(response.body.message).toMatch(/not configured/i);
+  });
+
+  it('returns chat response from OpenAI provider when configured', async () => {
+    const createMock = vi.fn().mockResolvedValue({
+      choices: [{ message: { content: 'openai-response' } }],
+    });
+    const openaiClient = {
+      chat: {
+        completions: {
+          create: createMock,
+        },
+      },
+    };
+
+    const { app, buildOpenAIParams } = buildApp({ openaiClient });
+
+    const response = await request(app)
+      .post('/api/v2/chat')
+      .send({ message: 'Hello there ', model: 'gpt-4.1-mini', provider: 'openai' });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      response: 'openai-response',
+      sources: [],
+      conversation_id: null,
+      model: 'gpt-4.1-mini',
+    });
+    expect(buildOpenAIParams).toHaveBeenCalledWith('gpt-4.1-mini', [
+      { role: 'user', content: 'Hello there' },
+    ]);
+    expect(createMock).toHaveBeenCalled();
   });
 });

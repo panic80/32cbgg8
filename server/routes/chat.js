@@ -24,6 +24,9 @@ const createChatRoutes = ({
     chatLogger,
     getRagAuthHeaders,
     geminiClient,
+    openaiClient,
+    anthropicClient,
+    buildOpenAIParams,
     config,
   });
 
@@ -47,148 +50,7 @@ const createChatRoutes = ({
     return controller.handleRagChat(req, res);
   });
 
-  router.post('/api/v2/chat', rateLimiter, async (req, res) => {
-    const { message, model, provider } = req.body;
-
-    if (!message || typeof message !== 'string' || message.trim().length === 0) {
-      return res.status(400).json({
-        error: 'Bad Request',
-        message: 'Message must be a non-empty string.',
-      });
-    }
-
-    const isTripPlannerMessage = message?.startsWith('📋 **Trip Plan Request**');
-    // Use a non-Smart model for Trip Planner to enable full retrieval and reranking on the RAG side
-    const forcedModel = 'gpt-4.1-mini';
-    const forcedProvider = 'openai';
-    const effectiveModel = isTripPlannerMessage ? forcedModel : model;
-    const effectiveProvider = isTripPlannerMessage ? forcedProvider : provider;
-
-    if (!effectiveModel) {
-      return res.status(400).json({
-        error: 'Bad Request',
-        message: 'Model parameter is required.',
-      });
-    }
-
-    if (!effectiveProvider) {
-      return res.status(400).json({
-        error: 'Bad Request',
-        message: 'Provider parameter is required.',
-      });
-    }
-
-    try {
-      let responseText = '';
-
-      switch (effectiveProvider) {
-        case 'google':
-          if (!geminiClient) {
-            return res.status(500).json({
-              error: 'Configuration Error',
-              message: 'Google API key is not configured.',
-            });
-          }
-          responseText = await geminiClient
-            .getGenerativeModel({ model: effectiveModel })
-            .generateContent(message.trim())
-            .then((result) => result.response.text());
-          break;
-
-        case 'openai':
-          if (!openaiClient) {
-            return res.status(500).json({
-              error: 'Configuration Error',
-              message: 'OpenAI API key is not configured.',
-            });
-          }
-          responseText = await openaiClient.chat.completions
-            .create(
-              buildOpenAIParams(effectiveModel, [{ role: 'user', content: message.trim() }]),
-            )
-            .then((completion) => completion.choices[0].message.content);
-          break;
-
-        case 'anthropic':
-          if (!anthropicClient) {
-            return res.status(500).json({
-              error: 'Configuration Error',
-              message: 'Anthropic API key is not configured.',
-            });
-          }
-          responseText = await anthropicClient.messages
-            .create({
-              model: effectiveModel,
-              max_tokens: 4096,
-              messages: [{ role: 'user', content: message.trim() }],
-            })
-            .then((anthropicMessage) => anthropicMessage.content[0].text);
-          break;
-
-        default:
-          return res.status(400).json({
-            error: 'Bad Request',
-            message: `Unsupported provider: ${effectiveProvider}`,
-          });
-      }
-
-      if (config.loggingEnabled) {
-        const loggedAt = new Date().toISOString();
-        chatLogger.logChat(req, {
-          timestamp: loggedAt,
-          question: message.trim(),
-          answer: responseText,
-          model: effectiveModel,
-          provider: effectiveProvider,
-          ragEnabled: false,
-          metadata: { route: '/api/v2/chat' },
-        });
-      }
-
-      return res.json({
-        response: responseText,
-        sources: [],
-        conversation_id: null,
-        model: effectiveModel,
-      });
-    } catch (error) {
-      console.error('Error processing chat request:', error);
-
-      if (config.loggingEnabled) {
-        chatLogger.logChat(req, {
-          timestamp: new Date().toISOString(),
-          question: message.trim(),
-          answer: null,
-          model: effectiveModel,
-          provider: effectiveProvider,
-          ragEnabled: false,
-          metadata: {
-            route: '/api/v2/chat',
-            error: error instanceof Error ? error.message : 'Unknown error',
-          },
-        });
-      }
-
-      if (error.status === 429) {
-        return res.status(429).json({
-          error: 'Rate Limit Exceeded',
-          message: 'Too many requests to the AI provider. Please try again later.',
-        });
-      }
-
-      if (error.status === 401) {
-        return res.status(500).json({
-          error: 'Configuration Error',
-          message: 'Invalid API key for the selected provider.',
-        });
-      }
-
-      return res.status(500).json({
-        error: 'Internal Server Error',
-        message: 'An error occurred while processing your request.',
-      });
-    }
-  });
+  router.post('/api/v2/chat', rateLimiter, controller.handleStandardChat);
 
   router.post('/api/v2/chat/stream', rateLimiter, async (req, res) => {
     const {
