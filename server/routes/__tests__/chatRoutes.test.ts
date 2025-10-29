@@ -14,6 +14,12 @@ const buildApp = ({
 
   const chatLogger = { error: vi.fn(), info: vi.fn(), logChat: vi.fn() };
   const buildOpenAIParams = vi.fn((model, messages) => ({ model, messages }));
+  const pipeStreamingResponse = vi.fn();
+
+  const DEFAULT_RAG_STREAM_TIMEOUT_MS = 30000;
+  const getEnvNumber = () => DEFAULT_RAG_STREAM_TIMEOUT_MS;
+  const buildSseCorsHeaders = () => ({});
+  const TRAVEL_PLANNER_ADDITIONAL_INSTRUCTIONS = 'instructions';
 
   app.use(
     createChatRoutes({
@@ -26,8 +32,12 @@ const buildApp = ({
       openaiClient,
       anthropicClient,
       buildOpenAIParams,
-      buildSseCorsHeaders: () => ({}),
+      buildSseCorsHeaders,
       setSseHeaders: () => {},
+      pipeStreamingResponse,
+      getEnvNumber,
+      DEFAULT_RAG_STREAM_TIMEOUT_MS,
+      TRAVEL_PLANNER_ADDITIONAL_INSTRUCTIONS,
     }),
   );
 

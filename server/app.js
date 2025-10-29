@@ -22,6 +22,9 @@ import createAnalyticsRoutes from './routes/analytics.js';
 import { decodeUrlParams } from './utils/http.js';
 import { processContent } from './utils/html.js';
 import { setSseHeaders } from './utils/sse.js';
+import { DEFAULT_RAG_STREAM_TIMEOUT_MS, getEnvNumber } from './config/constants.js';
+import { TRAVEL_PLANNER_ADDITIONAL_INSTRUCTIONS } from './constants/travelPlannerInstructions.js';
+import { pipeStreamingResponse } from './services/streaming.js';
 import helmet from 'helmet';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
@@ -692,6 +695,10 @@ const chatRouter = createChatRoutes({
   buildOpenAIParams,
   buildSseCorsHeaders,
   setSseHeaders,
+  pipeStreamingResponse,
+  getEnvNumber,
+  DEFAULT_RAG_STREAM_TIMEOUT_MS,
+  TRAVEL_PLANNER_ADDITIONAL_INSTRUCTIONS,
 });
 
 app.use(chatRouter);
