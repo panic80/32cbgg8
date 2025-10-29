@@ -68,12 +68,12 @@ _Exit criteria_: New routing system live, duplicated pages removed, trip planner
 
 - [x] Promote `server/services/logger.js` to structured logging (pino/winston) with child loggers; replace `console.*` everywhere.
 - [x] Standardize error responses with helper in `server/utils/http.js` returning `{ error, message, traceId }`.
-- [ ] Audit caching (`server/services/cache.js`) and ensure single shared Redis client respecting config-driven TTLs.
+- [x] Audit caching (`server/services/cache.js`) and ensure single shared Redis client respecting config-driven TTLs.
 
 **Testing & Observability**
 
 - [ ] Add Supertest suites for chat, ingestion, analytics, maps, and SSE endpoints under `server/__tests__/`.
-- [ ] Provide local health-check script (`scripts/verify-gateway.sh`) that curls key endpoints and verifies SSE flow.
+- [x] Provide local health-check script (`scripts/verify-gateway.sh`) that curls key endpoints and verifies SSE flow.
 - [ ] Update operational docs in `docs/DEPLOYMENT.md` to reflect new app entry and config usage.
 
 **Validation**

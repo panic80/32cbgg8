@@ -22,15 +22,7 @@ import createAnalyticsRoutes from './routes/analytics.js';
 import { decodeUrlParams } from './utils/http.js';
 import { processContent } from './utils/html.js';
 import { setSseHeaders } from './utils/sse.js';
-import {
-  DEFAULT_RAG_STREAM_TIMEOUT_MS,
-  DEFAULT_INGEST_TIMEOUT_MS,
-  DEFAULT_MAX_RETRIES,
-  DEFAULT_REQUEST_TIMEOUT_MS,
-  DEFAULT_RETRY_DELAY_MS,
-  DEFAULT_MAPS_TIMEOUT_MS,
-  getEnvNumber,
-} from './config/constants.js';
+import { DEFAULT_RAG_STREAM_TIMEOUT_MS, getEnvNumber } from './config/constants.js';
 import { TRAVEL_PLANNER_ADDITIONAL_INSTRUCTIONS } from './constants/travelPlannerInstructions.js';
 import { pipeStreamingResponse } from './services/streaming.js';
 import helmet from 'helmet';
@@ -39,6 +31,7 @@ import rateLimit from 'express-rate-limit';
 import dns from 'node:dns/promises';
 import net from 'node:net';
 import { loadEnvironment } from './config/environment.js';
+import { createGatewayConfig } from './config/index.js';
 
 // Load environment variables
 const { nodeEnv: NODE_ENV } = loadEnvironment();
@@ -449,39 +442,7 @@ app.use(
 );
 
 // Environment-based configuration
-const config = {
-  maxRetries: getEnvNumber('MAX_RETRIES', DEFAULT_MAX_RETRIES),
-  requestTimeout: getEnvNumber('REQUEST_TIMEOUT', DEFAULT_REQUEST_TIMEOUT_MS),
-  retryDelay: getEnvNumber('RETRY_DELAY', DEFAULT_RETRY_DELAY_MS),
-
-  // Cache configuration
-  cacheEnabled: process.env.ENABLE_CACHE === 'true',
-  cacheTTL: parseInt(process.env.CACHE_TTL) || 3600000, // 1 hour in milliseconds
-  cacheCleanupInterval: parseInt(process.env.CACHE_CLEANUP_INTERVAL) || 300000, // 5 minutes
-
-  // Rate limiting configuration
-  rateLimitEnabled: process.env.ENABLE_RATE_LIMIT === 'true',
-  rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX) || 60, // 60 requests per minute
-  rateLimitWindow: parseInt(process.env.RATE_LIMIT_WINDOW) || 60000, // 1 minute in milliseconds
-  // Optional burst allowance to align with upstream proxies (e.g., Nginx limit_req burst)
-  rateLimitBurst: parseInt(process.env.RATE_LIMIT_BURST || '0') || 0,
-
-  // Logging configuration
-  loggingEnabled: process.env.ENABLE_LOGGING === 'true',
-  // Default to 'info' for stable production logging; logDir defaults to /var/log/cbthis
-  logLevel: process.env.LOG_LEVEL || 'info',
-  logDir: process.env.LOG_DIR || '/var/log/cbthis',
-
-  // External services
-  ragServiceUrl: process.env.RAG_SERVICE_URL || 'http://localhost:8000',
-  ingestTimeout: getEnvNumber('INGEST_TIMEOUT_MS', DEFAULT_INGEST_TIMEOUT_MS),
-  ingestMaxRetries: getEnvNumber('INGEST_MAX_RETRIES', getEnvNumber('MAX_RETRIES', DEFAULT_MAX_RETRIES)),
-  ingestRetryDelay: getEnvNumber('INGEST_RETRY_DELAY_MS', DEFAULT_RETRY_DELAY_MS),
-  mapsTimeout: getEnvNumber('MAPS_TIMEOUT', DEFAULT_MAPS_TIMEOUT_MS) || DEFAULT_MAPS_TIMEOUT_MS,
-  canadaCaUrl:
-    process.env.CANADA_CA_URL ||
-    'https://www.canada.ca/en/department-national-defence/services/benefits-military/pay-pension-benefits/benefits/canadian-forces-temporary-duty-travel-instructions.html',
-};
+const config = createGatewayConfig();
 
 log.info('Server configuration:', {
   nodeEnv: NODE_ENV,

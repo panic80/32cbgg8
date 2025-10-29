@@ -25,12 +25,14 @@ The goal for Stage 2 is to complete the separation of concerns inside the Expres
    - ✅ Gateway routes (ingestion, maps, realtime, admin, performance, sources) now rely on the structured logger and shared error helper.  
    - Add request-scoped metadata (route name, conversationId) to streaming logs and ingestion actions.  
    - Document logging expectations in `docs/DEPLOYMENT.md`.
+   - ✅ Cache service now consumes the gateway config (TTL, Redis toggle) and logs through the shared logger, keeping a single Redis client instance.
 
 5. **Testing & Guardrails**  
    - Grow the Supertest suite to cover chat, ingestion, maps, analytics, and support routes (happy path + failure scenarios).  
    - ✅ Added focused Vitest coverage for streaming utilities and stabilized route suites (support, ingestion, maps, analytics, chat).  
    - Ensure Vitest runs in CI with environment mocks for third-party clients; add fixtures for SSE metadata.  
    - Add contract tests verifying proxying to the RAG service with mocked axios responses.
+   - ✅ Introduced `scripts/verify-gateway.sh` for post-deploy health and SSE checks.
 
 ## Sequencing
 

@@ -115,6 +115,13 @@ pm2 status                                       # Process list
 sudo journalctl -u rag-service.service -n 50     # Last RAG logs
 ```
 
+For a consolidated gateway check (health, config, travel instructions), use:
+
+```bash
+./scripts/verify-gateway.sh http://localhost:3000
+./scripts/verify-gateway.sh http://localhost:3000 --verify-sse   # requires ADMIN_USER/ADMIN_PASS env vars
+```
+
 Remote verification:
 
 ```bash
@@ -138,6 +145,7 @@ refactor flow.
 - `scripts/vps-setup.sh` – initial server provisioning (packages, users, PM2
   bootstrap).
 - `scripts/vps-discovery.sh` – collects current server state for audits.
+- `scripts/verify-gateway.sh` – curls key Express endpoints (health, config, SSE guard) after deploys.
 
 Always dry-run scripts or inspect their contents before executing on production.
 
