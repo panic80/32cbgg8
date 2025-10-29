@@ -1,85 +1,84 @@
-import React, { useState } from 'react';
+import { FormEvent, UIEvent, useCallback, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { ChevronDown, Send } from 'lucide-react';
+import LogoImage from '@/components/LogoImage';
+import '@/styles/landing-test.css';
+import '@/styles/sticky-footer.css';
 import {
-  CircleHelp,
-  FileText,
-  Users,
-  Info,
-  Mail,
-  ShieldCheck,
-  ChevronDown,
-  Send,
-  Zap,
-  ExternalLink,
-} from 'lucide-react';
-import LogoImage from '../components/LogoImage';
-import '../styles/landing-test.css';
-import { SITE_CONFIG, getCopyrightText, getLastUpdatedText } from '../constants/siteConfig';
-import { useTheme } from '../context/ThemeContext';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
+  SITE_CONFIG,
+  getCopyrightText,
+  getLastUpdatedText,
+} from '@/constants/siteConfig';
+import { useTheme } from '@/context/ThemeContext';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { FeatureCard } from '@/components/ui/feature-card';
+import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
+import { cn } from '@/lib/utils';
+import { footerLinks, landingFeatures, quickAskPrompts } from './landingConfig';
 
-export default function LandingPageTest() {
+type ScrollHandler = (event: UIEvent<HTMLDivElement>, setIndicator: (value: boolean) => void) => void;
+
+const handleScrollableContent: ScrollHandler = (event, setIndicator) => {
+  const element = event.currentTarget;
+  const isAtBottom = element.scrollHeight - element.scrollTop <= element.clientHeight + 10;
+  setIndicator(!isAtBottom);
+};
+
+const LandingPage = () => {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState<string>('');
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [showSCIPConfirmation, setShowSCIPConfirmation] = useState(false);
-  const [isLinkCopied, setIsLinkCopied] = useState(false);
   const [isNavigatingToSCIP, setIsNavigatingToSCIP] = useState(false);
   const [showPrivacyScrollIndicator, setShowPrivacyScrollIndicator] = useState(true);
   const [showAboutScrollIndicator, setShowAboutScrollIndicator] = useState(true);
 
-  // Quick ask submit
-  const handleAskSubmit = (e) => {
-    e.preventDefault();
-    const q = (query || '').trim();
-    navigate(q.length === 0 ? '/chat' : `/chat?q=${encodeURIComponent(q)}`);
-  };
+  const { isCopied: isLinkCopied, handleCopy: copySCIPLink } = useCopyToClipboard({
+    text: SITE_CONFIG.SCIP_PORTAL_URL,
+    copyMessage: 'SCIP link copied to clipboard',
+  });
 
-  // Quick ask with predefined query
-  const quickAsk = (q) => {
-    navigate(`/chat?q=${encodeURIComponent(q)}`);
-  };
+  const handleAskSubmit = useCallback(
+    (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      const trimmed = query.trim();
+      navigate(trimmed.length === 0 ? '/chat' : `/chat?q=${encodeURIComponent(trimmed)}`);
+    },
+    [navigate, query],
+  );
 
-  // SCIP handlers
-  const handleSCIPClick = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const quickAsk = useCallback(
+    (prompt: string) => {
+      navigate(`/chat?q=${encodeURIComponent(prompt)}`);
+    },
+    [navigate],
+  );
+
+  const handleSCIPClick = useCallback(() => {
     setShowSCIPConfirmation(true);
-  };
+  }, []);
 
-  const confirmSCIPNavigation = () => {
+  const confirmSCIPNavigation = useCallback(() => {
     if (isNavigatingToSCIP) return;
     setIsNavigatingToSCIP(true);
     setShowSCIPConfirmation(false);
-    setIsLinkCopied(false);
     window.location.assign(SITE_CONFIG.SCIP_PORTAL_URL);
-  };
+  }, [isNavigatingToSCIP]);
 
-  const copySCIPLink = () => {
-    navigator.clipboard
-      .writeText(SITE_CONFIG.SCIP_PORTAL_URL)
-      .then(() => {
-        setIsLinkCopied(true);
-      })
-      .catch((err) => {
-        console.error('Failed to copy link:', err);
-      });
-  };
-
-  const handleScroll = (e, setShowIndicator) => {
-    const element = e.target;
-    const isAtBottom = element.scrollHeight - element.scrollTop <= element.clientHeight + 10;
-    setShowIndicator(!isAtBottom);
-  };
+  const handleFooterLink = useCallback((id: typeof footerLinks[number]['id']) => {
+    if (id === 'about') {
+      setShowAboutModal(true);
+    } else if (id === 'privacy') {
+      setShowPrivacyModal(true);
+    }
+  }, []);
 
   return (
     <div className="lpt-minimal-root">
-      {/* Subtle Background Gradient */}
       <div className="lpt-minimal-bg" aria-hidden="true" />
 
-      {/* Theme Toggle */}
       <button
         onClick={toggleTheme}
         className="lpt-minimal-theme"
@@ -118,21 +117,15 @@ export default function LandingPageTest() {
         )}
       </button>
 
-      {/* Main Content - Centered */}
       <div className="lpt-minimal-content">
         <div className="lpt-minimal-hero">
-          {/* Logo */}
           <div className="lpt-minimal-logo">
             <LogoImage size="xl" />
           </div>
 
-          {/* Title */}
           <h1 className="lpt-minimal-title">32 CBG G8 Administration Hub</h1>
-
-          {/* Subtitle */}
           <p className="lpt-minimal-subtitle">Comprehensive Gateway to Financial Resources</p>
 
-          {/* Search Form */}
           <form onSubmit={handleAskSubmit} className="lpt-minimal-search">
             <div className="lpt-minimal-search-wrapper">
               <div className="lpt-minimal-search-box">
@@ -141,7 +134,7 @@ export default function LandingPageTest() {
                   className="lpt-minimal-search-input"
                   placeholder="Ask a policy question..."
                   value={query}
-                  onChange={(e) => setQuery(e.target.value)}
+                  onChange={(event) => setQuery(event.target.value)}
                   aria-label="Ask a policy question"
                 />
                 <button type="submit" className="lpt-minimal-search-btn">
@@ -152,133 +145,106 @@ export default function LandingPageTest() {
             </div>
           </form>
 
-          {/* Quick Suggestion Chips */}
           <div className="lpt-minimal-chips">
-            <button
-              type="button"
-              className="lpt-minimal-chip"
-              onClick={() => quickAsk('What are the current mileage rates under CFTDTI?')}
-            >
-              Mileage rates
-            </button>
-            <button
-              type="button"
-              className="lpt-minimal-chip"
-              onClick={() => quickAsk('What are the meal per diem rates?')}
-            >
-              Per diem rates
-            </button>
-            <button
-              type="button"
-              className="lpt-minimal-chip"
-              onClick={() => quickAsk('How do I request a travel advance?')}
-            >
-              Travel advance
-            </button>
-            <button
-              type="button"
-              className="lpt-minimal-chip"
-              onClick={() => quickAsk('What receipts do I need for claims?')}
-            >
-              Receipt requirements
-            </button>
+            {quickAskPrompts.map((prompt) => (
+              <button
+                key={prompt.query}
+                type="button"
+                className="lpt-minimal-chip"
+                onClick={() => quickAsk(prompt.query)}
+              >
+                {prompt.label}
+              </button>
+            ))}
           </div>
 
-          {/* Minimal Card Grid */}
           <div className="lpt-minimal-cards">
-            {/* Policy Assistant */}
-            <Link
-              to="/chat"
-              className="lpt-minimal-card"
-              title="Interactive, RAG powered AI chat to answer travel, benefits, and finance policy questions."
-              aria-label="Policy Assistant – Interactive, RAG powered AI chat to answer travel, benefits, and finance policy questions."
-            >
-              <CircleHelp className="lpt-minimal-card-icon" aria-hidden="true" />
-              <span className="lpt-minimal-card-label">Policy Assistant</span>
-              <span className="lpt-minimal-card-subtitle">
-                Interactive, RAG powered AI chat to answer travel, benefits, and finance policy
-                questions.
-              </span>
-            </Link>
+            {landingFeatures.map((feature) => {
+              const commonProps = {
+                title: feature.title,
+                description: feature.description,
+                icon: feature.icon,
+              };
 
-            {/* SCIP Portal */}
-            <Link
-              to="#"
-              onClick={handleSCIPClick}
-              className="lpt-minimal-card"
-              title="Streamlined Claims Interface Platform for efficient digital submission and processing of administrative claims."
-              aria-label="SCIP Portal – Streamlined Claims Interface Platform for efficient digital submission and processing of administrative claims."
-            >
-              <FileText className="lpt-minimal-card-icon" aria-hidden="true" />
-              <span className="lpt-minimal-card-label">SCIP Portal</span>
-              <span className="lpt-minimal-card-subtitle">
-                Streamlined Claims Interface Platform for efficient digital submission and
-                processing of administrative claims.
-              </span>
-            </Link>
+              if (feature.kind === 'link' && feature.to) {
+                return (
+                  <Link
+                    key={feature.id}
+                    to={feature.to}
+                    className="lpt-minimal-card"
+                    title={feature.description}
+                    aria-label={`${feature.title} – ${feature.description}`}
+                  >
+                    <FeatureCard variant="minimal" {...commonProps} />
+                  </Link>
+                );
+              }
 
-            {/* OPI Contacts */}
-            <Link
-              to="/opi"
-              className="lpt-minimal-card"
-              title="Find FSC & FMC contact information for your unit's financial services and management."
-              aria-label="OPI Contacts – Find FSC & FMC contact information for your unit's financial services and management."
-            >
-              <Users className="lpt-minimal-card-icon" aria-hidden="true" />
-              <span className="lpt-minimal-card-label">OPI Contacts</span>
-              <span className="lpt-minimal-card-subtitle">
-                Find FSC & FMC contact information for your unit's financial services and
-                management.
-              </span>
-            </Link>
+              if (feature.kind === 'action') {
+                return (
+                  <button
+                    key={feature.id}
+                    type="button"
+                    onClick={handleSCIPClick}
+                    className="lpt-minimal-card"
+                    title={feature.description}
+                    aria-label={`${feature.title} – ${feature.description}`}
+                  >
+                    <FeatureCard variant="minimal" {...commonProps} />
+                  </button>
+                );
+              }
 
-            {/* Resources (Under Review) */}
-            <Link
-              to="/resources"
-              onClick={(e) => e.preventDefault()}
-              className="lpt-minimal-card lpt-minimal-card-disabled"
-              aria-disabled="true"
-              title="Access SOPs, how-to guides, FAQs, templates, and comprehensive administrative documentation."
-              aria-label="Resources – Access SOPs, how-to guides, FAQs, templates, and comprehensive administrative documentation. Under review."
-            >
-              <Zap className="lpt-minimal-card-icon" aria-hidden="true" />
-              <span className="lpt-minimal-card-badge">Under Review</span>
-              <span className="lpt-minimal-card-label">Resources</span>
-              <span className="lpt-minimal-card-subtitle">
-                Access SOPs, how-to guides, FAQs, templates, and comprehensive administrative
-                documentation.
-              </span>
-            </Link>
+              return (
+                <div
+                  key={feature.id}
+                  className={cn('lpt-minimal-card', 'lpt-minimal-card-disabled')}
+                  aria-disabled="true"
+                  title={feature.description}
+                  aria-label={`${feature.title} – ${feature.description}. Currently unavailable.`}
+                >
+                  <FeatureCard
+                    variant="minimal"
+                    {...commonProps}
+                    badge={feature.badge}
+                    disabled
+                    disabledLabel={feature.badge}
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
 
-      {/* Footer */}
       <footer className="lpt-minimal-footer" role="contentinfo">
         <div className="lpt-minimal-footer-links">
-          <button
-            type="button"
-            onClick={() => setShowAboutModal(true)}
-            className="lpt-minimal-footer-link"
-          >
-            <Info className="w-3.5 h-3.5" aria-hidden="true" />
-            <span>About</span>
-          </button>
-          <a
-            href={`mailto:${SITE_CONFIG.CONTACT_EMAIL}?subject=Contacting%20from%20G8%20homepage`}
-            className="lpt-minimal-footer-link"
-          >
-            <Mail className="w-3.5 h-3.5" aria-hidden="true" />
-            <span>Contact</span>
-          </a>
-          <button
-            type="button"
-            onClick={() => setShowPrivacyModal(true)}
-            className="lpt-minimal-footer-link"
-          >
-            <ShieldCheck className="w-3.5 h-3.5" aria-hidden="true" />
-            <span>Privacy</span>
-          </button>
+          {footerLinks.map((link) => {
+            if (link.id === 'contact') {
+              return (
+                <a
+                  key={link.id}
+                  href={`mailto:${SITE_CONFIG.CONTACT_EMAIL}?subject=Contacting%20from%20G8%20homepage`}
+                  className="lpt-minimal-footer-link"
+                >
+                  <link.icon className="w-3.5 h-3.5" aria-hidden="true" />
+                  <span>{link.label}</span>
+                </a>
+              );
+            }
+
+            return (
+              <button
+                key={link.id}
+                type="button"
+                onClick={() => handleFooterLink(link.id)}
+                className="lpt-minimal-footer-link"
+              >
+                <link.icon className="w-3.5 h-3.5" aria-hidden="true" />
+                <span>{link.label}</span>
+              </button>
+            );
+          })}
         </div>
 
         <div className="lpt-minimal-footer-meta">
@@ -287,7 +253,6 @@ export default function LandingPageTest() {
         </div>
       </footer>
 
-      {/* Privacy Modal */}
       <Dialog open={showPrivacyModal} onOpenChange={setShowPrivacyModal}>
         <DialogContent className="max-w-[32rem] max-h-[90vh]">
           <DialogHeader>
@@ -296,7 +261,7 @@ export default function LandingPageTest() {
           <div className="relative">
             <div
               className="space-y-4 sm:space-y-6 overflow-y-auto max-h-[60vh] pr-2"
-              onScroll={(e) => handleScroll(e, setShowPrivacyScrollIndicator)}
+              onScroll={(event) => handleScrollableContent(event, setShowPrivacyScrollIndicator)}
             >
               <h3 className="text-base sm:text-lg font-semibold">General Privacy Notice</h3>
               <p className="text-sm sm:text-base text-[var(--text)] leading-relaxed">
@@ -304,7 +269,7 @@ export default function LandingPageTest() {
                 maintaining your trust.
               </p>
               <h3 className="text-base sm:text-lg font-semibold mt-4 sm:mt-6">
-                Data Collection & Usage
+                Data Collection &amp; Usage
               </h3>
               <ul className="list-disc pl-5 space-y-2 text-sm sm:text-base text-[var(--text)] opacity-80">
                 <li>We collect only essential information needed for the service</li>
@@ -316,7 +281,7 @@ export default function LandingPageTest() {
                 AI Processing (OpenAI)
               </h3>
               <p className="text-sm sm:text-base text-[var(--text)] leading-relaxed">
-                This application uses OpenAI's GPT models. When you interact with our AI features:
+                This application uses OpenAI&apos;s GPT models. When you interact with our AI features:
               </p>
               <ul className="list-disc pl-5 space-y-2 text-sm sm:text-base text-[var(--text)] opacity-80">
                 <li>Your conversations may be processed to improve responses</li>
@@ -325,7 +290,7 @@ export default function LandingPageTest() {
                 <li>You can opt out of AI features at any time</li>
               </ul>
               <p className="text-xs sm:text-sm text-[var(--text-secondary)] mt-4 sm:mt-6">
-                For more details about OpenAI's data handling, please visit OpenAI's privacy policy.
+                For more details about OpenAI&apos;s data handling, please visit OpenAI&apos;s privacy policy.
               </p>
               <div className="pt-2">
                 <button
@@ -345,7 +310,6 @@ export default function LandingPageTest() {
         </DialogContent>
       </Dialog>
 
-      {/* About Modal */}
       <Dialog open={showAboutModal} onOpenChange={setShowAboutModal}>
         <DialogContent className="max-w-lg max-h-[90vh]">
           <DialogHeader>
@@ -354,7 +318,7 @@ export default function LandingPageTest() {
           <div className="relative">
             <div
               className="overflow-y-auto max-h-[60vh] pr-2"
-              onScroll={(e) => handleScroll(e, setShowAboutScrollIndicator)}
+              onScroll={(event) => handleScrollableContent(event, setShowAboutScrollIndicator)}
             >
               <h3 className="text-base sm:text-lg font-semibold mb-2 text-[var(--primary)]">
                 32 CBG G8 Admin Hub
@@ -410,14 +374,7 @@ export default function LandingPageTest() {
         </DialogContent>
       </Dialog>
 
-      {/* SCIP Confirmation Modal */}
-      <Dialog
-        open={showSCIPConfirmation}
-        onOpenChange={(open) => {
-          setShowSCIPConfirmation(open);
-          if (!open) setIsLinkCopied(false);
-        }}
-      >
+      <Dialog open={showSCIPConfirmation} onOpenChange={setShowSCIPConfirmation}>
         <DialogContent className="w-[92vw] sm:max-w-lg md:max-w-xl lg:max-w-2xl break-words">
           <DialogHeader>
             <DialogTitle>SCIP Portal</DialogTitle>
@@ -444,11 +401,12 @@ export default function LandingPageTest() {
                 <button
                   onClick={copySCIPLink}
                   disabled={isLinkCopied}
-                  className={`px-3 py-2 text-xs sm:text-sm rounded-lg transition-all duration-300 flex items-center gap-2 whitespace-nowrap shrink-0 mt-2 sm:mt-0 justify-center ${
+                  className={cn(
+                    'px-3 py-2 text-xs sm:text-sm rounded-lg transition-all duration-300 flex items-center gap-2 whitespace-nowrap shrink-0 mt-2 sm:mt-0 justify-center',
                     isLinkCopied
                       ? 'bg-green-600/20 text-green-600 cursor-not-allowed'
-                      : 'bg-[var(--primary)] text-white hover:bg-[var(--primary-hover)]'
-                  }`}
+                      : 'bg-[var(--primary)] text-white hover:bg-[var(--primary-hover)]',
+                  )}
                 >
                   {isLinkCopied ? 'Link Copied' : 'Copy Link'}
                 </button>
@@ -456,10 +414,7 @@ export default function LandingPageTest() {
             </div>
             <div className="flex gap-3 justify-end">
               <button
-                onClick={() => {
-                  setShowSCIPConfirmation(false);
-                  setIsLinkCopied(false);
-                }}
+                onClick={() => setShowSCIPConfirmation(false)}
                 className="px-4 py-2 text-sm sm:text-base text-[var(--text)] bg-[var(--background-secondary)] hover:bg-[var(--background)] rounded-lg transition-colors duration-300"
               >
                 Cancel
@@ -468,11 +423,12 @@ export default function LandingPageTest() {
                 type="button"
                 onClick={confirmSCIPNavigation}
                 disabled={isNavigatingToSCIP}
-                className={`px-4 py-2 text-sm sm:text-base rounded-lg transition-colors duration-300 ${
+                className={cn(
+                  'px-4 py-2 text-sm sm:text-base rounded-lg transition-colors duration-300',
                   isNavigatingToSCIP
                     ? 'bg-[var(--primary)]/60 text-white cursor-not-allowed'
-                    : 'text-white bg-[var(--primary)] hover:bg-[var(--primary-hover)]'
-                }`}
+                    : 'text-white bg-[var(--primary)] hover:bg-[var(--primary-hover)]',
+                )}
               >
                 {isNavigatingToSCIP ? 'Opening…' : 'Continue'}
               </button>
@@ -482,4 +438,6 @@ export default function LandingPageTest() {
       </Dialog>
     </div>
   );
-}
+};
+
+export default LandingPage;
