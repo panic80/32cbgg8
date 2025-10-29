@@ -83,13 +83,6 @@ export const createChatController = ({
   const handleStandardChat = async (req, res) => {
     const { message, model, provider } = req.body;
 
-    if (!message || typeof message !== 'string' || message.trim().length === 0) {
-      return res.status(400).json({
-        error: 'Bad Request',
-        message: 'Message must be a non-empty string.',
-      });
-    }
-
     const isTripPlannerMessage = message?.startsWith('📋 **Trip Plan Request**');
     const forcedModel = 'gpt-4.1-mini';
     const forcedProvider = 'openai';
@@ -226,13 +219,6 @@ export const createChatController = ({
     const { message, model, provider, chatHistory, conversationId, useRAG = true, audience } =
       req.body;
 
-    if (!message || typeof message !== 'string' || message.trim().length === 0) {
-      return res.status(400).json({
-        error: 'Bad Request',
-        message: 'Message must be a non-empty string.',
-      });
-    }
-
     const isTripPlannerMessage = message?.startsWith('📋 **Trip Plan Request**');
     const forcedModel = 'gpt-4.1-mini';
     const forcedProvider = 'openai';
@@ -304,13 +290,6 @@ export const createChatController = ({
       responseVerbosity,
       audience,
     } = req.body;
-
-    if (!message || typeof message !== 'string' || message.trim().length === 0) {
-      return res.status(400).json({
-        error: 'Bad Request',
-        message: 'Message must be a non-empty string.',
-      });
-    }
 
     const isTripPlannerMessage = message?.startsWith('📋 **Trip Plan Request**');
     const forcedModel = 'gpt-5-mini';

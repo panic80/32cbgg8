@@ -55,7 +55,8 @@ describe('/api/gemini/generateContent', () => {
     const response = await request(app).post('/api/gemini/generateContent').send({});
 
     expect(response.status).toBe(400);
-    expect(response.body.message).toMatch(/prompt is required/i);
+    expect(response.body.message).toBe('Validation failed');
+    expect(response.body.details?.[0]?.message).toMatch(/Prompt is required/i);
   });
 
   it('returns 500 when Gemini client is not configured', async () => {
@@ -100,7 +101,8 @@ describe('/api/v2/chat', () => {
     const response = await request(app).post('/api/v2/chat').send({ model: 'gpt-4.1-mini' });
 
     expect(response.status).toBe(400);
-    expect(response.body.message).toMatch(/message must be a non-empty string/i);
+    expect(response.body.message).toBe('Validation failed');
+    expect(response.body.details?.[0]?.message).toMatch(/Message is required/i);
   });
 
   it('returns 500 when OpenAI client is not configured', async () => {
