@@ -1,105 +1,75 @@
+import express from 'express';
 import request from 'supertest';
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import createChatRoutes from '../chat.js';
 
-vi.mock('@google/generative-ai', () => {
-  return {
-    GoogleGenerativeAI: class {
-      getGenerativeModel() {
-        return {
-          generateContent: vi.fn().mockResolvedValue({
-            response: { text: () => 'mock-response' },
-          }),
-        };
-      }
-    },
-  };
-});
+const buildApp = ({ geminiClient } = {}) => {
+  const app = express();
+  app.use(express.json());
 
-vi.mock('openai', () => {
-  class MockOpenAI {
-    chat = {
-      completions: {
-        create: vi.fn().mockResolvedValue({
-          choices: [{ message: { content: 'mock-openai' } }],
-        }),
-      },
-    };
-  }
-  return { default: MockOpenAI };
-});
+  const chatLogger = { error: vi.fn(), info: vi.fn(), logChat: vi.fn() };
 
-vi.mock('@anthropic-ai/sdk', () => {
-  class MockAnthropic {
-    messages = {
-      create: vi.fn().mockResolvedValue({ content: [{ text: 'mock-anthropic' }] }),
-    };
-  }
-  return { default: MockAnthropic };
-});
+  app.use(
+    createChatRoutes({
+      rateLimiter: (_req, _res, next) => next(),
+      config: { loggingEnabled: false },
+      chatLogger,
+      getRagAuthHeaders: () => ({}),
+      decodeUrlParams: (body) => body,
+      geminiClient,
+      openaiClient: null,
+      anthropicClient: null,
+      buildOpenAIParams: vi.fn(),
+      buildSseCorsHeaders: () => ({}),
+      setSseHeaders: () => {},
+    }),
+  );
 
-const axiosPostMock = vi.fn();
+  return app;
+};
 
-vi.mock('axios', () => ({
-  default: {
-    post: axiosPostMock,
-  },
-}));
-
-let app: import('express').Express;
-
-describe('chat routes', () => {
-  beforeAll(async () => {
-    process.env.NODE_ENV = 'test';
-    process.env.ENABLE_CACHE = 'false';
-    process.env.ENABLE_LOGGING = 'false';
-    process.env.CONFIG_PANEL_USER = 'admin';
-    process.env.CONFIG_PANEL_PASSWORD = 'password';
-    process.env.ADMIN_API_TOKEN = 'test-admin-token';
-    process.env.SKIP_SECURE_ENV = 'true';
-    process.env.OPENAI_API_KEY = 'test-openai-key';
-    process.env.GEMINI_API_KEY = 'test-gemini-key';
-    process.env.ANTHROPIC_API_KEY = 'test-anthropic-key';
-    process.env.GOOGLE_MAPS_API_KEY = 'test-maps-key';
-    process.env.RAG_SERVICE_URL = 'http://mock-rag.test';
-
-    const module = await import('../../main.js');
-    app = module.default;
-  });
-
+describe('/api/gemini/generateContent', () => {
   beforeEach(() => {
-    axiosPostMock.mockReset();
+    vi.clearAllMocks();
   });
 
-  it('rejects RAG requests without a message', async () => {
-    const response = await request(app).post('/api/v2/chat/rag').send({ model: 'gpt-4.1-mini' });
+  it('returns 400 when prompt is missing', async () => {
+    const app = buildApp();
+
+    const response = await request(app).post('/api/gemini/generateContent').send({});
 
     expect(response.status).toBe(400);
-    expect(response.body.message).toMatch(/Message must be a non-empty string/i);
+    expect(response.body.message).toMatch(/prompt is required/i);
   });
 
-  it('proxies valid RAG requests to the upstream service', async () => {
-    axiosPostMock.mockResolvedValueOnce({ data: { reply: 'rag-response' } });
+  it('returns 500 when Gemini client is not configured', async () => {
+    const app = buildApp({ geminiClient: null });
 
-    const payload = {
-      message: 'Hello RAG',
-      model: 'gpt-4.1-mini',
-      provider: 'openai',
-      chatHistory: [],
-      conversationId: 'conv-42',
+    const response = await request(app)
+      .post('/api/gemini/generateContent')
+      .send({ prompt: 'Hello Gemini' });
+
+    expect(response.status).toBe(500);
+    expect(response.body.message).toMatch(/not configured/i);
+  });
+
+  it('returns generated content when Gemini client succeeds', async () => {
+    const generateContent = vi.fn().mockResolvedValue({
+      response: { text: () => 'mock-gemini-response' },
+    });
+    const mockGeminiClient = {
+      getGenerativeModel: vi.fn().mockReturnValue({ generateContent }),
     };
 
-    const response = await request(app).post('/api/v2/chat/rag').send(payload);
+    const app = buildApp({ geminiClient: mockGeminiClient });
+
+    const response = await request(app)
+      .post('/api/gemini/generateContent')
+      .send({ prompt: 'Hello Gemini' });
 
     expect(response.status).toBe(200);
-    expect(response.body).toMatchObject({ reply: 'rag-response' });
-
-    expect(axiosPostMock).toHaveBeenCalledTimes(1);
-    const [url, body] = axiosPostMock.mock.calls[0];
-    expect(url).toContain('/api/v1/chat');
-    expect(body).toMatchObject({
-      message: payload.message,
-      conversation_id: payload.conversationId,
-      include_sources: true,
-    });
+    expect(response.body).toEqual({ response: 'mock-gemini-response' });
+    expect(mockGeminiClient.getGenerativeModel).toHaveBeenCalledWith({ model: 'gemini-2.0-flash' });
+    expect(generateContent).toHaveBeenCalledWith('Hello Gemini');
   });
 });

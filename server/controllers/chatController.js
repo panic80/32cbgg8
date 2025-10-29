@@ -6,7 +6,6 @@ export const createChatController = ({
   chatLogger,
   getRagAuthHeaders,
   geminiClient,
-  config,
 }) => {
   const handleGeminiGenerateContent = async (req, res) => {
     try {
