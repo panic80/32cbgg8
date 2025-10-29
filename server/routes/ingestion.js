@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import axios from 'axios';
+import { validateRequest } from '../middleware/validate.js';
+import { ingestionRequestSchema } from './schemas/ingestionSchemas.js';
 
 const DEFAULT_RAG_SERVICE_URL = process.env.RAG_SERVICE_URL || 'http://localhost:8000';
 
@@ -118,10 +120,12 @@ const createIngestionRoutes = ({
     }
   };
 
-  router.post('/api/rag/ingest', requireAdminAuth, rateLimiter, (req, res) =>
+  const validateIngestionPayload = validateRequest(ingestionRequestSchema);
+
+  router.post('/api/rag/ingest', requireAdminAuth, rateLimiter, validateIngestionPayload, (req, res) =>
     forwardIngestionRequest({ req, res }),
   );
-  router.post('/api/v2/ingest', requireAdminAuth, rateLimiter, (req, res) =>
+  router.post('/api/v2/ingest', requireAdminAuth, rateLimiter, validateIngestionPayload, (req, res) =>
     forwardIngestionRequest({ req, res }),
   );
 
