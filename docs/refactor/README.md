@@ -14,7 +14,7 @@ This directory captures working artifacts for the staged refactor described in `
 | --- | --- | --- | --- | --- | --- |
 | 0 | Initiative setup & guardrails | _TBD_ | _TBD_ | 🚧 In progress | Create documentation, metrics baseline, CI gate definition. |
 | 1 | React surface consolidation | _TBD_ | _TBD_ | 🚧 In progress | Routing rework, landing consolidation, Trip Planner modularization, and ChatPage controller extraction complete; final chat polish pending. |
-| 2 | Express gateway stabilization | _TBD_ | _TBD_ | ⏳ Planned | Controller/service split, logging, streaming dedupe. |
+| 2 | Express gateway stabilization | _TBD_ | _TBD_ | 🚧 In prep | Controller/service split, logging, streaming dedupe. See `docs/refactor/stage2.md`. |
 | 3 | RAG service modularization | _TBD_ | _TBD_ | ⏳ Planned | Pipeline decomposition, service layer extraction. |
 | 4 | Tooling & docs enablement | _TBD_ | _TBD_ | ⏳ Planned | Lint/CI upgrades, architectural documentation. |
 | 5 | Validation & cutover | _TBD_ | _TBD_ | ⏳ Planned | Final validation, rollout monitor, post-launch review. |

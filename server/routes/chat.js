@@ -1,7 +1,8 @@
 import { Router } from 'express';
-import axios from 'axios';
-import { PassThrough } from 'stream';
 import { TRAVEL_PLANNER_ADDITIONAL_INSTRUCTIONS } from '../constants/travelPlannerInstructions.js';
+import { DEFAULT_RAG_STREAM_TIMEOUT_MS, getEnvNumber } from '../config/constants.js';
+import { pipeStreamingResponse } from '../services/streaming.js';
+import { createChatController } from '../controllers/chatController.js';
 
 const DEFAULT_RAG_SERVICE_URL = process.env.RAG_SERVICE_URL || 'http://localhost:8000';
 
@@ -19,39 +20,12 @@ const createChatRoutes = ({
   setSseHeaders,
 }) => {
   const router = Router();
-
-  const handleGeminiGenerateContent = async (req, res) => {
-    try {
-      const { prompt } = req.body;
-
-      if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
-        return res.status(400).json({
-          error: 'Bad Request',
-          message: 'Prompt is required and must be a non-empty string',
-        });
-      }
-
-      if (!geminiClient) {
-        return res.status(500).json({
-          error: 'Configuration Error',
-          message: 'Gemini API key is not configured.',
-        });
-      }
-
-      const model = geminiClient.getGenerativeModel({ model: 'gemini-2.0-flash' });
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
-
-      return res.json({ response: text });
-    } catch (error) {
-      console.error('Gemini API error:', error);
-      return res.status(500).json({
-        error: 'Internal Server Error',
-        message: error.message,
-      });
-    }
-  };
+  const controller = createChatController({
+    chatLogger,
+    getRagAuthHeaders,
+    geminiClient,
+    config,
+  });
 
   router.use('/api/chat', async (req, res, next) => {
     if (req.method === 'POST') {
@@ -62,78 +36,15 @@ const createChatRoutes = ({
       if (req.body.query && !req.body.prompt) {
         req.body.prompt = req.body.query;
       }
-      return handleGeminiGenerateContent(req, res);
+      return controller.handleGeminiGenerateContent(req, res);
     }
     return next();
   });
 
-  router.post('/api/gemini/generateContent', rateLimiter, handleGeminiGenerateContent);
+  router.post('/api/gemini/generateContent', rateLimiter, controller.handleGeminiGenerateContent);
 
   router.post('/api/v2/chat/rag', rateLimiter, async (req, res) => {
-    const { message, model, provider, chatHistory, conversationId, useRAG = true, audience } = req.body;
-
-    if (!message || typeof message !== 'string' || message.trim().length === 0) {
-      return res.status(400).json({
-        error: 'Bad Request',
-        message: 'Message must be a non-empty string.',
-      });
-    }
-
-    const isTripPlannerMessage = message?.startsWith('📋 **Trip Plan Request**');
-    const forcedModel = 'gpt-5-mini';
-    const forcedProvider = 'openai';
-    const effectiveModel = isTripPlannerMessage ? forcedModel : model;
-    const effectiveProvider = isTripPlannerMessage ? forcedProvider : provider;
-
-    try {
-      console.log('Processing RAG chat request', {
-        message: message?.substring(0, 50),
-        model: effectiveModel,
-        provider: effectiveProvider,
-        hasHistory: !!chatHistory,
-        conversationId,
-      });
-
-      const ragResponse = await axios.post(
-        `${DEFAULT_RAG_SERVICE_URL}/api/v1/chat`,
-        {
-          message: message.trim(),
-          chat_history: chatHistory || [],
-          conversation_id: conversationId,
-          provider: effectiveProvider || 'openai',
-          model: effectiveModel,
-          use_rag: useRAG,
-          include_sources: true,
-          ...(audience ? { audience } : {}),
-        },
-        {
-          timeout: 30000,
-          headers: {
-            'Content-Type': 'application/json',
-            ...getRagAuthHeaders(),
-          },
-        },
-      );
-
-      return res.json(ragResponse.data);
-    } catch (error) {
-      console.error('RAG chat error:', {
-        message: error.message,
-        code: error.code,
-        response: error.response?.data,
-        status: error.response?.status,
-        stack: error.stack,
-      });
-
-      if (error.response) {
-        return res.status(error.response.status).json(error.response.data);
-      }
-
-      return res.status(502).json({
-        error: 'RAG Service Unavailable',
-        message: 'Upstream retrieval service failed and no fallback is configured.',
-      });
-    }
+    return controller.handleRagChat(req, res);
   });
 
   router.post('/api/v2/chat', rateLimiter, async (req, res) => {
@@ -147,7 +58,8 @@ const createChatRoutes = ({
     }
 
     const isTripPlannerMessage = message?.startsWith('📋 **Trip Plan Request**');
-    const forcedModel = 'gpt-5-mini';
+    // Use a non-Smart model for Trip Planner to enable full retrieval and reranking on the RAG side
+    const forcedModel = 'gpt-4.1-mini';
     const forcedProvider = 'openai';
     const effectiveModel = isTripPlannerMessage ? forcedModel : model;
     const effectiveProvider = isTripPlannerMessage ? forcedProvider : provider;
@@ -316,18 +228,60 @@ const createChatRoutes = ({
         conversationId,
       });
 
-      // Location detection removed - system is now location-agnostic by default
-      // Users must explicitly specify location in their queries
-      const jurisdiction = undefined;
+      // Infer jurisdiction (province) from Trip Planner content to bias retrieval
+      let jurisdiction = undefined;
+      if (isTripPlannerMessage && typeof message === 'string') {
+        try {
+          const text = message;
+          const provinceMatchers = [
+            { name: 'Alberta', re: /\b(AB|Alberta)\b/i },
+            { name: 'British Columbia', re: /\b(BC|British\s+Columbia)\b/i },
+            { name: 'Manitoba', re: /\b(MB|Manitoba)\b/i },
+            { name: 'New Brunswick', re: /\b(NB|New\s+Brunswick)\b/i },
+            { name: 'Newfoundland and Labrador', re: /\b(NL|Newfoundland(?:\s+and\s+Labrador)?|Nfld)\b/i },
+            { name: 'Nova Scotia', re: /\b(NS|Nova\s+Scotia)\b/i },
+            { name: 'Ontario', re: /\b(ON|Ont|Ontario)\b/i },
+            { name: 'Prince Edward Island', re: /\b(PE|PEI|Prince\s+Edward\s+Island)\b/i },
+            { name: 'Quebec', re: /\b(QC|Quebec|Québec)\b/i },
+            { name: 'Saskatchewan', re: /\b(SK|Saskatchewan)\b/i },
+            { name: 'Yukon', re: /\b(YT|Yukon)\b/i },
+            { name: 'Northwest Territories', re: /\b(NT|NWT|Northwest\s+Territories?)\b/i },
+            { name: 'Nunavut', re: /\b(NU|Nunavut)\b/i },
+          ];
+          const found = provinceMatchers.find((p) => p.re.test(text));
+          if (found) {
+            jurisdiction = `${found.name}, Canada`;
+          }
+        } catch {}
+      }
 
       const ragServiceUrl = DEFAULT_RAG_SERVICE_URL;
-      const ragStreamTimeout = parseInt(process.env.RAG_STREAM_TIMEOUT || '120000', 10);
+      const ragStreamTimeout =
+        getEnvNumber('RAG_STREAM_TIMEOUT', DEFAULT_RAG_STREAM_TIMEOUT_MS) ||
+        DEFAULT_RAG_STREAM_TIMEOUT_MS;
       const upstreamAbortController = new AbortController();
+
+      // Add targeted retrieval hints for Trip Planner to improve rate/table recall
+      let messageForRetrieval = (message || '').trim();
+      if (isTripPlannerMessage) {
+        try {
+          const hints = [];
+          if (jurisdiction) {
+            const prov = String(jurisdiction).split(',')[0];
+            hints.push(`${prov} private vehicle kilometric rate cents per kilometre Appendix B`);
+            hints.push(`meal allowance rates ${prov}`);
+            hints.push(`incidental allowance daily rate`);
+          } else {
+            hints.push(`Ontario private vehicle kilometric rate cents per kilometre Appendix B`);
+          }
+          messageForRetrieval = `${messageForRetrieval}\n\nRetrieval focus: ${hints.join(' | ')}`;
+        } catch {}
+      }
 
       const response = await axios.post(
         `${ragServiceUrl}/api/v1/streaming_chat`,
         {
-          message: (message || '').trim(),
+          message: messageForRetrieval,
           chat_history: chatHistory || [],
           conversation_id: conversationId,
           provider: effectiveProvider || 'openai',
@@ -335,7 +289,8 @@ const createChatRoutes = ({
           use_rag: useRAG,
           include_sources: true,
           short_answer_mode: shortAnswerMode,
-          use_hybrid_search: useHybridSearch,
+          // Force hybrid retrieval for Trip Planner to improve table/rate recall
+          use_hybrid_search: isTripPlannerMessage ? true : useHybridSearch,
           ...(isTripPlannerMessage
             ? { additionalInstructions: TRAVEL_PLANNER_ADDITIONAL_INSTRUCTIONS }
             : {}),
@@ -357,91 +312,79 @@ const createChatRoutes = ({
       );
 
       const streamingCorsHeaders = buildSseCorsHeaders(req.headers.origin);
-      setSseHeaders(res, {
-        ...streamingCorsHeaders,
-        'X-Accel-Buffering': 'no',
-      });
-
-      const passThrough = new PassThrough();
-      passThrough.pipe(res);
-
-      let buffer = '';
       let aggregatedAnswer = '';
       let remoteConversationId = conversationId || null;
       let aggregatedSources = [];
       let aggregatedFollowUps = [];
       let streamStart = Date.now();
 
+      pipeStreamingResponse({
+        req,
+        res,
+        upstream: response,
+        corsHeaders: {
+          ...streamingCorsHeaders,
+          'X-Accel-Buffering': 'no',
+        },
+        logger: (event, payload) => {
+          console.error('Streaming chat error', event, payload);
+        },
+        onMetadata: (event) => {
+          if (event.conversation_id) {
+            remoteConversationId = event.conversation_id;
+          }
+          if (Array.isArray(event.sources)) {
+            aggregatedSources = event.sources;
+          }
+          if (Array.isArray(event.follow_up_questions)) {
+            aggregatedFollowUps = event.follow_up_questions;
+          }
+        },
+        onComplete: () => {
+          if (config.loggingEnabled) {
+            chatLogger.logChat(req, {
+              timestamp: new Date().toISOString(),
+              question: message.trim(),
+              answer: aggregatedAnswer,
+              model: effectiveModel,
+              provider: effectiveProvider,
+              ragEnabled: useRAG,
+              conversationId: remoteConversationId,
+              latencyMs: Date.now() - streamStart,
+              metadata: {
+                route: '/api/v2/chat/stream',
+                sources: aggregatedSources,
+                followUpQuestions: aggregatedFollowUps,
+                ...(reasoningEffort ? { reasoningEffort } : {}),
+                ...(responseVerbosity ? { responseVerbosity } : {}),
+              },
+            });
+          }
+        },
+      });
+
       response.data.on('data', (chunk) => {
         const fragment = chunk.toString();
-        passThrough.write(fragment);
-        buffer += fragment;
-
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
+        const lines = fragment.split('\n');
 
         for (const line of lines) {
           if (!line.startsWith('data: ')) continue;
           const data = line.slice(6).trim();
-          if (data === '' || data === '[DONE]') continue;
+          if (!data || data === '[DONE]') continue;
 
           try {
             const event = JSON.parse(data);
             if (event.type === 'token' && typeof event.content === 'string') {
               aggregatedAnswer += event.content;
             }
-            if (event.type === 'metadata') {
-              if (event.conversation_id) {
-                remoteConversationId = event.conversation_id;
-              }
-              if (Array.isArray(event.sources)) {
-                aggregatedSources = event.sources;
-              }
-              if (Array.isArray(event.follow_up_questions)) {
-                aggregatedFollowUps = event.follow_up_questions;
-              }
-            }
-          } catch (parseError) {
-            if (data !== '') {
-              console.error(
-                'Error parsing SSE event:',
-                parseError,
-                'Data:',
-                data.substring(0, 100),
-              );
-            }
+          } catch (error) {
+            console.error('Error parsing SSE event:', error, 'Data:', data.substring(0, 100));
           }
-        }
-      });
-
-      response.data.on('end', () => {
-        passThrough.end();
-
-        if (config.loggingEnabled) {
-          chatLogger.logChat(req, {
-            timestamp: new Date().toISOString(),
-            question: message.trim(),
-            answer: aggregatedAnswer,
-            model: effectiveModel,
-            provider: effectiveProvider,
-            ragEnabled: useRAG,
-            conversationId: remoteConversationId,
-            latencyMs: Date.now() - streamStart,
-            metadata: {
-              route: '/api/v2/chat/stream',
-              sources: aggregatedSources,
-              followUpQuestions: aggregatedFollowUps,
-              ...(reasoningEffort ? { reasoningEffort } : {}),
-              ...(responseVerbosity ? { responseVerbosity } : {}),
-            },
-          });
         }
       });
 
       req.on('close', () => {
         upstreamAbortController.abort();
-        response.data.destroy();
-        passThrough.end();
       });
     } catch (error) {
       console.error('Error with streaming chat:', error);
