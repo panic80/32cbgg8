@@ -1,5 +1,6 @@
 export * from './useCommandPalette';
 export * from './useDisclaimer';
+export * from './useChatController';
 export * from './useKeyboardShortcuts';
 export * from './useLocalStorage';
 export * from './useMessageOperations';
