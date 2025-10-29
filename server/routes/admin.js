@@ -1,22 +1,29 @@
 import { Router } from 'express';
+import { getLogger } from '../services/logger.js';
+import { respondWithError } from '../utils/http.js';
 
 const toStringOrUndefined = (value) =>
   typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
 
+const logger = getLogger('routes:admin');
+
 const createAdminRoutes = ({ rateLimiter, performanceHandler, chatLogger }) => {
   const router = Router();
 
-  console.log('Registering /api/admin/performance route');
+  logger.info('Registering /api/admin/performance route');
   router.get('/performance', rateLimiter, (req, res, next) => performanceHandler(req, res, next));
   router.all('/performance', (_req, res) => res.status(405).json({ error: 'Method Not Allowed' }));
 
-  console.log('Registering admin analytics visits route');
+  logger.info('Registering admin analytics visits route');
   router.get('/analytics/visits', rateLimiter, (req, res) => {
-    console.log('Handling GET /api/admin/analytics/visits');
+    logger.debug('Handling GET /api/admin/analytics/visits');
     if (process.env.ENABLE_LOGGING !== 'true') {
-      return res.status(503).json({
+      return respondWithError(res, {
+        status: 503,
         error: 'LoggingDisabled',
         message: 'Analytics logging is disabled. Enable ENABLE_LOGGING to access visit analytics.',
+        logger,
+        level: 'warn',
       });
     }
 

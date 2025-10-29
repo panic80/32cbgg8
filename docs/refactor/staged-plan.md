@@ -60,14 +60,14 @@ _Exit criteria_: New routing system live, duplicated pages removed, trip planner
 
 **Controller & Service Extraction**
 
-- [ ] Move logic from `server/routes/chat.js`, `ingestion.js`, `maps.js`, `support.js` into `server/controllers/*.js`; keep routes as thin delegators.
+- [x] Move logic from `server/routes/chat.js`, `ingestion.js`, `maps.js`, `support.js` into `server/controllers/*.js`; keep routes as thin delegators.
 - [ ] Introduce request validators using zod/joi under `server/middleware/validators/`; wire into all routes that accept JSON payloads.
-- [ ] Enhance `server/services/streaming.js` with `createSseSession` helpers; refactor `/api/v2/chat*` endpoints to the shared streaming pipeline.
+- [x] Enhance `server/services/streaming.js` with `createSseSession` helpers; refactor `/api/v2/chat*` endpoints to the shared streaming pipeline.
 
 **Logging & Error Handling**
 
-- [ ] Promote `server/services/logger.js` to structured logging (pino/winston) with child loggers; replace `console.*` everywhere.
-- [ ] Standardize error responses with helper in `server/utils/http.js` returning `{ error, message, traceId }`.
+- [x] Promote `server/services/logger.js` to structured logging (pino/winston) with child loggers; replace `console.*` everywhere.
+- [x] Standardize error responses with helper in `server/utils/http.js` returning `{ error, message, traceId }`.
 - [ ] Audit caching (`server/services/cache.js`) and ensure single shared Redis client respecting config-driven TTLs.
 
 **Testing & Observability**

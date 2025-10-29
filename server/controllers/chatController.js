@@ -356,6 +356,12 @@ export const createChatController = ({
       let aggregatedSources = [];
       let aggregatedFollowUps = [];
       const streamStart = Date.now();
+      const streamLogger = chatLogger?.child
+        ? chatLogger.child({
+            scope: 'routes:chat:stream',
+            conversationId: conversationId || null,
+          })
+        : null;
 
       pipeStreamingResponse({
         req,
@@ -365,9 +371,10 @@ export const createChatController = ({
           ...streamingCorsHeaders,
           'X-Accel-Buffering': 'no',
         },
-        logger: (event, payload) => {
-          chatLogger?.error?.('Streaming chat error', { event, payload });
-        },
+        logger: streamLogger,
+        heartbeatIntervalMs: 15000,
+        idleTimeoutMs: DEFAULT_RAG_STREAM_TIMEOUT_MS,
+        traceId: req.headers['x-request-id'],
         onMetadata: (event) => {
           if (event.conversation_id) {
             remoteConversationId = event.conversation_id;

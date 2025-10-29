@@ -53,7 +53,6 @@ const toMetadataString = (metadata) => {
   try {
     return typeof metadata === 'string' ? metadata : JSON.stringify(metadata);
   } catch (error) {
-    console.warn('Failed to serialise metadata for chat log entry', error);
     return null;
   }
 };
@@ -78,8 +77,80 @@ const compactObject = (input) => {
   return Object.fromEntries(entries);
 };
 
+const LOG_LEVELS = ['debug', 'info', 'warn', 'error'];
+const LEVEL_RANK = {
+  debug: 10,
+  info: 20,
+  warn: 30,
+  error: 40,
+};
+
+const normalizeLevel = (value) => {
+  const normalized = typeof value === 'string' ? value.trim().toLowerCase() : '';
+  return LOG_LEVELS.includes(normalized) ? normalized : 'info';
+};
+
+const serializeError = (error) => {
+  if (error instanceof Error) {
+    return {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+    };
+  }
+  if (!error || typeof error !== 'object') {
+    return error ?? null;
+  }
+
+  return Object.fromEntries(
+    Object.entries(error).map(([key, value]) => [key, serializeError(value)]),
+  );
+};
+
+const normalizeLogContext = (context) => {
+  if (context == null) {
+    return undefined;
+  }
+  if (context instanceof Error) {
+    return { error: serializeError(context) };
+  }
+  if (Array.isArray(context)) {
+    return context.map((item) => normalizeLogContext(item));
+  }
+  if (typeof context === 'object') {
+    return Object.fromEntries(
+      Object.entries(context).map(([key, value]) => [key, normalizeLogContext(value)]),
+    );
+  }
+  return context;
+};
+
+const mergeContext = (base, extra) => {
+  if (!base && !extra) {
+    return undefined;
+  }
+  if (!base) {
+    return normalizeLogContext(extra);
+  }
+  if (!extra) {
+    return base;
+  }
+  const normalized = normalizeLogContext(extra);
+  if (!normalized) {
+    return base;
+  }
+  return { ...base, ...normalized };
+};
+
 class ChatLogger {
-  constructor() {
+  constructor({ level, service } = {}) {
+    this.logLevel = normalizeLevel(level ?? process.env.LOG_LEVEL);
+    this.baseContext = {
+      service: service ?? 'express-gateway',
+      hostname: os.hostname(),
+      pid: process.pid,
+    };
+
     this.dbPath = resolveDatabasePath();
     this.dataDir = path.dirname(this.dbPath);
 
@@ -96,7 +167,7 @@ class ChatLogger {
       try {
         this.db.close();
       } catch (error) {
-        console.error('Failed to close analytics database on exit:', error);
+        this.emit('error', 'Failed to close analytics database on exit', { error });
       }
 
       if (process.env.NODE_ENV === 'test' && !process.env.CHAT_LOG_DB_PATH) {
@@ -108,7 +179,10 @@ class ChatLogger {
               fs.rmSync(file, { force: true });
             }
           } catch (error) {
-            console.warn('Failed to remove test analytics artifact', file, error.message);
+            this.emit('warn', 'Failed to remove test analytics artifact', {
+              file,
+              error: serializeError(error),
+            });
           }
         }
       }
@@ -174,9 +248,120 @@ class ChatLogger {
     `);
   }
 
+  setLevel(level) {
+    this.logLevel = normalizeLevel(level);
+  }
+
+  shouldLog(level) {
+    const targetLevel = normalizeLevel(level);
+    return LEVEL_RANK[targetLevel] >= LEVEL_RANK[this.logLevel];
+  }
+
+  emit(level, message, context) {
+    const resolvedLevel = normalizeLevel(level);
+    if (!this.shouldLog(resolvedLevel)) {
+      return;
+    }
+
+    const entry = {
+      timestamp: new Date().toISOString(),
+      level: resolvedLevel,
+      message: typeof message === 'string' ? message : JSON.stringify(message),
+      ...this.baseContext,
+    };
+
+    const normalizedContext = normalizeLogContext(context);
+    if (normalizedContext && typeof normalizedContext === 'object') {
+      Object.assign(entry, normalizedContext);
+    }
+
+    const writer =
+      resolvedLevel === 'error'
+        ? console.error
+        : resolvedLevel === 'warn'
+          ? console.warn
+          : console.log;
+
+    writer(JSON.stringify(entry));
+  }
+
+  logWithLevel(level, message, context) {
+    const normalizedContext = normalizeLogContext(context);
+    this.emit(level, message, normalizedContext);
+
+    if (normalizeLevel(level) === 'debug') {
+      return;
+    }
+
+    this.recordEvent({
+      type: normalizeLevel(level),
+      message: typeof message === 'string' ? message : JSON.stringify(message),
+      metadata: normalizedContext,
+    });
+  }
+
+  debug(message, context) {
+    this.logWithLevel('debug', message, context);
+  }
+
+  info(message, context) {
+    this.logWithLevel('info', message, context);
+  }
+
+  warn(message, context) {
+    this.logWithLevel('warn', message, context);
+  }
+
+  error(message, context) {
+    this.logWithLevel('error', message, context);
+  }
+
+  child(binding = {}) {
+    const bound = normalizeLogContext(binding);
+    const combine = (context) => mergeContext(bound, context);
+
+    return {
+      debug: (message, context) => this.debug(message, combine(context)),
+      info: (message, context) => this.info(message, combine(context)),
+      warn: (message, context) => this.warn(message, combine(context)),
+      error: (message, context) => this.error(message, combine(context)),
+      log: (data = {}) =>
+        this.log({
+          ...data,
+          metadata: combine(data.metadata ?? data.payload ?? {}),
+        }),
+      logChat: (req, chatData = {}) =>
+        this.logChat(req, {
+          ...chatData,
+          metadata: combine(chatData.metadata),
+        }),
+      child: (extra = {}) => this.child(mergeContext(bound, extra)),
+    };
+  }
+
+  recordEvent({ type, message, metadata }) {
+    const now = Date.now();
+    const record = {
+      recorded_at: now,
+      recorded_at_iso: new Date(now).toISOString(),
+      type: typeof type === 'string' ? type : null,
+      message: typeof message === 'string' ? message : null,
+      payload: toMetadataString(metadata),
+    };
+
+    try {
+      this.insertEventStmt.run(record);
+    } catch (error) {
+      this.emit('error', 'Failed to persist event log entry', {
+        error: serializeError(error),
+        record,
+      });
+    }
+  }
+
   logChat(_req, chatData) {
     if (!chatData || !chatData.question) {
-      console.warn('logChat called without a question payload');
+      this.warn('logChat called without a question payload');
       return;
     }
 
@@ -199,27 +384,36 @@ class ChatLogger {
     try {
       this.insertChatStmt.run(record);
     } catch (error) {
-      console.error('Failed to persist chat log entry:', error, record);
+      this.emit('error', 'Failed to persist chat log entry', {
+        error: serializeError(error),
+        record,
+      });
     }
   }
 
   log(data) {
-    const now = Date.now();
-    const payload = toMetadataString(data);
-
-    const record = {
-      recorded_at: now,
-      recorded_at_iso: new Date(now).toISOString(),
-      type: typeof data?.type === 'string' ? data.type : null,
-      message: typeof data?.message === 'string' ? data.message : null,
-      payload,
-    };
-
-    try {
-      this.insertEventStmt.run(record);
-    } catch (error) {
-      console.error('Failed to persist event log entry:', error, record);
+    if (!data || typeof data !== 'object') {
+      this.warn('log called without structured payload');
+      return;
     }
+
+    const rawMetadata =
+      data.metadata ??
+      data.payload ??
+      (() => {
+        const clone = { ...data };
+        delete clone.type;
+        delete clone.message;
+        delete clone.metadata;
+        delete clone.payload;
+        return clone;
+      })();
+
+    this.recordEvent({
+      type: typeof data.type === 'string' ? data.type : null,
+      message: typeof data.message === 'string' ? data.message : null,
+      metadata: normalizeLogContext(rawMetadata),
+    });
   }
 
   logVisit(visitData = {}) {
@@ -315,7 +509,9 @@ class ChatLogger {
         })),
       };
     } catch (error) {
-      console.error('Failed to summarise visit analytics:', error);
+      this.emit('error', 'Failed to summarise visit analytics', {
+        error: serializeError(error),
+      });
       return {
         totalVisits: 0,
         firstVisit: null,
@@ -415,7 +611,10 @@ class ChatLogger {
           try {
             parsedMetadata = JSON.parse(row.metadata);
           } catch (error) {
-            console.warn('Failed to parse metadata for chat log row', row.id, error);
+            this.emit('warn', 'Failed to parse metadata for chat log row', {
+              rowId: row.id,
+              error: serializeError(error),
+            });
             parsedMetadata = row.metadata;
           }
         }
@@ -428,7 +627,9 @@ class ChatLogger {
         };
       });
     } catch (error) {
-      console.error('Failed to read chat logs:', error);
+      this.emit('error', 'Failed to read chat logs', {
+        error: serializeError(error),
+      });
       return [];
     }
   }
@@ -437,10 +638,18 @@ class ChatLogger {
     try {
       this.db.exec('DELETE FROM chat_logs; DELETE FROM event_logs;');
     } catch (error) {
-      console.error('Failed to clear analytics logs:', error);
+      this.emit('error', 'Failed to clear analytics logs', {
+        error: serializeError(error),
+      });
     }
   }
 }
 
 const chatLogger = new ChatLogger();
+
+export const getLogger = (scope) =>
+  chatLogger.child(scope ? { scope } : {});
+
+export const rootLogger = chatLogger.child({ scope: 'server' });
+
 export default chatLogger;

@@ -1,10 +1,10 @@
 # Refactor Initiative Overview
 
-This directory captures working artifacts for the staged refactor described in `BIGPLAN.md`. Use it to coordinate execution, keep audit trails, and surface decisions quickly.
+This directory captures working artifacts for the staged refactor described in `staged-plan.md`. Use it to coordinate execution, keep audit trails, and surface decisions quickly.
 
 ## Goals
 
-- Deliver the staged refactor with minimal regressions by following the exit criteria defined per stage in `BIGPLAN.md`.
+- Deliver the staged refactor with minimal regressions by following the exit criteria defined per stage in `staged-plan.md`.
 - Provide transparent status and ownership for each stage so cross-functional teams can coordinate rollouts.
 - Preserve historical context (metrics, validation evidence, diagrams) in one location to simplify reviews and retrospectives.
 
@@ -19,7 +19,7 @@ This directory captures working artifacts for the staged refactor described in `
 | 4 | Tooling & docs enablement | _TBD_ | _TBD_ | ⏳ Planned | Lint/CI upgrades, architectural documentation. |
 | 5 | Validation & cutover | _TBD_ | _TBD_ | ⏳ Planned | Final validation, rollout monitor, post-launch review. |
 
-Update the table as owners and timelines become clear. Use emoji or status codes that make sense for the team (✅, 🚧, ⏳, etc.).
+Update the table as owners and timelines become clear. Use emoji or status codes that make sense for the team (✅, 🚧, ⏳, etc.). Refer to `staged-plan.md` for full task lists.
 
 ## Branch & Release Strategy
 
@@ -38,4 +38,4 @@ Capture any deviations from this strategy in `docs/refactor/notes.md` (create as
 - `codemods.md` – (Optional) Track codemods/scripts used to accelerate refactors.
 - `reports/` – Stage-by-stage validation logs and metric diffs.
 
-Extend this README whenever scope changes or new stakeholders join the initiative. All updates should align with the staged checklist in `BIGPLAN.md`.
+Extend this README whenever scope changes or new stakeholders join the initiative. All updates should align with the staged checklist in `staged-plan.md` and the backlog in `opportunity-tracker.md`.

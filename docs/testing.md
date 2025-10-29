@@ -112,6 +112,16 @@ describe('Gemini API', () => {
 });
 ```
 
+### Streaming Utilities
+
+Server-side Server-Sent Events helpers are covered by focused unit tests. To execute the streaming suite:
+
+```bash
+npx vitest run server/services/__tests__/streaming.test.ts
+```
+
+These tests exercise heartbeat scheduling, idle timeouts, and metadata parsing behaviour in `server/services/streaming.js`.
+
 ### Edge Case Tests
 
 Always include tests for edge cases and error handling:
@@ -194,6 +204,53 @@ describe('Component name', () => {
     // Tests for error handling
   });
 });
+
+## RAG Retrieval Benchmarking
+
+Use these scripts to baseline RAG performance without changing code. All
+requests target `https://32cbgg8.com/api/rag/api/v1` unless otherwise noted.
+
+### Key Endpoints
+
+- `GET /health` – RAG service heartbeat + `X-Process-Time` header
+- `GET /sources/stats` – Chroma collection metrics (warming required)
+- `POST /sources/search` – Retrieval-only path (no LLM)
+- `POST /chat` – Full chat execution (includes LLM latency/cost)
+
+### Example Commands
+
+```bash
+# Health
+curl -sS -D - -o /dev/null -w "code=%{http_code} ttfb=%{time_starttransfer}s total=%{time_total}s\n" \
+  https://32cbgg8.com/api/rag/api/v1/health
+
+# Retrieval-only with correlation header
+TRACE_ID="t-$(date +%s%3N)"
+curl -sS -D - -o /dev/null -H "Content-Type: application/json" \
+  -H "X-Trace-Id: $TRACE_ID" \
+  -w "trace=$TRACE_ID code=%{http_code} ttfb=%{time_starttransfer}s total=%{time_total}s\n" \
+  https://32cbgg8.com/api/rag/api/v1/sources/search \
+  --data '{"query":"incidental allowance quebec","limit":5,"include_scores":true}'
+
+# 20-run sample for percentile metrics
+for i in {1..20}; do
+  curl -s -o /dev/null -H "Content-Type: application/json" -w "%{time_total}\n" \
+    https://32cbgg8.com/api/rag/api/v1/sources/search \
+    --data '{"query":"incidental allowance quebec","limit":5}';
+done | awk '{print $1*1000}' | sort -n | awk 'BEGIN{sum=0}{a[NR]=$1;sum+=$1}END{n=NR;printf("count=%d mean=%.1f p50=%.1f p95=%.1f p99=%.1f\n",n,sum/n,a[int(n*0.50)],a[int(n*0.95)],a[int(n*0.99)])}'
+
+# End-to-end chat
+TRACE_ID="t-$(date +%s%3N)"
+curl -sS -D - -o /dev/null -H "Content-Type: application/json" \
+  -H "X-Trace-Id: $TRACE_ID" \
+  -w "trace=$TRACE_ID code=%{http_code} ttfb=%{time_starttransfer}s total=%{time_total}s\n" \
+  https://32cbgg8.com/api/rag/api/v1/chat \
+  --data '{"message":"What are the current incidental allowance rates for Quebec?","provider":"openai","use_rag":true,"include_sources":true,"use_hybrid_search":false}'
+```
+
+Fix any failing endpoints (e.g., missing imports in `DocumentStore.search`) before
+capturing metrics. Record results in `docs/refactor/reports/<stage>.md` or the
+appropriate RAG document (`docs/rag/performance.md`).
 ```
 
 ## Testing Strategy by Component Type

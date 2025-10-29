@@ -1,8 +1,12 @@
 import performanceService from '../services/performanceService.js';
+import { getLogger } from '../services/logger.js';
+import { respondWithError } from '../utils/http.js';
+
+const logger = getLogger('routes:performance');
 
 export const createPerformanceHandler = ({ service = performanceService } = {}) => {
   return async (req, res) => {
-    console.log('Handling /api/admin/performance request');
+    logger.info('Handling /api/admin/performance request');
     try {
       const forceRefresh =
         typeof req.query.forceRefresh === 'string'
@@ -12,10 +16,12 @@ export const createPerformanceHandler = ({ service = performanceService } = {}) 
       const metrics = await service.fetchMetrics({ forceRefresh });
       res.json(metrics);
     } catch (error) {
-      console.error('Failed to retrieve performance metrics', error.message);
-      res.status(502).json({
+      respondWithError(res, {
+        status: 502,
         error: 'MetricsUnavailable',
         message: 'Unable to retrieve RAG performance metrics at this time.',
+        logger,
+        cause: error,
       });
     }
   };

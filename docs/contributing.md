@@ -29,4 +29,4 @@ Match the existing history: concise, imperative commit subjects such as `Fix sug
 
 ## Security & Configuration Tips
 
-Store secrets in untracked env files; production reads `/etc/cbthis/env` along with `.env` variants. Activate the `rag-service` virtualenv before touching Python dependencies and update the matching `requirements*.txt`. Review `docs/security.md` and `docs/deployment.md` when adjusting headers, proxies, or PM2/nginx settings.
+Store secrets in untracked env files; production reads `/etc/cbthis/env` along with `.env` variants. Activate the `rag-service` virtualenv before touching Python dependencies and update the matching `requirements*.txt`. Review `docs/security/index.md` and `docs/operations/deployment.md` when adjusting headers, proxies, or PM2/nginx settings.

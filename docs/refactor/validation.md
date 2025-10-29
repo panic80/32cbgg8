@@ -1,6 +1,6 @@
 # Validation Gates
 
-Every stage in `BIGPLAN.md` must clear the commands below before merging into `refactor/staged-rollout` or promoting to `main`. Record results in `docs/refactor/reports/<stage>.md`.
+Every stage in `staged-plan.md` must clear the commands below before merging into `refactor/staged-rollout` or promoting to `main`. Record results in `docs/refactor/reports/<stage>.md`.
 
 ## Core Commands
 
@@ -36,4 +36,4 @@ If a command fails, document the failure, linked issue/PR, and the fix before re
 - Require passing status checks before merging.
 - For long-running suites (pytest, Supertest), consider nightly runs in addition to per-PR runs if runtime is high.
 
-Update this file whenever commands change or new validation steps are added. Keep references in sync with `BIGPLAN.md` and `docs/refactor/README.md`.
+Update this file whenever commands change or new validation steps are added. Keep references in sync with `staged-plan.md` and `docs/refactor/README.md`.

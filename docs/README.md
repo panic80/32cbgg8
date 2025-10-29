@@ -10,11 +10,16 @@ This application provides an AI-powered chatbot interface for querying informati
 
 1. [Architecture](./architecture.md)
 2. [API Integration](./api-integration.md)
-3. [Deployment Guide](./deployment.md)
-4. [Development Guide](./development.md)
-5. [Testing](./testing.md)
-6. [Security](./security.md)
-7. [Troubleshooting](./troubleshooting.md)
+3. [Operations](./operations/index.md)
+4. [RAG Hub](./rag/index.md)
+5. [Development Guide](./development.md)
+6. [Contributing](./contributing.md)
+7. [Testing](./testing.md)
+8. [Security](./security/index.md)
+9. [Operations Backlog](./backlog/index.md)
+10. [Guides](./guides/index.md)
+11. [Troubleshooting](./troubleshooting.md)
+12. [Performance Dashboard](./performance-dashboard.md)
 
 ## Quick Start
 

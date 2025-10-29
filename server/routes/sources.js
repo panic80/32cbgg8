@@ -1,5 +1,7 @@
 import express from 'express';
 import axios from 'axios';
+import { getLogger } from '../services/logger.js';
+import { respondWithError } from '../utils/http.js';
 
 export function createSourcesRoutes({ rateLimiter, requireAdminAuth, getRagAuthHeaders }) {
   const router = express.Router();
@@ -7,6 +9,7 @@ export function createSourcesRoutes({ rateLimiter, requireAdminAuth, getRagAuthH
     typeof requireAdminAuth === 'function' ? requireAdminAuth : (req, res, next) => next();
   const buildRagAuthHeaders =
     typeof getRagAuthHeaders === 'function' ? getRagAuthHeaders : () => ({});
+  const logger = getLogger('routes:sources');
 
   // List indexed sources
   router.get('/api/v2/sources', adminMiddleware, rateLimiter, async (req, res) => {
@@ -20,13 +23,21 @@ export function createSourcesRoutes({ rateLimiter, requireAdminAuth, getRagAuthH
 
       res.json(ragResponse.data);
     } catch (error) {
-      console.error('Sources listing error:', error);
       if (error.response) {
-        return res.status(error.response.status).json(error.response.data);
+        return respondWithError(res, {
+          status: error.response.status,
+          error: 'SourcesUpstreamError',
+          message: error.response.data?.message || 'Failed to list sources.',
+          logger,
+          cause: error,
+        });
       }
-      return res.status(500).json({
-        error: 'Internal Server Error',
+      return respondWithError(res, {
+        status: 500,
+        error: 'SourcesListFailed',
         message: 'Failed to list sources.',
+        logger,
+        cause: error,
       });
     }
   });
@@ -42,13 +53,21 @@ export function createSourcesRoutes({ rateLimiter, requireAdminAuth, getRagAuthH
 
       res.json(ragResponse.data);
     } catch (error) {
-      console.error('Source stats error:', error);
       if (error.response) {
-        return res.status(error.response.status).json(error.response.data);
+        return respondWithError(res, {
+          status: error.response.status,
+          error: 'SourcesStatsUpstreamError',
+          message: error.response.data?.message || 'Failed to get source statistics.',
+          logger,
+          cause: error,
+        });
       }
-      return res.status(500).json({
-        error: 'Internal Server Error',
+      return respondWithError(res, {
+        status: 500,
+        error: 'SourcesStatsFailed',
         message: 'Failed to get source statistics.',
+        logger,
+        cause: error,
       });
     }
   });
@@ -64,8 +83,7 @@ export function createSourcesRoutes({ rateLimiter, requireAdminAuth, getRagAuthH
 
       res.json(ragResponse.data);
     } catch (error) {
-      console.error('Source count error:', error);
-      // Keep existing behavior: return default response instead of erroring
+      logger.warn('Source count error', { error });
       res.json({ count: 0, status: 'error', message: 'Unable to get count' });
     }
   });
@@ -73,7 +91,7 @@ export function createSourcesRoutes({ rateLimiter, requireAdminAuth, getRagAuthH
   // Purge database endpoint
   router.post('/api/v2/database/purge', adminMiddleware, rateLimiter, async (req, res) => {
     try {
-      console.log('Database purge requested');
+      logger.info('Database purge requested');
       const ragServiceUrl = process.env.RAG_SERVICE_URL || 'http://localhost:8000';
       const ragResponse = await axios.post(
         `${ragServiceUrl}/api/v1/database/purge`,
@@ -83,16 +101,24 @@ export function createSourcesRoutes({ rateLimiter, requireAdminAuth, getRagAuthH
           headers: { 'Content-Type': 'application/json', ...buildRagAuthHeaders() },
         },
       );
-      console.log('Database purge completed:', ragResponse.data);
+      logger.info('Database purge completed', { result: ragResponse.data });
       res.json(ragResponse.data);
     } catch (error) {
-      console.error('Database purge error:', error);
       if (error.response) {
-        return res.status(error.response.status).json(error.response.data);
+        return respondWithError(res, {
+          status: error.response.status,
+          error: 'DatabasePurgeUpstreamError',
+          message: error.response.data?.message || 'Failed to purge database.',
+          logger,
+          cause: error,
+        });
       }
-      return res.status(500).json({
-        error: 'Internal Server Error',
+      return respondWithError(res, {
+        status: 500,
+        error: 'DatabasePurgeFailed',
         message: 'Failed to purge database.',
+        logger,
+        cause: error,
       });
     }
   });

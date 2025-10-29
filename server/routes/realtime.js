@@ -1,4 +1,6 @@
 import { Router } from 'express';
+import { getLogger } from '../services/logger.js';
+import { respondWithError } from '../utils/http.js';
 
 const REALTIME_SESSION_ENDPOINT = 'https://api.openai.com/v1/realtime/sessions';
 const buildRealtimeConnectEndpoint = (model) =>
@@ -25,14 +27,18 @@ const resolveOpenAiApiKey = () => {
 
 const createRealtimeRoutes = ({ rateLimiter, chatLogger }) => {
   const router = Router();
+  const logger = getLogger('routes:realtime');
 
   router.post('/api/v2/realtime/session', rateLimiter, async (req, res) => {
     const apiKey = resolveOpenAiApiKey();
 
     if (!apiKey) {
-      return res.status(500).json({
-        error: 'Configuration Error',
+      return respondWithError(res, {
+        status: 500,
+        error: 'ConfigurationError',
         message: 'OpenAI API key is not configured on the server.',
+        logger,
+        cause: new Error('Missing OpenAI API key'),
       });
     }
 
@@ -68,17 +74,19 @@ const createRealtimeRoutes = ({ rateLimiter, chatLogger }) => {
           });
         }
 
-        return res.status(502).json({
-          error: 'Upstream Error',
+        return respondWithError(res, {
+          status: sessionResponse.status || 502,
+          error: 'RealtimeUpstreamError',
           message: 'Failed to create realtime session.',
-          details: errorText,
+          logger,
+          cause: new Error(errorText),
+          details: { model, status: sessionResponse.status },
         });
       }
 
       const sessionData = await sessionResponse.json();
       return res.json(sessionData);
     } catch (error) {
-      console.error('Realtime session error:', error);
       if (chatLogger) {
         chatLogger.log({
           type: 'realtime-session-error',
@@ -87,9 +95,12 @@ const createRealtimeRoutes = ({ rateLimiter, chatLogger }) => {
           timestamp: new Date().toISOString(),
         });
       }
-      return res.status(500).json({
-        error: 'Internal Server Error',
+      return respondWithError(res, {
+        status: 500,
+        error: 'RealtimeSessionFailed',
         message: 'Unable to create realtime session.',
+        logger,
+        cause: error,
       });
     }
   });
@@ -98,15 +109,18 @@ const createRealtimeRoutes = ({ rateLimiter, chatLogger }) => {
     const { clientSecret, sdp, model = 'gpt-realtime-mini' } = req.body || {};
 
     if (!clientSecret || !sdp) {
-      console.warn('Realtime answer missing required fields', { hasClientSecret: !!clientSecret, hasSdp: !!sdp });
-      return res.status(400).json({
-        error: 'Bad Request',
+      return respondWithError(res, {
+        status: 400,
+        error: 'BadRequest',
         message: 'Missing client secret or SDP offer.',
+        logger,
+        level: 'warn',
+        details: { hasClientSecret: !!clientSecret, hasSdp: !!sdp },
       });
     }
 
     try {
-      console.log('Exchanging realtime SDP with OpenAI', { model });
+      logger.info('Exchanging realtime SDP with OpenAI', { model });
       const answerResponse = await fetch(buildRealtimeConnectEndpoint(model), {
         method: 'POST',
         headers: {
@@ -128,24 +142,22 @@ const createRealtimeRoutes = ({ rateLimiter, chatLogger }) => {
             details: errorText,
           });
         }
-        console.error('Realtime answer exchange failed', {
-          status: answerResponse.status,
-          error: errorText,
-        });
 
-        return res.status(502).json({
-          error: 'Upstream Error',
+        return respondWithError(res, {
+          status: answerResponse.status || 502,
+          error: 'RealtimeUpstreamError',
           message: 'Failed to exchange realtime SDP.',
-          details: errorText,
+          logger,
+          cause: new Error(errorText),
+          details: { model, status: answerResponse.status },
         });
       }
 
       const answer = await answerResponse.text();
-      console.log('Realtime SDP exchange succeeded');
+      logger.info('Realtime SDP exchange succeeded', { model });
       res.setHeader('Content-Type', 'application/sdp');
       return res.send(answer);
     } catch (error) {
-      console.error('Realtime answer error:', error);
       if (chatLogger) {
         chatLogger.log({
           type: 'realtime-answer-error',
@@ -155,9 +167,12 @@ const createRealtimeRoutes = ({ rateLimiter, chatLogger }) => {
         });
       }
 
-      return res.status(500).json({
-        error: 'Internal Server Error',
+      return respondWithError(res, {
+        status: 500,
+        error: 'RealtimeAnswerFailed',
         message: 'Unable to exchange realtime SDP.',
+        logger,
+        cause: error,
       });
     }
   });

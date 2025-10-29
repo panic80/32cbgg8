@@ -1,26 +1,31 @@
 import { app, cache, config, distPath, landingPath, adminAuthEnabled } from './app.js';
-import chatLogger from './services/logger.js';
+import chatLogger, { getLogger } from './services/logger.js';
 
 const PORT = process.env.PORT || 3000;
+const logger = getLogger('server:main');
 
 const logStartupInfo = () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'production'}`);
-  console.log(`Cache: ${config.cacheEnabled ? 'Enabled' : 'Disabled'}`);
-  console.log(
-    `Rate Limiting: ${config.rateLimitEnabled ? `Enabled (${config.rateLimitMax} req/min)` : 'Disabled'}`,
-  );
-  console.log(`Static assets: ${distPath || 'Not found'}`);
-  console.log(`Landing page: ${landingPath || 'Not found'}`);
-  console.log('\nAvailable endpoints:');
-  console.log('  GET  /health');
-  console.log('  GET  /api/config');
-  console.log('  GET  /api/travel-instructions');
-  console.log('  POST /api/gemini/generateContent');
-  console.log('  POST /api/v2/chat');
-  console.log('  POST /api/v2/followup');
-  console.log('  POST /api/clear-cache');
-  console.log('  GET  /api/deployment-info');
+  logger.info('Server startup details', {
+    port: Number(PORT),
+    environment: process.env.NODE_ENV || 'production',
+    cacheEnabled: Boolean(config.cacheEnabled),
+    rateLimiting: {
+      enabled: Boolean(config.rateLimitEnabled),
+      max: config.rateLimitMax,
+    },
+    staticAssets: distPath || null,
+    landingPage: landingPath || null,
+    endpoints: [
+      { method: 'GET', path: '/health' },
+      { method: 'GET', path: '/api/config' },
+      { method: 'GET', path: '/api/travel-instructions' },
+      { method: 'POST', path: '/api/gemini/generateContent' },
+      { method: 'POST', path: '/api/v2/chat' },
+      { method: 'POST', path: '/api/v2/followup' },
+      { method: 'POST', path: '/api/clear-cache' },
+      { method: 'GET', path: '/api/deployment-info' },
+    ],
+  });
 };
 
 let server = null;
@@ -28,26 +33,26 @@ let server = null;
 if (process.env.NODE_ENV !== 'test') {
   server = app.listen(PORT, () => {
     logStartupInfo();
-    console.log('Admin auth enabled:', adminAuthEnabled);
+    logger.info('Admin authentication status', { enabled: Boolean(adminAuthEnabled) });
   });
 }
 
 const gracefulShutdown = async (signal) => {
-  console.log(`\n${signal} received. Starting graceful shutdown...`);
+  logger.warn('Shutdown signal received', { signal });
 
   if (server) {
     server.close(() => {
-      console.log('HTTP server closed');
+      logger.info('HTTP server closed');
     });
   }
 
   if (cache) {
     await cache.disconnect();
-    console.log('Cache connections closed');
+    logger.info('Cache connections closed');
   }
 
   setTimeout(() => {
-    console.log('Forcing shutdown after timeout');
+    logger.error('Forcing shutdown after timeout');
     process.exit(0);
   }, 10000);
 };
@@ -56,7 +61,9 @@ process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  logger.error('Unhandled promise rejection', {
+    reason: reason instanceof Error ? reason.message : reason,
+  });
   if (chatLogger && config.loggingEnabled) {
     chatLogger.log({
       type: 'unhandledRejection',

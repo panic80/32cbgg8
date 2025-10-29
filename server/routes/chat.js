@@ -4,6 +4,7 @@ import { DEFAULT_RAG_STREAM_TIMEOUT_MS, getEnvNumber } from '../config/constants
 import { pipeStreamingResponse } from '../services/streaming.js';
 import { createChatController } from '../controllers/chatController.js';
 import { validateRequest } from '../middleware/validate.js';
+import { getLogger } from '../services/logger.js';
 import {
   geminiGenerationSchema,
   standardChatSchema,
@@ -12,6 +13,7 @@ import {
 } from './schemas/chatSchemas.js';
 
 const DEFAULT_RAG_SERVICE_URL = process.env.RAG_SERVICE_URL || 'http://localhost:8000';
+const logger = getLogger('routes:chat');
 
 const createChatRoutes = ({
   rateLimiter,
@@ -46,7 +48,7 @@ const createChatRoutes = ({
 
   router.use('/api/chat', async (req, res, next) => {
     if (req.method === 'POST') {
-      console.log('Legacy /api/chat endpoint called, redirecting to /api/gemini/generateContent');
+      logger.info('Legacy /api/chat endpoint called, redirecting to /api/gemini/generateContent');
       if (req.body) {
         req.body = decodeUrlParams(req.body);
       }

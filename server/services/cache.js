@@ -1,4 +1,5 @@
 import { createClient } from 'redis';
+import { getLogger } from './logger.js';
 
 /**
  * Unified Cache Service with Redis and In-Memory Fallback
@@ -37,6 +38,7 @@ class CacheService {
     this.redisClient = null;
     this.redisConnected = false;
     this.memoryCache = new Map();
+    this.logger = getLogger('services:cache');
 
     // Metrics
     this.metrics = {
@@ -428,24 +430,11 @@ class CacheService {
    */
   log(message, data = {}, level = 'info') {
     if (!this.config.enableLogging) return;
-
-    const logEntry = {
-      timestamp: new Date().toISOString(),
-      level,
-      service: 'CacheService',
-      message,
-      ...data,
-    };
-
-    switch (level) {
-      case 'error':
-        console.error(`[Cache] ${message}`, data);
-        break;
-      case 'warn':
-        console.warn(`[Cache] ${message}`, data);
-        break;
-      default:
-        console.log(`[Cache] ${message}`, data);
+    const logger = this.logger;
+    if (logger?.[level]) {
+      logger[level](message, data);
+    } else if (logger?.info) {
+      logger.info(message, data);
     }
   }
 }

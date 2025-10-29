@@ -1,4 +1,7 @@
 import * as cheerio from 'cheerio';
+import { getLogger } from '../services/logger.js';
+
+const logger = getLogger('utils:html');
 
 /**
  * Process HTML content to extract main text while preserving structure hints.
@@ -6,14 +9,14 @@ import * as cheerio from 'cheerio';
  */
 export const processContent = (html) => {
   try {
-    console.log('Starting HTML processing with cheerio...');
+    logger.debug('Starting HTML processing with cheerio');
 
     const $ = cheerio.load(html, {
       decodeEntities: true,
       xmlMode: false,
     });
 
-    console.log('Cheerio loaded HTML successfully');
+    logger.debug('Cheerio loaded HTML successfully');
 
     const scriptCount = $('script').length;
     const styleCount = $('style').length;
@@ -21,9 +24,13 @@ export const processContent = (html) => {
     const footerCount = $('footer').length;
     const navCount = $('nav').length;
 
-    console.log(
-      `Element counts before removal: scripts=${scriptCount}, styles=${styleCount}, headers=${headerCount}, footers=${footerCount}, navs=${navCount}`,
-    );
+    logger.debug('Element counts before removal', {
+      scriptCount,
+      styleCount,
+      headerCount,
+      footerCount,
+      navCount,
+    });
 
     $('script, style, header, footer, nav').remove();
 
@@ -40,18 +47,18 @@ export const processContent = (html) => {
 
     for (const selector of contentSelectors) {
       if ($(selector).length > 0) {
-        console.log(`Found content using selector: ${selector}`);
+        logger.debug('Found content using selector', { selector });
         mainContent = $(selector).text();
         break;
       }
     }
 
     if (!mainContent || mainContent.trim().length < 100) {
-      console.log('Content selectors did not yield sufficient content, falling back to body');
+      logger.debug('Content selectors did not yield sufficient content, falling back to body');
       mainContent = $('body').text();
     }
 
-    console.log(`Raw extracted text length: ${mainContent.length} characters`);
+    logger.debug('Raw extracted text length', { length: mainContent.length });
 
     const processedText = mainContent
       .replace(/\s+/g, ' ')
@@ -67,11 +74,11 @@ export const processContent = (html) => {
       .replace(/([.!?])\s+/g, '$1\n')
       .trim();
 
-    console.log(`Processed text length: ${processedText.length} characters`);
+    logger.debug('Processed text length', { length: processedText.length });
 
     return processedText;
   } catch (error) {
-    console.error('Error processing HTML content:', error);
+    logger.error('Error processing HTML content', { error });
     try {
       return html
         .replace(/<[^>]*>/g, ' ')
@@ -79,7 +86,7 @@ export const processContent = (html) => {
         .replace(/(\d+\.\d+\.?\d*)/g, '\n$1')
         .trim();
     } catch (fallbackError) {
-      console.error('Even fallback processing failed:', fallbackError);
+      logger.error('Even fallback processing failed', { error: fallbackError });
       throw new Error('Content processing failed completely');
     }
   }

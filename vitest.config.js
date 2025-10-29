@@ -14,6 +14,8 @@ export default defineConfig({
     exclude: ['**/node_modules/**', '**/screenshots/**', '**/dist/**'],
     testTimeout: 10000, // 10 second timeout
     hookTimeout: 10000, // 10 second timeout for setup/teardown
+    threads: false,
+    pool: 'forks',
   },
   resolve: {
     alias: {
