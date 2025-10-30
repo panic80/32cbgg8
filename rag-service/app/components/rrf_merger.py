@@ -43,7 +43,9 @@ class RRFMergerStats:
     retrievers_count: int
     merge_time_ms: float
     k_parameter: int
+    score_threshold: float
     retriever_contributions: Dict[str, int] = field(default_factory=dict)
+    filtered_below_threshold: int = 0
 
 
 class RRFMerger:
@@ -54,21 +56,32 @@ class RRFMerger:
     methods (e.g., dense + sparse retrievers) while being parameter-light and robust.
     """
     
-    def __init__(self, k: int = 60, normalize_scores: bool = True):
+    def __init__(
+        self,
+        k: int = 60,
+        normalize_scores: bool = True,
+        score_threshold: float = 0.0
+    ):
         """
         Initialize RRF merger.
         
         Args:
             k: RRF parameter (60-120 recommended for recall preservation)
             normalize_scores: Whether to normalize final RRF scores to [0,1]
+            score_threshold: Minimum normalized RRF score to keep documents (0-1)
         """
         self.k = k
         self.normalize_scores = normalize_scores
+        self.score_threshold = score_threshold
         self._stats: Optional[RRFMergerStats] = None
         
         # Validate k parameter
         if not (10 <= k <= 200):
             logger.warning(f"RRF k parameter {k} outside recommended range [10, 200]")
+        
+        # Validate threshold
+        if not (0.0 <= score_threshold <= 1.0):
+            raise ValueError("score_threshold must be between 0.0 and 1.0")
         
     def merge(
         self, 
@@ -168,6 +181,37 @@ class RRFMerger:
                 for i, doc in enumerate(rrf_documents):
                     doc.rrf_score = 1.0 if i == 0 else 1.0 - (i * 0.01)  # Small decrements
         
+        filtered_below_threshold = 0
+        
+        # Apply score threshold filtering if configured
+        if self.score_threshold > 0.0 and rrf_documents:
+            filtered_docs = [doc for doc in rrf_documents if doc.rrf_score >= self.score_threshold]
+            filtered_below_threshold = len(rrf_documents) - len(filtered_docs)
+            
+            # Always keep at least the top document to avoid empty results
+            if not filtered_docs and rrf_documents:
+                filtered_docs = [rrf_documents[0]]
+                filtered_below_threshold = len(rrf_documents) - 1
+            
+            rrf_documents = filtered_docs
+            
+            if filtered_below_threshold > 0:
+                logger.debug(
+                    "Filtered %d documents below RRF score threshold %.2f",
+                    filtered_below_threshold,
+                    self.score_threshold
+                )
+        
+        # Attach RRF metadata to documents for downstream use
+        for rank, rrf_doc in enumerate(rrf_documents):
+            metadata = dict(rrf_doc.document.metadata or {})
+            metadata["rrf_score"] = rrf_doc.rrf_score
+            metadata["rrf_rank"] = rank
+            metadata["rrf_retriever_ranks"] = rrf_doc.retriever_ranks
+            metadata["rrf_retriever_scores"] = rrf_doc.retriever_scores
+            metadata["rrf_retrievers"] = list(rrf_doc.retriever_ranks.keys())
+            rrf_doc.document.metadata = metadata
+        
         # Calculate merge time
         merge_time_ms = (time.time() - start_time) * 1000
         
@@ -178,7 +222,9 @@ class RRFMerger:
             retrievers_count=len(retriever_results),
             merge_time_ms=merge_time_ms,
             k_parameter=self.k,
-            retriever_contributions=dict(retriever_contributions)
+            score_threshold=self.score_threshold,
+            retriever_contributions=dict(retriever_contributions),
+            filtered_below_threshold=filtered_below_threshold
         )
         
         self._stats = stats
@@ -234,7 +280,9 @@ class RRFMerger:
             retrievers_count=0,
             merge_time_ms=0.0,
             k_parameter=self.k,
-            retriever_contributions={}
+            score_threshold=self.score_threshold,
+            retriever_contributions={},
+            filtered_below_threshold=0
         )
     
     def analyze_retriever_overlap(
@@ -296,15 +344,24 @@ class RRFMerger:
         }
 
 
-def create_rrf_merger(k: int = 60, normalize_scores: bool = True) -> RRFMerger:
+def create_rrf_merger(
+    k: int = 60,
+    normalize_scores: bool = True,
+    score_threshold: float = 0.0
+) -> RRFMerger:
     """
     Factory function to create an RRF merger with recommended settings.
     
     Args:
         k: RRF parameter (60 recommended for balanced recall/precision)
         normalize_scores: Whether to normalize final scores
+        score_threshold: Minimum normalized score to keep documents
         
     Returns:
         Configured RRFMerger instance
     """
-    return RRFMerger(k=k, normalize_scores=normalize_scores)
+    return RRFMerger(
+        k=k,
+        normalize_scores=normalize_scores,
+        score_threshold=score_threshold
+    )

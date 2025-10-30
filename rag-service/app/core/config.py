@@ -122,6 +122,7 @@ class Settings(BaseSettings):
     # RRF (Reciprocal Rank Fusion) Configuration
     rrf_k: int = 60  # RRF constant for recall preservation (60-120 range)
     rrf_normalize_scores: bool = True  # Normalize RRF scores to [0,1]
+    rrf_score_threshold: float = 0.15  # Minimum normalized score to keep documents after fusion
     
     # Deduplication Configuration
     enable_deduplication: bool = True  # Enable near-duplicate detection
