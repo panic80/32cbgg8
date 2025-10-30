@@ -76,7 +76,8 @@ export const landingFeatures: LandingFeature[] = [
     description:
       'Access SOPs, how-to guides, FAQs, templates, and comprehensive administrative documentation.',
     icon: Zap,
-    kind: 'disabled',
+    kind: 'link',
+    to: '/resources',
     badge: 'Under Review',
   },
 ];

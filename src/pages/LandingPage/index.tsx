@@ -165,6 +165,26 @@ const LandingPage = () => {
                 icon: feature.icon,
               };
 
+              if (feature.id === 'resources' && feature.to) {
+                return (
+                  <a
+                    key={feature.id}
+                    href={feature.to}
+                    className={cn('lpt-minimal-card', 'lpt-minimal-card-disabled', 'relative')}
+                    title={feature.description}
+                    aria-label={`${feature.title} – ${feature.description}`}
+                    style={{ pointerEvents: 'auto' }}
+                  >
+                    <FeatureCard variant="minimal" {...commonProps} badge={feature.badge} />
+                    <div className="absolute inset-0 bg-[var(--background)]/50 rounded-2xl z-10 flex items-center justify-center pointer-events-none">
+                      <div className="bg-[var(--primary)] text-white px-4 py-2 rounded-full font-medium text-sm shadow-lg animate-pulse">
+                        {feature.badge}
+                      </div>
+                    </div>
+                  </a>
+                );
+              }
+
               if (feature.kind === 'link' && feature.to) {
                 return (
                   <Link
