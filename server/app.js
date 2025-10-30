@@ -306,6 +306,8 @@ const requiresConfigAuth = (pathname = '') => {
     pathname.startsWith('/config/') ||
     pathname === '/chat/config' ||
     pathname.startsWith('/chat/config/') ||
+    pathname === '/resources' ||
+    pathname.startsWith('/resources/') ||
     pathname === '/landing-test' ||
     pathname.startsWith('/landing-test/')
   );

@@ -44,6 +44,7 @@ const loadChatPage = () => import('@/pages/ChatPage');
 const loadConfigPage = () => import('@/pages/ConfigPage');
 const loadPrivacyPage = () => import('@/pages/PrivacyPage');
 const loadFaqPage = () => import('@/pages/FAQPage');
+const loadResourcesPage = () => import('@/pages/ResourcesPage');
 const loadLoadingDebugPage = () => import('@/pages/LoadingDebugPage');
 const loadUiShowcase = () => import('@/components/UIShowcase');
 const loadPerformanceDashboard = () => import('@/pages/PerformanceDashboard');
@@ -86,6 +87,12 @@ export const appRoutes: AppRouteDefinition[] = [
     path: '/chat/config',
     component: lazy(loadConfigPage),
     loader: loadConfigPage,
+  },
+  {
+    kind: 'lazy',
+    path: '/resources',
+    component: lazy(loadResourcesPage),
+    loader: loadResourcesPage,
   },
   {
     kind: 'lazy',
