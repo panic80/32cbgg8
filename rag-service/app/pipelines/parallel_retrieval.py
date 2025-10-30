@@ -13,6 +13,7 @@ from langchain_core.language_models import BaseLLM
 from app.core.logging import get_logger
 from app.core.config import settings
 from app.components.reranker import CrossEncoderReranker
+from app.components.rrf_merger import RRFMerger
 from app.components.table_ranker import TableRanker
 from app.unified_retrieval.unified_retriever import UnifiedRetriever
 from app.services.performance_monitor import get_performance_monitor
@@ -68,7 +69,8 @@ class ParallelRetrievalPipeline:
         timeout_per_retriever: float = 10.0,
         circuit_breaker: Optional[CircuitBreaker] = None,
         reranker: Optional[CrossEncoderReranker] = None,
-        table_ranker: Optional[TableRanker] = None
+        table_ranker: Optional[TableRanker] = None,
+        rrf_merger: Optional[RRFMerger] = None
     ):
         """
         Initialize parallel retrieval pipeline.
@@ -81,6 +83,7 @@ class ParallelRetrievalPipeline:
             circuit_breaker: Optional circuit breaker for handling failures
             reranker: Optional CrossEncoderReranker for result reranking
             table_ranker: Optional TableRanker for table-specific queries
+            rrf_merger: Optional RRFMerger for result fusion and thresholding
         """
         self.retrievers = retrievers
         self.weights = weights or {name: 1.0 for name in retrievers}
@@ -89,9 +92,16 @@ class ParallelRetrievalPipeline:
         self.circuit_breaker = circuit_breaker or CircuitBreaker()
         self.reranker = reranker
         self.table_ranker = table_ranker
+        self.rrf_merger = rrf_merger or RRFMerger(
+            k=getattr(settings, "rrf_k", 60),
+            normalize_scores=getattr(settings, "rrf_normalize_scores", True),
+            score_threshold=getattr(settings, "rrf_score_threshold", 0.0)
+        )
         
         # Normalize weights
         total_weight = sum(self.weights.values())
+        if total_weight == 0:
+            total_weight = 1.0
         self.weights = {k: v / total_weight for k, v in self.weights.items()}
 
     def _get_document_key(self, doc: Document) -> str:
@@ -263,8 +273,25 @@ class ParallelRetrievalPipeline:
                    f"Successful: {len(results_by_retriever)}, "
                    f"Latencies: {latencies}")
         
-        # Merge results based on strategy
-        merged_results = self._merge_results(results_by_retriever, k * 2 if self.reranker else k, merge_strategy)
+        merged_results: List[Tuple[Document, float]] = []
+        
+        if self.rrf_merger and results_by_retriever:
+            max_docs = k * 2 if self.reranker else k
+            rrf_docs, rrf_stats = self.rrf_merger.merge(results_by_retriever, max_docs=max_docs)
+            merged_results = [(rrf_doc.document, rrf_doc.rrf_score) for rrf_doc in rrf_docs]
+            
+            logger.debug(
+                "RRF merge completed with %d docs (filtered=%d, threshold=%.2f)",
+                len(merged_results),
+                rrf_stats.filtered_below_threshold if rrf_stats else 0,
+                self.rrf_merger.score_threshold
+            )
+        else:
+            merged_results = self._merge_results(
+                results_by_retriever,
+                k * 2 if self.reranker else k,
+                merge_strategy
+            )
         
         # Apply reranking if available
         if self.reranker and merged_results:

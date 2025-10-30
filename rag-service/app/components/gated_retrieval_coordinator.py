@@ -30,6 +30,7 @@ from app.components.rrf_merger import RRFMerger, RRFDocument, RRFMergerStats
 from app.components.deduplicator import DocumentDeduplicator, DeduplicationStats
 from app.services.retrieval_cache import RetrievalL2Cache
 from app.core.logging import get_logger
+from app.core.config import settings
 
 logger = get_logger(__name__)
 
@@ -108,6 +109,9 @@ class CoordinatorConfiguration:
     cache_threshold_docs: int = 5  # Minimum docs to cache
     fallback_on_errors: bool = True
     conservative_deduplication: bool = True
+    rrf_score_threshold: float = field(
+        default_factory=lambda: getattr(settings, "rrf_score_threshold", 0.15)
+    )
 
 
 class GatedRetrievalCoordinator:
@@ -156,13 +160,20 @@ class GatedRetrievalCoordinator:
             hybrid_retriever: Hybrid retrieval function
             config: Coordinator configuration
         """
+        # Configuration
+        self.config = config or CoordinatorConfiguration()
+        
         # Initialize analysis components
         self.uncertainty_scorer = uncertainty_scorer or UncertaintyScorer()
         self.bm25_gate = bm25_gate or BM25Gate()
         self.adaptive_k_selector = adaptive_k_selector or AdaptiveKSelector()
         
         # Initialize processing components
-        self.rrf_merger = rrf_merger or RRFMerger()
+        self.rrf_merger = rrf_merger or RRFMerger(
+            k=getattr(settings, "rrf_k", 60),
+            normalize_scores=getattr(settings, "rrf_normalize_scores", True),
+            score_threshold=self.config.rrf_score_threshold
+        )
         self.deduplicator = deduplicator or DocumentDeduplicator(
             jaccard_threshold=0.82,  # Conservative thresholds for accuracy
             hamming_threshold=4
@@ -176,9 +187,6 @@ class GatedRetrievalCoordinator:
             "bm25": bm25_retriever,
             "hybrid": hybrid_retriever
         }
-        
-        # Configuration
-        self.config = config or CoordinatorConfiguration()
         
         # Thread pool for parallel execution
         self.executor = ThreadPoolExecutor(
@@ -269,11 +277,35 @@ class GatedRetrievalCoordinator:
             cache_hit = cached_result is not None
             
             if cache_hit:
-                logger.debug(f"Cache hit! Returning {len(cached_result[0])} cached documents")
+                cached_rrf_docs = cached_result[0]
+                
+                # Apply score threshold to cached documents if needed
+                if self.rrf_merger.score_threshold > 0.0 and cached_rrf_docs:
+                    filtered_cached_docs = [
+                        doc for doc in cached_rrf_docs
+                        if doc.rrf_score >= self.rrf_merger.score_threshold
+                    ]
+                    if not filtered_cached_docs:
+                        filtered_cached_docs = [
+                            max(cached_rrf_docs, key=lambda doc: doc.rrf_score)
+                        ]
+                    cached_rrf_docs = filtered_cached_docs
+                
+                # Ensure RRF metadata is present on cached documents
+                for rank, rrf_doc in enumerate(cached_rrf_docs):
+                    metadata = dict(rrf_doc.document.metadata or {})
+                    metadata["rrf_score"] = rrf_doc.rrf_score
+                    metadata["rrf_rank"] = rank
+                    metadata["rrf_retriever_ranks"] = rrf_doc.retriever_ranks
+                    metadata["rrf_retriever_scores"] = rrf_doc.retriever_scores
+                    metadata["rrf_retrievers"] = list(rrf_doc.retriever_ranks.keys())
+                    rrf_doc.document.metadata = metadata
+                
+                logger.debug(f"Cache hit! Returning {len(cached_rrf_docs)} cached documents")
                 self._cache_hits += 1
                 
                 # Apply final document limit if specified
-                final_docs = cached_result[0]
+                final_docs = cached_rrf_docs
                 if max_final_docs and len(final_docs) > max_final_docs:
                     final_docs = final_docs[:max_final_docs]
                 

@@ -9,12 +9,69 @@ import {
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Brain, Zap, ShieldCheck, ArrowRight, CheckCircle2 } from 'lucide-react';
+import {
+  Brain,
+  Zap,
+  ShieldCheck,
+  ArrowRight,
+  CheckCircle2,
+  MessageCircle,
+  Monitor,
+  Server,
+  Cpu,
+  Layers,
+  Sparkles,
+  Send,
+} from 'lucide-react';
 
 interface HowItWorksModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
+
+type FlowStep = {
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+};
+
+const flowSteps: FlowStep[] = [
+  {
+    title: 'User Question',
+    description: 'You ask a travel policy question right inside the chat window.',
+    icon: <MessageCircle className="w-5 h-5 text-[var(--primary)]" />,
+  },
+  {
+    title: 'React Client UI',
+    description: 'The web app packages your message and keeps the conversation in sync.',
+    icon: <Monitor className="w-5 h-5 text-[var(--primary)]" />,
+  },
+  {
+    title: 'Express Gateway (SSE Proxy)',
+    description: 'Our Node.js gateway streams the request to the backend and relays updates.',
+    icon: <Server className="w-5 h-5 text-[var(--primary)]" />,
+  },
+  {
+    title: 'FastAPI RAG Service',
+    description: 'A Python service orchestrates retrieval, guardrails, and latency tracking.',
+    icon: <Cpu className="w-5 h-5 text-[var(--primary)]" />,
+  },
+  {
+    title: 'Retrieval Stack: Vector + BM25 + Rerankers',
+    description: 'Multiple search strategies blend the most relevant policy passages together.',
+    icon: <Layers className="w-5 h-5 text-[var(--primary)]" />,
+  },
+  {
+    title: 'Guardrailed LLM Generation',
+    description: 'The model writes an answer using the curated context and safety prompts.',
+    icon: <Sparkles className="w-5 h-5 text-[var(--primary)]" />,
+  },
+  {
+    title: 'Streaming Response + Follow-ups',
+    description: 'The response streams back to the UI with citations and suggested next questions.',
+    icon: <Send className="w-5 h-5 text-[var(--primary)]" />,
+  },
+];
 
 const sections = [
   {
@@ -82,6 +139,35 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ open, onOpenChange })
         </DialogHeader>
         <ScrollArea className="max-h-[65vh] pr-2">
           <div className="space-y-6 pt-2">
+            <motion.div
+              className="rounded-xl border border-[var(--border)] bg-card/70 p-4"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.05 }}
+            >
+              <h3 className="text-base font-semibold text-[var(--text)] mb-3">
+                Flow at a glance
+              </h3>
+              <div className="relative mx-auto max-w-md">
+                {flowSteps.map((step, index) => (
+                  <div key={step.title} className="relative pl-16 pb-10 last:pb-0">
+                    {index !== flowSteps.length - 1 && (
+                      <span
+                        className="absolute left-7 top-14 h-[calc(100%-3.5rem)] w-px bg-[var(--border)]"
+                        aria-hidden="true"
+                      />
+                    )}
+                    <div className="absolute left-0 top-1 flex h-14 w-14 items-center justify-center rounded-full border border-[var(--primary)]/30 bg-[var(--primary)]/10 text-[var(--primary)]">
+                      {step.icon}
+                    </div>
+                    <div className="rounded-xl border border-[var(--border)] bg-card/80 p-4 shadow-sm">
+                      <h4 className="text-sm font-semibold text-[var(--text)]">{step.title}</h4>
+                      <p className="mt-2 text-xs text-[var(--text-secondary)]">{step.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
             {sections.map((section, index) => (
               <motion.section
                 key={section.title}
