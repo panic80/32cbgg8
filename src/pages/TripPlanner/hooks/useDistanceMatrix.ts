@@ -83,7 +83,12 @@ export const useDistanceMatrix = (tripData: TripData) => {
         clearTimeout(debounceRef.current);
       }
     };
-  }, [tripData.departureLocation, tripData.arrivalLocation, tripData.transportMethod, fetchDistance]);
+  }, [
+    tripData.departureLocation,
+    tripData.arrivalLocation,
+    tripData.transportMethod,
+    fetchDistance,
+  ]);
 
   return {
     distanceData,

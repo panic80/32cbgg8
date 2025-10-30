@@ -13,11 +13,13 @@ export const AnimatedButton: React.FC<AnimatedButtonProps> = ({
 }) => {
   return (
     <Button
-      className={cn('transition-colors duration-200 ease-out focus:ring-2 focus:ring-primary/20', className)}
+      className={cn(
+        'transition-colors duration-200 ease-out focus:ring-2 focus:ring-primary/20',
+        className,
+      )}
       {...props}
     >
       {children}
     </Button>
   );
 };
-

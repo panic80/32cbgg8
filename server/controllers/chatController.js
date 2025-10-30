@@ -128,9 +128,7 @@ export const createChatController = ({
             });
           }
           responseText = await openaiClient.chat.completions
-            .create(
-              buildOpenAIParams(effectiveModel, [{ role: 'user', content: message.trim() }]),
-            )
+            .create(buildOpenAIParams(effectiveModel, [{ role: 'user', content: message.trim() }]))
             .then((completion) => completion.choices[0].message.content);
           break;
         }
@@ -216,8 +214,15 @@ export const createChatController = ({
   };
 
   const handleRagChat = async (req, res) => {
-    const { message, model, provider, chatHistory, conversationId, useRAG = true, audience } =
-      req.body;
+    const {
+      message,
+      model,
+      provider,
+      chatHistory,
+      conversationId,
+      useRAG = true,
+      audience,
+    } = req.body;
 
     const isTripPlannerMessage = message?.startsWith('📋 **Trip Plan Request**');
     const forcedModel = 'gpt-4.1-mini';
@@ -356,6 +361,12 @@ export const createChatController = ({
       let aggregatedSources = [];
       let aggregatedFollowUps = [];
       const streamStart = Date.now();
+      const streamLogger = chatLogger?.child
+        ? chatLogger.child({
+            scope: 'routes:chat:stream',
+            conversationId: conversationId || null,
+          })
+        : null;
 
       pipeStreamingResponse({
         req,
@@ -365,9 +376,10 @@ export const createChatController = ({
           ...streamingCorsHeaders,
           'X-Accel-Buffering': 'no',
         },
-        logger: (event, payload) => {
-          chatLogger?.error?.('Streaming chat error', { event, payload });
-        },
+        logger: streamLogger,
+        heartbeatIntervalMs: 15000,
+        idleTimeoutMs: DEFAULT_RAG_STREAM_TIMEOUT_MS,
+        traceId: req.headers['x-request-id'],
         onMetadata: (event) => {
           if (event.conversation_id) {
             remoteConversationId = event.conversation_id;

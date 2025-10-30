@@ -1,12 +1,14 @@
 import { existsSync, readFileSync } from 'fs';
 import dotenv from 'dotenv';
+import { getLogger } from '../services/logger.js';
 
 const SECURE_ENV_PATH = '/etc/cbthis/env';
 let hasLoaded = false;
+const logger = getLogger('config:environment');
 
 const loadSecureEnvFile = (secureEnvPath = SECURE_ENV_PATH) => {
   if (!existsSync(secureEnvPath)) {
-    console.warn('Secure environment file not found at', secureEnvPath);
+    logger.warn('Secure environment file not found', { secureEnvPath });
     return;
   }
 
@@ -20,9 +22,9 @@ const loadSecureEnvFile = (secureEnvPath = SECURE_ENV_PATH) => {
         process.env[key.trim()] = valueParts.join('=').trim();
       }
     });
-    console.log('Loaded secure environment variables from', secureEnvPath);
+    logger.info('Loaded secure environment variables', { secureEnvPath });
   } catch (error) {
-    console.error('Failed to load secure environment variables:', error.message);
+    logger.error('Failed to load secure environment variables', { error });
   }
 };
 
@@ -36,9 +38,7 @@ export const loadEnvironment = () => {
   hasLoaded = true;
 
   if (process.env.SKIP_SECURE_ENV === 'true') {
-    console.warn(
-      'SKIP_SECURE_ENV is set. Secure environment file loading is disabled for this process.',
-    );
+    logger.warn('Secure environment file loading skipped via SKIP_SECURE_ENV flag');
   } else {
     loadSecureEnvFile();
   }

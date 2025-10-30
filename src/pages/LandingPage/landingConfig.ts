@@ -1,13 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
-import {
-  CircleHelp,
-  FileText,
-  Users,
-  Zap,
-  Info,
-  Mail,
-  ShieldCheck,
-} from 'lucide-react';
+import { CircleHelp, FileText, Users, Zap, Info, Mail, ShieldCheck } from 'lucide-react';
 
 export type LandingFeatureKind = 'link' | 'action' | 'disabled';
 

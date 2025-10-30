@@ -8,7 +8,7 @@ import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
 import { Client } from '@googlemaps/google-maps-services-js';
 import { loggingMiddleware } from './middleware/logging.js';
-import chatLogger from './services/logger.js';
+import chatLogger, { getLogger } from './services/logger.js';
 import CacheService from './services/cache.js';
 import createSourcesRoutes from './routes/sources.js';
 import createLogsRoutes from './routes/logs.js';
@@ -31,6 +31,7 @@ import rateLimit from 'express-rate-limit';
 import dns from 'node:dns/promises';
 import net from 'node:net';
 import { loadEnvironment } from './config/environment.js';
+import { createGatewayConfig } from './config/index.js';
 
 // Load environment variables
 const { nodeEnv: NODE_ENV } = loadEnvironment();
@@ -41,6 +42,26 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const logger = getLogger('server:app');
+
+const emitLog = (level, message, args) => {
+  if (!logger || typeof logger[level] !== 'function') {
+    return;
+  }
+  const meta =
+    !args || args.length === 0
+      ? undefined
+      : args.length === 1 && typeof args[0] === 'object'
+        ? args[0]
+        : { data: args };
+  logger[level](message, meta);
+};
+
+const log = {
+  info: (message, ...args) => emitLog('info', message, args),
+  warn: (message, ...args) => emitLog('warn', message, args),
+  error: (message, ...args) => emitLog('error', message, args),
+};
 
 // Security middleware
 const isDevelopment = process.env.NODE_ENV === 'development';
@@ -241,14 +262,19 @@ app.use(
       if (allowedOrigins.indexOf(origin) !== -1) {
         callback(null, true);
       } else {
-        console.warn(`CORS: Blocked request from origin: ${origin}`);
+        log.warn(`CORS: Blocked request from origin: ${origin}`);
         callback(new Error('Not allowed by CORS'));
       }
     },
     credentials: true,
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-    exposedHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining', 'X-RateLimit-Reset', 'X-RateLimit-Burst'],
+    exposedHeaders: [
+      'X-RateLimit-Limit',
+      'X-RateLimit-Remaining',
+      'X-RateLimit-Reset',
+      'X-RateLimit-Burst',
+    ],
     maxAge: 86400, // Cache preflight requests for 24 hours
   }),
 );
@@ -309,7 +335,7 @@ const requireAdminAuth = (req, res, next) => {
         }
       }
     } catch (error) {
-      console.error('Failed to decode admin auth credentials', error);
+      log.error('Failed to decode admin auth credentials', error);
     }
   }
 
@@ -322,16 +348,16 @@ const requireAdminAuth = (req, res, next) => {
 
 // Explicit favicon.ico route
 app.get('/favicon.ico', (req, res) => {
-  console.log('Favicon route hit!');
+  log.info('Favicon route hit!');
   const faviconPath = path.join(__dirname, '..', 'dist', 'favicon.ico');
-  console.log('Looking for favicon at:', faviconPath);
+  log.info('Looking for favicon at:', faviconPath);
   if (existsSync(faviconPath)) {
-    console.log('Favicon found, sending file');
+    log.info('Favicon found, sending file');
     res.setHeader('Content-Type', 'image/x-icon');
     res.setHeader('Cache-Control', 'public, max-age=604800');
     res.sendFile(faviconPath);
   } else {
-    console.log('Favicon not found');
+    log.info('Favicon not found');
     res.status(404).send('Favicon not found');
   }
 });
@@ -345,7 +371,7 @@ app.use((req, res, next) => {
 });
 
 if (distPath) {
-  console.log('Serving static files early from:', distPath);
+  log.info('Serving static files early from:', distPath);
   app.use((req, res, next) => {
     if (requiresConfigAuth(req.path) && adminAuthEnabled) {
       return requireAdminAuth(req, res, () => {
@@ -405,7 +431,7 @@ app.use((req, res, next) => {
 const enableRequestLogging = process.env.ENABLE_REQUEST_LOGS === 'true';
 if (enableRequestLogging) {
   app.use((req, res, next) => {
-    console.log(`[Request Logger] ${req.method} ${req.originalUrl || req.url}`);
+    log.info(`[Request Logger] ${req.method} ${req.originalUrl || req.url}`);
     next();
   });
 }
@@ -421,36 +447,9 @@ app.use(
 );
 
 // Environment-based configuration
-const config = {
-  maxRetries: parseInt(process.env.MAX_RETRIES) || 3,
-  requestTimeout: parseInt(process.env.REQUEST_TIMEOUT) || 10000, // 10 seconds
-  retryDelay: parseInt(process.env.RETRY_DELAY) || 1000, // 1 second in milliseconds
+const config = createGatewayConfig();
 
-  // Cache configuration
-  cacheEnabled: process.env.ENABLE_CACHE === 'true',
-  cacheTTL: parseInt(process.env.CACHE_TTL) || 3600000, // 1 hour in milliseconds
-  cacheCleanupInterval: parseInt(process.env.CACHE_CLEANUP_INTERVAL) || 300000, // 5 minutes
-
-  // Rate limiting configuration
-  rateLimitEnabled: process.env.ENABLE_RATE_LIMIT === 'true',
-  rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX) || 60, // 60 requests per minute
-  rateLimitWindow: parseInt(process.env.RATE_LIMIT_WINDOW) || 60000, // 1 minute in milliseconds
-  // Optional burst allowance to align with upstream proxies (e.g., Nginx limit_req burst)
-  rateLimitBurst: parseInt(process.env.RATE_LIMIT_BURST || '0') || 0,
-
-  // Logging configuration
-  loggingEnabled: process.env.ENABLE_LOGGING === 'true',
-  // Default to 'info' for stable production logging; logDir defaults to /var/log/cbthis
-  logLevel: process.env.LOG_LEVEL || 'info',
-  logDir: process.env.LOG_DIR || '/var/log/cbthis',
-
-  // External services
-  canadaCaUrl:
-    process.env.CANADA_CA_URL ||
-    'https://www.canada.ca/en/department-national-defence/services/benefits-military/pay-pension-benefits/benefits/canadian-forces-temporary-duty-travel-instructions.html',
-};
-
-console.log('Server configuration:', {
+log.info('Server configuration:', {
   nodeEnv: NODE_ENV,
   port: PORT,
   cacheEnabled: config.cacheEnabled,
@@ -494,7 +493,7 @@ const resolveGeminiApiKey = () => {
   }
 
   if (isValidApiKey(process.env.VITE_GEMINI_API_KEY)) {
-    console.warn(
+    log.warn(
       'VITE_GEMINI_API_KEY is deprecated. Migrate to GEMINI_API_KEY to keep credentials server-side.',
     );
     return process.env.VITE_GEMINI_API_KEY;
@@ -507,36 +506,36 @@ const geminiApiKey = resolveGeminiApiKey();
 
 if (geminiApiKey) {
   geminiClient = new GoogleGenerativeAI(geminiApiKey);
-  console.log('Gemini API client initialized');
+  log.info('Gemini API client initialized');
 } else {
-  console.log('Gemini API key not configured or invalid');
+  log.info('Gemini API key not configured or invalid');
 }
 
 if (isValidApiKey(process.env.OPENAI_API_KEY)) {
   openaiClient = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
   });
-  console.log('OpenAI API client initialized');
+  log.info('OpenAI API client initialized');
 } else {
-  console.log('OpenAI API key not configured or invalid');
+  log.info('OpenAI API key not configured or invalid');
 }
 
 if (isValidApiKey(process.env.ANTHROPIC_API_KEY)) {
   anthropicClient = new Anthropic({
     apiKey: process.env.ANTHROPIC_API_KEY,
   });
-  console.log('Anthropic API client initialized');
+  log.info('Anthropic API client initialized');
 } else {
-  console.log('Anthropic API key not configured or invalid');
+  log.info('Anthropic API key not configured or invalid');
 }
 
 // Initialize Google Maps client
 let googleMapsClient = null;
 if (isValidApiKey(process.env.GOOGLE_MAPS_API_KEY)) {
   googleMapsClient = new Client({});
-  console.log('Google Maps API client initialized');
+  log.info('Google Maps API client initialized');
 } else {
-  console.log('Google Maps API key not configured or invalid');
+  log.info('Google Maps API key not configured or invalid');
 }
 
 // Helper function to check if a model is an O-series reasoning model
@@ -555,7 +554,7 @@ const buildOpenAIParams = (model, messages) => {
   };
 
   const isOSeries = isOSeriesModel(model);
-  console.log(`Building OpenAI params for model: ${model}, isOSeries: ${isOSeries}`);
+  log.info(`Building OpenAI params for model: ${model}, isOSeries: ${isOSeries}`);
 
   if (isOSeries) {
     // O-series models only support max_completion_tokens
@@ -679,6 +678,7 @@ const ingestionRouter = createIngestionRoutes({
   getRagAuthHeaders,
   buildSseCorsHeaders,
   setSseHeaders,
+  config,
 });
 
 app.use(ingestionRouter);
@@ -715,7 +715,7 @@ const supportRouter = createSupportRoutes({
 
 app.use(supportRouter);
 
-const mapsRouter = createMapsRoutes({ rateLimiter, googleMapsClient });
+const mapsRouter = createMapsRoutes({ rateLimiter, googleMapsClient, config });
 app.use(mapsRouter);
 
 const analyticsRouter = createAnalyticsRoutes({ rateLimiter, chatLogger });
@@ -905,7 +905,7 @@ app.get('/api/deployment-info', requireAdminAuth, (req, res) => {
       buildInfo.version = pkg.version;
     }
   } catch (err) {
-    console.log('Could not read package.json:', err.message);
+    log.info('Could not read package.json:', err.message);
   }
 
   // Add cache-busting headers
@@ -958,17 +958,17 @@ for (const testPath of possiblePaths) {
       const stats = statSync(testPath);
       if (stats.isDirectory()) {
         distPath = testPath;
-        console.log(`Found static assets at: ${distPath}`);
+        log.info(`Found static assets at: ${distPath}`);
         break;
       }
     } catch (err) {
-      console.error(`Error checking path ${testPath}:`, err.message);
+      log.error(`Error checking path ${testPath}:`, err.message);
     }
   }
 }
 // Serve static files from dist directory
 if (distPath) {
-  console.log('Serving static files from:', distPath);
+  log.info('Serving static files from:', distPath);
 
   // Add explicit favicon handling with correct MIME types
   app.use((req, res, next) => {
@@ -1006,11 +1006,11 @@ for (const testPath of possiblePublicPaths) {
       const stats = statSync(testPath);
       if (stats.isDirectory()) {
         landingPath = testPath;
-        console.log(`Found landing page at: ${landingPath}`);
+        log.info(`Found landing page at: ${landingPath}`);
         break;
       }
     } catch (err) {
-      console.error(`Error checking landing path ${testPath}:`, err.message);
+      log.error(`Error checking landing path ${testPath}:`, err.message);
     }
   }
 }
@@ -1042,7 +1042,7 @@ if (landingPath) {
     }
   });
 } else {
-  console.error('Could not find public_html directory at any of these paths:', possiblePublicPaths);
+  log.error('Could not find public_html directory at any of these paths:', possiblePublicPaths);
 }
 
 // Handle React app routes (catch-all for client-side routing)
@@ -1160,7 +1160,7 @@ app.use((err, req, res, next) => {
   };
 
   // Log the error with structured data
-  console.error('Global error handler:', JSON.stringify(errorDetails, null, 2));
+  log.error('Global error handler:', JSON.stringify(errorDetails, null, 2));
   if (chatLogger && config.loggingEnabled) {
     // Fallback to available logger method
     chatLogger.log(errorDetails);

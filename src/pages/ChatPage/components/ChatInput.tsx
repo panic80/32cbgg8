@@ -191,7 +191,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                       initial={prefersReducedMotion ? { opacity: 0 } : { y: '100%', opacity: 0 }}
                       animate={prefersReducedMotion ? { opacity: 1 } : { y: '0%', opacity: 1 }}
                       exit={prefersReducedMotion ? { opacity: 0 } : { y: '-100%', opacity: 0 }}
-                      transition={{ duration: prefersReducedMotion ? 0.2 : 0.45, ease: prefersReducedMotion ? 'linear' : 'easeOut' }}
+                      transition={{
+                        duration: prefersReducedMotion ? 0.2 : 0.45,
+                        ease: prefersReducedMotion ? 'linear' : 'easeOut',
+                      }}
                     >
                       {`Try asking: ${currentSuggestion}`}
                     </motion.span>

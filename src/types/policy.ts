@@ -47,4 +47,3 @@ export interface DeltaResponse {
   additions: DeltaItem[];
   debug?: Record<string, unknown>;
 }
-

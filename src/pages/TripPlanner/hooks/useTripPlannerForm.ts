@@ -1,8 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import {
-  calculateMealEntitlements,
-  calculateTripDurationInDays,
-} from '../utils/calculations';
+import { calculateMealEntitlements, calculateTripDurationInDays } from '../utils/calculations';
 import type { TripData, MealEntitlementDay } from '../types';
 
 export const defaultTripData: TripData = {

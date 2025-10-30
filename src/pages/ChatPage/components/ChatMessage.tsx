@@ -127,9 +127,7 @@ const ChatMessageInner: React.FC<ChatMessageProps> = ({
                       {displayContent}
                     </div>
                   )}
-                  {isAssistant && message.delta && (
-                    <DiffPanel delta={message.delta} />
-                  )}
+                  {isAssistant && message.delta && <DiffPanel delta={message.delta} />}
 
                   {shouldTruncate && (
                     <motion.button

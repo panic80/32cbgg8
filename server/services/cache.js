@@ -1,4 +1,6 @@
 import { createClient } from 'redis';
+import { getLogger } from './logger.js';
+import { DEFAULT_CACHE_CLEANUP_INTERVAL_MS, DEFAULT_CACHE_TTL_MS } from '../config/constants.js';
 
 /**
  * Unified Cache Service with Redis and In-Memory Fallback
@@ -13,30 +15,28 @@ import { createClient } from 'redis';
  */
 class CacheService {
   constructor(config = {}) {
+    const envRedisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+
     this.config = {
-      // Redis configuration
-      redisUrl: config.redisUrl || process.env.REDIS_URL || 'redis://localhost:6379',
-      redisEnabled: config.redisEnabled !== false && process.env.ENABLE_CACHE === 'true',
+      redisUrl: config.redisUrl ?? envRedisUrl,
+      redisEnabled: config.redisEnabled ?? false,
 
-      // Cache TTL configuration
-      defaultTTL: config.defaultTTL || parseInt(process.env.CACHE_TTL) || 3600000, // 1 hour
+      defaultTTL: config.defaultTTL ?? DEFAULT_CACHE_TTL_MS,
 
-      // In-memory cache configuration
-      memoryCleanupInterval: config.memoryCleanupInterval || 300000, // 5 minutes
-      maxMemoryEntries: config.maxMemoryEntries || 1000,
+      memoryCleanupInterval: config.memoryCleanupInterval ?? DEFAULT_CACHE_CLEANUP_INTERVAL_MS,
+      maxMemoryEntries: config.maxMemoryEntries ?? 1000,
 
-      // Retry and timeout configuration
-      redisRetryAttempts: config.redisRetryAttempts || 3,
-      redisTimeout: config.redisTimeout || 5000,
+      redisRetryAttempts: config.redisRetryAttempts ?? 3,
+      redisTimeout: config.redisTimeout ?? 5000,
 
-      // Logging
-      enableLogging: config.enableLogging !== false,
+      enableLogging: config.enableLogging ?? true,
     };
 
     // Cache state
     this.redisClient = null;
     this.redisConnected = false;
     this.memoryCache = new Map();
+    this.logger = config.logger ?? getLogger('services:cache');
 
     // Metrics
     this.metrics = {
@@ -428,24 +428,11 @@ class CacheService {
    */
   log(message, data = {}, level = 'info') {
     if (!this.config.enableLogging) return;
-
-    const logEntry = {
-      timestamp: new Date().toISOString(),
-      level,
-      service: 'CacheService',
-      message,
-      ...data,
-    };
-
-    switch (level) {
-      case 'error':
-        console.error(`[Cache] ${message}`, data);
-        break;
-      case 'warn':
-        console.warn(`[Cache] ${message}`, data);
-        break;
-      default:
-        console.log(`[Cache] ${message}`, data);
+    const logger = this.logger;
+    if (logger?.[level]) {
+      logger[level](message, data);
+    } else if (logger?.info) {
+      logger.info(message, data);
     }
   }
 }

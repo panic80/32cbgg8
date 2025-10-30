@@ -37,10 +37,7 @@ export const useChatController = ({ propTheme, propToggleTheme }: UseChatControl
   const [collapsedMessages, setCollapsedMessages] = useState<Set<string>>(new Set());
   const [showHelpDialog, setShowHelpDialog] = useState(false);
   const [useRAG] = useState(true);
-  const [shortAnswerMode, setShortAnswerMode] = useLocalStorage(
-    StorageKeys.shortAnswerMode,
-    false,
-  );
+  const [shortAnswerMode, setShortAnswerMode] = useLocalStorage(StorageKeys.shortAnswerMode, false);
 
   const [modelMode, setModelMode] = useState<'fast' | 'smart'>(() => {
     const savedModel = getLocalStorageItem(StorageKeys.selectedModel);
@@ -127,13 +124,10 @@ export const useChatController = ({ propTheme, propToggleTheme }: UseChatControl
   useChatTheme(theme, propTheme);
   useModelMode(modelMode, setCurrentModel);
 
-  const triggerMenu = useCallback(
-    (highlight: 'model' | 'short') => {
-      setMenuHighlight(highlight);
-      setMenuOpen(true);
-    },
-    [],
-  );
+  const triggerMenu = useCallback((highlight: 'model' | 'short') => {
+    setMenuHighlight(highlight);
+    setMenuOpen(true);
+  }, []);
 
   const handleModePillClick = useCallback(() => triggerMenu('model'), [triggerMenu]);
   const handleShortAnswerPillClick = useCallback(() => triggerMenu('short'), [triggerMenu]);

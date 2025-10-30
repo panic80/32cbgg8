@@ -172,7 +172,10 @@ export const useRealtimeDictation = ({
 
         recognition.onstart = () => {
           if (fallbackReason) {
-            console.warn('Realtime dictation falling back to browser speech recognition:', fallbackReason);
+            console.warn(
+              'Realtime dictation falling back to browser speech recognition:',
+              fallbackReason,
+            );
           }
           setError(null);
           setStatus('listening');

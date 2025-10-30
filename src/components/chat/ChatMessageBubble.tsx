@@ -23,9 +23,7 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
 
   return (
     <div className={`message-wrapper ${isUser ? 'user-message' : 'assistant-message'}`}>
-      {!isUser && (
-        <ChatAvatar variant="assistant" label="CF" hidden={!showAvatar} />
-      )}
+      {!isUser && <ChatAvatar variant="assistant" label="CF" hidden={!showAvatar} />}
 
       <div
         className={
@@ -73,10 +71,7 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
         </div>
       </div>
 
-      {isUser && (
-        <ChatAvatar variant="user" label="You" hidden={!showAvatar} />
-      )}
+      {isUser && <ChatAvatar variant="user" label="You" hidden={!showAvatar} />}
     </div>
   );
 };
-

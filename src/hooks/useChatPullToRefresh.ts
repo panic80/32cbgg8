@@ -15,13 +15,16 @@ export function useChatPullToRefresh(
   const touchStartYRef = useRef(0);
   const hasTriggeredRef = useRef(false);
 
-  const handleTouchStart = useCallback((event: React.TouchEvent) => {
-    if (containerRef.current?.scrollTop === 0) {
-      touchStartYRef.current = event.touches[0].clientY;
-      setIsPulling(true);
-      hasTriggeredRef.current = false;
-    }
-  }, [containerRef]);
+  const handleTouchStart = useCallback(
+    (event: React.TouchEvent) => {
+      if (containerRef.current?.scrollTop === 0) {
+        touchStartYRef.current = event.touches[0].clientY;
+        setIsPulling(true);
+        hasTriggeredRef.current = false;
+      }
+    },
+    [containerRef],
+  );
 
   const handleTouchMove = useCallback(
     (event: React.TouchEvent) => {
@@ -59,4 +62,3 @@ export function useChatPullToRefresh(
     handleTouchEnd,
   };
 }
-

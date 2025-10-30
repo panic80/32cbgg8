@@ -4,34 +4,34 @@ Track the quantitative impact of the staged refactor here. Update the “Current
 
 ## Frontend (Vite/React)
 
-| Metric | Target | Current | Stage Delta | Notes |
-| --- | --- | --- | --- | --- |
-| Bundle size (main JS, kB) | ≤ _TBD_ | _TBD_ | _TBD_ | Capture via `npm run build` + `dist/assets` stats. |
-| Initial Lighthouse performance score | ≥ _TBD_ | _TBD_ | _TBD_ | Use CI run or local audit on `/chat`. |
-| Vitest coverage (%) | ≥ _TBD_ | _TBD_ | _TBD_ | Pull from `npm run test:coverage`. |
+| Metric                               | Target  | Current | Stage Delta | Notes                                              |
+| ------------------------------------ | ------- | ------- | ----------- | -------------------------------------------------- |
+| Bundle size (main JS, kB)            | ≤ _TBD_ | _TBD_   | _TBD_       | Capture via `npm run build` + `dist/assets` stats. |
+| Initial Lighthouse performance score | ≥ _TBD_ | _TBD_   | _TBD_       | Use CI run or local audit on `/chat`.              |
+| Vitest coverage (%)                  | ≥ _TBD_ | _TBD_   | _TBD_       | Pull from `npm run test:coverage`.                 |
 
 ## Express Gateway
 
-| Metric | Target | Current | Stage Delta | Notes |
-| --- | --- | --- | --- | --- |
-| P99 `/api/v2/chat` latency (ms) | ≤ _TBD_ | _TBD_ | _TBD_ | Use production or staging logs; note environment. |
-| Error rate (5xx per 1k requests) | ≤ _TBD_ | _TBD_ | _TBD_ | Track via logging/monitoring tooling. |
-| Supertest suite duration (s) | ≤ _TBD_ | _TBD_ | _TBD_ | Measure post Stage 2 test additions. |
+| Metric                           | Target  | Current | Stage Delta | Notes                                             |
+| -------------------------------- | ------- | ------- | ----------- | ------------------------------------------------- |
+| P99 `/api/v2/chat` latency (ms)  | ≤ _TBD_ | _TBD_   | _TBD_       | Use production or staging logs; note environment. |
+| Error rate (5xx per 1k requests) | ≤ _TBD_ | _TBD_   | _TBD_       | Track via logging/monitoring tooling.             |
+| Supertest suite duration (s)     | ≤ _TBD_ | _TBD_   | _TBD_       | Measure post Stage 2 test additions.              |
 
 ## RAG Service
 
-| Metric | Target | Current | Stage Delta | Notes |
-| --- | --- | --- | --- | --- |
-| Ingestion throughput (docs/min) | ≥ _TBD_ | _TBD_ | _TBD_ | Capture via pipeline debug logs. |
-| Retrieval latency (ms) | ≤ _TBD_ | _TBD_ | _TBD_ | Use API timing with representative queries. |
-| pytest coverage (%) | ≥ _TBD_ | _TBD_ | _TBD_ | Record from `pytest --cov` runs. |
+| Metric                          | Target  | Current | Stage Delta | Notes                                       |
+| ------------------------------- | ------- | ------- | ----------- | ------------------------------------------- |
+| Ingestion throughput (docs/min) | ≥ _TBD_ | _TBD_   | _TBD_       | Capture via pipeline debug logs.            |
+| Retrieval latency (ms)          | ≤ _TBD_ | _TBD_   | _TBD_       | Use API timing with representative queries. |
+| pytest coverage (%)             | ≥ _TBD_ | _TBD_   | _TBD_       | Record from `pytest --cov` runs.            |
 
 ## Operational
 
-| Metric | Target | Current | Stage Delta | Notes |
-| --- | --- | --- | --- | --- |
-| Deployment duration (min) | ≤ _TBD_ | _TBD_ | _TBD_ | Record from PM2/systemctl pipeline. |
-| Incident count during rollout | 0 | _TBD_ | _TBD_ | Document any incidents with root cause. |
+| Metric                        | Target  | Current | Stage Delta | Notes                                   |
+| ----------------------------- | ------- | ------- | ----------- | --------------------------------------- |
+| Deployment duration (min)     | ≤ _TBD_ | _TBD_   | _TBD_       | Record from PM2/systemctl pipeline.     |
+| Incident count during rollout | 0       | _TBD_   | _TBD_       | Document any incidents with root cause. |
 
 ### How to Update
 

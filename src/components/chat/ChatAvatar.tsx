@@ -23,4 +23,3 @@ export const ChatAvatar: React.FC<ChatAvatarProps> = ({ variant, label, hidden =
     </div>
   );
 };
-

@@ -6,7 +6,11 @@ interface AudienceSelectorProps {
   className?: string;
 }
 
-export const AudienceSelector: React.FC<AudienceSelectorProps> = ({ value, onChange, className }) => {
+export const AudienceSelector: React.FC<AudienceSelectorProps> = ({
+  value,
+  onChange,
+  className,
+}) => {
   return (
     <div className={className}>
       <label className="sr-only" htmlFor="audience-select">
@@ -26,4 +30,3 @@ export const AudienceSelector: React.FC<AudienceSelectorProps> = ({ value, onCha
 };
 
 export default AudienceSelector;
-

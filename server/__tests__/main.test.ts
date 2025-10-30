@@ -73,7 +73,7 @@ describe('server/main routes', () => {
       .send({ model: 'gpt-4.1-mini', provider: 'openai' });
 
     expect(response.status).toBe(400);
-    expect(response.body.message).toMatch(/Message must be a non-empty string/);
+    expect(response.body.message).toBe('Validation failed');
   });
 
   it('returns configuration errors when provider lacks credentials', async () => {

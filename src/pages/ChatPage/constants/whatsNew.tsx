@@ -52,8 +52,7 @@ export const WHATS_NEW_BY_DATE: WhatsNewDateGroup[] = [
       {
         icon: <Zap className="w-4 h-4" />,
         text: 'Admin Performance Dashboard',
-        description:
-          'Gateway now proxies RAG metrics with caching and optional token.',
+        description: 'Gateway now proxies RAG metrics with caching and optional token.',
       },
       {
         icon: <Zap className="w-4 h-4" />,
