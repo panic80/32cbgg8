@@ -6,6 +6,8 @@ import asyncio
 import hashlib
 import json
 import logging
+import os
+import re
 import time
 import uuid
 from datetime import datetime
@@ -13,6 +15,7 @@ from typing import AsyncGenerator, Dict, List, Optional, Tuple, Any
 
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
+from langchain_core.documents import Document
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from app.api.chat import get_llm
@@ -30,7 +33,7 @@ from app.core.logging import get_logger
 from app.models.query import ChatRequest, ChatResponse, Provider, Source, FollowUpRequest
 from app.models.query_history import QueryStatus
 from app.pipelines.parallel_retrieval import create_parallel_pipeline
-from app.pipelines.query_optimizer import QueryOptimizer
+from app.pipelines.query_optimizer import QueryOptimizer, QueryClassification
 from app.services.advanced_cache import AdvancedCacheService, create_context_hash
 from app.services.llm_pool import llm_pool
 from app.services.performance_monitor import get_performance_monitor
@@ -47,6 +50,16 @@ from app.services.policy_delta_summarizer import summarize_delta_with_llm
 
 logger = get_logger(__name__)
 router = APIRouter()
+
+ENTITLEMENT_DENIAL_DIRECTIVE = (
+    "Heuristic assessment indicates the member is likely NOT entitled to the requested allowance. "
+    "Unless the retrieved documentation explicitly proves entitlement, you must:\n"
+    "- State clearly and directly that the meal entitlement is not authorized for the described scenario.\n"
+    "- Cite the governing policy conditions (e.g., TD/tasking requirements, orders outside normal hours) that are missing.\n"
+    "- Explain what circumstances would change the outcome (such as being on TD or having written orders).\n"
+    "- Encourage the member to confirm with their chain of command or DCBA if they believe additional directives apply.\n"
+    "Do not provide narratives that imply the entitlement can be claimed when the policy conditions are not met."
+)
 
 
 def _ensure_provider(provider: Provider | str) -> Provider:
@@ -73,6 +86,89 @@ def _resolve_model(provider: Provider, requested_model: Optional[str]) -> str:
 
 def _should_use_hybrid(chat_request: ChatRequest) -> bool:
     return getattr(chat_request, "use_hybrid_search", False)
+
+
+def _build_classification_note(classification: Optional[Dict[str, Any]]) -> Optional[str]:
+    """Summarize query classification flags for downstream instructions."""
+    if not classification:
+        return None
+
+    def _format_bool(value: Any) -> str:
+        if value is None:
+            return "unknown"
+        return "yes" if bool(value) else "no"
+
+    bool_fields = [
+        ("Class A context", classification.get("is_class_a_context")),
+        ("Working irregular hours", classification.get("irregular_hours")),
+        ("Ordered outside normal hours", classification.get("ordered_outside_normal_hours")),
+        ("On TD/tasking/MTEC", classification.get("on_td_or_tasking")),
+        ("Missed meal on tasking", classification.get("missed_meal_on_tasking")),
+        ("Entitlement likely denied", classification.get("entitlement_likely_denied")),
+    ]
+
+    lines = [
+        "Use this heuristic interpretation of the user's scenario (derived from the question; confirm against official policy sources):"
+    ]
+    for label, value in bool_fields:
+        lines.append(f"- {label}: {_format_bool(value)}")
+
+    intent = classification.get("intent")
+    if intent:
+        lines.append(f"- Detected intent: {intent}")
+
+    entities = classification.get("entities") or []
+    if entities:
+        cleaned_entities = sorted({str(entity) for entity in entities if entity})
+        if cleaned_entities:
+            lines.append(f"- Detected entities: {', '.join(cleaned_entities)}")
+
+    return "\n".join(lines)
+
+
+def _clean_reference_label(value: Optional[str]) -> Optional[str]:
+    """Normalize reference labels to avoid exposing internal file paths."""
+    if not value:
+        return None
+
+    cleaned = value.strip()
+    if not cleaned:
+        return None
+
+    if cleaned.startswith(("http://", "https://")):
+        return cleaned
+
+    # Strip known workspace prefixes
+    workspace_prefixes = [
+        "/var/www/cbthis/",
+        os.getenv("RAG_WORKSPACE_ROOT", "").rstrip("/") + "/",
+    ]
+    for prefix in workspace_prefixes:
+        if prefix and cleaned.startswith(prefix):
+            cleaned = cleaned[len(prefix) :]
+            break
+
+    cleaned = cleaned.lstrip("/\\")
+
+    # Reduce to basename if path-like
+    if "/" in cleaned or "\\" in cleaned:
+        cleaned = os.path.basename(cleaned)
+
+    return cleaned or None
+
+
+def _sanitize_source_metadata(metadata: Dict[str, Any]) -> Dict[str, Any]:
+    """Return a copy of metadata with any sensitive path values cleaned."""
+    sanitized = dict(metadata or {})
+    for key in ("source", "filename", "file_path", "path", "document_path"):
+        value = sanitized.get(key)
+        if isinstance(value, str):
+            sanitized_value = _clean_reference_label(value)
+            if sanitized_value is None:
+                sanitized.pop(key, None)
+            else:
+                sanitized[key] = sanitized_value
+    return sanitized
 
 
 async def _create_retrieval_pipeline(vector_store_manager, app_state, llm_wrapper, chat_request: ChatRequest):
@@ -148,6 +244,7 @@ async def _process_retrieval_results(
     result_processor: ResultProcessor,
     results: List[Tuple],
     query: str,
+    vector_store_manager: Optional[Any] = None,
 ) -> Tuple[str, List[Source]]:
     if not results:
         return "", []
@@ -155,29 +252,78 @@ async def _process_retrieval_results(
     documents = [doc for doc, _ in results]
     processed_docs = await asyncio.to_thread(result_processor.process_results, documents, query)
 
+    # Optional boost: ensure column-specific chunks survive result processing
+    column_matches = re.findall(r"column\s+(\d+)", query, flags=re.IGNORECASE)
+    if column_matches:
+        column_terms = {f"column {match}".lower() for match in column_matches}
+
+        def _contains_column_reference(doc: Document) -> bool:
+            content_lower = doc.page_content.lower()
+            return any(term in content_lower for term in column_terms)
+
+        priority_candidates = [doc for doc in documents if _contains_column_reference(doc)]
+
+        if not priority_candidates and vector_store_manager:
+            supplemental: List[Document] = []
+            for term in column_terms:
+                try:
+                    search_results = await vector_store_manager.search(term, k=5)
+                except Exception as exc:  # pragma: no cover - defensive fallback
+                    logger.debug("Column heuristic search failed for '%s': %s", term, exc)
+                    continue
+                for doc, _score in search_results:
+                    if _contains_column_reference(doc):
+                        supplemental.append(doc)
+            if supplemental:
+                priority_candidates = supplemental
+        if priority_candidates:
+            priority_processed = await asyncio.to_thread(
+                result_processor.process_results,
+                priority_candidates,
+                query,
+            )
+            existing_ids = {doc.metadata.get("id") for doc in processed_docs}
+            prioritized = []
+            for doc in priority_processed:
+                doc_id = doc.metadata.get("id")
+                if doc_id in existing_ids:
+                    continue
+                existing_ids.add(doc_id)
+                prioritized.append(doc)
+            if prioritized:
+                processed_docs = prioritized + processed_docs
+
     context_parts: List[str] = []
     sources: List[Source] = []
     max_length = getattr(settings, "source_preview_max_length", 700)
 
     for index, doc in enumerate(processed_docs):
-        metadata = dict(getattr(doc, "metadata", {}) or {})
+        raw_metadata = getattr(doc, "metadata", {}) or {}
+        metadata = _sanitize_source_metadata(raw_metadata)
         score = metadata.get("score", 0.0)
         is_table_content = "|" in doc.page_content or "table" in (metadata.get("content_type", "") or "").lower()
 
+        # Build context without source number labels to avoid LLM referencing them
         if is_table_content:
-            context_parts.append(f"[Source {index + 1} - Table Content]\n{doc.page_content}\n")
+            context_parts.append(f"[Table Content]\n{doc.page_content}\n")
         else:
-            context_parts.append(f"[Source {index + 1}]\n{doc.page_content}\n")
+            context_parts.append(f"{doc.page_content}\n")
 
         preview_text = doc.page_content
         if max_length > 0 and not is_table_content and len(preview_text) > max_length:
             preview_text = preview_text[:max_length] + "..."
 
+        title_candidate = metadata.get("title") or metadata.get("filename") or metadata.get("source")
+        sanitized_title = _clean_reference_label(title_candidate) or metadata.get("title")
+
+        url_candidate = metadata.get("canonical_url") or metadata.get("url")
+        sanitized_url = url_candidate if url_candidate and url_candidate.startswith(("http://", "https://")) else None
+
         source = Source(
             id=metadata.get("id", f"source_{index}"),
             text=preview_text,
-            title=metadata.get("title") or metadata.get("filename") or metadata.get("source"),
-            url=metadata.get("canonical_url") or metadata.get("source"),
+            title=sanitized_title,
+            url=sanitized_url,
             section=metadata.get("section"),
             page=metadata.get("page_number"),
             score=score,
@@ -355,8 +501,8 @@ async def _stream_events(
     provider_enum = _ensure_provider(chat_request.provider)
     model_name = _resolve_model(provider_enum, chat_request.model)
 
-    vector_store = getattr(request.app.state, "vector_store_manager", None)
-    if vector_store is None:
+    vector_store_manager = getattr(request.app.state, "vector_store_manager", None)
+    if vector_store_manager is None:
         raise RuntimeError("Vector store manager is not configured")
 
     cache_service = getattr(request.app.state, "cache_service", None)
@@ -376,7 +522,7 @@ async def _stream_events(
                     chat_request=chat_request,
                     conversation_id=conversation_id,
                     llm_wrapper=llm_wrapper,
-                    vector_store=vector_store,
+                    vector_store=vector_store_manager,
                     app_state=request.app.state,
                     perf_monitor=perf_monitor,
                     start_time=start_time,
@@ -395,7 +541,7 @@ async def _stream_events(
                 chat_request=chat_request,
                 conversation_id=conversation_id,
                 llm_wrapper=llm_wrapper,
-                vector_store=vector_store,
+                vector_store=vector_store_manager,
                 app_state=request.app.state,
                 perf_monitor=perf_monitor,
                 start_time=start_time,
@@ -440,6 +586,8 @@ async def _run_streaming_flow(
     resolved_model_name = _resolve_model(provider_enum, chat_request.model)
     requested_model = (chat_request.model or resolved_model_name or "").strip().lower()
     is_smart_gpt5 = requested_model == "gpt-5-mini"
+
+    vector_store_manager = vector_store
 
     optimizer_llm = None if is_smart_gpt5 else llm_wrapper
     query_optimizer = QueryOptimizer(optimizer_llm)
@@ -493,9 +641,13 @@ async def _run_streaming_flow(
             perf_monitor.record_cache_hit("l3", False)
 
     optimized_query = chat_request.message
+    classification: Optional[QueryClassification] = None
+    classification_dict: Optional[Dict[str, Any]] = None
     try:
         optimized_query = query_optimizer.expand_abbreviations(chat_request.message)
         classification = await query_optimizer.classify_query(optimized_query)
+        if classification:
+            classification_dict = classification.model_dump()
         if classification and classification.intent != "unknown":
             expanded = query_optimizer.expand_query(optimized_query, classification.intent)
             if expanded:
@@ -504,6 +656,8 @@ async def _run_streaming_flow(
             optimized_query = f"{optimized_query} {settings.default_location}"
     except Exception as exc:
         logger.warning("Query optimisation skipped due to error: %s", exc)
+    classification_note = _build_classification_note(classification_dict)
+    entitlement_denial_required = bool(classification_dict and classification_dict.get("entitlement_likely_denied"))
     if chat_request.use_rag:
         yield f"data: {json.dumps({'type': 'retrieval_start'})}\n\n"
         retrieval_pipeline = await _create_retrieval_pipeline(vector_store, app_state, llm_wrapper, chat_request)
@@ -525,7 +679,12 @@ async def _run_streaming_flow(
 
         if results:
             context_build_start = time.perf_counter()
-            context, sources = await _process_retrieval_results(result_processor, results, optimized_query)
+            context, sources = await _process_retrieval_results(
+                result_processor,
+                results,
+                optimized_query,
+                vector_store_manager=vector_store_manager,
+            )
 
             if "gmt" in (chat_request.message or "").lower():
                 glossary_block = f"[Glossary - Government Motor Transport]\n{GMT_GLOSSARY_NOTE}\n"
@@ -573,18 +732,79 @@ async def _run_streaming_flow(
     messages: List[Any] = [SystemMessage(content=system_prompt)]
     if chat_request.short_answer_mode:
         messages.append(SystemMessage(content=SHORT_ANSWER_PROMPT))
+    if classification_note:
+        messages.append(SystemMessage(content=classification_note))
+    if entitlement_denial_required:
+        messages.append(SystemMessage(content=ENTITLEMENT_DENIAL_DIRECTIVE))
     messages.extend(build_history_messages(chat_request))
 
+    # Auto-append reference request when using RAG
+    user_message = chat_request.message
+    if chat_request.use_rag:
+        user_message = f"{chat_request.message} and show me references"
+
     if context:
+        # Build citation guide from sources for proper reference formatting
+        citation_entries = []
+        for source in sources:
+            if not source.title:
+                continue
+
+            citation_parts = [source.title]
+
+            # Use structure_info if available for richer citations
+            structure_info = source.metadata.get("structure_info") if hasattr(source, 'metadata') else None
+
+            if structure_info and structure_info.get("has_structure"):
+                # Add chapter if detected
+                chapters = structure_info.get("chapters", [])
+                if chapters and len(chapters) > 0:
+                    chapter_num = chapters[0].get("number")
+                    if chapter_num:
+                        citation_parts.append(f"Chapter {chapter_num}")
+
+                # Add section if detected
+                sections = structure_info.get("sections", [])
+                if sections and len(sections) > 0:
+                    section_num = sections[0].get("number")
+                    section_title = sections[0].get("title")
+                    if section_num:
+                        if section_title:
+                            citation_parts.append(f"Section {section_num} ({section_title})")
+                        else:
+                            citation_parts.append(f"Section {section_num}")
+
+                # Add paragraph number if detected
+                paragraphs = structure_info.get("paragraphs", [])
+                if paragraphs and len(paragraphs) > 0:
+                    para_num = paragraphs[0].get("number")
+                    if para_num:
+                        citation_parts.append(f"paragraph {para_num}")
+            elif source.section:
+                # Fallback to basic section if no structure_info
+                citation_parts.append(f"section {source.section}")
+
+            # Always add page number if available
+            if source.page:
+                citation_parts.append(f"page {source.page}")
+
+            citation_entries.append("- " + ", ".join(citation_parts))
+
+        citation_guide = ""
+        if citation_entries:
+            citation_guide = "\n\nCITATION GUIDE (use these for references):\n" + "\n".join(citation_entries) + "\n"
+
         context_prompt = (
             "Based on the following official documentation, answer the user's question:\n\n"
-            f"{context}{TRIP_PLAN_INSTRUCTION}\n"
-            f"User Question: {chat_request.message}"
+            f"{context}"
+            f"{citation_guide}"
+            f"{TRIP_PLAN_INSTRUCTION}\n"
+            f"User Question: {user_message}"
         )
         messages.append(HumanMessage(content=context_prompt))
     else:
         if chat_request.use_rag:
-            no_context_prompt = NO_CONTEXT_PROMPT_TEMPLATE.format(question=chat_request.message)
+            no_context_prompt = NO_CONTEXT_PROMPT_TEMPLATE.format(question=user_message)
             messages.append(HumanMessage(content=no_context_prompt))
         else:
             messages.append(HumanMessage(content=chat_request.message))
@@ -788,6 +1008,8 @@ async def _run_streaming_flow(
         "follow_up_count": len(follow_up_questions_payload),
         "source_ids": source_ids,
         "cache_hit": False,
+        "classification": classification_dict,
+        "entitlement_denial_hint": entitlement_denial_required,
     }
 
     query_id = str(uuid.uuid4())
