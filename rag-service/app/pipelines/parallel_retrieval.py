@@ -293,34 +293,53 @@ class ParallelRetrievalPipeline:
                 merge_strategy
             )
         
+        query_lower = query.lower()
+        is_table_query = any(
+            term in query_lower
+            for term in ["rate", "allowance", "table", "$", "meal", "incidental", "kilometric", "per km"]
+        )
+        is_trip_planning = any(term in query_lower for term in ["trip", "travel", "journey", "planning"])
+        needs_cost_info = any(
+            term in query_lower for term in ["cost", "expense", "estimate", "budget", "how much"]
+        )
+
+        if is_trip_planning and needs_cost_info:
+            is_table_query = True
+            logger.info("Detected trip planning query with cost estimation - applying table ranking")
+
+        table_ranker_applied = False
+
+        if is_table_query and self.table_ranker and merged_results:
+            logger.info("Applying table-specific ranking (pre-reranker)")
+            score_map = {self._get_document_key(doc): score for doc, score in merged_results}
+            documents_for_ranking = [doc for doc, _ in merged_results]
+            ranked_docs = self.table_ranker.filter_and_rerank(
+                documents_for_ranking,
+                query,
+                top_k=len(documents_for_ranking),
+                query_type="table",
+            )
+            merged_results = [
+                (doc, score_map.get(self._get_document_key(doc), 1.0 - (idx * 0.01)))
+                for idx, doc in enumerate(ranked_docs)
+            ]
+            table_ranker_applied = True
+
         # Apply reranking if available
         if self.reranker and merged_results:
             # Extract documents from tuples
             documents = [doc for doc, _ in merged_results]
-            
-            # Check if this is a table query or trip planning query needing rates
-            query_lower = query.lower()
-            is_table_query = any(term in query_lower for term in ["rate", "allowance", "table", "$", "meal", "incidental", "kilometric", "per km"])
-            
-            # Also check for trip planning queries that need rate information
-            is_trip_planning = any(term in query_lower for term in ["trip", "travel", "journey", "planning"])
-            needs_cost_info = any(term in query_lower for term in ["cost", "expense", "estimate", "budget", "how much"])
-            
-            # If it's a trip planning query with cost estimation, treat it as needing table data
-            if is_trip_planning and needs_cost_info:
-                is_table_query = True
-                logger.info("Detected trip planning query with cost estimation - applying table ranking")
-            
-            # Apply table-specific ranking first if it's a table query
-            if is_table_query and self.table_ranker:
+
+            if is_table_query and self.table_ranker and not table_ranker_applied:
                 logger.info("Applying table-specific ranking")
                 documents = self.table_ranker.filter_and_rerank(
                     documents,
                     query,
                     top_k=min(len(documents), k * 2),  # Keep more for final reranking
-                    query_type="table"
+                    query_type="table",
                 )
-            
+                table_ranker_applied = True
+
             # Apply general reranking
             logger.info(f"Applying reranking to {len(documents)} documents")
             reranked_docs = await self.reranker.arerank(query, documents, k)
