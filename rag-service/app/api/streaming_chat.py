@@ -47,6 +47,7 @@ from app.utils.streaming_utils import (
 from app.services.policy_units import extract_policy_units_from_chunks
 from app.services.policy_diff import match_units, build_delta
 from app.services.policy_delta_summarizer import summarize_delta_with_llm
+from app.utils.rate_tables import get_kilometric_rate, normalize_kilometric_location
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -169,6 +170,62 @@ def _sanitize_source_metadata(metadata: Dict[str, Any]) -> Dict[str, Any]:
             else:
                 sanitized[key] = sanitized_value
     return sanitized
+
+
+_KILOMETRIC_KEYWORDS = (
+    "kilometric",
+    "mileage",
+    "mile rate",
+    "cents/km",
+    "cents per km",
+    "cents per kilometre",
+    "cents per kilometer",
+    "per kilometre",
+    "per kilometer",
+)
+
+
+def _is_kilometric_query(*texts: Optional[str]) -> bool:
+    """Determine whether any provided text is asking for a kilometric/mileage rate."""
+    for text in texts:
+        if not text:
+            continue
+        lowered = text.lower()
+        if any(keyword in lowered for keyword in _KILOMETRIC_KEYWORDS):
+            return True
+    return False
+
+
+def _infer_kilometric_location(
+    chat_request: ChatRequest,
+    classification: Optional[Dict[str, Any]],
+    optimized_query: str,
+) -> Optional[str]:
+    """Infer the jurisdiction associated with a kilometric rate question."""
+    candidates: List[str] = []
+
+    if classification:
+        location_context = classification.get("location_context")
+        if location_context:
+            candidates.append(location_context)
+        entities = classification.get("entities") or []
+        candidates.extend(str(entity) for entity in entities if entity)
+
+    candidates.append(chat_request.message)
+    if chat_request.chat_history:
+        candidates.extend(
+            message.content
+            for message in chat_request.chat_history
+            if getattr(message, "role", None) == "user"
+        )
+
+    candidates.append(optimized_query)
+
+    for candidate in candidates:
+        normalized = normalize_kilometric_location(candidate)
+        if normalized:
+            return normalized
+    return None
 
 
 async def _create_retrieval_pipeline(vector_store_manager, app_state, llm_wrapper, chat_request: ChatRequest):
@@ -602,6 +659,7 @@ async def _run_streaming_flow(
     context_time_ms = 0.0
     glossary_source: Optional[Source] = None
     glossary_injected = False
+    kilometric_snippet_added = False
 
     cached_response: Optional[ChatResponse] = None
     cache_model = chat_request.model or "default"
@@ -685,6 +743,42 @@ async def _run_streaming_flow(
                 optimized_query,
                 vector_store_manager=vector_store_manager,
             )
+
+            if _is_kilometric_query(optimized_query, chat_request.message):
+                location_hint = _infer_kilometric_location(chat_request, classification_dict, optimized_query)
+                query_for_lookup = location_hint or chat_request.message or optimized_query
+                rate_info = get_kilometric_rate(query_for_lookup)
+                if rate_info:
+                    raw_location, rate_value, effective_date = rate_info
+                    snippet = (
+                        f"{raw_location} PMV kilometric rate (taxes included) is "
+                        f"{rate_value:.1f} cents per kilometre (effective {effective_date})."
+                    )
+                    if f"{rate_value:.1f}" not in context:
+                        logger.info("Injecting kilometric fallback snippet for %s", raw_location)
+                        metadata = _sanitize_source_metadata(
+                            {
+                                "source": "NJC Travel Directive Appendix B – Kilometric Rates",
+                                "content_type": "table_key_value",
+                                "location": raw_location,
+                                "rate_cents_per_km": rate_value,
+                                "effective_date": effective_date,
+                            }
+                        )
+                        kilometric_source = Source(
+                            id=f"kilometric_{raw_location.lower().replace(' ', '_')}",
+                            source_id="kilometric_rates_appendix_b",
+                            text=snippet,
+                            title="NJC Travel Directive Appendix B – Kilometric Rates",
+                            url="https://www.njc-cnm.gc.ca/directive/d10/v238/en?print",
+                            section="Kilometric rates (Appendix B)",
+                            page=None,
+                            score=1.0,
+                            metadata=metadata,
+                        )
+                        sources = [kilometric_source] + (sources or [])
+                        context = f"{snippet}\n\n{context}" if context else snippet
+                        kilometric_snippet_added = True
 
             if "gmt" in (chat_request.message or "").lower():
                 glossary_block = f"[Glossary - Government Motor Transport]\n{GMT_GLOSSARY_NOTE}\n"
@@ -1010,6 +1104,8 @@ async def _run_streaming_flow(
         "cache_hit": False,
         "classification": classification_dict,
         "entitlement_denial_hint": entitlement_denial_required,
+        "glossary_injected": glossary_injected,
+        "kilometric_snippet_added": kilometric_snippet_added,
     }
 
     query_id = str(uuid.uuid4())
