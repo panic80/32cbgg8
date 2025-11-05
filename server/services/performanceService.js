@@ -1,7 +1,11 @@
 import axios from 'axios';
+import {
+  DEFAULT_PERFORMANCE_TIMEOUT_MS,
+  DEFAULT_PERFORMANCE_CACHE_MS,
+} from '../config/constants.js';
 
-const DEFAULT_TIMEOUT_MS = 7000;
-const DEFAULT_CACHE_MS = 5000;
+const DEFAULT_TIMEOUT_MS = DEFAULT_PERFORMANCE_TIMEOUT_MS;
+const DEFAULT_CACHE_MS = DEFAULT_PERFORMANCE_CACHE_MS;
 
 const cacheState = {
   data: null,

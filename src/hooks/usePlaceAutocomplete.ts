@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { KeyboardEvent, RefObject } from 'react';
 import { apiClient, ApiError } from '@/api/client';
+import { AUTOCOMPLETE_MIN_CHARS, AUTOCOMPLETE_DEBOUNCE_MS } from '@/constants/search';
 
 interface Prediction {
   description: string;
@@ -40,8 +41,8 @@ export const usePlaceAutocomplete = ({
   value,
   onChange,
   countryRestriction = 'ca',
-  minInputLength = 2,
-  debounceMs = 300,
+  minInputLength = AUTOCOMPLETE_MIN_CHARS,
+  debounceMs = AUTOCOMPLETE_DEBOUNCE_MS,
 }: UsePlaceAutocompleteProps): UsePlaceAutocompleteResult => {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [isLoading, setIsLoading] = useState(false);

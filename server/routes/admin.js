@@ -1,9 +1,7 @@
 import { Router } from 'express';
 import { getLogger } from '../services/logger.js';
 import { respondWithError } from '../utils/http.js';
-
-const toStringOrUndefined = (value) =>
-  typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
+import { sanitizeString } from '../utils/validation.js';
 
 const logger = getLogger('routes:admin');
 
@@ -28,9 +26,9 @@ const createAdminRoutes = ({ rateLimiter, performanceHandler, chatLogger }) => {
     }
 
     const filters = {
-      startAt: toStringOrUndefined(req.query.startAt),
-      endAt: toStringOrUndefined(req.query.endAt),
-      path: toStringOrUndefined(req.query.path),
+      startAt: sanitizeString(req.query.startAt),
+      endAt: sanitizeString(req.query.endAt),
+      path: sanitizeString(req.query.path),
     };
 
     const summary = chatLogger.getVisitSummary(filters);

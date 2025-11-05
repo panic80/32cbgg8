@@ -1,10 +1,38 @@
+/**
+ * Question analysis and similarity detection using MERS-inspired approach.
+ * Tracks frequently asked questions and groups similar queries together.
+ */
+
 import { initDB } from './db';
 
 const STORE_NAME = 'questions';
 const SIMILARITY_THRESHOLD = 0.8;
 
+interface QuestionPattern {
+  keywords: string[];
+  timeWords?: string[];
+  menuWords?: string[];
+  category: string;
+}
+
+interface StoredQuestion {
+  id?: number;
+  text: string;
+  canonicalId?: number;
+  count: number;
+  timestamp: number;
+}
+
+interface GroupedQuestion {
+  id: number;
+  text: string;
+  count: number;
+  timestamp: number;
+  variants: string[];
+}
+
 // Question classification patterns
-const PATTERNS = {
+const PATTERNS: Record<string, QuestionPattern> = {
   LUNCH_TIME: {
     keywords: ['lunch', 'meal', 'food'],
     timeWords: ['when', 'time', 'schedule', 'what time'],
@@ -19,7 +47,7 @@ const PATTERNS = {
 
 // Utility functions for text processing
 const processText = {
-  removeStopWords: (text) => {
+  removeStopWords: (text: string): string => {
     const stopWords = [
       'do',
       'i',
@@ -42,18 +70,20 @@ const processText = {
       .join(' ');
   },
 
-  normalize: (text) => {
+  normalize: (text: string): string => {
     return text.toLowerCase().replace(/[?.!]/g, '').replace(/\s+/g, ' ').trim();
   },
 
-  extractKeywords: (text) => {
+  extractKeywords: (text: string): string[] => {
     const processed = processText.removeStopWords(text);
     return processed.split(' ').filter((word) => word.length > 2);
   },
 };
 
-// Calculate similarity score between two questions
-const calculateSimilarity = (q1, q2) => {
+/**
+ * Calculate similarity score between two questions
+ */
+const calculateSimilarity = (q1: string, q2: string): number => {
   const norm1 = processText.normalize(q1);
   const norm2 = processText.normalize(q2);
 
@@ -69,8 +99,8 @@ const calculateSimilarity = (q1, q2) => {
   const overlapScore = overlap.length / Math.max(keywords1.length, keywords2.length);
 
   // Determine question category
-  const getCategory = (text) => {
-    for (const [patternName, pattern] of Object.entries(PATTERNS)) {
+  const getCategory = (text: string): string | null => {
+    for (const pattern of Object.values(PATTERNS)) {
       const hasKeyword = pattern.keywords.some((k) => text.includes(k));
       const hasTimeWord = pattern.timeWords?.some((t) => text.includes(t));
       const hasMenuWord = pattern.menuWords?.some((m) => text.includes(m));
@@ -91,8 +121,10 @@ const calculateSimilarity = (q1, q2) => {
   return Math.max(overlapScore + categoryScore, overlapScore * 1.5);
 };
 
-// Initialize the questions store
-export const initQuestionStore = async () => {
+/**
+ * Initialize the questions store
+ */
+export const initQuestionStore = async (): Promise<IDBDatabase> => {
   const db = await initDB('faq-db', 1, (db) => {
     if (!db.objectStoreNames.contains(STORE_NAME)) {
       const store = db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
@@ -104,12 +136,16 @@ export const initQuestionStore = async () => {
   return db;
 };
 
-// Find similar questions using MERS-inspired approach
-const findSimilarQuestion = async (newQuestion, existingQuestions) => {
+/**
+ * Find similar questions using MERS-inspired approach
+ */
+const findSimilarQuestion = (
+  newQuestion: string,
+  existingQuestions: StoredQuestion[],
+): StoredQuestion | null => {
   if (existingQuestions.length === 0) return null;
 
-  // Find the most similar question
-  let mostSimilar = null;
+  let mostSimilar: StoredQuestion | null = null;
   let highestScore = 0;
 
   for (const existingQuestion of existingQuestions) {
@@ -129,47 +165,43 @@ const findSimilarQuestion = async (newQuestion, existingQuestions) => {
   return mostSimilar;
 };
 
-// Add a new question or increment count if similar exists
-export const addQuestion = async (questionText) => {
+/**
+ * Add a new question or increment count if similar exists
+ */
+export const addQuestion = async (questionText: string): Promise<void> => {
   const db = await initQuestionStore();
 
-  // First, get all questions in a separate transaction
+  // Get all questions in a separate transaction
   const getAllTransaction = db.transaction(STORE_NAME, 'readonly');
-  const questions = await new Promise((resolve, reject) => {
+  const questions = await new Promise<StoredQuestion[]>((resolve, reject) => {
     const request = getAllTransaction.objectStore(STORE_NAME).getAll();
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
 
   // Find similar questions using our MERS approach
-  const similarQuestion = await findSimilarQuestion(questionText, questions);
+  const similarQuestion = findSimilarQuestion(questionText, questions);
 
   // Start a new transaction for writing
   const writeTransaction = db.transaction(STORE_NAME, 'readwrite');
   const store = writeTransaction.objectStore(STORE_NAME);
 
   return new Promise((resolve, reject) => {
-    console.log('Adding question:', questionText);
-    console.log('Similar question found:', similarQuestion);
-
     if (similarQuestion) {
       // Update count for canonical question
-      const canonicalId = similarQuestion.canonicalId || similarQuestion.id;
-      console.log('Updating canonical question:', canonicalId);
+      const canonicalId = similarQuestion.canonicalId || similarQuestion.id!;
 
       const request = store.get(canonicalId);
 
       request.onsuccess = () => {
-        const question = request.result;
+        const question = request.result as StoredQuestion;
         question.count = (question.count || 0) + 1;
-        console.log('Updating question count:', question);
 
         const putRequest = store.put(question);
 
         putRequest.onsuccess = () => {
           // Only add variant if text is different
           if (questionText !== question.text) {
-            console.log('Adding question variant');
             const addRequest = store.add({
               text: questionText,
               canonicalId: canonicalId,
@@ -177,25 +209,24 @@ export const addQuestion = async (questionText) => {
               timestamp: Date.now(),
             });
 
-            addRequest.onerror = (event) => {
-              console.error('Error adding variant:', event.target.error);
-              reject(event.target.error);
+            addRequest.onerror = () => {
+              console.error('Error adding variant:', addRequest.error);
+              reject(addRequest.error);
             };
           }
         };
 
-        putRequest.onerror = (event) => {
-          console.error('Error updating count:', event.target.error);
-          reject(event.target.error);
+        putRequest.onerror = () => {
+          console.error('Error updating count:', putRequest.error);
+          reject(putRequest.error);
         };
       };
 
-      request.onerror = (event) => {
-        console.error('Error getting canonical question:', event.target.error);
-        reject(event.target.error);
+      request.onerror = () => {
+        console.error('Error getting canonical question:', request.error);
+        reject(request.error);
       };
     } else {
-      console.log('Adding new canonical question');
       // Add new canonical question
       const addRequest = store.add({
         text: questionText,
@@ -203,49 +234,44 @@ export const addQuestion = async (questionText) => {
         timestamp: Date.now(),
       });
 
-      addRequest.onerror = (event) => {
-        console.error('Error adding new question:', event.target.error);
-        reject(event.target.error);
+      addRequest.onerror = () => {
+        console.error('Error adding new question:', addRequest.error);
+        reject(addRequest.error);
       };
     }
 
-    writeTransaction.oncomplete = () => {
-      console.log('Transaction completed successfully');
-      resolve();
-    };
-
-    writeTransaction.onerror = (event) => {
-      console.error('Transaction error:', event.target.error);
+    writeTransaction.oncomplete = () => resolve();
+    writeTransaction.onerror = () => {
+      console.error('Transaction error:', writeTransaction.error);
       reject(writeTransaction.error);
     };
   });
 };
 
-// Get top N most frequently asked questions
-export const getTopQuestions = async (limit = 10) => {
+/**
+ * Get top N most frequently asked questions
+ */
+export const getTopQuestions = async (limit = 10): Promise<GroupedQuestion[]> => {
   const db = await initQuestionStore();
   const transaction = db.transaction(STORE_NAME, 'readonly');
   const store = transaction.objectStore(STORE_NAME);
 
   return new Promise((resolve, reject) => {
-    // First get all questions
     const request = store.getAll();
 
     request.onsuccess = () => {
-      const allQuestions = request.result;
+      const allQuestions = request.result as StoredQuestion[];
 
-      console.log('Processing questions:', allQuestions.length);
-
-      // Group questions by canonical ID with improved handling
-      const groupedQuestions = new Map();
+      // Group questions by canonical ID
+      const groupedQuestions = new Map<number, GroupedQuestion>();
 
       allQuestions.forEach((question) => {
-        const id = question.canonicalId || question.id;
+        const id = question.canonicalId || question.id!;
         if (!groupedQuestions.has(id)) {
           // Find the canonical question or use current as fallback
           const canonicalQuestion = allQuestions.find((q) => q.id === id) || question;
           groupedQuestions.set(id, {
-            id: canonicalQuestion.id,
+            id: canonicalQuestion.id!,
             text: canonicalQuestion.text,
             count: canonicalQuestion.count || 0,
             timestamp: canonicalQuestion.timestamp,
@@ -255,26 +281,21 @@ export const getTopQuestions = async (limit = 10) => {
 
         // Only add as variant if it's not the canonical question
         if (question.canonicalId && question.id !== id) {
-          const canonicalQuestion = groupedQuestions.get(id);
+          const canonicalQuestion = groupedQuestions.get(id)!;
           if (!canonicalQuestion.variants.includes(question.text)) {
             canonicalQuestion.variants.push(question.text);
           }
         }
       });
 
-      console.log('Grouped into canonical questions:', groupedQuestions.size);
-
       // Convert to array and sort by count and timestamp
       const results = Array.from(groupedQuestions.values())
-        .filter((q) => q.count > 0) // Only include questions that have been asked
+        .filter((q) => q.count > 0)
         .sort((a, b) => {
-          // Sort by count first, then by most recent
           const countDiff = (b.count || 0) - (a.count || 0);
           return countDiff !== 0 ? countDiff : (b.timestamp || 0) - (a.timestamp || 0);
         })
         .slice(0, limit);
-
-      console.log('Final results:', results.length);
 
       resolve(results);
     };

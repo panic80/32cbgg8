@@ -1,6 +1,5 @@
 import axios from 'axios';
-
-const DEFAULT_RAG_SERVICE_URL = process.env.RAG_SERVICE_URL || 'http://localhost:8000';
+import { DEFAULT_RAG_SERVICE_URL } from '../config/constants.js';
 
 const PROVINCE_MATCHERS = [
   { name: 'Alberta', re: /\b(AB|Alberta)\b/i },

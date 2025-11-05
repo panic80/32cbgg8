@@ -1,19 +1,6 @@
 import { Router } from 'express';
 import chatLogger from '../services/logger.js';
-
-const parseNumber = (value, { fallback, min = 0, max = Number.MAX_SAFE_INTEGER }) => {
-  const parsed = typeof value === 'string' ? Number.parseInt(value, 10) : Number(value);
-  if (Number.isNaN(parsed) || !Number.isFinite(parsed)) {
-    return fallback;
-  }
-  return Math.min(Math.max(parsed, min), max);
-};
-
-const sanitizeString = (value) => {
-  if (typeof value !== 'string') return undefined;
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : undefined;
-};
+import { parseNumber, sanitizeString } from '../utils/validation.js';
 
 const createLogsRoutes = ({ rateLimiter, requireAdminAuth }) => {
   const router = Router();

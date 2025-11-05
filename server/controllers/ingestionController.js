@@ -3,10 +3,9 @@ import {
   DEFAULT_INGEST_TIMEOUT_MS,
   DEFAULT_MAX_RETRIES,
   DEFAULT_RETRY_DELAY_MS,
+  DEFAULT_RAG_SERVICE_URL,
 } from '../config/constants.js';
 import { respondWithError } from '../utils/http.js';
-
-const DEFAULT_RAG_SERVICE_URL = process.env.RAG_SERVICE_URL || 'http://localhost:8000';
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 

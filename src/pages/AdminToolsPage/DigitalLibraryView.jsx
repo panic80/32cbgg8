@@ -2,23 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   BookOpen,
-  CircleHelp,
-  ClipboardList,
-  Lightbulb,
   Search,
   Filter,
   Bookmark,
   Clock,
   ChevronRight,
-  ExternalLink,
   Tag,
   FileText,
-  GraduationCap,
-  FolderOpen,
-  Wrench,
   LayoutGrid,
-  List,
-  Download,
   Share,
   Star,
 } from 'lucide-react';

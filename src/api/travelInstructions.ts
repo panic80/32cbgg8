@@ -209,9 +209,7 @@ export const fetchTravelInstructions = async (): Promise<string> => {
         return cachedData;
       }
 
-      console.log('Fetching fresh travel instructions...');
       const apiUrl = '/api/travel-instructions';
-      console.log(`Using travel instructions API URL: ${apiUrl}`);
 
       try {
         const response = await fetchWithRetry(apiUrl);
@@ -243,11 +241,9 @@ export const fetchTravelInstructions = async (): Promise<string> => {
     console.error('Error fetching travel instructions:', error);
 
     if (memoryCache) {
-      console.log('Using memory cache as fallback due to error');
       return memoryCache;
     }
 
-    console.log('Using default travel instructions as fallback');
     return DEFAULT_INSTRUCTIONS;
   } finally {
     isInitializing = false;
