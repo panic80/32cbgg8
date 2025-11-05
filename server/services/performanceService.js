@@ -2,6 +2,7 @@ import axios from 'axios';
 import {
   DEFAULT_PERFORMANCE_TIMEOUT_MS,
   DEFAULT_PERFORMANCE_CACHE_MS,
+  DEFAULT_RAG_SERVICE_URL,
 } from '../config/constants.js';
 
 const DEFAULT_TIMEOUT_MS = DEFAULT_PERFORMANCE_TIMEOUT_MS;
@@ -138,7 +139,7 @@ const performanceService = {
       };
     }
 
-    const baseUrl = process.env.RAG_SERVICE_URL || 'http://localhost:8000';
+    const baseUrl = process.env.RAG_SERVICE_URL || DEFAULT_RAG_SERVICE_URL;
     const endpoint = `${baseUrl.replace(/\/$/, '')}/api/v1/metrics/summary`;
     const timeout = parseDuration(process.env.RAG_METRICS_TIMEOUT_MS, DEFAULT_TIMEOUT_MS);
 

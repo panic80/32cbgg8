@@ -22,7 +22,7 @@ import createAnalyticsRoutes from './routes/analytics.js';
 import { decodeUrlParams } from './utils/http.js';
 import { processContent } from './utils/html.js';
 import { setSseHeaders } from './utils/sse.js';
-import { DEFAULT_RAG_STREAM_TIMEOUT_MS, getEnvNumber } from './config/constants.js';
+import { DEFAULT_RAG_STREAM_TIMEOUT_MS, DEFAULT_RAG_SERVICE_URL, getEnvNumber } from './config/constants.js';
 import { TRAVEL_PLANNER_ADDITIONAL_INSTRUCTIONS } from './constants/travelPlannerInstructions.js';
 import { pipeStreamingResponse } from './services/streaming.js';
 import helmet from 'helmet';
@@ -762,7 +762,7 @@ app.get('/health', async (req, res) => {
   let ragHealth = { status: 'unknown' };
   if (process.env.RAG_SERVICE_URL || req.query.checkRag === 'true') {
     try {
-      const ragServiceUrl = process.env.RAG_SERVICE_URL || 'http://localhost:8000';
+      const ragServiceUrl = process.env.RAG_SERVICE_URL || DEFAULT_RAG_SERVICE_URL;
       const ragResponse = await axios.get(`${ragServiceUrl}/api/v1/health`, { timeout: 5000 });
       ragHealth = ragResponse.data;
     } catch (error) {
@@ -872,7 +872,7 @@ app.get('/api/config', (req, res) => {
     // RAG service info
     rag: {
       enabled: !!process.env.RAG_SERVICE_URL,
-      serviceUrl: process.env.RAG_SERVICE_URL || 'http://localhost:8000',
+      serviceUrl: process.env.RAG_SERVICE_URL || DEFAULT_RAG_SERVICE_URL,
     },
     // Client-side configuration
     client: {
