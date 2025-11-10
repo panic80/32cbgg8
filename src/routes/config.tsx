@@ -38,7 +38,6 @@ const createComingSoonElement = (message: string) => (
 
 const loadLandingPage = () => import('@/pages/LandingPage');
 const loadOpiPage = () => import('@/pages/OPIPage');
-const loadOpiPageTest = () => import('@/pages/OPIPageTest');
 const loadAdminToolsPage = () => import('@/pages/AdminToolsPage');
 const loadChatPage = () => import('@/pages/ChatPage');
 const loadConfigPage = () => import('@/pages/ConfigPage');
@@ -61,12 +60,6 @@ export const appRoutes: AppRouteDefinition[] = [
     path: '/opi',
     component: lazy(loadOpiPage),
     loader: loadOpiPage,
-  },
-  {
-    kind: 'lazy',
-    path: '/opi-test',
-    component: lazy(loadOpiPageTest),
-    loader: loadOpiPageTest,
   },
   {
     kind: 'lazy',
@@ -99,18 +92,6 @@ export const appRoutes: AppRouteDefinition[] = [
     path: '/privacy',
     component: lazy(loadPrivacyPage),
     loader: loadPrivacyPage,
-  },
-  {
-    kind: 'lazy',
-    path: '/home-v2',
-    component: lazy(loadLandingPage),
-    loader: loadLandingPage,
-  },
-  {
-    kind: 'lazy',
-    path: '/landing-test',
-    component: lazy(loadLandingPage),
-    loader: loadLandingPage,
   },
   {
     kind: 'lazy',

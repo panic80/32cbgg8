@@ -7,7 +7,7 @@ import {
   Wrench,
   BookOpen,
   Info,
-  Mail,
+  Mail as EnvelopeIcon,
   ShieldCheck,
 } from 'lucide-react';
 import '../styles/landing.css';
@@ -18,12 +18,7 @@ import { SITE_CONFIG, getCopyrightText, getLastUpdatedText } from '../constants/
 import { Button } from '@/components/ui/button';
 import { AnimatedButton } from '@/components/ui/animated-button';
 import { EnhancedBackButton } from '@/components/ui/enhanced-back-button';
-import { cn } from '@/lib/utils';
 
-// Import FluentAdminView
-import FluentAdminView from './AdminToolsPage/FluentAdminView';
-// Import TabBasedAdminView
-import TabBasedAdminView from './AdminToolsPage/TabBasedAdminView';
 // Import DigitalLibraryView
 import DigitalLibraryView from './AdminToolsPage/DigitalLibraryView';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
