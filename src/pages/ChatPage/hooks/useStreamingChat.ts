@@ -15,6 +15,7 @@ interface UseStreamingChatOptions {
   useRAG: boolean;
   shortAnswerMode: boolean;
   modelMode: 'fast' | 'smart';
+  maintenanceMode?: boolean;
 }
 
 interface StreamingState {
@@ -102,6 +103,116 @@ const toSources = (eventSources: any[] = []): Source[] =>
     metadata: source.metadata,
   }));
 
+const looksLikePath = (value: string): boolean =>
+  /[\\/]/.test(value) || /^[a-z]+:\/\//i.test(value);
+
+const toTitleCase = (value: string): string =>
+  value.replace(/\b([a-zA-Z])/g, (match) => match.toUpperCase());
+
+const sanitizeFilename = (value: string): string => {
+  const withoutPath = value.split(/[\\/]/).pop() || value;
+  const withoutExt = withoutPath.replace(/\.[a-z0-9]+$/i, '');
+  const normalized = withoutExt.replace(/[_\-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  return normalized ? toTitleCase(normalized) : withoutExt;
+};
+
+const deriveSourceLabel = (source: Source, index: number): string => {
+  const candidates: Array<string | undefined> = [
+    source.title,
+    source.metadata?.title,
+    source.metadata?.documentTitle,
+    source.metadata?.displayTitle,
+    source.metadata?.display_name,
+    source.metadata?.displayName,
+    source.metadata?.catalogTitle,
+    source.metadata?.catalog_title,
+    source.metadata?.canonicalTitle,
+    source.metadata?.canonical_title,
+    source.metadata?.document_name,
+    source.metadata?.documentName,
+    source.metadata?.sourceTitle,
+    source.metadata?.source_name,
+    source.metadata?.sourceName,
+    source.metadata?.name,
+    source.reference,
+    source.section,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate !== 'string') continue;
+    const trimmed = candidate.trim();
+    if (!trimmed) continue;
+    if (looksLikePath(trimmed)) continue;
+    return trimmed;
+  }
+
+  const fallbackCandidates: Array<string | undefined> = [
+    source.metadata?.original_filename,
+    source.metadata?.original_name,
+    source.metadata?.filename,
+    source.metadata?.file_name,
+    source.metadata?.source,
+    source.reference,
+    source.url,
+  ];
+
+  for (const candidate of fallbackCandidates) {
+    if (typeof candidate !== 'string') continue;
+    const trimmed = candidate.trim();
+    if (!trimmed) continue;
+    const cleaned = sanitizeFilename(trimmed);
+    if (cleaned) {
+      return cleaned;
+    }
+  }
+
+  return `Source ${index + 1}`;
+};
+
+const formatSourcesMarkdown = (sourceList: Source[]): string => {
+  if (!sourceList || sourceList.length === 0) {
+    return '';
+  }
+
+  return sourceList
+    .map((source, index) => {
+      const label = deriveSourceLabel(source, index);
+      const metaParts: string[] = [];
+      if (source.section) {
+        metaParts.push(source.section);
+      }
+      if (source.page) {
+        metaParts.push(`p. ${source.page}`);
+      }
+      const metadataSuffix = metaParts.length > 0 ? ` — ${metaParts.join(' · ')}` : '';
+      return `${index + 1}. ${label}${metadataSuffix}`;
+    })
+    .join('\n');
+};
+
+const formatInlineReferenceLine = (sourceList: Source[]): string => {
+  if (!sourceList || sourceList.length === 0) {
+    return '';
+  }
+
+  const entries = sourceList.map((source, index) => {
+    const label = deriveSourceLabel(source, index);
+    const metaParts: string[] = [];
+    if (source.section) {
+      metaParts.push(source.section);
+    }
+    if (source.page) {
+      metaParts.push(`p. ${source.page}`);
+    }
+    const metadataSuffix = metaParts.length > 0 ? ` — ${metaParts.join(' · ')}` : '';
+    return `[${index + 1}] ${label}${metadataSuffix}`;
+  });
+
+  return `_References for further detail: ${entries.join('; ')}_`;
+};
+
+const INLINE_SOURCES_ENABLED = false;
+
 export const useStreamingChat = ({
   conversationId,
   setConversationId,
@@ -110,6 +221,7 @@ export const useStreamingChat = ({
   useRAG,
   shortAnswerMode,
   modelMode,
+  maintenanceMode = false,
 }: UseStreamingChatOptions) => {
   const [state, dispatch] = useReducer(streamingReducer, initialState);
   const { messages, pendingMessage, isLoading, retrievalStatus } = state;
@@ -149,7 +261,7 @@ export const useStreamingChat = ({
 
   const handleStreamingChat = useCallback(
     async (messageText: string) => {
-      if (!messageText || isLoading) return;
+      if (!messageText || isLoading || maintenanceMode) return;
 
       const userMessage: Message = {
         id: Date.now().toString(),
@@ -364,10 +476,35 @@ export const useStreamingChat = ({
                     ? trimmedContent
                     : formatPlainTextToMarkdown(trimmedContent);
                   const finalContent = formattedContent || trimmedContent;
+                  let finalContentWithSources = finalContent;
+
+                  if (INLINE_SOURCES_ENABLED && sources.length > 0) {
+                    const inlineReferences = formatInlineReferenceLine(sources);
+                    const sourcesMarkdown = formatSourcesMarkdown(sources);
+                    let combinedContent = finalContent.trimEnd();
+                    if (inlineReferences) {
+                      combinedContent = `${combinedContent}\n\n${inlineReferences}`;
+                    }
+                    if (sourcesMarkdown) {
+                      combinedContent = `${combinedContent}\n\n**References for Further Detail**\n${sourcesMarkdown}`;
+                    }
+                    finalContentWithSources = combinedContent;
+                    if (pendingMessageRef.current) {
+                      pendingMessageRef.current.content = finalContentWithSources;
+                      pendingMessageRef.current.isFormatted = true;
+                      pendingMessageRef.current.sources =
+                        sources.length > 0 ? sources : pendingMessageRef.current.sources;
+                      flushPendingMessage();
+                    }
+                  } else if (pendingMessageRef.current) {
+                    pendingMessageRef.current.content = finalContent;
+                    pendingMessageRef.current.isFormatted = true;
+                    flushPendingMessage();
+                  }
 
                   const finalMessage: Message = {
                     id: messageId,
-                    content: finalContent,
+                    content: finalContentWithSources,
                     sender: 'assistant',
                     timestamp: Date.now(),
                     isFormatted: true,
@@ -456,6 +593,7 @@ export const useStreamingChat = ({
       useRAG,
       shortAnswerMode,
       modelMode,
+      maintenanceMode,
       messages,
       isLoading,
       flushPendingMessage,

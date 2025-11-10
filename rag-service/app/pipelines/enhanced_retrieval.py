@@ -260,8 +260,8 @@ class EnhancedRetrievalPipeline:
         """Create answer synthesis prompt."""
         return ChatPromptTemplate.from_messages([
             ("system", """Synthesize a comprehensive answer from the retrieved documents.
-            Be precise and cite sources using [Source: filename] format.
-            
+            Be precise. When references are needed, use proper document titles and sections.
+
             Context documents:
             {context}"""),
             ("human", "Query: {query}")
@@ -502,9 +502,9 @@ class EnhancedRetrievalPipeline:
         try:
             self.logger.debug(f"Starting answer synthesis. Query type: {state.get('query_type', 'unknown')}")
             
-            # Format context
+            # Format context without source labels
             context = "\n\n".join([
-                f"[Source: {doc.metadata.get('source', 'Unknown')}]\n{doc.page_content}"
+                doc.page_content
                 for doc in state["reranked_documents"]
             ])
             

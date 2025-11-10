@@ -214,20 +214,39 @@ const LandingPage = () => {
                 );
               }
 
+              if (feature.kind === 'disabled') {
+                const disabledMessage =
+                  feature.disabledTooltip ??
+                  `${feature.title} is currently unavailable. We're working to restore access soon.`;
+
+                return (
+                  <div
+                    key={feature.id}
+                    className={cn('lpt-minimal-card', 'lpt-minimal-card-disabled')}
+                    aria-disabled="true"
+                    title={disabledMessage}
+                    aria-label={`${feature.title} – ${feature.description}. ${disabledMessage}`}
+                    data-disabled-tooltip={disabledMessage}
+                  >
+                    <FeatureCard
+                      variant="minimal"
+                      {...commonProps}
+                      badge={feature.badge}
+                      disabled
+                      disabledLabel={feature.badge}
+                    />
+                  </div>
+                );
+              }
+
               return (
                 <div
                   key={feature.id}
-                  className={cn('lpt-minimal-card', 'lpt-minimal-card-disabled')}
-                  aria-disabled="true"
-                  title={feature.description}
-                  aria-label={`${feature.title} – ${feature.description}. Currently unavailable.`}
+                  className="lpt-minimal-card"
                 >
                   <FeatureCard
                     variant="minimal"
                     {...commonProps}
-                    badge={feature.badge}
-                    disabled
-                    disabledLabel={feature.badge}
                   />
                 </div>
               );

@@ -24,7 +24,7 @@ rank-bm25
 # Document processing
 beautifulsoup4
 pypdf
-pdfplumber
+pdfminer.six
 markdownify
 python-docx
 openpyxl

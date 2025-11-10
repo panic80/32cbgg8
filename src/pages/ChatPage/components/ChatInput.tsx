@@ -29,6 +29,7 @@ interface ChatInputProps {
   attachments?: { id: string; name: string; size?: number }[];
   onAttachFiles?: (files: File[]) => void;
   onRemoveAttachment?: (id: string) => void;
+  maintenanceMode?: boolean;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
@@ -46,6 +47,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   attachments = [],
   onAttachFiles,
   onRemoveAttachment,
+  maintenanceMode = false,
 }) => {
   const ENABLE_ATTACHMENTS = false;
   const inputRef = useRef<HTMLInputElement>(null);
@@ -174,11 +176,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               value={input}
               onChange={handleInputChange}
               onKeyDown={handleKeyPress}
-              placeholder="Ask a question..."
+              placeholder={maintenanceMode ? "Chat is temporarily unavailable..." : "Ask a question..."}
               aria-label="Message input"
+              disabled={maintenanceMode}
               className={cn(
                 'h-[44px] sm:h-[56px] w-full pr-28 sm:pr-36 pl-4 rounded-3xl border-[var(--border)] bg-[var(--card)] focus:bg-[var(--background-secondary)] transition-all duration-300 text-[16px] sm:text-lg text-[var(--text)] placeholder:text-[var(--text-secondary)]',
                 showSuggestionTicker && 'placeholder:text-transparent',
+                maintenanceMode && 'opacity-50 cursor-not-allowed',
               )}
             />
             {showSuggestionTicker && (
@@ -274,7 +278,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
               <AnimatedButton
                 onClick={() => handleSendMessage()}
-                disabled={!input.trim() || isLoading}
+                disabled={!input.trim() || isLoading || maintenanceMode}
                 size="icon"
                 className="h-10 w-10 sm:h-10 sm:w-10 rounded-2xl shadow-lg min-w-[44px] min-h-[44px]"
                 variant="default"

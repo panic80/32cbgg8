@@ -13,9 +13,32 @@ export interface WhatsNewDateGroup {
 }
 
 // Bump this when you add new release notes
-export const WHATS_NEW_VERSION = '2025-10-28-ops';
+export const WHATS_NEW_VERSION = '2025-10-30-rag-refresh';
 
 export const WHATS_NEW_BY_DATE: WhatsNewDateGroup[] = [
+  {
+    date: 'Thursday, October 30, 2025',
+    updates: [
+      {
+        icon: <Zap className="w-4 h-4" />,
+        text: 'Retriever stack restored',
+        description:
+          'Installed rank_bm25 and updated our LangChain routing so BM25, MMR, multi-query, and unified retrievers are active again—no more silent fallbacks to basic vector search.',
+      },
+      {
+        icon: <FileText className="w-4 h-4" />,
+        text: 'Clean delegation library',
+        description:
+          'Purged duplicate Delegation of Authorities PDFs and re-ingested a single canonical copy of each to keep the vector store lean and the top-k results relevant.',
+      },
+      {
+        icon: <Zap className="w-4 h-4" />,
+        text: 'Column-aware boost',
+        description:
+          'Queries that reference column numbers now bubble the exact chunk into context, keeping answers and citations precise.',
+      },
+    ],
+  },
   {
     date: 'Tuesday, October 28, 2025',
     updates: [

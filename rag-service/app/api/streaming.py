@@ -132,9 +132,9 @@ async def stream_chat_response(
                 
                 await retrieval_handler.on_retrieval_end(len(results))
                 
-                # Build context from results
+                # Build context from results without source number labels
                 context = "\n".join([
-                    f"[Source {i+1}]\n{doc.page_content}\n"
+                    f"{doc.page_content}\n"
                     for i, (doc, _) in enumerate(results)
                 ])
             else:

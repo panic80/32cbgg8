@@ -13,6 +13,7 @@ import type { Message as ChatMessageType } from '@/types/chat';
 import { areFollowUpQuestionsEqual } from '../utils/followUps';
 
 const ENABLE_MESSAGE_ACTIONS = false;
+const ENABLE_SOURCES_SECTION = true;
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -57,6 +58,29 @@ const ChatMessageInner: React.FC<ChatMessageProps> = ({
   const isAssistant = message.sender === 'assistant';
   const isUser = message.sender === 'user';
   const messageShortAnswerMode = message.shortAnswerMode ?? shortAnswerMode;
+  const hasSources =
+    ENABLE_SOURCES_SECTION &&
+    isAssistant &&
+    Array.isArray(message.sources) &&
+    message.sources.length > 0;
+  const sourceList = message.sources ?? [];
+  const sourcesSection = hasSources ? (
+    <div className="mt-4 pt-4 border-t border-[var(--border)]">
+      <button
+        className="text-xs px-2 py-1 rounded-full bg-[var(--background-secondary)] hover:bg-[var(--background-tertiary)]"
+        onClick={() => setShowSources((s) => !s)}
+      >
+        {showSources
+          ? 'Hide reference excerpts'
+          : `View reference excerpts (${sourceList.length})`}
+      </button>
+      {showSources && (
+        <div className="mt-3">
+          <SourcesDisplay sources={sourceList} />
+        </div>
+      )}
+    </div>
+  ) : null;
   const handleModePillKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
@@ -148,22 +172,8 @@ const ChatMessageInner: React.FC<ChatMessageProps> = ({
                   )}
                 </div>
 
-                {/* Sources Toggle */}
-                {message.sources && message.sources.length > 0 && isAssistant && (
-                  <div className="mt-4 pt-4 border-t border-[var(--border)]">
-                    <button
-                      className="text-xs px-2 py-1 rounded-full bg-[var(--background-secondary)] hover:bg-[var(--background-tertiary)]"
-                      onClick={() => setShowSources((s) => !s)}
-                    >
-                      {showSources ? 'Hide sources' : `Show sources (${message.sources.length})`}
-                    </button>
-                    {showSources && (
-                      <div className="mt-3">
-                        <SourcesDisplay sources={message.sources as any} />
-                      </div>
-                    )}
-                  </div>
-                )}
+                {/* Sources */}
+                {sourcesSection}
               </CardContent>
             </Card>
           ) : (
@@ -251,6 +261,8 @@ const ChatMessageInner: React.FC<ChatMessageProps> = ({
                   </motion.button>
                 )}
               </div>
+
+              {sourcesSection}
             </div>
           )}
 

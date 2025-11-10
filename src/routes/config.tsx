@@ -37,17 +37,16 @@ const createComingSoonElement = (message: string) => (
 );
 
 const loadLandingPage = () => import('@/pages/LandingPage');
-const loadOpiPage = () => import('@/pages/OPIPage');
-const loadOpiPageTest = () => import('@/pages/OPIPageTest');
 const loadAdminToolsPage = () => import('@/pages/AdminToolsPage');
-const loadChatPage = () => import('@/pages/ChatPage');
-const loadConfigPage = () => import('@/pages/ConfigPage');
 const loadPrivacyPage = () => import('@/pages/PrivacyPage');
 const loadFaqPage = () => import('@/pages/FAQPage');
 const loadResourcesPage = () => import('@/pages/ResourcesPage');
 const loadLoadingDebugPage = () => import('@/pages/LoadingDebugPage');
 const loadUiShowcase = () => import('@/components/UIShowcase');
 const loadPerformanceDashboard = () => import('@/pages/PerformanceDashboard');
+
+const createDisabledFeatureElement = (featureName: string) =>
+  createComingSoonElement(`${featureName} is currently disabled.`);
 
 export const appRoutes: AppRouteDefinition[] = [
   {
@@ -57,16 +56,14 @@ export const appRoutes: AppRouteDefinition[] = [
     loader: loadLandingPage,
   },
   {
-    kind: 'lazy',
+    kind: 'element',
     path: '/opi',
-    component: lazy(loadOpiPage),
-    loader: loadOpiPage,
+    element: createDisabledFeatureElement('OPI Contacts'),
   },
   {
-    kind: 'lazy',
+    kind: 'element',
     path: '/opi-test',
-    component: lazy(loadOpiPageTest),
-    loader: loadOpiPageTest,
+    element: createDisabledFeatureElement('OPI Contacts'),
   },
   {
     kind: 'lazy',
@@ -75,18 +72,14 @@ export const appRoutes: AppRouteDefinition[] = [
     loader: loadAdminToolsPage,
   },
   {
-    kind: 'lazy',
+    kind: 'element',
     path: '/chat',
-    component: lazy(loadChatPage),
-    loader: loadChatPage,
-    prefetch: true,
-    getProps: ({ theme, toggleTheme }) => ({ theme, toggleTheme }),
+    element: createDisabledFeatureElement('Policy Assistant'),
   },
   {
-    kind: 'lazy',
+    kind: 'element',
     path: '/chat/config',
-    component: lazy(loadConfigPage),
-    loader: loadConfigPage,
+    element: createDisabledFeatureElement('Policy Assistant'),
   },
   {
     kind: 'lazy',

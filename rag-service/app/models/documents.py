@@ -39,6 +39,26 @@ class DocumentMetadata(BaseModel):
         None,
         description="Structured location (e.g., chapter/section) within the source"
     )
+    source_identity: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Publisher/source identity extracted by CLI with confidence score"
+    )
+    document_info: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Document information (title, date, canonical_url, identifiers)"
+    )
+    publisher_confidence: Optional[float] = Field(
+        None,
+        description="Confidence score for publisher/source identity (0.0-1.0)"
+    )
+    evidence: Optional[List[Dict[str, Any]]] = Field(
+        None,
+        description="Evidence trail for metadata extraction with page numbers"
+    )
+    structure_info: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Document structure (chapters, sections, paragraphs, hierarchy)"
+    )
 
     model_config = ConfigDict(use_enum_values=True)
 

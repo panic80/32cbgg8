@@ -35,6 +35,30 @@ class QueryClassification(BaseModel):
     temporal_context: Optional[str] = Field(default=None, description="Time-related context")
     location_context: Optional[str] = Field(default=None, description="Location/jurisdiction context")
     requires_table_lookup: bool = Field(default=False, description="Whether query needs table data")
+    is_class_a_context: bool = Field(
+        default=False,
+        description="Whether the query is explicitly about Class A Reserve service",
+    )
+    irregular_hours: bool = Field(
+        default=False,
+        description="Whether the scenario involves work outside normal hours",
+    )
+    ordered_outside_normal_hours: bool = Field(
+        default=False,
+        description="Whether the member was ordered/directed to work outside normal hours",
+    )
+    on_td_or_tasking: bool = Field(
+        default=False,
+        description="Whether the scenario places the member on TD, authorized tasking, or MTEC",
+    )
+    missed_meal_on_tasking: bool = Field(
+        default=False,
+        description="Whether the member missed a meal because of the tasking",
+    )
+    entitlement_likely_denied: bool = Field(
+        default=False,
+        description="Whether heuristics suggest entitlement should be denied",
+    )
     confidence: float = Field(default=0.0, description="Classification confidence")
 
 
@@ -111,6 +135,14 @@ Consider:
 3. Is there a time context (dates, periods)?
 4. Is there a location/jurisdiction context?
 5. Does this require looking up specific values from tables?
+6. Does the question explicitly involve Class A Reserve service?
+7. Based ONLY on the user's phrasing, determine whether the member is:
+   - working irregular hours (evenings, weekends, or outside a typical daytime schedule)
+   - ordered or directed to work outside normal hours
+   - on temporary duty (TD), an authorized tasking, or an MTEC assignment
+   - missing a meal because of the tasking
+   If the question does not mention one of these conditions, set the corresponding flag to false.
+8. Using the same information, decide if the entitlement is likely denied (for example: Class A member at their home unit without TD/tasking orders). Provide a boolean only—no explanations in this field.
 
 {format_instructions}
 
@@ -143,11 +175,283 @@ Provide your classification:""",
                     # Add full form in parentheses after abbreviation
                     replacement = f"{abbrev} ({full_form})"
                 expanded = re.sub(pattern, replacement, expanded, flags=re.IGNORECASE)
-                
+            
         if expanded != query:
             logger.info(f"Expanded abbreviations: '{query}' -> '{expanded}'")
-            
+
         return expanded
+
+    def detect_and_expand_column_numbers(self, query: str) -> Tuple[str, Optional[str]]:
+        """Detect column number queries and add exact match terms.
+
+        Args:
+            query: Original query string
+
+        Returns:
+            Tuple of (expanded_query, column_number_if_detected)
+        """
+        # Pattern to detect column number references
+        # Matches: "column 17", "col 17", "column number 17", "column17"
+        column_patterns = [
+            r'\bcolumn\s*(?:number\s*)?(\d+)\b',
+            r'\bcol\s*(?:number\s*)?(\d+)\b',
+            r'\bcolumn(\d+)\b'
+        ]
+
+        for pattern in column_patterns:
+            match = re.search(pattern, query, re.IGNORECASE)
+            if match:
+                column_num = match.group(1)
+
+                # Add minimal expansion - just the most specific term
+                # The DOA PDF uses format "Column X –" (with en-dash)
+                expanded = f"{query} Column {column_num}"
+
+                logger.info(f"Detected column number query: column {column_num}")
+
+                return (expanded, column_num)
+
+        return (query, None)
+
+    def _apply_classification_heuristics(
+        self,
+        classification: QueryClassification,
+        query: str,
+    ) -> QueryClassification:
+        """Augment classification with rule-based heuristics."""
+        query_lower = query.lower()
+        entities = list(classification.entities or [])
+
+        def add_entity(value: str) -> None:
+            if not value:
+                return
+            if not any(existing.lower() == value.lower() for existing in entities):
+                entities.append(value)
+
+        # Location entities
+        locations = [
+            "canada",
+            "usa",
+            "united states",
+            "ontario",
+            "quebec",
+            "alberta",
+            "yukon",
+            "nwt",
+            "nunavut",
+            "overseas",
+            "international",
+        ]
+        if not classification.location_context:
+            for loc in locations:
+                if loc in query_lower:
+                    classification.location_context = loc
+                    add_entity(loc)
+                    break
+        else:
+            add_entity(classification.location_context)
+
+        # Benefit/rate types
+        rate_types = [
+            "meal",
+            "breakfast",
+            "lunch",
+            "dinner",
+            "incidental",
+            "hotel",
+            "accommodation",
+            "kilometric",
+            "mileage",
+            "relocation",
+            "posting",
+        ]
+        for rate in rate_types:
+            if rate in query_lower:
+                add_entity(rate)
+
+        # Temporal context
+        if not classification.temporal_context:
+            if any(word in query_lower for word in ["2024", "2025", "current", "latest", "new"]):
+                classification.temporal_context = "current"
+            elif "retroactive" in query_lower or "previous" in query_lower:
+                classification.temporal_context = "historical"
+
+        # Table indicators
+        if any(word in query_lower for word in ["table", "chart", "list", "schedule", "appendix"]):
+            classification.requires_table_lookup = True
+
+        # Detect Class A Reserve context
+        class_a_terms = [
+            "class a",
+            "class-a",
+            "primary reserve",
+            "reservist",
+            "reserve force",
+            "parade night",
+            "part-time service",
+            "part time service",
+        ]
+        if any(term in query_lower for term in class_a_terms):
+            classification.is_class_a_context = True
+            add_entity("class a")
+            classification.confidence = max(classification.confidence or 0.0, 0.8)
+
+        # Determine if the work occurs outside normal hours
+        irregular_hours = classification.irregular_hours
+        if not irregular_hours:
+            time_24hr_matches = re.findall(r"\b([01]?\d|2[0-3])[0-5]\d\b", query_lower)
+            for match in time_24hr_matches:
+                hour = int(match[-2:]) if len(match) > 2 else int(match)
+                if hour < 6 or hour >= 17:
+                    irregular_hours = True
+                    break
+
+        if not irregular_hours:
+            for hour_str, meridiem in re.findall(
+                r"\b(\d{1,2})(?::\d{2})?\s*(a\.?m\.?|p\.?m\.?)\b",
+                query_lower,
+            ):
+                hour = int(hour_str)
+                meridiem_lower = meridiem.lower()
+                if "p" in meridiem_lower and hour >= 5:
+                    irregular_hours = True
+                    break
+                if "a" in meridiem_lower and hour < 6:
+                    irregular_hours = True
+                    break
+
+        weekend_terms = [
+            "weekend",
+            "saturday",
+            "sunday",
+            "fri night",
+            "friday night",
+            "friday evening",
+        ]
+        mentions_weekend = any(term in query_lower for term in weekend_terms)
+
+        if not irregular_hours:
+            irregular_keywords = [
+                "evening",
+                "night",
+                "after hours",
+                "after-hours",
+                "late",
+                "weekend",
+                "outside normal hours",
+                "outside of normal hours",
+            ]
+            if any(keyword in query_lower for keyword in irregular_keywords):
+                irregular_hours = True
+
+        if mentions_weekend:
+            irregular_hours = True
+
+        classification.irregular_hours = classification.irregular_hours or irregular_hours
+
+        if mentions_weekend:
+            weekend_context_terms = [
+                "training",
+                "exercise",
+                "course",
+                "parade",
+                "drill",
+                "tasking",
+                "duty",
+                "muster",
+                "overnight",
+                "bivouac",
+                "field",
+            ]
+            if classification.is_class_a_context or any(term in query_lower for term in weekend_context_terms):
+                classification.on_td_or_tasking = True
+
+        # Detect explicit orders to work outside normal hours
+        ordered_indicators = [
+            "ordered to",
+            "ordered for",
+            "ordered by",
+            "tasked to",
+            "tasked with",
+            "directed to",
+            "told to report",
+            "required to report",
+            "commanded to",
+            "must report at",
+            "mandatory formation",
+            "mandatory training",
+        ]
+        if any(indicator in query_lower for indicator in ordered_indicators):
+            classification.ordered_outside_normal_hours = True
+
+        # Detect TD/tasking/MTEC indicators
+        td_indicators = [
+            " on td",
+            " temporary duty",
+            " temp duty",
+            " on tasking",
+            "tasking to",
+            "tasking for",
+            "tasked away",
+            " mtec",
+            " military temporary employment class",
+            " away from home unit",
+            " away from my unit",
+            " away from unit",
+            " attached posting",
+            " detached duty",
+            " out of town",
+            " going away",
+            " deployed",
+        ]
+        if any(indicator in query_lower for indicator in td_indicators):
+            classification.on_td_or_tasking = True
+
+        # Detect missed meal indicators
+        meal_indicators = [
+            "missed meal",
+            "miss my meal",
+            "missed lunch",
+            "missed dinner",
+            "missed breakfast",
+            "no time to eat",
+            "unable to eat",
+            "skipped meal",
+            "meal was denied",
+            "didn't get a meal",
+            "did not get a meal",
+            "meal not provided",
+            "miss a meal",
+        ]
+        if any(indicator in query_lower for indicator in meal_indicators):
+            classification.missed_meal_on_tasking = True
+
+        # Determine if entitlement is likely denied (heuristic)
+        home_unit_indicators = [
+            "home unit",
+            "home armoury",
+            "home armory",
+            "unit training",
+            "training night",
+            "tuesday night training",
+            "parade night",
+            "parade",
+            "local unit",
+            "at the unit",
+            "in my unit",
+            "show up at",
+        ]
+        mentions_home_unit = any(indicator in query_lower for indicator in home_unit_indicators)
+        classification.entitlement_likely_denied = bool(
+            classification.is_class_a_context
+            and not classification.on_td_or_tasking
+            and not classification.ordered_outside_normal_hours
+            and not classification.missed_meal_on_tasking
+            and mentions_home_unit
+        )
+
+        classification.entities = entities
+        return classification
         
     def simplify_complex_query(self, query: str) -> List[str]:
         """Break down complex queries into simpler sub-queries."""
@@ -191,7 +495,7 @@ Provide your classification:""",
             
             # Parse response
             classification = self.parser.parse(response.content)
-            return classification
+            return self._apply_classification_heuristics(classification, query)
             
         except Exception as e:
             logger.warning(f"LLM classification failed: {e}, using rule-based")
@@ -231,36 +535,8 @@ Provide your classification:""",
         elif any(word in query_lower for word in ["calculate", "computation", "total", "sum"]):
             classification.intent = QueryIntent.CALCULATION
             classification.requires_table_lookup = True
-            
-        # Extract entities
-        entities = []
-        
-        # Location entities
-        locations = ["canada", "usa", "united states", "ontario", "quebec", "alberta", 
-                    "yukon", "nwt", "nunavut", "overseas", "international"]
-        for loc in locations:
-            if loc in query_lower:
-                entities.append(loc)
-                classification.location_context = loc
-                
-        # Benefit/rate types
-        rate_types = ["meal", "breakfast", "lunch", "dinner", "incidental", "hotel",
-                     "accommodation", "kilometric", "mileage", "relocation", "posting"]
-        for rate in rate_types:
-            if rate in query_lower:
-                entities.append(rate)
-                
-        # Temporal context
-        if any(word in query_lower for word in ["2024", "2025", "current", "latest", "new"]):
-            classification.temporal_context = "current"
-        elif "retroactive" in query_lower or "previous" in query_lower:
-            classification.temporal_context = "historical"
-            
-        classification.entities = entities
-        
-        # Check for table indicators
-        if any(word in query_lower for word in ["table", "chart", "list", "schedule", "appendix"]):
-            classification.requires_table_lookup = True
+
+        classification = self._apply_classification_heuristics(classification, query)
             
         # Special handling for meal rate queries
         if ("meal" in query_lower and any(word in query_lower for word in ["rate", "allowance", "amount"])) or \
@@ -352,10 +628,13 @@ Provide your classification:""",
         """Full query optimization pipeline."""
         # Detect language
         language = self.detect_language(query)
-        
+
         # Expand abbreviations
         expanded = self.expand_abbreviations(query)
-        
+
+        # Detect and expand column numbers (for DOA queries)
+        expanded, column_number = self.detect_and_expand_column_numbers(expanded)
+
         # Classify query
         classification = await self.classify_query(expanded)
         
@@ -381,7 +660,8 @@ Provide your classification:""",
             "language": language,
             "classification": classification.model_dump(),
             "expanded_queries": unique_expansions,
-            "requires_translation": language != "en"
+            "requires_translation": language != "en",
+            "column_number": column_number  # Add detected column number for filtering
         }
     
     def expand_query_for_retry(self, query: str) -> str:
