@@ -1,10 +1,9 @@
-"""Lightweight PDF table extraction helper using pdfplumber."""
+"""Lightweight PDF table extraction helper using unstructured."""
 
 from __future__ import annotations
 
 from typing import List, Dict, Any
 
-import pdfplumber
 from tabulate import tabulate
 
 from app.core.logging import get_logger
@@ -28,58 +27,113 @@ class PDFTableExtractor:
         tables: List[Dict[str, Any]] = []
 
         try:
-            with pdfplumber.open(path) as pdf:
-                for page_number, page in enumerate(pdf.pages, start=1):
+            from unstructured.partition.pdf import partition_pdf
+            from unstructured.documents.elements import Table
+        except ImportError:
+            logger.warning(
+                "Unstructured library not available for PDF table extraction. "
+                "Install with: pip install unstructured"
+            )
+            return tables
+
+        try:
+            # Use unstructured with hi_res strategy for table extraction
+            elements = partition_pdf(
+                filename=path,
+                strategy="hi_res",
+                infer_table_structure=True,
+            )
+
+            # Filter for table elements
+            table_elements = [el for el in elements if isinstance(el, Table)]
+
+            for table_el in table_elements:
+                # Get table as HTML and parse to structured format
+                html_table = (
+                    table_el.metadata.text_as_html
+                    if hasattr(table_el.metadata, "text_as_html")
+                    else None
+                )
+
+                # Extract table text (fallback to string representation)
+                table_text = table_el.text if hasattr(table_el, "text") else str(table_el)
+
+                # Get page number if available
+                page_number = (
+                    table_el.metadata.page_number
+                    if hasattr(table_el.metadata, "page_number")
+                    else None
+                )
+
+                # Parse HTML table to extract headers and rows if available
+                headers = []
+                rows = []
+
+                if html_table:
                     try:
-                        raw_tables = page.extract_tables()
-                    except Exception as exc:
-                        logger.debug(
-                            "pdfplumber failed to extract tables on page %s of %s: %s",
-                            page_number,
-                            path,
-                            exc,
-                        )
-                        continue
+                        from bs4 import BeautifulSoup
+                        soup = BeautifulSoup(html_table, "html.parser")
 
-                    for table in raw_tables or []:
-                        if not table:
-                            continue
+                        # Extract headers
+                        thead = soup.find("thead")
+                        if thead:
+                            header_row = thead.find("tr")
+                            if header_row:
+                                headers = [
+                                    th.get_text(strip=True) for th in header_row.find_all(["th", "td"])
+                                ]
 
-                        headers = table[0]
-                        data_rows = table[1:] if len(table) > 1 else []
+                        # Extract rows
+                        tbody = soup.find("tbody") or soup
+                        for tr in tbody.find_all("tr"):
+                            # Skip header row if no thead was found
+                            if not thead and not headers:
+                                headers = [
+                                    td.get_text(strip=True) for td in tr.find_all(["th", "td"])
+                                ]
+                                continue
 
-                        # Determine whether the first row is really headers (heuristic)
-                        if headers and all((cell or "").strip() for cell in headers):
+                            row_data = [td.get_text(strip=True) for td in tr.find_all(["th", "td"])]
+                            if row_data:
+                                rows.append(row_data)
+
+                        # Generate markdown from parsed table
+                        if headers and rows:
                             markdown = tabulate(
-                                data_rows,
+                                rows,
                                 headers=headers,
                                 tablefmt="github",
                                 missingval="",
-                            ) if data_rows else tabulate(
-                                [headers],
+                            )
+                        elif rows:
+                            markdown = tabulate(
+                                rows,
                                 tablefmt="github",
                                 missingval="",
                             )
                         else:
-                            headers = []
-                            markdown = tabulate(
-                                table,
-                                tablefmt="github",
-                                missingval="",
-                            )
+                            markdown = table_text
 
-                        tables.append(
-                            {
-                                "title": None,
-                                "page_number": page_number,
-                                "headers": headers,
-                                "rows": data_rows,
-                                "markdown": markdown,
-                            }
-                        )
+                    except Exception as exc:
+                        logger.debug("Failed to parse HTML table: %s", exc)
+                        markdown = table_text
+                else:
+                    # No HTML available, use text representation
+                    markdown = table_text
+
+                tables.append(
+                    {
+                        "title": None,
+                        "page_number": page_number,
+                        "headers": headers,
+                        "rows": rows,
+                        "markdown": markdown,
+                        "html": html_table,
+                    }
+                )
 
         except Exception as exc:
-            logger.warning("Failed to open PDF for table extraction %s: %s", path, exc)
+            logger.warning("Failed to extract PDF tables from %s: %s", path, exc)
 
         return tables
 

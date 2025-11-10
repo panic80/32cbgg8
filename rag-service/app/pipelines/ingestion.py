@@ -264,7 +264,21 @@ class IngestionPipeline:
                         chunk.metadata.update(enriched_metadata)
                     except Exception as e:
                         logger.warning(f"Failed to extract metadata for chunk: {e}")
-            
+
+            # Extract column numbers from DOA documents
+            logger.info("Extracting column numbers from DOA chunks")
+            for chunk in chunks:
+                try:
+                    column_metadata = self._extract_column_number(chunk)
+                    if column_metadata:
+                        chunk.metadata.update(column_metadata)
+                except Exception as e:
+                    logger.warning(f"Failed to extract column number for chunk: {e}")
+
+            # Add column headers to table chunks that lost them during PDF extraction
+            logger.info("Adding column context to DOA table chunks")
+            chunks = self._add_column_context_to_chunks(chunks, request)
+
             # Validate chunk quality
             if getattr(settings, 'enable_quality_validation', True):
                 logger.info("Validating chunk quality")
@@ -376,7 +390,10 @@ class IngestionPipeline:
                 logger.warning(f"Failed to refresh BM25 corpus cache: {e}")
 
             # Update BM25 index with new documents
-            await self._update_bm25_index(deduplicated_docs)
+            # DISABLED: Incremental BM25 updates load entire corpus into memory (~3-4GB)
+            # causing OOM kills during bulk ingestion. BM25 index should be rebuilt
+            # once after all files are ingested instead.
+            # await self._update_bm25_index(deduplicated_docs)
             
             # Update co-occurrence index with new documents
             await self._update_cooccurrence_index(deduplicated_docs)
@@ -645,7 +662,105 @@ class IngestionPipeline:
                 message=str(e),
                 processing_time=processing_time
             )
-            
+
+    def _extract_column_number(self, chunk: Document) -> Optional[Dict[str, Any]]:
+        """Extract column number metadata from DOA document chunks.
+
+        Args:
+            chunk: Document chunk to extract from
+
+        Returns:
+            Dict with column_number and column_name if found, else None
+        """
+        import re
+
+        text = chunk.page_content
+        if not text:
+            return None
+
+        # Pattern to match "Column X –" or "Column X:" format
+        # The DOA PDF uses "Column 17 – Services (Competitive) – General:"
+        column_pattern = r'Column\s+(\d+)\s+[–:-]\s+([^\n]+)'
+
+        match = re.search(column_pattern, text)
+        if match:
+            column_num = match.group(1)
+            column_name = match.group(2).strip()
+
+            # Clean up column name (remove trailing punctuation)
+            column_name = re.sub(r'[:\s]+$', '', column_name)
+
+            return {
+                "column_number": column_num,
+                "column_name": column_name
+            }
+
+        return None
+
+    def _add_column_context_to_chunks(self, chunks: List[Document], request: DocumentIngestionRequest) -> List[Document]:
+        """Add column headers to DOA table chunks that lost them during PDF extraction.
+
+        Args:
+            chunks: List of document chunks
+            request: Ingestion request with file path info
+
+        Returns:
+            List of chunks with column context added where applicable
+        """
+        import re
+
+        # Only process delegation of authority documents
+        source = request.metadata.get('source', '') if request.metadata else ''
+        if 'delegation' not in source.lower():
+            return chunks
+
+        # Column patterns: keywords that indicate which column a chunk belongs to
+        column_patterns = {
+            17: {
+                "keywords": ["Services (Competitive)", "competitive) – general", "competitive general"],
+                "anti_keywords": ["non-competitive"],  # Don't match if this is present
+                "header": "Column 17 – Services (Competitive) – General:\n\n"
+            },
+            18: {
+                "keywords": ["Services (Non-Competitive)", "non-competitive) – general", "non-competitive general"],
+                "anti_keywords": [],
+                "header": "Column 18 – Services (Non-Competitive) – General:\n\n"
+            }
+        }
+
+        modified_count = 0
+        for chunk in chunks:
+            text = chunk.page_content
+            text_lower = text.lower()
+
+            # Skip if already has column header
+            if re.match(r'^Column\s+\d+\s+[–:-]', text):
+                continue
+
+            # Check each column pattern
+            for col_num, pattern_info in column_patterns.items():
+                # Check if any keyword matches
+                has_keyword = any(kw.lower() in text_lower for kw in pattern_info['keywords'])
+
+                # Check if any anti-keyword matches (exclude if present)
+                has_anti_keyword = any(akw.lower() in text_lower for akw in pattern_info['anti_keywords'])
+
+                if has_keyword and not has_anti_keyword:
+                    # Prepend column header
+                    chunk.page_content = pattern_info['header'] + text
+
+                    # Update metadata
+                    chunk.metadata['column_number'] = str(col_num)
+                    chunk.metadata['column_context_added'] = True
+
+                    modified_count += 1
+                    break
+
+        if modified_count > 0:
+            logger.info(f"Added column context to {modified_count} chunks")
+
+        return chunks
+
     def _generate_document_id(self, request: DocumentIngestionRequest) -> str:
         """Generate unique document ID using content-based hashing."""
         # For content-based ID, use the content itself
@@ -871,10 +986,18 @@ class IngestionPipeline:
                     request
                 )
 
-                # Enhance metadata
+                # Extract CLI-provided metadata (from ingest_sources_cli.py)
+                source_identity = chunk.metadata.get("source_identity")
+                document_info = chunk.metadata.get("document_info")
+                structure_info = chunk.metadata.get("structure_info")
+
+                # Enhance metadata - use CLI extractions when available
                 metadata = DocumentMetadata(
                     source=source_fields.get("source", "direct_input"),
-                    title=chunk.metadata.get("title"),
+                    title=(
+                        document_info.get("title") if document_info and document_info.get("title")
+                        else chunk.metadata.get("title")
+                    ),
                     type=DocumentType(chunk.metadata.get("type", request.type)),
                     section=chunk.metadata.get("section"),
                     page_number=chunk.metadata.get("page"),
@@ -882,8 +1005,17 @@ class IngestionPipeline:
                     policy_reference=chunk.metadata.get("policy_reference"),
                     tags=chunk.metadata.get("tags", []),
                     source_id=source_fields.get("source_id"),
-                    canonical_url=source_fields.get("canonical_url"),
-                    reference_path=source_fields.get("reference_path")
+                    canonical_url=(
+                        document_info.get("canonical_url") if document_info and document_info.get("canonical_url")
+                        else source_fields.get("canonical_url")
+                    ),
+                    reference_path=source_fields.get("reference_path"),
+                    # Preserve CLI extractions for better citations
+                    source_identity=source_identity,
+                    document_info=document_info,
+                    publisher_confidence=source_identity.get("confidence") if source_identity else None,
+                    evidence=source_identity.get("evidence") if source_identity else None,
+                    structure_info=structure_info,
                 )
                 
                 # Create internal document

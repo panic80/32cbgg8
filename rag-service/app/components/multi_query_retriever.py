@@ -11,7 +11,10 @@ from functools import lru_cache
 
 from langchain_core.language_models import BaseLLM
 from langchain_core.documents import Document
-from langchain_core.callbacks import CallbackManagerForRetrieverRun
+from langchain_core.callbacks import (
+    CallbackManagerForRetrieverRun,
+    AsyncCallbackManagerForRetrieverRun,
+)
 from langchain.retrievers.multi_query import MultiQueryRetriever as LangChainMultiQueryRetriever
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import BaseOutputParser
@@ -94,20 +97,20 @@ class MultiQueryRetriever(LangChainMultiQueryRetriever):
         **kwargs
     ):
         """Initialize with travel-specific configuration."""
-        # Set up parser
-        if "parser" not in kwargs:
-            kwargs["parser"] = LineListOutputParser()
-        
-        # Use travel-specific prompt if not provided
-        if "prompt" not in kwargs:
-            kwargs["prompt"] = TRAVEL_QUERY_PROMPT
+        parser = kwargs.pop("parser", LineListOutputParser())
+        prompt = kwargs.pop("prompt", TRAVEL_QUERY_PROMPT)
+        verbose = kwargs.pop("verbose", True)
+        # Build LLM chain compatible with latest LangChain API
+        llm_chain = prompt | llm | parser
+        parser_key_value = parser_key if parser_key is not None else "lines"
         
         # Initialize parent MultiQueryRetriever
         super().__init__(
             retriever=retriever,
-            llm=llm,
-            parser_key=parser_key,
+            llm_chain=llm_chain,
+            parser_key=parser_key_value,
             include_original=include_original,
+            verbose=verbose,
             **kwargs
         )
         
@@ -118,8 +121,8 @@ class MultiQueryRetriever(LangChainMultiQueryRetriever):
     @cache_result(ttl=3600, key_prefix="multi_query")
     async def _generate_queries_cached(self, question: str) -> List[str]:
         """Generate queries with caching."""
-        # Use parent's query generation
-        queries = await self.agenerate_queries(question)
+        noop_manager = AsyncCallbackManagerForRetrieverRun.get_noop_manager()
+        queries = await super().agenerate_queries(question, noop_manager)
         
         # Add PMV-specific queries if applicable
         pmv_queries = enhance_pmv_queries(question)
@@ -142,11 +145,17 @@ class MultiQueryRetriever(LangChainMultiQueryRetriever):
         """
         Async retrieval with query caching and deduplication.
         """
+        async_manager = (
+            run_manager
+            if isinstance(run_manager, AsyncCallbackManagerForRetrieverRun)
+            else AsyncCallbackManagerForRetrieverRun.get_noop_manager()
+        )
+
         # Generate queries (with caching if enabled)
         if self._use_query_cache:
             queries = await self._generate_queries_cached(query)
         else:
-            queries = await self.agenerate_queries(query)
+            queries = await super().agenerate_queries(query, async_manager)
         
         # Include original if configured
         if self.include_original and query not in queries:
@@ -161,8 +170,8 @@ class MultiQueryRetriever(LangChainMultiQueryRetriever):
             try:
                 # Get documents for this query
                 docs = await self.retriever.aget_relevant_documents(
-                    q, 
-                    callbacks=run_manager.get_child() if run_manager else None
+                    q,
+                    callbacks=async_manager.get_child() if async_manager else None
                 )
                 
                 # Deduplicate by content hash and ID
@@ -207,8 +216,8 @@ class MultiQueryRetriever(LangChainMultiQueryRetriever):
         """
         Sync retrieval with query caching and deduplication.
         """
-        # For sync version, use parent's implementation but add our deduplication
-        queries = self.generate_queries(query)
+        manager = run_manager or CallbackManagerForRetrieverRun.get_noop_manager()
+        queries = self.generate_queries(query, manager)
         
         if self.include_original and query not in queries:
             queries = [query] + queries
@@ -222,7 +231,7 @@ class MultiQueryRetriever(LangChainMultiQueryRetriever):
             try:
                 docs = self.retriever.get_relevant_documents(
                     q,
-                    callbacks=run_manager.get_child() if run_manager else None
+                    callbacks=manager.get_child() if manager else None
                 )
                 
                 for doc in docs:

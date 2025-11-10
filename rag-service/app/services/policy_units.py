@@ -76,7 +76,7 @@ async def extract_policy_units_from_chunks(
         if len(text) > 1800:
             text = text[:1800] + "..."
         sources_block_parts.append(
-            f"[Source {idx+1}]\nID: {source_id}\nTitle: {title}\nText: {text}"
+            f"ID: {source_id}\nTitle: {title}\nText: {text}"
         )
 
     messages = [

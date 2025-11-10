@@ -130,13 +130,13 @@ class SmartDocumentSplitter:
             "table_count": 0,
             "list_count": 0
         }
-        
+
         # Check for markdown headers
         header_pattern = r'^#{1,6}\s+.+$'
         headers = re.findall(header_pattern, text, re.MULTILINE)
         structure["header_count"] = len(headers)
         structure["has_headers"] = len(headers) > 0
-        
+
         # Check for tables (markdown or HTML)
         table_patterns = [
             r'\|.*\|.*\|',  # Markdown tables
@@ -147,7 +147,7 @@ class SmartDocumentSplitter:
             if re.search(pattern, text):
                 structure["has_tables"] = True
                 structure["table_count"] += len(re.findall(pattern, text))
-                
+
         # Check for code blocks
         code_patterns = [
             r'```[\s\S]*?```',  # Markdown code blocks
@@ -156,7 +156,7 @@ class SmartDocumentSplitter:
         for pattern in code_patterns:
             if re.search(pattern, text):
                 structure["has_code"] = True
-                
+
         # Check for lists
         list_patterns = [
             r'^\s*[-*+]\s+',  # Unordered lists
@@ -166,7 +166,7 @@ class SmartDocumentSplitter:
             lists = re.findall(pattern, text, re.MULTILINE)
             structure["list_count"] += len(lists)
         structure["has_lists"] = structure["list_count"] > 0
-        
+
         # Determine primary type
         if structure["has_tables"] and structure["table_count"] > 5:
             structure["primary_type"] = "tabular"
@@ -176,8 +176,91 @@ class SmartDocumentSplitter:
             structure["primary_type"] = "technical"
         else:
             structure["primary_type"] = "narrative"
-            
+
         return structure
+
+    def _find_section_context(
+        self,
+        chunk_text: str,
+        structure_info: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Find which section/chapter this chunk belongs to based on structure_info.
+        Returns section context with chapter, section, paragraph numbers.
+        """
+        context = {
+            "chapter": None,
+            "section": None,
+            "section_title": None,
+            "paragraph": None,
+            "section_hierarchy": []
+        }
+
+        if not structure_info or not structure_info.get("has_structure"):
+            return context
+
+        # Get first few lines of chunk to determine context
+        first_lines = chunk_text[:500]
+
+        # Check for chapter
+        chapters = structure_info.get("chapters", [])
+        for chapter in chapters:
+            chapter_num = chapter.get("number")
+            if chapter_num and (
+                f"CHAPTER {chapter_num}" in first_lines.upper() or
+                f"Chapter {chapter_num}" in first_lines or
+                f"Ch. {chapter_num}" in first_lines
+            ):
+                context["chapter"] = chapter_num
+                break
+
+        # Check for section
+        sections = structure_info.get("sections", [])
+        for section in sections:
+            section_num = section.get("number")
+            section_title = section.get("title")
+            if section_num and section_num in first_lines:
+                context["section"] = section_num
+                context["section_title"] = section_title
+                # Build hierarchy
+                context["section_hierarchy"].append(f"Section {section_num}")
+                if section_title:
+                    context["section_hierarchy"][-1] += f" ({section_title})"
+                break
+
+        # Check for paragraph
+        paragraphs = structure_info.get("paragraphs", [])
+        for para in paragraphs:
+            para_num = para.get("number")
+            if para_num and para_num in first_lines:
+                context["paragraph"] = para_num
+                break
+
+        return context
+
+    def _build_section_hierarchy(
+        self,
+        context: Dict[str, Any]
+    ) -> List[str]:
+        """
+        Build hierarchical path for citation.
+        E.g., ["Chapter 5", "Section 5.2", "Paragraph 5.2.3"]
+        """
+        hierarchy = []
+
+        if context.get("chapter"):
+            hierarchy.append(f"Chapter {context['chapter']}")
+
+        if context.get("section"):
+            section_label = f"Section {context['section']}"
+            if context.get("section_title"):
+                section_label += f" ({context['section_title']})"
+            hierarchy.append(section_label)
+
+        if context.get("paragraph"):
+            hierarchy.append(f"Paragraph {context['paragraph']}")
+
+        return hierarchy
         
     def split_by_type(
         self,
@@ -219,33 +302,68 @@ class SmartDocumentSplitter:
         document: Document,
         structure: Dict[str, Any]
     ) -> List[Document]:
-        """Split structured documents preserving hierarchy."""
+        """Split structured documents preserving hierarchy and section context."""
         try:
+            # Extract structure_info from metadata (from Phase 2 CLI extraction)
+            structure_info = document.metadata.get("structure_info")
+
             # First split by headers to preserve structure
             header_chunks = self.markdown_splitter.split_text(document.page_content)
-            
-            # Then apply size-based splitting if needed
+
+            # Then apply size-based splitting if needed, but try to respect section boundaries
             final_chunks = []
             for header_doc in header_chunks:
                 if len(header_doc.page_content) > self.chunk_size * 1.5:
                     # Further split large sections
-                    sub_chunks = self.default_splitter.split_documents([header_doc])
+                    # Use paragraph boundaries as separators to avoid mid-paragraph splits
+                    section_splitter = RecursiveCharacterTextSplitter(
+                        chunk_size=self.chunk_size,
+                        chunk_overlap=self.chunk_overlap,
+                        separators=[
+                            "\n\n\n",    # Multiple paragraph breaks
+                            "\n\n",      # Paragraph breaks
+                            "\n",        # Line breaks
+                            ". ",        # Sentence boundaries
+                            " ",         # Word boundaries
+                            ""           # Characters
+                        ],
+                        keep_separator=True
+                    )
+                    sub_chunks = section_splitter.split_documents([header_doc])
                     final_chunks.extend(sub_chunks)
                 else:
                     final_chunks.append(header_doc)
-                    
-            # Enhance metadata
+
+            # Enhance metadata with section context
             for i, chunk in enumerate(final_chunks):
+                # Find section context for this chunk
+                section_context = {}
+                if structure_info:
+                    section_context = self._find_section_context(
+                        chunk.page_content,
+                        structure_info
+                    )
+
+                # Build section hierarchy
+                section_hierarchy = self._build_section_hierarchy(section_context)
+
+                # Update chunk metadata
                 chunk.metadata.update({
                     **document.metadata,
                     "chunk_index": i,
                     "chunk_total": len(final_chunks),
-                    "splitting_method": "structured",
-                    "document_structure": structure
+                    "splitting_method": "structured_with_context",
+                    "document_structure": structure,
+                    # Add section context for better citations
+                    "chapter": section_context.get("chapter"),
+                    "section": section_context.get("section"),
+                    "section_title": section_context.get("section_title"),
+                    "paragraph": section_context.get("paragraph"),
+                    "section_hierarchy": section_hierarchy,
                 })
-                
+
             return final_chunks
-            
+
         except Exception as e:
             logger.warning(f"Structured splitting failed, falling back to default: {e}")
             return self._split_narrative_document(document, structure)
@@ -377,8 +495,21 @@ class SmartDocumentSplitter:
             chunks = self.default_splitter.split_documents([document])
             splitting_method = "default"
             
-        # Enhance metadata
+        # Enhance metadata with section context if available
+        structure_info = document.metadata.get("structure_info")
+
         for i, chunk in enumerate(chunks):
+            # Find section context for this chunk if structure_info exists
+            section_context = {}
+            section_hierarchy = []
+
+            if structure_info and structure_info.get("has_structure"):
+                section_context = self._find_section_context(
+                    chunk.page_content,
+                    structure_info
+                )
+                section_hierarchy = self._build_section_hierarchy(section_context)
+
             chunk.metadata.update({
                 **document.metadata,
                 "chunk_index": i,
@@ -386,9 +517,15 @@ class SmartDocumentSplitter:
                 "splitting_method": splitting_method,
                 "document_structure": structure,
                 "chunk_size_used": optimal_size,
-                "chunk_overlap_used": optimal_overlap
+                "chunk_overlap_used": optimal_overlap,
+                # Add section context if detected
+                "chapter": section_context.get("chapter"),
+                "section": section_context.get("section"),
+                "section_title": section_context.get("section_title"),
+                "paragraph": section_context.get("paragraph"),
+                "section_hierarchy": section_hierarchy,
             })
-            
+
         return chunks
         
     def optimize_chunk_size(

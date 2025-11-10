@@ -7,6 +7,8 @@ import { HelpDialog } from './ChatPage/components/HelpDialog';
 import { useChatController } from './ChatPage/hooks';
 import { ChatCommandPalette } from './ChatPage/components/ChatCommandPalette';
 import { ChatMessagesPanel } from './ChatPage/components/ChatMessagesPanel';
+import { MaintenanceBanner } from './ChatPage/components/MaintenanceBanner';
+import { MAINTENANCE_MODE } from '@/constants/maintenance';
 
 interface ChatPageProps {
   theme?: string;
@@ -43,10 +45,13 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme: propTheme, toggleTheme: prop
           {/* Enhanced Header */}
           <ChatHeader {...chatHeaderProps} />
 
+          {/* Maintenance Banner */}
+          {MAINTENANCE_MODE && <MaintenanceBanner />}
+
           <ChatMessagesPanel {...messagesPanelProps} />
 
           {/* Enhanced Input Area */}
-          <ChatInput {...chatInputProps} />
+          <ChatInput {...chatInputProps} maintenanceMode={MAINTENANCE_MODE} />
         </div>
       </div>
 

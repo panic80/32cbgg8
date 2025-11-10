@@ -53,6 +53,33 @@ export const createErrorResponse = ({
   return { status, body, traceId };
 };
 
+export const decodeUrlParams = (value) => {
+  if (value == null) {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.replace(/\+/g, ' ');
+    try {
+      return decodeURIComponent(normalized);
+    } catch {
+      return normalized;
+    }
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => decodeUrlParams(item));
+  }
+
+  if (typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, decodeUrlParams(item)]),
+    );
+  }
+
+  return value;
+};
+
 export const respondWithError = (res, options) => {
   const { status, body } = createErrorResponse(options);
   return res.status(status).json(body);

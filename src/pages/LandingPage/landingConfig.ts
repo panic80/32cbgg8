@@ -16,6 +16,7 @@ export interface LandingFeature {
   kind: LandingFeatureKind;
   to?: string;
   badge?: string;
+  disabledTooltip?: string;
 }
 
 export interface LandingFooterLink {
@@ -50,8 +51,9 @@ export const landingFeatures: LandingFeature[] = [
     description:
       'Interactive, RAG powered AI chat to answer travel, benefits, and finance policy questions.',
     icon: CircleHelp,
-    kind: 'link',
-    to: '/chat',
+    kind: 'disabled',
+    badge: 'Disabled',
+    disabledTooltip: "We're working hard to bring this back online.",
   },
   {
     id: 'scipPortal',
@@ -67,8 +69,9 @@ export const landingFeatures: LandingFeature[] = [
     description:
       "Find FSC & FMC contact information for your unit's financial services and management.",
     icon: Users,
-    kind: 'link',
-    to: '/opi',
+    kind: 'disabled',
+    badge: 'Disabled',
+    disabledTooltip: "We're working hard to bring this back online.",
   },
   {
     id: 'resources',

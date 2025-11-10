@@ -10,6 +10,7 @@ import {
   StorageKeys,
   getModelDisplayName,
 } from '@/constants';
+import { MAINTENANCE_MODE } from '@/constants/maintenance';
 import { getLocalStorageItem, removeLocalStorageItem } from '@/utils/storage';
 import { exportConversationAsMarkdown } from '@/utils/exportConversation';
 import { useTheme as useThemeContext } from '@/context/ThemeContext';
@@ -90,6 +91,7 @@ export const useChatController = ({ propTheme, propToggleTheme }: UseChatControl
       useRAG,
       shortAnswerMode,
       modelMode,
+      maintenanceMode: MAINTENANCE_MODE,
     });
 
   const {
