@@ -10,7 +10,7 @@ on:
       - main # Run tests on PR to main
 
 env:
-  NODE_VERSION: '18'
+  NODE_VERSION: '20'
   PM2_HOME: '/home/${{ secrets.SERVER_USER }}/.pm2'
 
 jobs:
