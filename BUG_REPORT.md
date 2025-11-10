@@ -9,6 +9,7 @@
 ## Executive Summary
 
 This report documents **20 bugs** and security issues discovered across the codebase:
+
 - **1 High Severity** (Memory Leak)
 - **6 Medium Severity** (Null reference errors, race conditions, security issues)
 - **13 Low-Medium Severity** (Error handling, logging practices, potential issues)
@@ -35,6 +36,7 @@ setupMemoryCache() {
 **Issue:** The `setInterval` is never cleared when the cache service is disconnected or destroyed (line 408-421 in `disconnect()` method). The interval continues running indefinitely.
 
 **Fix Required:** Store the interval ID and clear it in the `disconnect()` method:
+
 ```javascript
 this.cleanupInterval = setInterval(...)
 // In disconnect():
@@ -60,6 +62,7 @@ const text = completion.choices[0].message.content;
 **Issue:** No validation that `choices` array has elements before accessing index 0. If API returns empty `choices` array, this throws `TypeError: Cannot read property 'message' of undefined`.
 
 **Fix Required:** Add null check:
+
 ```javascript
 const text = completion.choices?.[0]?.message?.content ?? '';
 ```
@@ -122,12 +125,13 @@ useEffect(() => {
   // ...handlers reference eventSource state variable...
 
   return () => {
-    es.close();  // Closes ES from THIS render, not the one in state
+    es.close(); // Closes ES from THIS render, not the one in state
   };
 }, [isOpen, url]);
 ```
 
 **Issue:**
+
 1. Cleanup closes `es` constant, but handlers reference `eventSource` state (lines 148, 153)
 2. If effect re-runs, old EventSource might not be cleaned up properly
 
@@ -149,6 +153,7 @@ if provided_token != EXPECTED_ADMIN_TOKEN:
 **Issue:** String comparison using `!=` is not constant-time, allowing timing attacks.
 
 **Fix Required:** Use `secrets.compare_digest()`:
+
 ```python
 import secrets
 if not secrets.compare_digest(provided_token, EXPECTED_ADMIN_TOKEN):
@@ -191,6 +196,7 @@ if not secrets.compare_digest(provided_token, EXPECTED_ADMIN_TOKEN):
 **Impact:** Debugging issues in production, no structured log aggregation
 
 **Affected Files:**
+
 - `src/api/client.ts:33` - `console.warn`
 - `src/api/gemini.ts` - Multiple `console.log/error` (lines 129-132, 148, 156, 170, 191, 230, 235)
 - `src/api/travelInstructions.ts` - Extensive `console.error` (13+ instances)
@@ -212,6 +218,7 @@ if not secrets.compare_digest(provided_token, EXPECTED_ADMIN_TOKEN):
 **Impact:** Requests can hang indefinitely
 
 **Issue:** API calls to Google, OpenAI, and Anthropic have no timeout configuration:
+
 - `geminiClient.getGenerativeModel()` - no timeout
 - `openaiClient.chat.completions.create()` - no timeout
 - `anthropicClient.messages.create()` - no timeout
@@ -384,10 +391,10 @@ const province = jurisdiction ? String(jurisdiction).split(',')[0] : 'Ontario';
 **Issue:** Assumes jurisdiction format is always correct. If `jurisdiction` is a non-string object, `String(jurisdiction)` might produce unexpected results.
 
 **Fix Required:** Add type checking and validation:
+
 ```javascript
-const province = (typeof jurisdiction === 'string' && jurisdiction)
-  ? jurisdiction.split(',')[0]
-  : 'Ontario';
+const province =
+  typeof jurisdiction === 'string' && jurisdiction ? jurisdiction.split(',')[0] : 'Ontario';
 ```
 
 ---
@@ -395,8 +402,10 @@ const province = (typeof jurisdiction === 'string' && jurisdiction)
 ## Additional Findings
 
 ### Missing Dependency Installation
+
 **File:** ESLint Configuration
 **Issue:** Cannot run linter due to missing `@eslint/js` package
+
 ```
 Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@eslint/js'
 ```
@@ -408,6 +417,7 @@ Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@eslint/js'
 ## Recommendations by Priority
 
 ### Immediate Actions (High Priority)
+
 1. ✅ Fix memory leak in `cache.js` - Clear setInterval on disconnect
 2. ✅ Add null checks for API response arrays in controllers
 3. ✅ Use constant-time comparison for admin token in `security.py`
@@ -415,6 +425,7 @@ Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@eslint/js'
 5. ✅ Add admin authentication to performance endpoints
 
 ### Short Term (Medium Priority)
+
 6. Replace all console logging with structured logger
 7. Add timeout configuration to all external API calls
 8. Implement React Error Boundaries
@@ -422,6 +433,7 @@ Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@eslint/js'
 10. Add retry logic for analytics and network requests
 
 ### Long Term (Low Priority)
+
 11. Implement proper error tracking service (e.g., Sentry)
 12. Add validation middleware with size limits
 13. Replace `dangerouslySetInnerHTML` with CSS-in-JS
@@ -443,6 +455,7 @@ Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@eslint/js'
 ## Conclusion
 
 The codebase demonstrates **strong security practices overall** with:
+
 - ✅ Excellent SSRF protection
 - ✅ Proper CORS configuration
 - ✅ Parameterized SQL queries
@@ -450,6 +463,7 @@ The codebase demonstrates **strong security practices overall** with:
 - ✅ Rate limiting implementation
 
 However, the **20 identified bugs** should be addressed to improve:
+
 - Memory management
 - Error handling robustness
 - Production logging practices
@@ -459,4 +473,3 @@ However, the **20 identified bugs** should be addressed to improve:
 **Critical/High:** 1
 **Medium:** 6
 **Low:** 13
-
