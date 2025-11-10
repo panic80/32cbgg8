@@ -1,6 +1,7 @@
 """Utility helpers for securing admin-only API endpoints."""
 
 import os
+import secrets
 from fastapi import Header, HTTPException, status
 
 ADMIN_TOKEN_ENV = "ADMIN_API_TOKEN"
@@ -20,7 +21,8 @@ def verify_admin_bearer_token(authorization: str = Header(None, convert_undersco
         )
 
     provided_token = authorization.split(' ', 1)[1].strip()
-    if provided_token != EXPECTED_ADMIN_TOKEN:
+    # Use constant-time comparison to prevent timing attacks
+    if not secrets.compare_digest(provided_token, EXPECTED_ADMIN_TOKEN):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail='Invalid admin bearer token.'

@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import './index.css';
 import { useTheme } from '@/context/ThemeContext';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import ScrollToTop from '@/components/ScrollToTop';
 import RouteSkeleton from '@/components/RouteSkeleton';
 import useRoutePrefetch from '@/hooks/useRoutePrefetch';
@@ -38,47 +39,49 @@ function App() {
   useMobileFlag();
 
   return (
-    <Router>
-      <VisitAnalyticsListener />
-      <ScrollToTop />
-      <div
-        id="app-scroll-root"
-        className="w-screen min-h-screen overflow-x-hidden overflow-y-auto m-0 p-0 max-w-[100vw]"
-      >
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            style: {
-              background: theme === 'dark' ? '#1f2937' : '#ffffff',
-              color: theme === 'dark' ? '#f3f4f6' : '#111827',
-              border: theme === 'dark' ? '1px solid #374151' : '1px solid #e5e7eb',
-            },
-          }}
-        />
-        <Suspense fallback={<RouteSkeleton />}>
-          <Routes>
-            {appRoutes.map((route) => {
-              if (!isLazyRoute(route)) {
-                return <Route key={route.path} path={route.path} element={route.element} />;
-              }
+    <ErrorBoundary>
+      <Router>
+        <VisitAnalyticsListener />
+        <ScrollToTop />
+        <div
+          id="app-scroll-root"
+          className="w-screen min-h-screen overflow-x-hidden overflow-y-auto m-0 p-0 max-w-[100vw]"
+        >
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              style: {
+                background: theme === 'dark' ? '#1f2937' : '#ffffff',
+                color: theme === 'dark' ? '#f3f4f6' : '#111827',
+                border: theme === 'dark' ? '1px solid #374151' : '1px solid #e5e7eb',
+              },
+            }}
+          />
+          <Suspense fallback={<RouteSkeleton />}>
+            <Routes>
+              {appRoutes.map((route) => {
+                if (!isLazyRoute(route)) {
+                  return <Route key={route.path} path={route.path} element={route.element} />;
+                }
 
-              const Component = route.component;
-              const componentProps: Record<string, unknown> = route.getProps
-                ? route.getProps(routeContext)
-                : {};
+                const Component = route.component;
+                const componentProps: Record<string, unknown> = route.getProps
+                  ? route.getProps(routeContext)
+                  : {};
 
-              return (
-                <Route
-                  key={route.path}
-                  path={route.path}
-                  element={<Component {...componentProps} />}
-                />
-              );
-            })}
-          </Routes>
-        </Suspense>
-      </div>
-    </Router>
+                return (
+                  <Route
+                    key={route.path}
+                    path={route.path}
+                    element={<Component {...componentProps} />}
+                  />
+                );
+              })}
+            </Routes>
+          </Suspense>
+        </div>
+      </Router>
+    </ErrorBoundary>
   );
 }
 

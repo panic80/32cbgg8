@@ -26,7 +26,8 @@ const inferJurisdiction = (message) => {
 
 const buildTripPlannerHints = (jurisdiction) => {
   const hints = [];
-  const province = jurisdiction ? String(jurisdiction).split(',')[0] : 'Ontario';
+  const province =
+    typeof jurisdiction === 'string' && jurisdiction ? jurisdiction.split(',')[0] : 'Ontario';
   hints.push(`${province} private vehicle kilometric rate cents per kilometre Appendix B`);
   hints.push(`meal allowance rates ${province}`);
   hints.push(`incidental allowance daily rate`);
@@ -129,7 +130,7 @@ export const createChatController = ({
           }
           responseText = await openaiClient.chat.completions
             .create(buildOpenAIParams(effectiveModel, [{ role: 'user', content: message.trim() }]))
-            .then((completion) => completion.choices[0].message.content);
+            .then((completion) => completion.choices?.[0]?.message?.content ?? '');
           break;
         }
         case 'anthropic': {
@@ -145,7 +146,7 @@ export const createChatController = ({
               max_tokens: 4096,
               messages: [{ role: 'user', content: message.trim() }],
             })
-            .then((anthropicMessage) => anthropicMessage.content[0].text);
+            .then((anthropicMessage) => anthropicMessage.content?.[0]?.text ?? '');
           break;
         }
         default:

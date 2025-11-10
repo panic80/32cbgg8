@@ -42,6 +42,8 @@ export const createSupportController = ({
   config,
   httpClient = axios,
 }) => {
+  const API_TIMEOUT_MS = 30000; // 30 second timeout for AI API calls
+
   const handleFollowUp = async (req, res) => {
     const { userQuestion, aiResponse, model = 'gemini-2.0-flash', provider = 'google' } = req.body;
 
@@ -50,33 +52,49 @@ export const createSupportController = ({
 
       let followUpQuestions = [];
 
+      // Create timeout promise
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('AI API request timed out')), API_TIMEOUT_MS);
+      });
+
       switch (provider) {
         case 'google':
           if (geminiClient) {
             const modelInstance = geminiClient.getGenerativeModel({ model });
-            const result = await modelInstance.generateContent(prompt);
+            const result = await Promise.race([
+              modelInstance.generateContent(prompt),
+              timeoutPromise,
+            ]);
             const text = await result.response.text();
             followUpQuestions = parseQuestions(text);
           }
           break;
         case 'openai':
           if (openaiClient) {
-            const completion = await openaiClient.chat.completions.create({
-              model,
-              messages: [{ role: 'user', content: prompt }],
-              temperature: 0.7,
-            });
-            const text = completion.choices[0].message.content;
+            const completion = await Promise.race([
+              openaiClient.chat.completions.create({
+                model,
+                messages: [{ role: 'user', content: prompt }],
+                temperature: 0.7,
+                timeout: API_TIMEOUT_MS,
+              }),
+              timeoutPromise,
+            ]);
+            const text = completion.choices?.[0]?.message?.content ?? '';
             followUpQuestions = parseQuestions(text);
           }
           break;
         case 'anthropic':
           if (anthropicClient) {
-            const response = await anthropicClient.messages.create({
-              model,
-              max_tokens: 4096,
-              messages: [{ role: 'user', content: prompt }],
-            });
+            const response = await Promise.race([
+              anthropicClient.messages.create({
+                model,
+                max_tokens: 4096,
+                messages: [{ role: 'user', content: prompt }],
+                timeout: API_TIMEOUT_MS,
+              }),
+              timeoutPromise,
+            ]);
             const text = response.content?.[0]?.text ?? '';
             followUpQuestions = parseQuestions(text);
           }
@@ -94,6 +112,8 @@ export const createSupportController = ({
 
       return res.json({ followUpQuestions });
     } catch (error) {
+      // Log error instead of swallowing it silently
+      console.error('Error generating follow-up questions:', error.message);
       return res.json({
         followUpQuestions: FALLBACK_FOLLOW_UPS.map((item, idx) => ({
           id: `followup-${Date.now()}-${idx}`,

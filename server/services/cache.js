@@ -36,6 +36,7 @@ class CacheService {
     this.redisClient = null;
     this.redisConnected = false;
     this.memoryCache = new Map();
+    this.cleanupInterval = null;
     this.logger = config.logger ?? getLogger('services:cache');
 
     // Metrics
@@ -132,7 +133,7 @@ class CacheService {
    */
   setupMemoryCache() {
     // Periodic cleanup of expired entries
-    setInterval(() => {
+    this.cleanupInterval = setInterval(() => {
       this.cleanupMemoryCache();
     }, this.config.memoryCleanupInterval);
 
@@ -407,6 +408,12 @@ class CacheService {
    */
   async disconnect() {
     this.log('Disconnecting cache service...');
+
+    // Clear cleanup interval to prevent memory leak
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
 
     if (this.redisClient) {
       try {
