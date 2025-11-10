@@ -145,9 +145,7 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ open, onOpenChange })
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.05 }}
             >
-              <h3 className="text-base font-semibold text-[var(--text)] mb-3">
-                Flow at a glance
-              </h3>
+              <h3 className="text-base font-semibold text-[var(--text)] mb-3">Flow at a glance</h3>
               <div className="relative mx-auto max-w-md">
                 {flowSteps.map((step, index) => (
                   <div key={step.title} className="relative pl-16 pb-10 last:pb-0">
@@ -162,7 +160,9 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ open, onOpenChange })
                     </div>
                     <div className="rounded-xl border border-[var(--border)] bg-card/80 p-4 shadow-sm">
                       <h4 className="text-sm font-semibold text-[var(--text)]">{step.title}</h4>
-                      <p className="mt-2 text-xs text-[var(--text-secondary)]">{step.description}</p>
+                      <p className="mt-2 text-xs text-[var(--text-secondary)]">
+                        {step.description}
+                      </p>
                     </div>
                   </div>
                 ))}

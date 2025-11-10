@@ -227,6 +227,7 @@ export const usePlaceAutocomplete = ({
     [selectPrediction],
   );
 
+  // resetDropdownState is stable (useCallback with empty deps), so this only runs once
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (

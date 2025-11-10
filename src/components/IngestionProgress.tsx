@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Progress } from './ui/progress';
 import {
@@ -55,16 +55,22 @@ export default function IngestionProgress({
     { id: 'storing', name: 'Storing in vector database', status: 'pending' },
   ]);
   const [overallProgress, setOverallProgress] = useState(0);
-  const [eventSource, setEventSource] = useState<EventSource | null>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
   const [isComplete, setIsComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
 
+    // Close any existing EventSource before creating a new one
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+
     // Connect to SSE endpoint for real-time updates
     const es = new EventSource(`/api/rag/ingest/progress?url=${encodeURIComponent(url)}`);
-    setEventSource(es);
+    eventSourceRef.current = es;
 
     es.onmessage = (event) => {
       try {
@@ -77,12 +83,18 @@ export default function IngestionProgress({
 
     es.onerror = (error) => {
       console.error('SSE error:', error);
-      es.close();
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
       setError('Connection lost. Progress updates unavailable.');
     };
 
     return () => {
-      es.close();
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
     };
   }, [isOpen, url]);
 
@@ -145,12 +157,18 @@ export default function IngestionProgress({
       case 'complete':
         setIsComplete(true);
         setOverallProgress(100);
-        eventSource?.close();
+        if (eventSourceRef.current) {
+          eventSourceRef.current.close();
+          eventSourceRef.current = null;
+        }
         break;
 
       case 'error':
         setError(data.message);
-        eventSource?.close();
+        if (eventSourceRef.current) {
+          eventSourceRef.current.close();
+          eventSourceRef.current = null;
+        }
         break;
     }
   };

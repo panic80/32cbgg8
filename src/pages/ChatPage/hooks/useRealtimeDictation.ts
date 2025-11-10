@@ -478,11 +478,13 @@ export const useRealtimeDictation = ({
     sendCreateResponseEvent,
   ]);
 
+  // Cleanup on unmount only - stopDictation reference changes shouldn't trigger cleanup
   useEffect(() => {
     return () => {
       stopDictation({ silent: true });
     };
-  }, [stopDictation]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return {
     isActive,
