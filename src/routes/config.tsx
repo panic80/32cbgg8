@@ -44,6 +44,9 @@ const loadResourcesPage = () => import('@/pages/ResourcesPage');
 const loadLoadingDebugPage = () => import('@/pages/LoadingDebugPage');
 const loadUiShowcase = () => import('@/components/UIShowcase');
 const loadPerformanceDashboard = () => import('@/pages/PerformanceDashboard');
+const loadChatPage = () => import('@/pages/ChatPage');
+const loadOpiPage = () => import('@/pages/OPIPage');
+const loadConfigPage = () => import('@/pages/ConfigPage');
 
 const createDisabledFeatureElement = (featureName: string) =>
   createComingSoonElement(`${featureName} is currently disabled.`);
@@ -56,9 +59,10 @@ export const appRoutes: AppRouteDefinition[] = [
     loader: loadLandingPage,
   },
   {
-    kind: 'element',
+    kind: 'lazy',
     path: '/opi',
-    element: createDisabledFeatureElement('OPI Contacts'),
+    component: lazy(loadOpiPage),
+    loader: loadOpiPage,
   },
   {
     kind: 'element',
@@ -72,14 +76,16 @@ export const appRoutes: AppRouteDefinition[] = [
     loader: loadAdminToolsPage,
   },
   {
-    kind: 'element',
+    kind: 'lazy',
     path: '/chat',
-    element: createDisabledFeatureElement('Policy Assistant'),
+    component: lazy(loadChatPage),
+    loader: loadChatPage,
   },
   {
-    kind: 'element',
+    kind: 'lazy',
     path: '/chat/config',
-    element: createDisabledFeatureElement('Policy Assistant'),
+    component: lazy(loadConfigPage),
+    loader: loadConfigPage,
   },
   {
     kind: 'lazy',

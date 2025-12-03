@@ -429,19 +429,14 @@ export default function OPIPage() {
             <h3 className="text-base sm:text-lg font-semibold mb-2">Currently Available</h3>
             <ul className="list-disc list-inside mb-3 sm:mb-4 text-sm sm:text-base space-y-1">
               <li>
+                <Link to="/chat" className="text-[var(--primary)] hover:underline">Unofficial Policy Chatbot</Link> &ndash; An interactive tool designed to answer your questions about claims and travel entitlements, referencing the CFTDTI and NJC websites
+              </li>
+              <li>
                 SCIP &ndash; Your centralized portal for financial and administrative functions
               </li>
               <li>SOPs &ndash; Standard Operating Procedures for day-to-day reference</li>
               <li>
                 Onboarding Guide &ndash; A step-by-step manual to welcome and orient new members
-              </li>
-            </ul>
-            <h3 className="text-base sm:text-lg font-semibold mb-2">Coming Soon</h3>
-            <ul className="list-disc list-inside mb-3 sm:mb-4 text-sm sm:text-base">
-              <li>
-                Unofficial Policy Chatbot &ndash; An interactive tool designed to answer your
-                questions about claims and travel entitlements, referencing the CFTDTI and NJC
-                websites
               </li>
             </ul>
             <h3 className="text-base sm:text-lg font-semibold mb-2">Privacy & Contact</h3>
