@@ -10,9 +10,9 @@ from langchain_core.retrievers import BaseRetriever
 from langchain_core.callbacks import CallbackManagerForRetrieverRun
 from langchain_core.vectorstores import VectorStore
 from langchain_core.language_models import BaseLLM
-from langchain.storage import InMemoryStore
-from langchain.storage.kvstore import create_kv_docstore
-from langchain.retrievers.multi_vector import MultiVectorRetriever
+from langchain_classic.storage import InMemoryStore
+from langchain_classic.storage.kvstore import create_kv_docstore
+from langchain_classic.retrievers.multi_vector import MultiVectorRetriever
 
 from app.core.logging import get_logger
 from app.utils.table_validator import TableValidator, TableStructure

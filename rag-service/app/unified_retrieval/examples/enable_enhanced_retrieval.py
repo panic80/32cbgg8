@@ -7,8 +7,7 @@ into the existing unified retrieval system.
 import os
 from typing import Optional
 import redis
-from langchain.embeddings import OpenAIEmbeddings
-from langchain.chat_models import ChatOpenAI
+from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 
 from app.core.vectorstore import get_vectorstore
 from app.unified_retrieval.unified_retriever import UnifiedRetriever

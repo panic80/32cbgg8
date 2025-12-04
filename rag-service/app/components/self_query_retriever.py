@@ -12,8 +12,8 @@ from dataclasses import dataclass
 
 from langchain_core.language_models import BaseLLM
 from langchain_core.documents import Document
-from langchain.chains.query_constructor.base import AttributeInfo
-from langchain.retrievers.self_query.base import SelfQueryRetriever as LangChainSelfQueryRetriever
+from langchain_classic.chains.query_constructor.base import AttributeInfo
+from langchain_classic.retrievers.self_query.base import SelfQueryRetriever as LangChainSelfQueryRetriever
 from langchain_core.vectorstores import VectorStore
 from pydantic import Field, BaseModel
 

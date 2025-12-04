@@ -15,7 +15,7 @@ from langchain_core.callbacks import (
     CallbackManagerForRetrieverRun,
     AsyncCallbackManagerForRetrieverRun,
 )
-from langchain.retrievers.multi_query import MultiQueryRetriever as LangChainMultiQueryRetriever
+from langchain_classic.retrievers.multi_query import MultiQueryRetriever as LangChainMultiQueryRetriever
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import BaseOutputParser
 from pydantic import Field

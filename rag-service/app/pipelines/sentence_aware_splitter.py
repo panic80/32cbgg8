@@ -6,7 +6,7 @@ import nltk
 from nltk.tokenize import sent_tokenize, word_tokenize
 import logging
 
-from langchain.text_splitter import TextSplitter
+from langchain_text_splitters import TextSplitter
 from langchain_core.documents import Document
 
 from app.core.config import settings

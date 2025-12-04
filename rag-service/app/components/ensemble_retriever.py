@@ -12,7 +12,7 @@ from collections import defaultdict
 from langchain_core.retrievers import BaseRetriever
 from langchain_core.documents import Document
 from langchain_core.callbacks import CallbackManagerForRetrieverRun
-from langchain.retrievers import EnsembleRetriever as LangChainEnsembleRetriever
+from langchain_classic.retrievers import EnsembleRetriever as LangChainEnsembleRetriever
 from pydantic import Field, validator
 
 from app.utils.retry import with_retry_async

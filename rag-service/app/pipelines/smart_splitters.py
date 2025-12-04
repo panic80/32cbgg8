@@ -4,12 +4,11 @@ from typing import List, Dict, Any, Optional, Tuple
 import re
 from datetime import datetime
 
-from langchain.text_splitter import (
+from langchain_text_splitters import (
     RecursiveCharacterTextSplitter,
     MarkdownHeaderTextSplitter,
     HTMLHeaderTextSplitter,
     Language,
-    RecursiveCharacterTextSplitter,
     CharacterTextSplitter
 )
 from langchain_experimental.text_splitter import SemanticChunker
