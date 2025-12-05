@@ -100,8 +100,13 @@ class MultiQueryRetriever(LangChainMultiQueryRetriever):
         parser = kwargs.pop("parser", LineListOutputParser())
         prompt = kwargs.pop("prompt", TRAVEL_QUERY_PROMPT)
         verbose = kwargs.pop("verbose", True)
+
+        # Unwrap RetryableLLM if needed (it's not a Runnable)
+        from app.utils.langchain_utils import RetryableLLM
+        actual_llm = llm.llm if isinstance(llm, RetryableLLM) else llm
+
         # Build LLM chain compatible with latest LangChain API
-        llm_chain = prompt | llm | parser
+        llm_chain = prompt | actual_llm | parser
         parser_key_value = parser_key if parser_key is not None else "lines"
         
         # Initialize parent MultiQueryRetriever

@@ -175,9 +175,9 @@ class ParallelRetrievalPipeline:
                     timeout=self.timeout_per_retriever
                 )
             else:
-                # Standard retriever
+                # Standard retriever - use ainvoke (LangChain's new API)
                 docs = await asyncio.wait_for(
-                    retriever.aget_relevant_documents(query),
+                    retriever.ainvoke(query),
                     timeout=self.timeout_per_retriever
                 )
             
@@ -695,10 +695,10 @@ def create_parallel_pipeline(
         return StatefulRetrievalPipeline(
             parallel_pipeline=pipeline,
             query_optimizer=query_optimizer,
-            redis_client=redis_client,
+            redis_url=settings.redis_url,
             max_iterations=settings.max_retrieval_iterations,
             relevance_threshold=settings.relevance_threshold,
-            enable_checkpointing=bool(redis_client)
+            enable_checkpointing=bool(settings.redis_url)
         )
     
     return pipeline

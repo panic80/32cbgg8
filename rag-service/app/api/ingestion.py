@@ -126,7 +126,7 @@ async def ingest_document(
             await send_progress_update(operation_id, event_type, data)
         
         # Ingest document with progress tracking
-        response = await pipeline.ingest_document(
+        response = await pipeline.ingest(
             ingestion_request,
             progress_callback=progress_callback
         )
@@ -217,7 +217,7 @@ async def ingest_file(
                 cache_service,
                 source_repository=source_repository
             )
-            response = await pipeline.ingest_document(ingestion_request)
+            response = await pipeline.ingest(ingestion_request)
             
             # Refresh BM25 corpus and clear retrieval pipeline cache
             try:

@@ -1,0 +1,221 @@
+"""Document deduplication for ingestion pipeline."""
+
+import asyncio
+from typing import Any, Dict, List, Optional, Tuple
+
+from app.core.logging import get_logger
+from app.models.documents import Document, DocumentIngestionRequest
+from app.utils.deduplication import DeduplicationService, ContentHasher
+
+logger = get_logger(__name__)
+
+
+class Deduplicator:
+    """Deduplicates documents during ingestion."""
+
+    def __init__(
+        self,
+        threshold: float = 0.85,
+        vector_store_manager: Optional[Any] = None,
+    ):
+        """Initialize deduplicator.
+
+        Args:
+            threshold: Similarity threshold for duplicate detection.
+            vector_store_manager: Optional for checking existing documents.
+        """
+        self._service = DeduplicationService(threshold)
+        self._hasher = ContentHasher()
+        self._vector_store = vector_store_manager
+
+    async def deduplicate(
+        self,
+        documents: List[Document],
+        request: DocumentIngestionRequest,
+    ) -> List[Document]:
+        """Deduplicate documents against existing content and within batch.
+
+        Args:
+            documents: Documents to deduplicate.
+            request: Original ingestion request.
+
+        Returns:
+            Deduplicated list of documents.
+        """
+        if not documents:
+            return documents
+
+        if request.force_refresh:
+            logger.info("Skipping deduplication due to force_refresh=True")
+            return documents
+
+        try:
+            # Check against existing documents
+            documents = await self._deduplicate_against_existing(documents, request)
+
+            # Deduplicate within batch
+            documents = self._deduplicate_within_batch(documents)
+
+            return documents
+
+        except Exception as e:
+            logger.warning(f"Deduplication failed: {e}. Proceeding without deduplication.")
+            return documents
+
+    async def _deduplicate_against_existing(
+        self,
+        documents: List[Document],
+        request: DocumentIngestionRequest,
+    ) -> List[Document]:
+        """Check documents against existing ones in vector store."""
+        existing_docs = await self._get_existing_documents(request, limit=100)
+
+        if not existing_docs:
+            return documents
+
+        docs_for_dedup = [
+            {
+                "id": doc.id,
+                "content": doc.content,
+                "metadata": (
+                    doc.metadata.model_dump()
+                    if hasattr(doc.metadata, "model_dump")
+                    else doc.metadata
+                ),
+            }
+            for doc in documents
+        ]
+
+        duplicates_to_remove = set()
+
+        for new_doc in docs_for_dedup:
+            for existing_doc in existing_docs:
+                is_dup, score, reason = self._service.is_duplicate(
+                    new_doc["content"],
+                    existing_doc.get("content", ""),
+                    new_doc.get("metadata"),
+                    existing_doc.get("metadata"),
+                )
+
+                if is_dup and reason != "updated_version":
+                    logger.info(
+                        f"Found duplicate chunk {new_doc['id']}: "
+                        f"score={score:.2f}, reason={reason}"
+                    )
+                    duplicates_to_remove.add(new_doc["id"])
+                    break
+
+        if duplicates_to_remove:
+            documents = [doc for doc in documents if doc.id not in duplicates_to_remove]
+            logger.info(f"Removed {len(duplicates_to_remove)} duplicate chunks")
+
+        return documents
+
+    def _deduplicate_within_batch(
+        self,
+        documents: List[Document],
+    ) -> List[Document]:
+        """Deduplicate documents within the current batch."""
+        docs_for_dedup = [
+            {
+                "id": doc.id,
+                "content": doc.content,
+                "metadata": (
+                    doc.metadata.model_dump()
+                    if hasattr(doc.metadata, "model_dump")
+                    else doc.metadata
+                ),
+            }
+            for doc in documents
+        ]
+
+        deduplicated = self._service.deduplicate_chunks(docs_for_dedup, strategy="merge")
+
+        # Convert back to Document objects
+        final_docs = []
+        for dedup_doc in deduplicated:
+            original = next(
+                (doc for doc in documents if doc.id == dedup_doc["id"]),
+                None,
+            )
+            if original:
+                if "metadata" in dedup_doc:
+                    for key, value in dedup_doc["metadata"].items():
+                        if hasattr(original.metadata, key):
+                            setattr(original.metadata, key, value)
+                final_docs.append(original)
+
+        return final_docs
+
+    async def _get_existing_documents(
+        self,
+        request: DocumentIngestionRequest,
+        limit: int = 100,
+    ) -> List[Dict[str, Any]]:
+        """Get existing documents for deduplication check."""
+        if not self._vector_store:
+            return []
+
+        try:
+            lookup_values: List[str] = []
+            if request.url:
+                lookup_values.append(request.url)
+            if request.file_path:
+                lookup_values.append(request.file_path)
+            if request.metadata:
+                candidate = request.metadata.get("source") or request.metadata.get(
+                    "canonical_url"
+                )
+                if candidate:
+                    lookup_values.append(candidate)
+
+            if not lookup_values:
+                return []
+
+            lookup_values = list({str(value) for value in lookup_values if value})
+
+            def _fetch_matching_docs() -> List[Dict[str, Any]]:
+                all_docs = self._vector_store.get_all_documents(refresh=False)
+                matches: List[Dict[str, Any]] = []
+
+                for doc in all_docs:
+                    metadata = doc.metadata or {}
+                    source_candidates = {
+                        metadata.get("source"),
+                        metadata.get("canonical_url"),
+                        metadata.get("file_path"),
+                    }
+
+                    if any(
+                        value in lookup_values
+                        for value in source_candidates
+                        if value
+                    ):
+                        matches.append(
+                            {
+                                "id": metadata.get("id"),
+                                "content": doc.page_content,
+                                "metadata": metadata,
+                            }
+                        )
+                        if len(matches) >= limit:
+                            break
+
+                return matches
+
+            return await asyncio.to_thread(_fetch_matching_docs)
+
+        except Exception as e:
+            logger.warning(f"Failed to get existing documents: {e}")
+            return []
+
+    def generate_content_hash(self, content: str) -> str:
+        """Generate a content hash for duplicate detection.
+
+        Args:
+            content: The content to hash.
+
+        Returns:
+            Hash string.
+        """
+        return self._hasher.generate_content_hash(content)

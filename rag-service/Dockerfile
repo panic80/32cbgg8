@@ -32,8 +32,8 @@ RUN mkdir -p /app/nltk_data && \
 # Copy application code
 COPY app/ ./app/
 
-# Create directories for data and logs, and set ownership
-RUN mkdir -p /app/data /app/logs /var/log/cbthis /home/appuser && \
+# Create directories for data, chroma_db, and logs, and set ownership
+RUN mkdir -p /app/data /app/chroma_db /app/logs /var/log/cbthis /home/appuser && \
     chown -R appuser:appuser /app /var/log/cbthis /home/appuser
 
 # Switch to non-root user
