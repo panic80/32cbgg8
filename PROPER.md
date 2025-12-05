@@ -35,10 +35,12 @@ chroma_persist_directory: str = "./chroma_db"
 ```
 
 Depending on the working directory when the service started:
+
 - From `/var/www/cbthis/rag-service/` → resolves to `/var/www/cbthis/rag-service/chroma_db` ✅
 - From `/var/www/cbthis/` → resolves to `/var/www/cbthis/chroma_db` ❌
 
 The systemd service runs with:
+
 ```ini
 WorkingDirectory=/var/www/cbthis/rag-service
 ```
@@ -48,11 +50,13 @@ But something caused it to try initializing a database at the wrong location, cr
 ### Why It Persisted: Permissions Issue
 
 Even after fixing the path, the service failed with:
+
 ```
 chromadb.errors.InternalError: (code: 8) attempt to write a readonly database
 ```
 
 The `chroma.sqlite3` file had root ownership:
+
 ```
 -rw-r--r-- 1 root root 30457856 Nov 3 00:00 chroma.sqlite3
 ```
@@ -108,12 +112,14 @@ systemctl restart rag-service
 ### 1. Configuration Best Practices
 
 ✅ **DO**: Always use absolute paths for persistent data directories
+
 ```python
 RAG_CHROMA_PERSIST_DIRECTORY=/var/www/cbthis/rag-service/chroma_db
 RAG_REDIS_URL=redis://localhost:6379  # This is fine - hostname, not path
 ```
 
 ❌ **DON'T**: Use relative paths that depend on working directory
+
 ```python
 RAG_CHROMA_PERSIST_DIRECTORY=./chroma_db  # Dangerous!
 RAG_CHROMA_PERSIST_DIRECTORY=rag-service/chroma_db  # Ambiguous
@@ -122,6 +128,7 @@ RAG_CHROMA_PERSIST_DIRECTORY=rag-service/chroma_db  # Ambiguous
 ### 2. Permissions Setup
 
 When setting up the service:
+
 ```bash
 # Ensure service user owns the data directory
 sudo chown -R www-data:www-data /var/www/cbthis/rag-service/chroma_db
@@ -132,11 +139,13 @@ sudo chmod 644 /var/www/cbthis/rag-service/chroma_db/*.sqlite3
 ### 3. Health Checks
 
 Monitor the health endpoint regularly:
+
 ```bash
 curl http://localhost:8000/api/v1/health | jq '.components.vector_store'
 ```
 
 Expected healthy output:
+
 ```json
 {
   "status": "healthy",
@@ -150,6 +159,7 @@ Expected healthy output:
 ### 4. Database Management
 
 Keep one canonical Chroma database:
+
 ```bash
 # List all Chroma databases on system
 find /var/www -name "chroma.sqlite3" 2>/dev/null
@@ -212,6 +222,7 @@ curl -X POST http://localhost:8000/api/v1/chat/stream \
 ## Future Improvements
 
 Consider implementing:
+
 1. Startup validation that confirms the configured Chroma path contains documents
 2. Migration detection - warn if multiple Chroma databases exist
 3. Automatic permission validation on service start

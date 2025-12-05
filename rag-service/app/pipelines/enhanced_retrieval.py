@@ -1,5 +1,6 @@
 """Enhanced retrieval pipeline using LangGraph for orchestrated workflows."""
 import asyncio
+import hashlib
 import json
 import time
 from typing import Any, Dict, List, Optional, Tuple, Union, TypedDict
@@ -12,6 +13,10 @@ from langgraph.graph import StateGraph, END
 
 from app.core.logging import get_logger
 from app.core.config import settings
+
+# Timeout constants
+RETRIEVAL_TIMEOUT = 30.0  # seconds for vector search operations
+LLM_TIMEOUT = 60.0  # seconds for LLM calls
 from app.services.cache import CacheService
 from app.components.ensemble_retriever import WeightedEnsembleRetriever
 from app.components.contextual_compressor import TravelContextualCompressor
@@ -58,7 +63,8 @@ class EnhancedRetrievalPipeline:
         processor: ResultProcessor,
         table_rewriter: TableQueryRewriter,
         cache_service: Optional[CacheService] = None,
-        llm_pool: Optional[LLMPool] = None
+        llm_pool: Optional[LLMPool] = None,
+        fallback_keywords: Optional[str] = None,
     ):
         self.retriever = retriever
         self.compressor = compressor
@@ -68,6 +74,7 @@ class EnhancedRetrievalPipeline:
         self.table_ranker = TableRanker()  # Initialize table ranker
         self.cache_service = cache_service
         self.llm_pool = llm_pool or LLMPool()
+        self.fallback_keywords = fallback_keywords or ""
         self.logger = get_logger(__name__)
         
         # Build the workflow graph
@@ -86,12 +93,20 @@ class EnhancedRetrievalPipeline:
         self,
         prompt: ChatPromptTemplate,
         llm: Any,
+        timeout: float = LLM_TIMEOUT,
         **inputs: Any
     ) -> Dict[str, Any]:
         """Execute a prompt expecting JSON output using the retryable LLM."""
         parser = JsonOutputParser()
         messages = prompt.format_messages(**inputs)
-        response = await llm.ainvoke(messages)
+        try:
+            response = await asyncio.wait_for(
+                llm.ainvoke(messages),
+                timeout=timeout
+            )
+        except asyncio.TimeoutError:
+            self.logger.error(f"LLM call timed out after {timeout}s")
+            raise
         content = self._extract_text_content(response)
         return parser.parse(content)
 
@@ -164,6 +179,24 @@ class EnhancedRetrievalPipeline:
                 )
             )
         return documents
+
+    @staticmethod
+    def _get_doc_id(doc: Document) -> str:
+        """Generate a unique document ID for deduplication.
+
+        Prefers existing IDs from metadata, falls back to content hash.
+        """
+        # Prefer existing ID if available
+        if doc.metadata.get("id"):
+            return str(doc.metadata["id"])
+        if doc.metadata.get("doc_id"):
+            return str(doc.metadata["doc_id"])
+        if doc.metadata.get("chunk_id"):
+            return str(doc.metadata["chunk_id"])
+        # Fall back to content hash for reliable deduplication
+        content_hash = hashlib.sha256(doc.page_content.encode()).hexdigest()[:16]
+        source = doc.metadata.get("source", "unknown")
+        return f"{source}:{content_hash}"
 
     def _build_workflow(self) -> StateGraph:
         """Build the LangGraph workflow."""
@@ -354,16 +387,16 @@ class EnhancedRetrievalPipeline:
         try:
             all_docs = []
             value_patterns = []
-            
+
             # Handle table queries specially (including complex queries that need table data)
             if state["query_type"] == QueryType.TABLE.value or state["metadata"].get("needs_table_data", False):
                 rewritten_result = await self.table_rewriter.arewrite_query(state["query"])
                 rewritten_query = rewritten_result.get("rewritten_query", state["query"])
                 value_patterns = rewritten_result.get("value_patterns", [])
-                
+
                 if rewritten_query != state["query"]:
                     state["expanded_queries"].append(rewritten_query)
-                
+
                 # For complex queries needing table data, also add specific rate lookups
                 if state["metadata"].get("needs_table_data", False) and state["query_type"] != QueryType.TABLE.value:
                     # Add specific sub-queries for rates
@@ -372,28 +405,33 @@ class EnhancedRetrievalPipeline:
                         "kilometric rates per km",
                         "incidental allowances daily rates"
                     ])
-                    
+
                 # Store value patterns in metadata for later use
                 state["metadata"]["value_patterns"] = value_patterns
                 state["metadata"]["table_keywords"] = rewritten_result.get("table_keywords", [])
-            
+
             # Ensure we always have at least the original query to search with
             if not state["expanded_queries"]:
                 state["expanded_queries"] = [state["query"]]
 
-            # Retrieve for each query
-            for query in state["expanded_queries"]:
+            # Retrieve documents in parallel for all expanded queries
+            async def fetch_docs_for_query(query: str) -> List[Document]:
+                """Fetch documents for a single query, checking cache first."""
                 # Check cache first
                 if self.cache_service:
                     cached = await self.cache_service.get(f"retrieval:{query}")
                     if cached:
-                        cached_docs = self._deserialize_documents(cached)
-                        all_docs.extend(cached_docs)
-                        continue
+                        return self._deserialize_documents(cached)
 
-                # Retrieve documents using the public async API
-                docs = await self.retriever.aget_relevant_documents(query)
-                all_docs.extend(docs)
+                # Retrieve documents using the public async API with timeout
+                try:
+                    docs = await asyncio.wait_for(
+                        self.retriever.aget_relevant_documents(query),
+                        timeout=RETRIEVAL_TIMEOUT
+                    )
+                except asyncio.TimeoutError:
+                    self.logger.warning(f"Retrieval timeout for query: {query[:50]}...")
+                    return []
 
                 # Cache results
                 if self.cache_service and docs:
@@ -402,12 +440,26 @@ class EnhancedRetrievalPipeline:
                         self._serialize_documents(docs),
                         ttl=300
                     )
+                return docs
+
+            # Execute all queries in parallel
+            results = await asyncio.gather(
+                *[fetch_docs_for_query(q) for q in state["expanded_queries"]],
+                return_exceptions=True
+            )
+
+            # Collect results, logging any errors
+            for i, result in enumerate(results):
+                if isinstance(result, Exception):
+                    self.logger.warning(f"Query '{state['expanded_queries'][i][:50]}...' failed: {result}")
+                elif isinstance(result, list):
+                    all_docs.extend(result)
             
-            # Deduplicate
+            # Deduplicate using proper document IDs
             seen = set()
             unique_docs = []
             for doc in all_docs:
-                doc_id = doc.metadata.get("source", "") + doc.page_content[:100]
+                doc_id = self._get_doc_id(doc)
                 if doc_id not in seen:
                     seen.add(doc_id)
                     unique_docs.append(doc)
@@ -520,7 +572,13 @@ class EnhancedRetrievalPipeline:
                         context=context,
                         query=state["query"]
                     )
-                    response = await llm.ainvoke(messages)
+                    response = await asyncio.wait_for(
+                        llm.ainvoke(messages),
+                        timeout=LLM_TIMEOUT
+                    )
+                except asyncio.TimeoutError:
+                    self.logger.error(f"Answer synthesis LLM call timed out after {LLM_TIMEOUT}s")
+                    raise
                 except Exception as chain_error:
                     self.logger.error(f"Synthesis chain error: {chain_error}", exc_info=True)
                     raise
@@ -551,25 +609,32 @@ class EnhancedRetrievalPipeline:
         """Fallback retrieval strategy for poor results."""
         try:
             self.logger.info("Attempting fallback retrieval")
-            
+
             # Check if retriever exists
             if not self.retriever:
                 self.logger.error("No retriever available for fallback")
                 state["retrieved_documents"] = []
                 return state
-            
-            # Try broader search
-            broader_query = f"{state['query']} travel instructions policy"
-            docs = await self.retriever.aget_relevant_documents(broader_query)
+
+            # Try broader search with configurable keywords
+            broader_query = f"{state['query']} {self.fallback_keywords}".strip()
+            try:
+                docs = await asyncio.wait_for(
+                    self.retriever.aget_relevant_documents(broader_query),
+                    timeout=RETRIEVAL_TIMEOUT
+                )
+            except asyncio.TimeoutError:
+                self.logger.warning(f"Fallback retrieval timed out for query: {broader_query[:50]}...")
+                docs = []
             
             # Combine with original results
             all_docs = state["retrieved_documents"] + docs
             
-            # Deduplicate
+            # Deduplicate using proper document IDs
             seen = set()
             unique_docs = []
             for doc in all_docs:
-                doc_id = doc.metadata.get("source", "") + doc.page_content[:100]
+                doc_id = self._get_doc_id(doc)
                 if doc_id not in seen:
                     seen.add(doc_id)
                     unique_docs.append(doc)

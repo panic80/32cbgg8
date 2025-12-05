@@ -56,7 +56,9 @@ export default function OPIPageTest() {
       if (topRef.current && 'scrollIntoView' in topRef.current) {
         topRef.current.scrollIntoView({ behavior: 'auto', block: 'start', inline: 'nearest' });
       }
-    } catch {}
+    } catch {
+      // scrollIntoView may fail in some browsers - forceScrollToTop handles fallback
+    }
     forceScrollToTop();
     const cleanup = forceScrollToTopDeferred();
     return cleanup;

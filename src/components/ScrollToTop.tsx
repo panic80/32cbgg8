@@ -11,7 +11,9 @@ export default function ScrollToTop() {
       if ('scrollRestoration' in window.history) {
         window.history.scrollRestoration = 'manual';
       }
-    } catch {}
+    } catch {
+      // scrollRestoration may not be supported in all browsers - fail silently
+    }
   }, []);
 
   // Immediate scroll reset before paint

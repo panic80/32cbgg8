@@ -15,7 +15,9 @@ export function forceScrollToTop(): void {
       try {
         window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
         window.pageYOffset = 0;
-      } catch {}
+      } catch {
+        // Scroll API may fail in some environments - try next strategy
+      }
     }
 
     // Force scroll for document elements
@@ -23,7 +25,9 @@ export function forceScrollToTop(): void {
       try {
         document.documentElement.scrollTop = 0;
         document.body.scrollTop = 0;
-      } catch {}
+      } catch {
+        // Scroll property may be read-only in some contexts - try next strategy
+      }
     }
 
     // Process all candidates
@@ -34,21 +38,27 @@ export function forceScrollToTop(): void {
       if (typeof t.scrollTo === 'function') {
         try {
           t.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-        } catch {}
+        } catch {
+          // scrollTo may fail - continue with fallbacks
+        }
       }
       if ('scrollTop' in t) {
         try {
           t.scrollTop = 0;
-        } catch {}
+        } catch {
+          // scrollTop may be read-only - continue with fallbacks
+        }
       }
       if ('pageYOffset' in t && typeof t.pageYOffset === 'number') {
         try {
           t.pageYOffset = 0;
-        } catch {}
+        } catch {
+          // pageYOffset may be read-only - continue with fallbacks
+        }
       }
     }
   } catch {
-    // no-op
+    // Outer catch for any unexpected errors - scroll is best-effort
   }
 }
 

@@ -20,7 +20,7 @@ export const useMobileFlag = (breakpoint = 768) => {
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
 
-    let resizeTimeout: ReturnType<typeof setTimeout> | null = null;
+    let resizeTimeout: number | null = null;
 
     const commitUpdate = () => {
       const nextIsMobile = getIsMobile(breakpoint);

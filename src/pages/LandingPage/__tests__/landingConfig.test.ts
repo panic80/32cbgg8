@@ -18,10 +18,10 @@ describe('landingConfig', () => {
     expect(feature?.to).toBeUndefined();
   });
 
-  it('marks unavailable resources as disabled with badge', () => {
+  it('marks resources as link with review badge', () => {
     const resources = landingFeatures.find((item) => item.id === 'resources');
     expect(resources).toBeDefined();
-    expect(resources?.kind).toBe('disabled');
+    expect(resources?.kind).toBe('link');
     expect(resources?.badge).toBe('Under Review');
   });
 

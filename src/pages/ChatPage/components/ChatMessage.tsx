@@ -70,9 +70,7 @@ const ChatMessageInner: React.FC<ChatMessageProps> = ({
         className="text-xs px-2 py-1 rounded-full bg-[var(--background-secondary)] hover:bg-[var(--background-tertiary)]"
         onClick={() => setShowSources((s) => !s)}
       >
-        {showSources
-          ? 'Hide reference excerpts'
-          : `View reference excerpts (${sourceList.length})`}
+        {showSources ? 'Hide reference excerpts' : `View reference excerpts (${sourceList.length})`}
       </button>
       {showSources && (
         <div className="mt-3">

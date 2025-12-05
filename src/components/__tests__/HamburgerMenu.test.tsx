@@ -4,25 +4,25 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { HamburgerMenu } from '@/components/HamburgerMenu';
 
 vi.mock('framer-motion', () => {
-  const sanitizeProps = (props: Record<string, unknown>) => {
-    const { whileHover, whileTap, initial, animate, transition, ...rest } = props;
-    return rest;
+  const sanitizeProps = <T extends Record<string, unknown>>(props: T) => {
+    const { whileHover, whileTap, initial, animate, transition, ...rest } = props as Record<
+      string,
+      unknown
+    >;
+    return rest as Omit<T, 'whileHover' | 'whileTap' | 'initial' | 'animate' | 'transition'>;
   };
 
   const Framer = {
-    div: React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>((props, ref) => (
-      <div ref={ref} {...(sanitizeProps(props) as React.HTMLAttributes<HTMLDivElement>)} />
-    )),
-    button: React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement>>(
-      (props, ref) => (
-        <button
-          ref={ref}
-          {...(sanitizeProps(props) as React.ButtonHTMLAttributes<HTMLButtonElement>)}
-        />
-      ),
-    ),
+    div: React.forwardRef<
+      HTMLDivElement,
+      React.HTMLAttributes<HTMLDivElement> & Record<string, unknown>
+    >((props, ref) => <div ref={ref} {...sanitizeProps(props)} />),
+    button: React.forwardRef<
+      HTMLButtonElement,
+      React.ButtonHTMLAttributes<HTMLButtonElement> & Record<string, unknown>
+    >((props, ref) => <button ref={ref} {...sanitizeProps(props)} />),
   };
-  return { motion: Framer };
+  return { motion: Framer, useReducedMotion: () => false };
 });
 
 const SheetContext = React.createContext<{
@@ -40,9 +40,10 @@ vi.mock('@/components/ui/sheet', () => {
   const SheetTrigger = ({ asChild, children }: any) => {
     const { setOpen } = React.useContext(SheetContext);
     if (asChild && React.isValidElement(children)) {
-      return React.cloneElement(children, {
+      const childProps = children.props as { onClick?: (event: React.MouseEvent) => void };
+      return React.cloneElement(children as React.ReactElement<Record<string, unknown>>, {
         onClick: (event: React.MouseEvent) => {
-          children.props.onClick?.(event);
+          childProps.onClick?.(event);
           setOpen(true);
         },
       });

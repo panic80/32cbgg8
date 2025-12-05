@@ -352,9 +352,25 @@ class IngestionPipeline:
                     await self.table_retriever.add_tables(langchain_table_docs)
                     logger.info(f"Added {len(langchain_table_docs)} tables to multi-vector retriever")
                 except Exception as e:
-                    logger.warning(f"Failed to add tables to multi-vector retriever: {e}")
-                    # Fall back to adding as regular documents
+                    # Table fallback alerting - log with structured data for monitoring
+                    doc_source = request.url or request.file_path or "unknown"
+                    logger.warning(
+                        f"TABLE_FALLBACK: Failed to add {len(langchain_table_docs)} tables to multi-vector retriever. "
+                        f"Source: {doc_source}. Error: {e}"
+                    )
+                    # Record metrics for monitoring
+                    if self.performance_monitor:
+                        self.performance_monitor.increment_counter("table_fallback_count", 1)
+                        self.performance_monitor.record_event("table_fallback", {
+                            "error": str(e),
+                            "error_type": type(e).__name__,
+                            "table_count": len(langchain_table_docs),
+                            "doc_source": doc_source,
+                            "timestamp": datetime.now(timezone.utc).isoformat()
+                        })
+                    # Fall back to adding as regular documents (loses structured table benefits)
                     regular_docs.extend(table_docs)
+                    logger.info(f"Fallback: {len(table_docs)} tables added as regular documents")
             elif table_docs:
                 # No table retriever available, add as regular documents
                 logger.info("Table retriever not available, adding tables as regular documents")

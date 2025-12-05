@@ -7,6 +7,7 @@ import json
 from enum import Enum
 
 from app.core.logging import get_logger
+from app.core.config import settings
 
 logger = get_logger(__name__)
 
@@ -101,15 +102,35 @@ class ProgressTracker:
         self.callbacks.append(callback)
         
     async def _notify_callbacks(self, event_type: str, data: Dict[str, Any]):
-        """Notify all callbacks of progress update."""
+        """Notify all callbacks of progress update with timeout protection.
+
+        Each callback is wrapped with a timeout to prevent slow callbacks
+        from blocking the pipeline. Timeouts and errors are logged but don't
+        stop other callbacks from being notified.
+        """
+        callback_timeout = settings.progress_callback_timeout
+
         for callback in self.callbacks:
             try:
                 if asyncio.iscoroutinefunction(callback):
-                    await callback(event_type, data)
+                    # Async callback with timeout
+                    await asyncio.wait_for(
+                        callback(event_type, data),
+                        timeout=callback_timeout
+                    )
                 else:
-                    callback(event_type, data)
+                    # Sync callback - run in executor with timeout
+                    loop = asyncio.get_event_loop()
+                    await asyncio.wait_for(
+                        loop.run_in_executor(None, callback, event_type, data),
+                        timeout=callback_timeout
+                    )
+            except asyncio.TimeoutError:
+                logger.warning(
+                    f"Progress callback timed out after {callback_timeout}s for event: {event_type}"
+                )
             except Exception as e:
-                logger.error(f"Error in progress callback: {e}")
+                logger.error(f"Error in progress callback for {event_type}: {e}")
                 
     async def start_step(self, step_id: str, message: Optional[str] = None):
         """Start a step."""

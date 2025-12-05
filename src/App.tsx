@@ -30,7 +30,8 @@ function App() {
     () =>
       appRoutes
         .filter((route) => isLazyRoute(route) && route.prefetch)
-        .map((route) => route.loader),
+        .map((route) => (isLazyRoute(route) ? route.loader : null))
+        .filter((loader): loader is NonNullable<typeof loader> => loader !== null),
     [],
   );
 

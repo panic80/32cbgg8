@@ -46,6 +46,14 @@ const CATEGORY_CONFIG: Record<SuggestionCategoryKey, SuggestionCategoryConfig> =
       chip: 'text-purple-600 dark:text-purple-400',
     },
   },
+  general: {
+    label: 'General',
+    icon: HelpCircle,
+    iconClasses: {
+      card: 'text-gray-500 dark:text-gray-400',
+      chip: 'text-gray-600 dark:text-gray-400',
+    },
+  },
   default: {
     label: 'Question',
     icon: HelpCircle,

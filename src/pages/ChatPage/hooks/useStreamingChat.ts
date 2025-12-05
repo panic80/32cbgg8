@@ -112,7 +112,10 @@ const toTitleCase = (value: string): string =>
 const sanitizeFilename = (value: string): string => {
   const withoutPath = value.split(/[\\/]/).pop() || value;
   const withoutExt = withoutPath.replace(/\.[a-z0-9]+$/i, '');
-  const normalized = withoutExt.replace(/[_\-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const normalized = withoutExt
+    .replace(/[_\-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
   return normalized ? toTitleCase(normalized) : withoutExt;
 };
 

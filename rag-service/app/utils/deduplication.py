@@ -9,8 +9,42 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 from app.core.logging import get_logger
+from app.core.config import settings
 
 logger = get_logger(__name__)
+
+# Lazy import for LSH to avoid circular imports
+_lsh_index = None
+_lsh_filter = None
+
+
+def get_lsh_index():
+    """Get or create the global LSH index instance."""
+    global _lsh_index
+    if _lsh_index is None and settings.dedup_lsh_enabled:
+        from app.utils.lsh_dedup import LSHIndex, LSHConfig
+        config = LSHConfig(
+            num_perm=settings.dedup_lsh_num_perm,
+            threshold=settings.dedup_lsh_threshold,
+            shingle_size=settings.dedup_lsh_shingle_size,
+            redis_enabled=settings.dedup_lsh_redis_persist,
+        )
+        _lsh_index = LSHIndex(config=config)
+        logger.info("LSH index initialized for deduplication pre-screening")
+    return _lsh_index
+
+
+def get_lsh_filter():
+    """Get or create the global LSH deduplication filter."""
+    global _lsh_filter
+    if _lsh_filter is None and settings.dedup_lsh_enabled:
+        from app.utils.lsh_dedup import LSHDeduplicationFilter
+        _lsh_filter = LSHDeduplicationFilter(
+            lsh_index=get_lsh_index(),
+            similarity_threshold=settings.dedup_jaccard_threshold,
+        )
+        logger.info("LSH deduplication filter initialized")
+    return _lsh_filter
 
 
 class ContentHasher:
@@ -108,12 +142,26 @@ class ContentHasher:
 
 class DeduplicationService:
     """Service for detecting and handling duplicate documents."""
-    
-    def __init__(self, similarity_threshold: float = 0.85):
-        """Initialize deduplication service."""
+
+    def __init__(self, similarity_threshold: float = 0.85, use_lsh: bool = True):
+        """Initialize deduplication service.
+
+        Args:
+            similarity_threshold: Threshold for exact similarity matching
+            use_lsh: Whether to use LSH pre-screening (default: True if enabled in config)
+        """
         self.similarity_threshold = similarity_threshold
         self.content_hasher = ContentHasher()
         self._vectorizer = None
+        self._use_lsh = use_lsh and settings.dedup_lsh_enabled
+        self._lsh_index = get_lsh_index() if self._use_lsh else None
+
+        # Metrics for LSH effectiveness
+        self._metrics = {
+            "total_checks": 0,
+            "lsh_skipped": 0,  # Checks skipped due to LSH pre-filter
+            "exact_checks": 0,  # Full similarity checks performed
+        }
         
     def calculate_similarity(self, content1: str, content2: str) -> float:
         """Calculate similarity between two pieces of content."""
@@ -162,49 +210,97 @@ class DeduplicationService:
         content: str,
         existing_content: str,
         metadata1: Optional[Dict[str, Any]] = None,
-        metadata2: Optional[Dict[str, Any]] = None
+        metadata2: Optional[Dict[str, Any]] = None,
+        doc_id: Optional[str] = None
     ) -> Tuple[bool, float, str]:
         """Check if content is duplicate of existing content.
-        
+
+        Uses LSH pre-screening when enabled to avoid expensive similarity calculations
+        for content that is clearly different.
+
+        Args:
+            content: New content to check
+            existing_content: Existing content to compare against
+            metadata1: Metadata for new content
+            metadata2: Metadata for existing content
+            doc_id: Optional document ID for LSH indexing
+
         Returns:
             Tuple of (is_duplicate, similarity_score, reason)
         """
-        # Check exact content hash first
+        self._metrics["total_checks"] += 1
+
+        # Check exact content hash first (fastest check)
         hash1 = self.content_hasher.generate_content_hash(content)
         hash2 = self.content_hasher.generate_content_hash(existing_content)
-        
+
         if hash1 == hash2:
             return True, 1.0, "exact_match"
-            
+
+        # LSH pre-screening: skip expensive similarity if LSH says not similar
+        if self._use_lsh and self._lsh_index:
+            lsh_similarity = self._lsh_index.estimate_similarity(content, existing_content)
+            if lsh_similarity < settings.dedup_lsh_threshold:
+                # LSH says not similar, skip expensive checks
+                self._metrics["lsh_skipped"] += 1
+                logger.debug(f"LSH pre-filter: skipped (estimated similarity: {lsh_similarity:.3f})")
+                return False, lsh_similarity, "lsh_filtered"
+
         # Check fuzzy hash for near-duplicates
         fuzzy1 = self.content_hasher.generate_fuzzy_hash(content)
         fuzzy2 = self.content_hasher.generate_fuzzy_hash(existing_content)
-        
+
         if fuzzy1 == fuzzy2:
+            self._metrics["exact_checks"] += 1
             similarity = self.calculate_similarity(content, existing_content)
             if similarity >= self.similarity_threshold:
                 return True, similarity, "fuzzy_match"
-                
-        # Calculate detailed similarity
+
+        # Calculate detailed similarity (expensive - TF-IDF)
+        self._metrics["exact_checks"] += 1
         similarity = self.calculate_similarity(content, existing_content)
-        
+
         if similarity >= self.similarity_threshold:
             return True, similarity, "high_similarity"
-            
+
         # Check metadata for same source
         if metadata1 and metadata2:
             source1 = metadata1.get("source", "")
             source2 = metadata2.get("source", "")
-            
+
             if source1 and source1 == source2:
                 # Same source, check if it's an update
                 modified1 = metadata1.get("last_modified")
                 modified2 = metadata2.get("last_modified")
-                
+
                 if modified1 and modified2 and modified1 != modified2:
                     return False, similarity, "updated_version"
-                    
+
         return False, similarity, "not_duplicate"
+
+    def add_to_lsh_index(self, doc_id: str, content: str) -> bool:
+        """Add a document to the LSH index for future comparisons.
+
+        Args:
+            doc_id: Unique document identifier
+            content: Document content
+
+        Returns:
+            True if added successfully
+        """
+        if self._use_lsh and self._lsh_index:
+            return self._lsh_index.add(doc_id, content)
+        return False
+
+    def get_dedup_metrics(self) -> Dict[str, Any]:
+        """Get deduplication metrics including LSH effectiveness."""
+        metrics = self._metrics.copy()
+        if self._use_lsh and self._lsh_index:
+            metrics["lsh_index"] = self._lsh_index.get_metrics()
+            metrics["lsh_skip_rate"] = (
+                self._metrics["lsh_skipped"] / max(1, self._metrics["total_checks"])
+            )
+        return metrics
         
     def find_duplicates(
         self,

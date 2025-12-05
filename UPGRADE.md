@@ -31,7 +31,7 @@ retriever availability, vector-store hygiene, and optional heuristic boosts.
 ### Preparation & Baseline
 
 - [ ] Capture current dependency snapshot from `rag-service/venv`  
-      `pip freeze > requirements.current.txt`
+       `pip freeze > requirements.current.txt`
 - [ ] Record baseline `/api/v1/streaming_chat` output for the “column 15” question.
 - [ ] List current Chroma document IDs associated with the Delegation PDF.
 
@@ -41,10 +41,7 @@ retriever availability, vector-store hygiene, and optional heuristic boosts.
 - [ ] Update project requirements (if tracked) to include `rank_bm25`.
 - [ ] Audit `retriever_factory.py` and supporting components so `MultiQueryRetriever`
       receives a valid `llm_chain` and parser key on initialization.
-- [ ] Run the pipeline creation path to confirm:
-      - No ImportError for BM25.
-      - Multi-query retriever initializes successfully.
-      - Logs reflect BM25/multi-query participation.
+- [ ] Run the pipeline creation path to confirm: - No ImportError for BM25. - Multi-query retriever initializes successfully. - Logs reflect BM25/multi-query participation.
 - [ ] Document the dependency + code changes (e.g., in README/CHANGELOG).
 
 ### Task 2 – Cull Duplicate Documents
@@ -91,4 +88,3 @@ retriever availability, vector-store hygiene, and optional heuristic boosts.
   to avoid stale metadata.
 - The optional ranking heuristic should remain configurable so it can be toggled off if it
   interferes with unrelated workflows.
-

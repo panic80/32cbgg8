@@ -6,6 +6,7 @@ import { IngestionTab } from '../IngestionTab';
 import { DatabaseTab } from '../DatabaseTab';
 import { LogsTab } from '../LogsTab';
 import type { LLMModel } from '@/constants/models';
+import type { VisitSummary } from '@/api/analytics';
 import {
   LOGS_FILTER_DEFAULTS,
   type DatabaseStats,

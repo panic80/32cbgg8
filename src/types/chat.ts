@@ -5,7 +5,8 @@
 export interface FollowUpQuestion {
   id: string;
   question: string;
-  category?: 'clarification' | 'related' | 'practical' | 'explore';
+  category?: 'clarification' | 'related' | 'practical' | 'explore' | 'general';
+  icon?: string;
   confidence?: number;
   sourceGrounding?: string;
   groundingScore?: number;

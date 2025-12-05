@@ -7,9 +7,22 @@ from datetime import datetime, timedelta, timezone
 from enum import Enum
 
 from app.core.logging import get_logger
+from app.core.config import settings
 from app.services.cache import CacheService
 
 logger = get_logger(__name__)
+
+# Checkpoint versioning for migration support
+CHECKPOINT_VERSION = "1.1"
+
+# Stage transitions for each version (for migration)
+STAGE_TRANSITIONS = {
+    "1.0": ["loading", "splitting", "embedding", "storing", "completed", "failed"],
+    "1.1": ["loading", "splitting", "embedding", "storing", "indexing", "completed", "failed"],
+}
+
+# Version compatibility - which versions can be migrated to current
+COMPATIBLE_VERSIONS = {"1.0", "1.1"}
 
 
 class CheckpointState(str, Enum):
@@ -24,8 +37,8 @@ class CheckpointState(str, Enum):
 
 
 class IngestionCheckpoint:
-    """Represents an ingestion checkpoint."""
-    
+    """Represents an ingestion checkpoint with version support."""
+
     def __init__(
         self,
         operation_id: str,
@@ -33,6 +46,7 @@ class IngestionCheckpoint:
         total_documents: int = 0,
         current_state: CheckpointState = CheckpointState.LOADING
     ):
+        self.version = CHECKPOINT_VERSION
         self.operation_id = operation_id
         self.document_source = document_source
         self.total_documents = total_documents
@@ -43,32 +57,83 @@ class IngestionCheckpoint:
         self.created_at = datetime.now(timezone.utc)
         self.updated_at = datetime.now(timezone.utc)
         self.error_message: Optional[str] = None
-        
+
     def to_dict(self) -> Dict[str, Any]:
-        """Convert checkpoint to dictionary."""
+        """Convert checkpoint to dictionary with version."""
         return {
+            "version": self.version,
             "operation_id": self.operation_id,
             "document_source": self.document_source,
             "total_documents": self.total_documents,
             "current_state": self.current_state.value,
-            "processed_chunks": self.processed_chunks,
+            "processed_chunks": self._serialize_chunks(self.processed_chunks),
             "failed_chunks": self.failed_chunks,
-            "metadata": self.metadata,
+            "metadata": self._serialize_metadata(self.metadata),
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
             "error_message": self.error_message,
             "progress_percentage": self.get_progress_percentage()
         }
-        
+
+    def _serialize_chunks(self, chunks: List[str]) -> List[str]:
+        """Serialize chunks with size limit for memory efficiency."""
+        max_size = settings.max_checkpoint_content_size
+        serialized = []
+        for chunk in chunks:
+            if len(chunk) > max_size:
+                # Store truncated version for large chunks
+                serialized.append(chunk[:max_size] + "...[truncated]")
+            else:
+                serialized.append(chunk)
+        return serialized
+
+    def _serialize_metadata(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
+        """Serialize metadata, removing large content fields."""
+        result = {}
+        for key, value in metadata.items():
+            if key in ("content", "page_content", "raw_content"):
+                # Skip large content fields in checkpoint
+                continue
+            if isinstance(value, str) and len(value) > settings.max_checkpoint_content_size:
+                result[key] = value[:settings.max_checkpoint_content_size] + "...[truncated]"
+            else:
+                result[key] = value
+        return result
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "IngestionCheckpoint":
-        """Create checkpoint from dictionary."""
+        """Create checkpoint from dictionary with version migration."""
+        version = data.get("version", "1.0")
+
+        # Check version compatibility
+        if version not in COMPATIBLE_VERSIONS:
+            logger.warning(f"Checkpoint version {version} not compatible, creating fresh checkpoint")
+            return cls(
+                operation_id=data.get("operation_id", "unknown"),
+                document_source=data.get("document_source", "unknown"),
+                total_documents=data.get("total_documents", 0)
+            )
+
+        # Migrate from older version if needed
+        if version != CHECKPOINT_VERSION:
+            data = cls._migrate_checkpoint(data, version)
+
+        # Handle state migration
+        state_value = data["current_state"]
+        try:
+            current_state = CheckpointState(state_value)
+        except ValueError:
+            # Unknown state, default to LOADING
+            logger.warning(f"Unknown checkpoint state '{state_value}', defaulting to LOADING")
+            current_state = CheckpointState.LOADING
+
         checkpoint = cls(
             operation_id=data["operation_id"],
             document_source=data["document_source"],
             total_documents=data["total_documents"],
-            current_state=CheckpointState(data["current_state"])
+            current_state=current_state
         )
+        checkpoint.version = CHECKPOINT_VERSION  # Always use current version
         checkpoint.processed_chunks = data.get("processed_chunks", [])
         checkpoint.failed_chunks = data.get("failed_chunks", [])
         checkpoint.metadata = data.get("metadata", {})
@@ -76,6 +141,30 @@ class IngestionCheckpoint:
         checkpoint.updated_at = datetime.fromisoformat(data["updated_at"])
         checkpoint.error_message = data.get("error_message")
         return checkpoint
+
+    @classmethod
+    def _migrate_checkpoint(cls, data: Dict[str, Any], from_version: str) -> Dict[str, Any]:
+        """Migrate checkpoint data from older version to current.
+
+        Args:
+            data: Checkpoint data dictionary
+            from_version: Source version string
+
+        Returns:
+            Migrated data dictionary
+        """
+        logger.info(f"Migrating checkpoint from version {from_version} to {CHECKPOINT_VERSION}")
+
+        if from_version == "1.0":
+            # v1.0 -> v1.1: Add indexing state support
+            # If state was "storing" and completed, it should now go through "indexing"
+            current_state = data.get("current_state", "loading")
+
+            # No state mapping needed - v1.0 states are subset of v1.1
+            # Just update version
+            data["version"] = CHECKPOINT_VERSION
+
+        return data
         
     def get_progress_percentage(self) -> float:
         """Calculate progress percentage."""
@@ -211,21 +300,40 @@ class IngestionCheckpointService:
         return saved
         
     async def can_resume(self, operation_id: str) -> bool:
-        """Check if an operation can be resumed."""
+        """Check if an operation can be resumed.
+
+        Checks:
+        1. Checkpoint exists
+        2. Not already completed
+        3. Not too old (24 hours)
+        4. Version is compatible
+        """
         checkpoint = await self.get_checkpoint(operation_id)
         if not checkpoint:
             return False
-            
-        # Can resume if not completed and not too old
+
+        # Can resume if not completed and not failed
         if checkpoint.current_state == CheckpointState.COMPLETED:
             return False
-            
+
+        if checkpoint.current_state == CheckpointState.FAILED:
+            logger.warning(f"Checkpoint {operation_id} is in FAILED state - may require manual intervention")
+            # Allow resume of failed checkpoints (user might want to retry)
+
+        # Check version compatibility
+        if checkpoint.version not in COMPATIBLE_VERSIONS:
+            logger.warning(
+                f"Checkpoint {operation_id} version {checkpoint.version} not compatible "
+                f"with current version {CHECKPOINT_VERSION}"
+            )
+            return False
+
         # Check if checkpoint is not too old (e.g., 24 hours)
         age = datetime.now(timezone.utc) - checkpoint.updated_at
         if age > timedelta(hours=24):
-            logger.warning(f"Checkpoint {operation_id} is too old to resume")
+            logger.warning(f"Checkpoint {operation_id} is too old to resume ({age.total_seconds()/3600:.1f}h)")
             return False
-            
+
         return True
         
     async def get_resume_info(self, operation_id: str) -> Optional[Dict[str, Any]]:

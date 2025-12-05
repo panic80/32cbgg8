@@ -11,102 +11,83 @@ from typing import Dict, Any
 
 from app.core.config import settings
 from app.core.logging import setup_logging, get_logger
-from app.core.langchain_config import LangChainConfig
+from app.core.container import ServiceContainer, set_container
 from app.api import health, chat, ingestion, sources, websocket, progress, streaming_chat, admin, metrics
-from app.services.document_store import DocumentStore
-from app.core.vectorstore import VectorStoreManager
-from app.services.cache import CacheService
-from app.services.llm_pool import initialize_llm_pool, shutdown_llm_pool
-from app.services.query_logger import query_logger
-from app.services.source_repository import SourceRepository
 
 # Set up logging
 setup_logging(settings.log_level, settings.log_format)
 logger = get_logger(__name__)
 
-# Global instances
-document_store: DocumentStore = None
-vector_store_manager: VectorStoreManager = None
-cache_service: CacheService = None
-source_repository: SourceRepository = None
+
+async def _preload_vector_store_corpus(container: ServiceContainer) -> None:
+    """Preload vector store corpus in background.
+
+    This runs as a background task to avoid blocking startup.
+    """
+    try:
+        await asyncio.to_thread(
+            container.vector_store_manager.get_all_documents, True
+        )
+        logger.info("Vector store corpus preloaded for retrieval")
+    except Exception as e:
+        logger.warning(f"Vector store preload failed (non-fatal): {e}")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage application lifecycle."""
-    global document_store, vector_store_manager, cache_service, source_repository
-    
     logger.info("Starting RAG service...")
-    
-    # Initialize services
+
+    # Create and initialize service container
+    container = ServiceContainer()
+
     try:
-        # Initialize LangChain configuration
-        LangChainConfig.initialize()
-        logger.info("LangChain configuration initialized")
-        
-        # Initialize cache service
-        cache_service = CacheService()
-        await cache_service.connect()
-        logger.info("Cache service initialized")
-        
-        # Initialize vector store
-        vector_store_manager = VectorStoreManager()
-        await vector_store_manager.initialize()
-        logger.info("Vector store initialized")
-        await asyncio.to_thread(vector_store_manager.get_all_documents, True)
-        logger.info("Vector store corpus preloaded for retrieval")
+        await container.initialize(settings)
 
-        # Initialize source repository (stores canonical source metadata)
-        source_repository = SourceRepository()
-        await source_repository.initialize()
-        logger.info("Source repository initialized")
+        # Set global container for module-level access
+        set_container(container)
 
-        # Initialize document store
-        document_store = DocumentStore(
-            vector_store_manager,
-            cache_service,
-            source_repository=source_repository
+        # Store container in app state for route access
+        app.state.container = container
+
+        # Backward compatibility: set individual services in app.state
+        # These can be removed once all routes use container
+        app.state.document_store = container.document_store
+        app.state.vector_store_manager = container.vector_store_manager
+        app.state.cache_service = container.cache_service
+        app.state.query_logger = container.query_logger
+        app.state.source_repository = container.source_repository
+        app.state.retrieval_pipeline_cache = container.retrieval_pipeline_cache
+
+        # Start corpus preload as background task (non-blocking)
+        preload_task = asyncio.create_task(
+            _preload_vector_store_corpus(container)
         )
-        logger.info("Document store initialized")
-        
-        # Initialize LLM connection pool (if enabled)
-        if settings.enable_llm_pool:
-            await initialize_llm_pool()
-            logger.info("LLM connection pool initialized")
-        else:
-            logger.info("LLM connection pool disabled by configuration")
-        
-        # Initialize query logger
-        await query_logger.initialize()
-        logger.info("Query logger initialized")
-        
-        # Set instances in app state
-        app.state.document_store = document_store
-        app.state.vector_store_manager = vector_store_manager
-        app.state.cache_service = cache_service
-        app.state.query_logger = query_logger
-        app.state.source_repository = source_repository
-        # Cache for retrieval pipelines (keyed by provider/model/hybrid flags)
-        app.state.retrieval_pipeline_cache = {}
-        
+        app.state.preload_task = preload_task
+
+        logger.info("RAG service started successfully")
+
     except Exception as e:
         logger.error(f"Failed to initialize services: {e}")
         raise
-        
+
     yield
-    
+
     # Cleanup
     logger.info("Shutting down RAG service...")
-    
-    # Shutdown LLM pool (if enabled)
-    if settings.enable_llm_pool:
-        await shutdown_llm_pool()
-        logger.info("LLM connection pool shut down")
-    
-    if cache_service:
-        await cache_service.disconnect()
-    if vector_store_manager:
-        await vector_store_manager.close()
+
+    # Cancel preload task if still running
+    if hasattr(app.state, 'preload_task') and not app.state.preload_task.done():
+        app.state.preload_task.cancel()
+        try:
+            await app.state.preload_task
+        except asyncio.CancelledError:
+            pass
+
+    # Shutdown container (handles all service cleanup)
+    await container.shutdown()
+
+    logger.info("RAG service shut down")
 
 
 # Create FastAPI app
@@ -188,7 +169,7 @@ async def root() -> Dict[str, Any]:
 
 if __name__ == "__main__":
     import uvicorn
-    
+
     uvicorn.run(
         "app.main:app",
         host=settings.host,

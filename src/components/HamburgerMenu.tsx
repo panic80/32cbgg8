@@ -37,6 +37,8 @@ interface HamburgerMenuProps {
   hasWhatsNew?: boolean;
   isOpen?: boolean;
   onOpenChange?: (value: boolean) => void;
+  highlightModelMode?: boolean;
+  highlightShortAnswers?: boolean;
 }
 
 type ToggleGroupOption = {

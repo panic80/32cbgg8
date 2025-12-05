@@ -76,22 +76,24 @@ class SystemStatus(BaseModel):
 
 
 # Dependencies
-async def get_document_store() -> DocumentStore:
-    """Get document store instance."""
-    from app.main import document_store
-    return document_store
+def get_container(request: Request):
+    """Get service container from app state."""
+    return request.app.state.container
 
 
-async def get_cache_service() -> CacheService:
-    """Get cache service instance."""
-    from app.main import cache_service
-    return cache_service
+async def get_document_store(request: Request) -> DocumentStore:
+    """Get document store instance from container."""
+    return request.app.state.container.document_store
 
 
-async def get_vector_store() -> VectorStore:
-    """Get vector store instance."""
-    from app.main import vector_store
-    return vector_store
+async def get_cache_service(request: Request) -> CacheService:
+    """Get cache service instance from container."""
+    return request.app.state.container.cache_service
+
+
+async def get_vector_store(request: Request):
+    """Get vector store manager instance from container."""
+    return request.app.state.container.vector_store_manager
 
 
 # Global variables for tracking
@@ -212,17 +214,18 @@ async def rebuild_index(
 
 @router.post("/cache/manage")
 async def manage_cache(
-    request: CacheManagementRequest,
+    cache_request: CacheManagementRequest,
+    request: Request,
     _: bool = Depends(verify_admin_bearer_token),
     cache_service: CacheService = Depends(get_cache_service)
 ) -> Dict[str, Any]:
     """Manage cache operations."""
     try:
-        if request.action == "clear":
+        if cache_request.action == "clear":
             # Clear cache
-            if request.patterns:
+            if cache_request.patterns:
                 cleared = 0
-                for pattern in request.patterns:
+                for pattern in cache_request.patterns:
                     keys = await cache_service.redis.keys(pattern)
                     if keys:
                         await cache_service.redis.delete(*keys)
@@ -240,43 +243,43 @@ async def manage_cache(
                     "action": "clear",
                     "message": "All cache cleared"
                 }
-        
-        elif request.action == "warm":
+
+        elif cache_request.action == "warm":
             # Warm cache with common queries
-            if not request.warm_queries:
+            if not cache_request.warm_queries:
                 # Default warm queries
-                request.warm_queries = [
+                cache_request.warm_queries = [
                     "What is the meal allowance?",
                     "What is the POMV rate?",
                     "How do I claim travel expenses?",
                     "What documentation do I need?"
                 ]
-            
-            # Import retrieval pipeline
+
+            # Get services from container
             from app.pipelines.improved_retrieval import ImprovedRetrievalPipeline
-            from app.main import document_store, vector_store
-            
+            container = request.app.state.container
+
             pipeline = ImprovedRetrievalPipeline(
-                document_store=document_store,
-                vector_store=vector_store,
+                document_store=container.document_store,
+                vector_store=container.vector_store_manager,
                 cache_service=cache_service
             )
             
             warmed = 0
-            for query in request.warm_queries:
+            for query in cache_request.warm_queries:
                 try:
                     await pipeline.retrieve(query)
                     warmed += 1
                 except Exception as e:
                     logger.error(f"Failed to warm cache for query '{query}': {e}")
-            
+
             return {
                 "status": "success",
                 "action": "warm",
                 "warmed_queries": warmed
             }
-        
-        elif request.action == "stats":
+
+        elif cache_request.action == "stats":
             # Get cache statistics
             info = await cache_service.redis.info()
             
@@ -299,7 +302,7 @@ async def manage_cache(
             }
         
         else:
-            raise HTTPException(status_code=400, detail=f"Unknown action: {request.action}")
+            raise HTTPException(status_code=400, detail=f"Unknown action: {cache_request.action}")
             
     except Exception as e:
         logger.error(f"Cache management failed: {e}")
@@ -505,40 +508,44 @@ async def list_backups(
 @router.post("/backups/restore/{backup_id}")
 async def restore_backup(
     backup_id: str,
+    request: Request,
     background_tasks: BackgroundTasks,
     _: bool = Depends(verify_admin_bearer_token)
 ) -> Dict[str, Any]:
     """Restore from backup."""
     try:
         backup_dir = f"./backups/{backup_id}"
-        
+
         if not os.path.exists(backup_dir):
             raise HTTPException(status_code=404, detail="Backup not found")
-        
+
+        # Get container from app state for background task
+        container = request.app.state.container
+
         async def restore_task():
             try:
                 # Read manifest
                 import json
                 with open(f"{backup_dir}/manifest.json", "r") as f:
                     manifest = json.load(f)
-                
+
                 # Restore configuration
                 if os.path.exists(f"{backup_dir}/config.json"):
                     with open(f"{backup_dir}/config.json", "r") as f:
                         config = json.load(f)
                     logger.info("Configuration restored from backup")
-                
+
                 # Restore vectors
                 if manifest["components"]["vectors"]:
                     if os.path.exists(f"{backup_dir}/vectors/chroma_db"):
-                        # Stop vector store
-                        from app.main import vector_store
+                        # Stop vector store using container
+                        vector_store = container.vector_store_manager
                         await vector_store.close()
-                        
+
                         # Replace directory
                         shutil.rmtree("./chroma_db", ignore_errors=True)
                         shutil.copytree(f"{backup_dir}/vectors/chroma_db", "./chroma_db")
-                        
+
                         # Restart vector store
                         await vector_store.initialize()
                         logger.info("Vectors restored from backup")

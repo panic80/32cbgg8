@@ -1,12 +1,12 @@
 import React, { forwardRef } from 'react';
 import { cn } from '@/lib/utils';
 
-export interface PageSectionProps extends React.HTMLAttributes<HTMLElement> {
+export interface PageSectionProps extends Omit<React.HTMLAttributes<HTMLElement>, 'title'> {
   title?: React.ReactNode;
   subtitle?: React.ReactNode;
   center?: boolean;
   description?: React.ReactNode;
-  as?: keyof JSX.IntrinsicElements;
+  as?: React.ElementType;
 }
 
 export const PageSection = forwardRef<HTMLElement, PageSectionProps>(
@@ -24,13 +24,10 @@ export const PageSection = forwardRef<HTMLElement, PageSectionProps>(
     ref,
   ) => {
     const alignment = center ? 'text-center items-center' : 'text-left items-start';
+    const ElementComponent = Component as React.ElementType;
 
     return (
-      <Component
-        ref={ref as React.Ref<HTMLElement>}
-        className={cn('py-16 sm:py-20', className)}
-        {...rest}
-      >
+      <ElementComponent ref={ref} className={cn('py-16 sm:py-20', className)} {...rest}>
         <div className={cn('flex flex-col gap-4 sm:gap-6 mb-10 sm:mb-12', alignment)}>
           {subtitle && (
             <span className={cn('text-sm font-medium tracking-wide text-[var(--primary)]')}>
@@ -59,7 +56,7 @@ export const PageSection = forwardRef<HTMLElement, PageSectionProps>(
           )}
         </div>
         {children}
-      </Component>
+      </ElementComponent>
     );
   },
 );

@@ -9,11 +9,183 @@ from langchain_core.documents import Document as LangchainDocument
 from langchain_core.embeddings import Embeddings
 
 from app.core.logging import get_logger
+from app.core.config import settings
 from app.models.documents import Document
 from app.services.progress_tracker import IngestionProgressTracker
 from app.services.embedding_cache import EmbeddingCacheService
 
 logger = get_logger(__name__)
+
+# Try to import psutil for memory monitoring
+try:
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
+    logger.warning("psutil not available - memory-aware batching disabled")
+
+
+class MemoryMonitor:
+    """Monitor system memory for adaptive resource allocation."""
+
+    def __init__(self, sample_interval: int = 10):
+        """Initialize memory monitor.
+
+        Args:
+            sample_interval: Number of operations between memory checks
+        """
+        self._operation_count = 0
+        self._sample_interval = sample_interval
+        self._last_available_mb = None
+        self._enabled = PSUTIL_AVAILABLE and settings.memory_safe_mode
+
+    def get_available_memory_mb(self) -> int:
+        """Get available memory in MB.
+
+        Uses cached value unless sample interval has passed.
+        """
+        if not self._enabled:
+            return 2000  # Default assumption if psutil not available
+
+        self._operation_count += 1
+
+        # Only sample every N operations to reduce overhead
+        if self._last_available_mb is None or self._operation_count >= self._sample_interval:
+            self._operation_count = 0
+            try:
+                mem = psutil.virtual_memory()
+                self._last_available_mb = int(mem.available / (1024 * 1024))
+            except Exception as e:
+                logger.warning(f"Failed to get memory info: {e}")
+                self._last_available_mb = 2000  # Fallback
+
+        return self._last_available_mb
+
+    def is_memory_low(self) -> bool:
+        """Check if available memory is below low threshold."""
+        return self.get_available_memory_mb() < settings.memory_low_threshold_mb
+
+    def is_memory_medium(self) -> bool:
+        """Check if available memory is below medium threshold."""
+        return self.get_available_memory_mb() < settings.memory_medium_threshold_mb
+
+    def get_memory_factor(self) -> float:
+        """Get a memory factor (0-1) for scaling operations.
+
+        Returns:
+            1.0 for plenty of memory, lower values as memory decreases
+        """
+        available = self.get_available_memory_mb()
+
+        if available < settings.memory_low_threshold_mb:
+            return 0.3
+        elif available < settings.memory_medium_threshold_mb:
+            return 0.6
+        else:
+            return 1.0
+
+
+class AdaptiveConcurrencyManager:
+    """Dynamically adjust concurrency based on workload characteristics."""
+
+    def __init__(
+        self,
+        base_concurrency: int = 3,
+        max_concurrency: int = 10,
+        memory_monitor: Optional[MemoryMonitor] = None
+    ):
+        """Initialize adaptive concurrency manager.
+
+        Args:
+            base_concurrency: Default concurrency level
+            max_concurrency: Maximum allowed concurrency
+            memory_monitor: Memory monitor for memory-aware adjustments
+        """
+        self.base_concurrency = base_concurrency
+        self.max_concurrency = max_concurrency
+        self.memory_monitor = memory_monitor or MemoryMonitor()
+        self._current_concurrency = base_concurrency
+
+    def get_concurrency_for_batch(
+        self,
+        documents: List[Any],
+        content_key: str = "content"
+    ) -> int:
+        """Calculate optimal concurrency for a batch of documents.
+
+        Considers:
+        1. Document sizes
+        2. Document types (complex types need more resources)
+        3. Available system memory
+
+        Args:
+            documents: List of documents to process
+            content_key: Key to access document content
+
+        Returns:
+            Optimal concurrency level
+        """
+        if not documents:
+            return self.base_concurrency
+
+        # Factor 1: Average document size
+        total_size = 0
+        for doc in documents:
+            content = doc.get(content_key, "") if isinstance(doc, dict) else getattr(doc, content_key, "")
+            total_size += len(str(content))
+
+        avg_size = total_size / len(documents)
+
+        if avg_size < 5000:
+            size_factor = 1.0
+        elif avg_size < 20000:
+            size_factor = 0.7
+        else:
+            size_factor = 0.4
+
+        # Factor 2: Document type complexity
+        complex_types = {"pdf", "docx", "xlsx"}
+        complex_count = 0
+
+        for doc in documents:
+            doc_type = None
+            if isinstance(doc, dict):
+                metadata = doc.get("metadata", {})
+                doc_type = metadata.get("type", "") if isinstance(metadata, dict) else ""
+            elif hasattr(doc, "metadata"):
+                metadata = doc.metadata
+                if isinstance(metadata, dict):
+                    doc_type = metadata.get("type", "")
+                elif hasattr(metadata, "type"):
+                    doc_type = metadata.type
+
+            if doc_type and str(doc_type).lower() in complex_types:
+                complex_count += 1
+
+        complex_ratio = complex_count / len(documents)
+        type_factor = 1.0 - (complex_ratio * 0.3)
+
+        # Factor 3: Available memory
+        memory_factor = self.memory_monitor.get_memory_factor()
+
+        # Calculate optimal concurrency
+        optimal = int(self.base_concurrency * size_factor * type_factor * memory_factor)
+
+        # Apply bounds with hysteresis (don't change unless >20% different)
+        if abs(optimal - self._current_concurrency) / max(1, self._current_concurrency) > 0.2:
+            self._current_concurrency = max(1, min(optimal, self.max_concurrency))
+
+        logger.debug(
+            f"Adaptive concurrency: {self._current_concurrency} "
+            f"(size_factor={size_factor:.2f}, type_factor={type_factor:.2f}, "
+            f"memory_factor={memory_factor:.2f})"
+        )
+
+        return self._current_concurrency
+
+
+# Global memory monitor instance
+_memory_monitor = MemoryMonitor()
 
 
 class ParallelEmbeddingGenerator:
@@ -41,17 +213,27 @@ class ParallelEmbeddingGenerator:
             return min(12, self.max_workers)
             
     def _get_adaptive_batch_size(self, document_count: int) -> int:
-        """Determine optimal batch size based on document count."""
+        """Determine optimal batch size based on document count and available memory."""
+        # Base batch size from document count
         if document_count < 10:
-            return 5
+            base_size = 5
         elif document_count < 50:
-            return 10
+            base_size = 10
         elif document_count < 100:
-            return 20
+            base_size = 20
         elif document_count < 500:
-            return 30
+            base_size = 30
         else:
-            return 50
+            base_size = 50
+
+        # Adjust based on available memory
+        memory_factor = _memory_monitor.get_memory_factor()
+        adjusted_size = max(5, int(base_size * memory_factor))
+
+        if memory_factor < 1.0:
+            logger.info(f"Memory-aware batch size: {adjusted_size} (factor: {memory_factor:.2f})")
+
+        return adjusted_size
             
     def _ensure_executor(self, worker_count: int):
         """Ensure executor exists with appropriate worker count."""

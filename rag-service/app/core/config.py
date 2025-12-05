@@ -129,6 +129,24 @@ class Settings(BaseSettings):
     dedup_jaccard_threshold: float = 0.82  # Conservative threshold for MinHash
     dedup_hamming_threshold: int = 4  # Conservative threshold for SimHash
     dedup_exact_id_matching: bool = True  # Enable exact ID matching stage
+
+    # LSH Deduplication Configuration (Phase 1 optimization)
+    dedup_lsh_enabled: bool = True  # Enable LSH pre-screening for deduplication
+    dedup_lsh_num_perm: int = 128  # Number of MinHash permutations (higher = more accurate)
+    dedup_lsh_threshold: float = 0.5  # LSH similarity threshold for candidate selection
+    dedup_lsh_shingle_size: int = 3  # Word n-gram size for shingling
+    dedup_lsh_redis_persist: bool = True  # Persist LSH signatures to Redis
+
+    # Memory Management Configuration (Phase 2 optimization)
+    memory_safe_mode: bool = True  # Enable memory-aware batch sizing
+    memory_low_threshold_mb: int = 500  # Low memory threshold in MB
+    memory_medium_threshold_mb: int = 1000  # Medium memory threshold in MB
+    max_checkpoint_content_size: int = 2000  # Max chars per chunk in checkpoint
+    bm25_deferred_mode: bool = True  # Rebuild BM25 after batch complete
+
+    # Progress Callback Configuration
+    progress_callback_timeout: float = 2.0  # Timeout for progress callbacks in seconds
+    progress_callback_max_queue: int = 100  # Max pending callbacks
     
     # L2 Retrieval Cache Configuration (merged results cache)
     enable_l2_retrieval_cache: bool = True  # Cache merged/deduplicated results

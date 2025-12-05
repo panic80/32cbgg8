@@ -45,7 +45,9 @@ export default function OPIPage() {
       if (topRef.current && 'scrollIntoView' in topRef.current) {
         topRef.current.scrollIntoView({ behavior: 'auto', block: 'start', inline: 'nearest' });
       }
-    } catch {}
+    } catch {
+      // scrollIntoView may fail in some browsers - forceScrollToTop handles fallback
+    }
     forceScrollToTop();
     const cleanup = forceScrollToTopDeferred();
     return cleanup;
@@ -429,7 +431,11 @@ export default function OPIPage() {
             <h3 className="text-base sm:text-lg font-semibold mb-2">Currently Available</h3>
             <ul className="list-disc list-inside mb-3 sm:mb-4 text-sm sm:text-base space-y-1">
               <li>
-                <Link to="/chat" className="text-[var(--primary)] hover:underline">Unofficial Policy Chatbot</Link> &ndash; An interactive tool designed to answer your questions about claims and travel entitlements, referencing the CFTDTI and NJC websites
+                <Link to="/chat" className="text-[var(--primary)] hover:underline">
+                  Unofficial Policy Chatbot
+                </Link>{' '}
+                &ndash; An interactive tool designed to answer your questions about claims and
+                travel entitlements, referencing the CFTDTI and NJC websites
               </li>
               <li>
                 SCIP &ndash; Your centralized portal for financial and administrative functions

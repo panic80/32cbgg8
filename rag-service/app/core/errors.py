@@ -138,34 +138,134 @@ class RateLimitError(IngestionError):
         )
 
 
+import re
+
+# Exception type to (recoverable, retry_after_seconds) mapping
+# More specific exception types get priority over keyword matching
+RECOVERABLE_EXCEPTION_PATTERNS = {
+    # OpenAI errors
+    "openai.RateLimitError": (True, 60),
+    "openai.APIStatusError": (True, 5),
+    "openai.APIConnectionError": (True, 3),
+    "openai.APITimeoutError": (True, 5),
+    # Chroma errors
+    "chromadb.errors.ChromaError": (True, 2),
+    "chromadb.errors.InvalidCollectionException": (False, 0),
+    # Redis errors
+    "redis.ConnectionError": (True, 5),
+    "redis.TimeoutError": (True, 3),
+    "redis.BusyLoadingError": (True, 10),
+    # HTTP errors
+    "aiohttp.ClientConnectorError": (True, 3),
+    "aiohttp.ServerDisconnectedError": (True, 2),
+    "httpx.ConnectError": (True, 3),
+    "httpx.TimeoutException": (True, 5),
+    # General network
+    "ConnectionResetError": (True, 2),
+    "ConnectionRefusedError": (True, 5),
+    "TimeoutError": (True, 5),
+    "OSError": (True, 2),  # Often network-related
+}
+
+# Patterns that indicate non-recoverable errors (regex)
+NON_RECOVERABLE_PATTERNS = [
+    r"invalid api key",
+    r"invalid.*key",
+    r"authentication failed",
+    r"unauthorized",
+    r"model not found",
+    r"model.*does not exist",
+    r"context length exceeded",
+    r"maximum context length",
+    r"file not found",
+    r"no such file",
+    r"permission denied",
+    r"access denied",
+    r"invalid.*format",
+    r"unsupported.*type",
+    r"corrupt.*file",
+    r"malformed.*document",
+]
+
+
 def categorize_error(error: Exception) -> IngestionError:
-    """Categorize generic exceptions into specific ingestion errors."""
+    """Categorize generic exceptions into specific ingestion errors.
+
+    Uses a multi-stage classification:
+    1. Check exception type against known recoverable patterns
+    2. Check error message against non-recoverable patterns
+    3. Fall back to keyword-based classification
+    """
+    error_type = f"{type(error).__module__}.{type(error).__name__}"
     error_str = str(error).lower()
-    
+
+    # Stage 1: Check exception type against known patterns
+    for pattern, (recoverable, retry_after) in RECOVERABLE_EXCEPTION_PATTERNS.items():
+        if pattern in error_type or error_type.endswith(pattern.split('.')[-1]):
+            if recoverable:
+                if "rate" in error_str or "limit" in error_str:
+                    return RateLimitError(f"Rate limit: {error}", retry_after=retry_after)
+                elif "timeout" in error_str:
+                    return NetworkError(f"Timeout: {error}")
+                else:
+                    return NetworkError(f"Connection error: {error}")
+            else:
+                return IngestionError(
+                    message=str(error),
+                    category=ErrorCategory.UNKNOWN,
+                    details={"original_error": error_type},
+                    recoverable=False
+                )
+
+    # Stage 2: Check for non-recoverable error patterns
+    for pattern in NON_RECOVERABLE_PATTERNS:
+        if re.search(pattern, error_str, re.IGNORECASE):
+            # Determine category based on pattern
+            if any(word in pattern for word in ["api key", "auth", "unauthorized"]):
+                return IngestionError(
+                    message=f"Authentication error: {error}",
+                    category=ErrorCategory.AUTHENTICATION,
+                    details={"original_error": error_type},
+                    recoverable=False
+                )
+            elif any(word in pattern for word in ["file", "permission", "access"]):
+                return ParsingError(f"File access error: {error}")
+            elif any(word in pattern for word in ["format", "type", "corrupt", "malformed"]):
+                return ParsingError(f"Invalid document: {error}")
+            elif any(word in pattern for word in ["context", "length", "model"]):
+                return ValidationError(f"Model constraint error: {error}")
+
+    # Stage 3: Keyword-based classification (fallback)
     # Network-related errors
-    if any(keyword in error_str for keyword in ["connection", "timeout", "network", "refused"]):
+    if any(keyword in error_str for keyword in ["connection", "timeout", "network", "refused", "unreachable"]):
         return NetworkError(f"Network error: {error}")
-        
+
     # Parsing errors
-    elif any(keyword in error_str for keyword in ["parse", "decode", "invalid format", "malformed"]):
+    elif any(keyword in error_str for keyword in ["parse", "decode", "invalid format", "malformed", "encoding"]):
         return ParsingError(f"Parsing error: {error}")
-        
-    # Validation errors
-    elif any(keyword in error_str for keyword in ["validation", "invalid", "required", "missing"]):
+
+    # Validation errors - be careful not to catch "invalid" too broadly
+    elif any(keyword in error_str for keyword in ["validation failed", "required field", "missing required"]):
         return ValidationError(f"Validation error: {error}")
-        
+
     # Storage errors
-    elif any(keyword in error_str for keyword in ["database", "vector", "storage", "persist"]):
+    elif any(keyword in error_str for keyword in ["database", "vector", "storage", "persist", "collection"]):
         return StorageError(f"Storage error: {error}")
-        
+
     # Rate limit errors
-    elif any(keyword in error_str for keyword in ["rate limit", "too many requests", "429"]):
+    elif any(keyword in error_str for keyword in ["rate limit", "too many requests", "429", "quota"]):
         return RateLimitError("Rate limit exceeded", retry_after=60)
-        
-    # Default to unknown
+
+    # Default to unknown but check if it looks transient
     else:
+        # Check if error looks transient (network-like)
+        transient_indicators = ["temporary", "retry", "503", "502", "500", "unavailable", "overloaded"]
+        is_likely_transient = any(ind in error_str for ind in transient_indicators)
+
         return IngestionError(
             message=str(error),
             category=ErrorCategory.UNKNOWN,
-            details={"original_error": type(error).__name__}
+            details={"original_error": error_type},
+            recoverable=is_likely_transient,
+            retry_after=5 if is_likely_transient else None
         )

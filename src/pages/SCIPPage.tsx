@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { AnimatedButton } from '../components/ui/animated-button';
 import { EnhancedBackButton } from '../components/ui/enhanced-back-button';
@@ -88,12 +88,27 @@ const SCIPPage: React.FC = () => {
     },
   ];
 
+  const processingTimeoutsRef = useRef<number[]>([]);
+
+  // Cleanup processing timeouts on unmount
+  useEffect(() => {
+    return () => {
+      processingTimeoutsRef.current.forEach((id) => clearTimeout(id));
+    };
+  }, []);
+
   const simulateProcessing = () => {
+    // Clear any existing timeouts
+    processingTimeoutsRef.current.forEach((id) => clearTimeout(id));
+    processingTimeoutsRef.current = [];
+
     setProcessingStatus('processing');
-    setTimeout(() => {
+    const timeout1 = window.setTimeout(() => {
       setProcessingStatus('complete');
-      setTimeout(() => setProcessingStatus('idle'), 3000);
+      const timeout2 = window.setTimeout(() => setProcessingStatus('idle'), 3000);
+      processingTimeoutsRef.current.push(timeout2);
     }, 2000);
+    processingTimeoutsRef.current.push(timeout1);
   };
 
   return (

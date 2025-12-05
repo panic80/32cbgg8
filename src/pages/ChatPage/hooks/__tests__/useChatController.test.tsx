@@ -2,7 +2,7 @@ import { renderHook, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { useChatController } from '../useChatController';
-import { vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 class ResizeObserverMock {
   observe() {}

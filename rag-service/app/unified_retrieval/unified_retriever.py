@@ -1,8 +1,12 @@
 """Unified retriever implementation that uses a strategy pipeline pattern."""
 
+from collections import deque, OrderedDict
 from typing import List, Dict, Any, Optional, Type
 import asyncio
 from datetime import datetime
+
+# Maximum number of timing samples to keep per strategy
+MAX_TIMING_HISTORY = 100
 
 from langchain_core.documents import Document
 from langchain_core.callbacks import CallbackManagerForRetrieverRun
@@ -19,6 +23,44 @@ from app.unified_retrieval.strategies.base import (
 )
 
 logger = get_logger(__name__)
+
+
+class LRUDocumentCache:
+    """LRU cache for document query results with TTL support."""
+
+    def __init__(self, max_size: int = 1000, ttl: int = 3600):
+        self.max_size = max_size
+        self.ttl = ttl
+        self._cache: OrderedDict[str, tuple[List[Document], float]] = OrderedDict()
+
+    def get(self, key: str) -> Optional[List[Document]]:
+        """Get documents from cache if present and not expired."""
+        if key not in self._cache:
+            return None
+        docs, timestamp = self._cache[key]
+        # Check TTL
+        if datetime.utcnow().timestamp() - timestamp > self.ttl:
+            del self._cache[key]
+            return None
+        # Move to end (most recently used)
+        self._cache.move_to_end(key)
+        return docs
+
+    def set(self, key: str, docs: List[Document]) -> None:
+        """Store documents in cache, evicting oldest if at capacity."""
+        if key in self._cache:
+            self._cache.move_to_end(key)
+        self._cache[key] = (docs, datetime.utcnow().timestamp())
+        # Evict oldest entries if over capacity
+        while len(self._cache) > self.max_size:
+            self._cache.popitem(last=False)
+
+    def clear(self) -> None:
+        """Clear all cache entries."""
+        self._cache.clear()
+
+    def __len__(self) -> int:
+        return len(self._cache)
 
 
 class UnifiedRetriever(BaseRAGRetriever):
@@ -98,10 +140,8 @@ class UnifiedRetriever(BaseRAGRetriever):
             self._init_cache()
             
     def _init_cache(self) -> None:
-        """Initialize the query cache."""
-        # Simple in-memory cache for now
-        # TODO: Could integrate with Redis cache from server
-        self._query_cache: Dict[str, tuple[List[Document], float]] = {}
+        """Initialize the LRU query cache."""
+        self._query_cache = LRUDocumentCache(max_size=1000, ttl=self.cache_ttl)
         
     def _get_cache_key(self, query: str, **kwargs) -> str:
         """Generate cache key for a query."""
@@ -119,43 +159,24 @@ class UnifiedRetriever(BaseRAGRetriever):
         return hashlib.md5(cache_str.encode()).hexdigest()
         
     def _check_cache(self, cache_key: str) -> Optional[List[Document]]:
-        """Check if query result is in cache."""
+        """Check if query result is in LRU cache."""
         if not self.enable_caching:
             return None
-            
-        if cache_key in self._query_cache:
-            docs, timestamp = self._query_cache[cache_key]
-            
-            # Check if cache entry is still valid
-            age = datetime.utcnow().timestamp() - timestamp
-            if age < self.cache_ttl:
-                self._pipeline_metrics["cache_hits"] += 1
-                logger.debug(f"Cache hit for key: {cache_key}")
-                return docs
-                
+
+        docs = self._query_cache.get(cache_key)
+        if docs is not None:
+            self._pipeline_metrics["cache_hits"] += 1
+            logger.debug(f"Cache hit for key: {cache_key}")
+            return docs
+
         self._pipeline_metrics["cache_misses"] += 1
         return None
         
     def _update_cache(self, cache_key: str, documents: List[Document]) -> None:
-        """Update cache with query results."""
+        """Update LRU cache with query results."""
         if not self.enable_caching:
             return
-            
-        self._query_cache[cache_key] = (
-            documents,
-            datetime.utcnow().timestamp()
-        )
-        
-        # Simple cache eviction - remove oldest entries if cache is too large
-        max_cache_size = 1000
-        if len(self._query_cache) > max_cache_size:
-            # Remove oldest 10% of entries
-            sorted_keys = sorted(
-                self._query_cache.keys(),
-                key=lambda k: self._query_cache[k][1]
-            )
-            for key in sorted_keys[:int(max_cache_size * 0.1)]:
-                del self._query_cache[key]
+        self._query_cache.set(cache_key, documents)
                 
     def add_strategy(self, strategy: BaseStrategy) -> None:
         """Add a strategy to the pipeline."""
@@ -269,11 +290,11 @@ class UnifiedRetriever(BaseRAGRetriever):
             self._pipeline_metrics["successful_queries"] += 1
             elapsed = (datetime.utcnow() - start_time).total_seconds()
             
-            # Track strategy timings from context metrics
+            # Track strategy timings from context metrics (bounded to prevent memory leak)
             if "strategy_timings" in result_context.metrics:
                 for strategy, timing in result_context.metrics["strategy_timings"].items():
                     if strategy not in self._pipeline_metrics["strategy_timings"]:
-                        self._pipeline_metrics["strategy_timings"][strategy] = []
+                        self._pipeline_metrics["strategy_timings"][strategy] = deque(maxlen=MAX_TIMING_HISTORY)
                     self._pipeline_metrics["strategy_timings"][strategy].append(timing)
                     
             logger.info(

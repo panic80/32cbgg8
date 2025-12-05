@@ -240,14 +240,8 @@ const LandingPage = () => {
               }
 
               return (
-                <div
-                  key={feature.id}
-                  className="lpt-minimal-card"
-                >
-                  <FeatureCard
-                    variant="minimal"
-                    {...commonProps}
-                  />
+                <div key={feature.id} className="lpt-minimal-card">
+                  <FeatureCard variant="minimal" {...commonProps} />
                 </div>
               );
             })}

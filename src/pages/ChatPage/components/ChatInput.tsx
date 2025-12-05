@@ -176,7 +176,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               value={input}
               onChange={handleInputChange}
               onKeyDown={handleKeyPress}
-              placeholder={maintenanceMode ? "Chat is temporarily unavailable..." : "Ask a question..."}
+              placeholder={
+                maintenanceMode ? 'Chat is temporarily unavailable...' : 'Ask a question...'
+              }
               aria-label="Message input"
               disabled={maintenanceMode}
               className={cn(
