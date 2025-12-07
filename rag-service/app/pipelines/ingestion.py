@@ -307,10 +307,18 @@ class IngestionPipeline:
             )
 
             # Deduplicate chunks
+            await progress_tracker.start_step("deduplicating")
+            dedup_start = datetime.now(timezone.utc)
             deduplicated_docs = await self._deduplicate_documents(
-                internal_docs, request
+                internal_docs, request, progress_tracker
             )
-            
+            dedup_time = (datetime.now(timezone.utc) - dedup_start).total_seconds()
+            duplicates_removed = len(internal_docs) - len(deduplicated_docs)
+            await progress_tracker.complete_step(
+                "deduplicating",
+                f"Checked {len(internal_docs)} chunks, removed {duplicates_removed} duplicates in {dedup_time:.2f}s"
+            )
+
             if not deduplicated_docs:
                 raise ParsingError("All chunks were duplicates")
             
@@ -1307,17 +1315,20 @@ class IngestionPipeline:
     async def _deduplicate_documents(
         self,
         documents: List[Document],
-        request: DocumentIngestionRequest
+        request: DocumentIngestionRequest,
+        progress_tracker=None
     ) -> List[Document]:
         """Deduplicate documents against existing content."""
         if not documents:
             return documents
-            
+
         # Check if we should skip deduplication
         if request.force_refresh:
             logger.info("Skipping deduplication due to force_refresh=True")
+            if progress_tracker:
+                await progress_tracker.update_deduplication_progress(len(documents), len(documents), 0)
             return documents
-            
+
         try:
             # Convert documents to format expected by deduplication service
             docs_for_dedup = []
@@ -1327,17 +1338,24 @@ class IngestionPipeline:
                     "content": doc.content,
                     "metadata": doc.metadata.model_dump() if hasattr(doc.metadata, 'model_dump') else doc.metadata
                 })
-                
+
             # Check against existing documents in vector store
             existing_docs = await self._get_existing_documents_for_dedup(
                 request, limit=100
             )
-            
+
             if existing_docs:
                 # Check each new document against existing ones
                 duplicates_to_remove = set()
-                
-                for new_doc in docs_for_dedup:
+                total_docs = len(docs_for_dedup)
+
+                for idx, new_doc in enumerate(docs_for_dedup):
+                    # Report progress every chunk
+                    if progress_tracker and idx % 10 == 0:  # Update every 10 chunks to avoid too many updates
+                        await progress_tracker.update_deduplication_progress(
+                            idx, total_docs, len(duplicates_to_remove)
+                        )
+
                     for existing_doc in existing_docs:
                         is_dup, score, reason = self.deduplication_service.is_duplicate(
                             new_doc["content"],
@@ -1345,7 +1363,7 @@ class IngestionPipeline:
                             new_doc.get("metadata"),
                             existing_doc.get("metadata")
                         )
-                        
+
                         if is_dup and reason != "updated_version":
                             logger.info(
                                 f"Found duplicate chunk {new_doc['id']}: "
@@ -1353,16 +1371,26 @@ class IngestionPipeline:
                             )
                             duplicates_to_remove.add(new_doc["id"])
                             break
-                            
+
+                # Final progress update
+                if progress_tracker:
+                    await progress_tracker.update_deduplication_progress(
+                        total_docs, total_docs, len(duplicates_to_remove)
+                    )
+
                 # Remove duplicates
                 if duplicates_to_remove:
                     documents = [
-                        doc for doc in documents 
+                        doc for doc in documents
                         if doc.id not in duplicates_to_remove
                     ]
                     logger.info(
                         f"Removed {len(duplicates_to_remove)} duplicate chunks"
                     )
+            else:
+                # No existing docs to check against
+                if progress_tracker:
+                    await progress_tracker.update_deduplication_progress(len(documents), len(documents), 0)
                     
             # Also deduplicate within the batch itself
             deduplicated = self.deduplication_service.deduplicate_chunks(

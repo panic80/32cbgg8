@@ -14,7 +14,7 @@ logger = get_logger(__name__)
 router = APIRouter(dependencies=[Depends(verify_admin_bearer_token)])
 
 # Global store for progress updates
-progress_queues: Dict[str, asyncio.Queue] = {}
+progress_queues: Dict[str, list[asyncio.Queue]] = {}
 
 
 @router.get("/progress/{operation_id}")
@@ -25,7 +25,10 @@ async def stream_progress(request: Request, operation_id: str):
         """Generate SSE events."""
         # Create a queue for this client
         queue = asyncio.Queue()
-        progress_queues[operation_id] = queue
+        
+        if operation_id not in progress_queues:
+            progress_queues[operation_id] = []
+        progress_queues[operation_id].append(queue)
         
         try:
             # Send initial connection event
@@ -52,7 +55,10 @@ async def stream_progress(request: Request, operation_id: str):
         finally:
             # Clean up
             if operation_id in progress_queues:
-                del progress_queues[operation_id]
+                if queue in progress_queues[operation_id]:
+                    progress_queues[operation_id].remove(queue)
+                if not progress_queues[operation_id]:
+                    del progress_queues[operation_id]
                 
     return StreamingResponse(
         event_generator(),
@@ -68,20 +74,24 @@ async def stream_progress(request: Request, operation_id: str):
 async def send_progress_update(operation_id: str, event_type: str, data: Dict[str, Any]):
     """Send progress update to connected clients."""
     if operation_id in progress_queues:
-        try:
-            event = {
-                "type": event_type,
-                **data
-            }
-            await progress_queues[operation_id].put(event)
-        except Exception as e:
-            logger.error(f"Failed to send progress update: {e}")
+        queues = progress_queues[operation_id]
+        event = {
+            "type": event_type,
+            **data
+        }
+        for queue in queues:
+            try:
+                await queue.put(event)
+            except Exception as e:
+                logger.error(f"Failed to send progress update: {e}")
 
 
 async def close_progress_stream(operation_id: str):
     """Close progress stream for an operation."""
     if operation_id in progress_queues:
-        await progress_queues[operation_id].put(None)
+        queues = progress_queues[operation_id]
+        for queue in queues:
+            await queue.put(None)
 
 
 @router.get("/ingest/progress")

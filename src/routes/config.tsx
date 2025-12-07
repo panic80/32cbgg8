@@ -89,6 +89,12 @@ export const appRoutes: AppRouteDefinition[] = [
   },
   {
     kind: 'lazy',
+    path: '/config',
+    component: lazy(loadConfigPage),
+    loader: loadConfigPage,
+  },
+  {
+    kind: 'lazy',
     path: '/resources',
     component: lazy(loadResourcesPage),
     loader: loadResourcesPage,

@@ -723,6 +723,13 @@ app.use(mapsRouter);
 const analyticsRouter = createAnalyticsRoutes({ rateLimiter, chatLogger });
 app.use(analyticsRouter);
 
+const sourcesRouter = createSourcesRoutes({
+  rateLimiter,
+  requireAdminAuth,
+  getRagAuthHeaders,
+});
+app.use(sourcesRouter);
+
 // Advanced health check endpoint with detailed system stats
 app.get('/health', async (req, res) => {
   // Get cache stats

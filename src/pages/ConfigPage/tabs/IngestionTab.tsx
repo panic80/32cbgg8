@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AnimatedButton } from '@/components/ui/animated-button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ChevronDown, ChevronUp, Terminal } from 'lucide-react';
+import { InlineIngestionProgress } from '@/components/IngestionProgress';
 import IngestionConsole from '@/components/IngestionConsole';
 import type { IngestionHistoryEntry } from '../types';
 
@@ -35,6 +36,8 @@ export const IngestionTab: React.FC<IngestionTabProps> = ({
   onProgressComplete,
   ingestionHistory,
 }) => {
+  const [showConsole, setShowConsole] = useState(false);
+
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter' && !isIngesting) {
       event.preventDefault();
@@ -97,12 +100,37 @@ export const IngestionTab: React.FC<IngestionTabProps> = ({
             </div>
 
             {showIngestionProgress && currentIngestionUrl && progressEndpoint && (
-              <div className="mt-4">
-                <IngestionConsole
+              <div className="mt-4 space-y-3">
+                <InlineIngestionProgress
                   url={currentIngestionUrl}
                   progressEndpoint={progressEndpoint}
                   onComplete={onProgressComplete}
                 />
+
+                {/* Collapsible Console */}
+                <div className="border rounded-lg overflow-hidden">
+                  <button
+                    onClick={() => setShowConsole(!showConsole)}
+                    className="w-full flex items-center justify-between px-4 py-2 bg-muted/50 hover:bg-muted transition-colors text-sm"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Terminal className="h-4 w-4" />
+                      <span>Console Log</span>
+                    </div>
+                    {showConsole ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
+                  </button>
+                  {showConsole && (
+                    <IngestionConsole
+                      url={currentIngestionUrl}
+                      progressEndpoint={progressEndpoint}
+                      className="border-0 rounded-none"
+                    />
+                  )}
+                </div>
               </div>
             )}
 

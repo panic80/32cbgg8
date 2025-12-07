@@ -228,8 +228,14 @@ class IngestionOrchestrator:
             )
 
             # Deduplicate
+            await tracker.start_step("deduplicating")
             deduplicated_docs = await self._deduplicator.deduplicate(
-                internal_docs, request
+                internal_docs, request, progress_callback=tracker.update_deduplication_progress
+            )
+            duplicates_removed = len(internal_docs) - len(deduplicated_docs)
+            await tracker.complete_step(
+                "deduplicating",
+                f"Checked {len(internal_docs)} chunks, removed {duplicates_removed} duplicates"
             )
 
             if not deduplicated_docs:
@@ -252,8 +258,6 @@ class IngestionOrchestrator:
             if regular_docs:
                 await tracker.start_step("embedding")
                 await self._progress.update_state(operation_id, CheckpointState.EMBEDDING)
-                await tracker.start_step("storing")
-                await self._progress.update_state(operation_id, CheckpointState.STORING)
 
                 await self._writer.write_documents(
                     regular_docs,
@@ -264,6 +268,12 @@ class IngestionOrchestrator:
                     ),
                 )
 
+                await tracker.complete_step(
+                    "embedding", f"Generated embeddings for {len(regular_docs)} chunks"
+                )
+
+                await tracker.start_step("storing")
+                await self._progress.update_state(operation_id, CheckpointState.STORING)
                 await tracker.complete_step(
                     "storing", f"Stored {len(regular_docs)} documents"
                 )

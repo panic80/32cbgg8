@@ -251,6 +251,7 @@ class IngestionProgressTracker(ProgressTracker):
         steps = [
             ProgressStep("loading", "Loading document"),
             ProgressStep("splitting", "Splitting into chunks"),
+            ProgressStep("deduplicating", "Deduplicating chunks"),
             ProgressStep("embedding", "Generating embeddings"),
             ProgressStep("storing", "Storing in vector database")
         ]
@@ -259,6 +260,7 @@ class IngestionProgressTracker(ProgressTracker):
         self.document_size: Optional[int] = None
         self.chunk_count: Optional[int] = None
         self.embedding_count: Optional[int] = None
+        self.dedup_count: Optional[int] = None
         
     async def update_loading_progress(self, bytes_loaded: int, total_bytes: Optional[int] = None):
         """Update loading progress."""
@@ -301,7 +303,28 @@ class IngestionProgressTracker(ProgressTracker):
                 f"Processing chunks: {chunks_processed} processed",
                 {"current": chunks_processed}
             )
-            
+
+    async def update_deduplication_progress(self, chunks_checked: int, total_chunks: int, duplicates_found: int = 0):
+        """Update deduplication progress."""
+        self.dedup_count = total_chunks
+        progress = (chunks_checked / total_chunks) * 100
+
+        # Calculate rate
+        elapsed = (datetime.now(timezone.utc) - self.steps["deduplicating"].start_time).total_seconds() if self.steps["deduplicating"].start_time else 1
+        rate = chunks_checked / max(1, elapsed)
+
+        await self.update_step(
+            "deduplicating",
+            progress,
+            f"Checking duplicates: {chunks_checked}/{total_chunks}",
+            {
+                "current": chunks_checked,
+                "total": total_chunks,
+                "duplicates": duplicates_found,
+                "rate": rate
+            }
+        )
+
     async def update_embedding_progress(self, embeddings_generated: int, total_embeddings: int):
         """Update embedding generation progress."""
         self.embedding_count = total_embeddings

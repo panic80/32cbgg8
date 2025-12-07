@@ -57,7 +57,11 @@ export const useIngestionController = ({
     const normalizedUrl = urlInput.trim();
 
     setIsIngesting(true);
-    resetIngestionProgress();
+
+    // Show progress UI immediately before starting ingestion
+    setCurrentIngestionUrl(normalizedUrl);
+    setIngestionProgressEndpoint('/api/v2/ingest/progress');
+    setShowIngestionProgress(true);
 
     try {
       const ingestionTargets = [
@@ -113,16 +117,14 @@ export const useIngestionController = ({
 
       if (!targetUsed) {
         toast.error(lastError || 'Unable to reach ingestion service');
+        resetIngestionProgress();
         return;
       }
 
       const data = responseData || {};
-      if (targetUsed.progress) {
-        setCurrentIngestionUrl(normalizedUrl);
+      // Update progress endpoint if different target was used
+      if (targetUsed.progress && targetUsed.progress !== ingestionProgressEndpoint) {
         setIngestionProgressEndpoint(targetUsed.progress);
-        setShowIngestionProgress(true);
-      } else {
-        resetIngestionProgress();
       }
 
       if (responseOk) {
@@ -171,6 +173,7 @@ export const useIngestionController = ({
   }, [
     activeTab,
     forceRefresh,
+    ingestionProgressEndpoint,
     onActivityLog,
     recordHistoryEntry,
     refreshDatabaseMetrics,
