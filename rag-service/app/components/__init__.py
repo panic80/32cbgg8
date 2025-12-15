@@ -24,6 +24,7 @@ from .result_processor import ResultProcessor
 from .self_query_retriever import TravelSelfQueryRetriever
 from .table_query_rewriter import TableQueryRewriter
 from .table_ranker import TableRanker
+from .hyde_generator import HyDEGenerator, get_hyde_generator
 
 __all__ = [
     "AuthorityReranker",
@@ -43,5 +44,7 @@ __all__ = [
     "ResultProcessor",
     "TravelSelfQueryRetriever",
     "TableQueryRewriter",
-    "TableRanker"
+    "TableRanker",
+    "HyDEGenerator",
+    "get_hyde_generator"
 ]

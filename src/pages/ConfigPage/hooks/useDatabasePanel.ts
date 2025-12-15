@@ -163,6 +163,7 @@ export const useDatabasePanel = (
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SourceSort>('date');
+  const [isBuildingBM25, setIsBuildingBM25] = useState(false);
 
   const refreshMetrics = useCallback(async () => {
     setIsLoading(true);
@@ -212,6 +213,18 @@ export const useDatabasePanel = (
     setSortBy((current) => (current === 'date' ? 'count' : current === 'count' ? 'name' : 'date'));
   }, []);
 
+  const buildBM25Index = useCallback(async () => {
+    setIsBuildingBM25(true);
+    try {
+      await apiClient.postJson('/api/v2/database/build-bm25', {});
+    } catch (e) {
+      console.error('BM25 build failed', e);
+      throw e;
+    } finally {
+      setIsBuildingBM25(false);
+    }
+  }, []);
+
   return {
     stats,
     sources,
@@ -225,5 +238,7 @@ export const useDatabasePanel = (
     setSearchQuery: handleSearchChange,
     cycleSourceSort,
     refreshMetrics,
+    buildBM25Index,
+    isBuildingBM25,
   };
 };

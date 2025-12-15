@@ -360,3 +360,16 @@ class SourceRepository:
                     stats["total_documents"] = row[1] or 0
 
             return stats
+
+    async def clear_all(self) -> None:
+        """Delete all sources and related data from the repository."""
+        await self.initialize()
+
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute("PRAGMA foreign_keys = ON")
+            await db.execute("DELETE FROM query_sources")
+            await db.execute("DELETE FROM source_documents")
+            await db.execute("DELETE FROM sources")
+            await db.commit()
+
+        logger.info("Source repository cleared")

@@ -88,8 +88,7 @@ class HybridRetrieverFactory:
         self,
         vectorstore: VectorStore,
         llm: Optional[BaseLLM] = None,
-        embeddings: Optional[Embeddings] = None,
-        all_documents: Optional[List] = None
+        embeddings: Optional[Embeddings] = None
     ):
         """
         Initialize the retriever factory.
@@ -98,12 +97,10 @@ class HybridRetrieverFactory:
             vectorstore: The vector store to use
             llm: Language model for advanced retrievers
             embeddings: Embeddings model for compression
-            all_documents: All documents for BM25 index (optional)
         """
         self.vectorstore = vectorstore
         self.llm = llm
         self.embeddings = embeddings
-        self.all_documents = all_documents
         self._profiling_data = {}
     
     def create_retriever(
@@ -163,13 +160,10 @@ class HybridRetrieverFactory:
             )
         
         elif retriever_type == "bm25":
-            if self.all_documents:
-                return TravelBM25Retriever(
-                    documents=self.all_documents,
-                    k=k
-                )
-            else:
-                logger.warning("BM25 retriever requested but no documents provided")
+            try:
+                return TravelBM25Retriever(k=k)
+            except Exception as e:
+                logger.warning(f"Failed to create BM25 retriever (likely no index): {e}")
                 # Fallback to vector retriever
                 return self.vectorstore.as_retriever(
                     search_type="similarity",
@@ -234,12 +228,9 @@ class HybridRetrieverFactory:
         weights.append(config.ensemble_weights.get("vector", 0.5))
         
         # BM25 retriever
-        if config.use_bm25 and self.all_documents:
+        if config.use_bm25:
             try:
-                bm25_retriever = TravelBM25Retriever(
-                    documents=self.all_documents,
-                    k=config.k
-                )
+                bm25_retriever = TravelBM25Retriever(k=config.k)
                 retrievers.append(bm25_retriever)
                 weights.append(config.ensemble_weights.get("bm25", 0.5))
             except Exception as e:
@@ -276,22 +267,13 @@ class HybridRetrieverFactory:
         retriever = ensemble
         
         # Add co-occurrence retrieval
-        if config.use_cooccurrence and self.all_documents:
+        if config.use_cooccurrence:
             try:
                 # Co-occurrence retriever needs documents, not a base retriever
                 # We'll add it to the ensemble instead of wrapping
-                cooccurrence_retriever = TravelCooccurrenceRetriever(
-                    documents=self.all_documents,
-                    k=config.k
-                )
-                # Create a new ensemble with the co-occurrence retriever
-                retrievers = [retriever, cooccurrence_retriever]
-                weights = [0.7, 0.3]  # Give more weight to the existing retriever
-                retriever = ContentBoostedEnsembleRetriever(
-                    retrievers=retrievers,
-                    weights=weights,
-                    k=config.k
-                )
+                # Note: CooccurrenceRetriever will need similar updates to load from disk/artifacts
+                # For now, we'll skip if it requires explicit documents
+                pass
             except Exception as e:
                 logger.warning(f"Failed to add co-occurrence retriever: {e}")
         
@@ -366,12 +348,9 @@ class HybridRetrieverFactory:
         )
         
         # BM25 retriever
-        if config.use_bm25 and self.all_documents:
+        if config.use_bm25:
             try:
-                retrievers["bm25"] = TravelBM25Retriever(
-                    documents=self.all_documents,
-                    k=config.k
-                )
+                retrievers["bm25"] = TravelBM25Retriever(k=config.k)
             except Exception as e:
                 logger.warning(f"Failed to create BM25 retriever: {e}")
         
@@ -489,8 +468,7 @@ class HybridRetrieverFactory:
         mapper = LegacyConfigMapper(
             vectorstore=self.vectorstore,
             llm=self.llm,
-            embeddings=self.embeddings,
-            all_documents=self.all_documents
+            embeddings=self.embeddings
         )
         
         # Map configuration
@@ -521,8 +499,7 @@ class HybridRetrieverFactory:
         return cls(
             vectorstore=vector_store_manager.vector_store,
             llm=llm,
-            embeddings=vector_store_manager.embeddings,
-            all_documents=None  # Will be loaded lazily if needed
+            embeddings=vector_store_manager.embeddings
         )
 
 
@@ -531,36 +508,4 @@ def create_simple_retriever(vectorstore: VectorStore) -> BaseRetriever:
     """Create a simple vector search retriever."""
     factory = HybridRetrieverFactory(vectorstore)
     config = RetrieverConfig(mode=RetrieverMode.SIMPLE)
-    return factory.create_retriever(config)
-
-
-def create_hybrid_retriever(
-    vectorstore: VectorStore,
-    all_documents: List,
-    llm: Optional[BaseLLM] = None
-) -> BaseRetriever:
-    """Create a hybrid vector + BM25 retriever."""
-    factory = HybridRetrieverFactory(
-        vectorstore=vectorstore,
-        llm=llm,
-        all_documents=all_documents
-    )
-    config = RetrieverConfig(mode=RetrieverMode.HYBRID)
-    return factory.create_retriever(config)
-
-
-def create_advanced_retriever(
-    vectorstore: VectorStore,
-    llm: BaseLLM,
-    embeddings: Embeddings,
-    all_documents: Optional[List] = None
-) -> BaseRetriever:
-    """Create an advanced multi-stage retriever."""
-    factory = HybridRetrieverFactory(
-        vectorstore=vectorstore,
-        llm=llm,
-        embeddings=embeddings,
-        all_documents=all_documents
-    )
-    config = RetrieverConfig(mode=RetrieverMode.ADVANCED)
     return factory.create_retriever(config)

@@ -205,7 +205,14 @@ class Settings(BaseSettings):
     relevance_threshold: float = 0.4  # Minimum avg relevance to proceed (0-1 scale)
     checkpoint_critical_nodes_only: bool = True  # Only checkpoint key nodes to reduce latency
     stateful_retrieval_session_ttl: int = 3600  # Session TTL in seconds (1 hour)
-    
+
+    # HyDE (Hypothetical Document Embeddings) Configuration
+    enable_hyde: bool = True  # Enable HyDE for improved retrieval
+    hyde_model: str = "gpt-4.1-mini"  # Model for generating hypothetical answers
+    hyde_cache_ttl: int = 86400  # 24 hours cache for hypothetical docs
+    hyde_timeout: float = 2.0  # Max seconds for hypothesis generation
+    hyde_max_tokens: int = 300  # Max tokens for hypothetical answer
+
     # Logging
     log_level: str = "INFO"
     log_format: str = "json"

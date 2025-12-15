@@ -154,6 +154,7 @@ app.include_router(websocket.router, prefix=settings.api_prefix, tags=["websocke
 app.include_router(progress.router, prefix=settings.api_prefix, tags=["progress"])
 app.include_router(streaming_chat.router, prefix=settings.api_prefix, tags=["streaming"])
 app.include_router(metrics.router, prefix=settings.api_prefix, tags=["metrics"])
+app.include_router(admin.router, prefix=f"{settings.api_prefix}/admin", tags=["admin"])
 
 
 @app.get("/")

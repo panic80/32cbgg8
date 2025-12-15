@@ -122,6 +122,7 @@ class RetrievalExecutor:
         query: str,
         k: Optional[int] = None,
         is_smart_mode: bool = False,
+        hyde_hypothesis: Optional[str] = None,
     ) -> List[Tuple]:
         """Execute retrieval.
 
@@ -130,6 +131,7 @@ class RetrievalExecutor:
             query: The query string.
             k: Number of results (defaults to settings).
             is_smart_mode: Whether to apply smart mode limits.
+            hyde_hypothesis: Optional HyDE hypothesis for improved retrieval.
 
         Returns:
             List of (document, score) tuples.
@@ -137,7 +139,14 @@ class RetrievalExecutor:
         if k is None:
             k = getattr(settings, "max_chunks_per_query", 6)
 
-        results = await pipeline.retrieve(query=query, k=k)
+        # Pass HyDE hypothesis to pipeline if available
+        if hyde_hypothesis and settings.enable_hyde:
+            logger.debug("Executing retrieval with HyDE hypothesis")
+            results = await pipeline.retrieve(
+                query=query, k=k, hyde_hypothesis=hyde_hypothesis
+            )
+        else:
+            results = await pipeline.retrieve(query=query, k=k)
 
         # Apply smart mode chunk limit
         if is_smart_mode:

@@ -71,6 +71,8 @@ export default function ConfigPage() {
     setSearchQuery: updateSourceSearchQuery,
     cycleSourceSort,
     refreshMetrics: refreshDatabaseMetrics,
+    buildBM25Index,
+    isBuildingBM25,
   } = useDatabasePanel(formatDateDisplay);
 
   const {
@@ -250,6 +252,26 @@ export default function ConfigPage() {
     }
   };
 
+  const handleBuildBM25 = async () => {
+    try {
+      await buildBM25Index();
+      toast.success('BM25 index build started');
+      addActivityLogEntry('BM25 Build', 'Started rebuilding BM25 index');
+    } catch (error) {
+      if (error instanceof ApiError) {
+        const message =
+          typeof (error.data as any)?.message === 'string'
+            ? (error.data as any).message
+            : error.statusText || error.message;
+        toast.error(message || 'Failed to build BM25 index');
+      } else if (error instanceof Error) {
+        toast.error(error.message || 'Failed to build BM25 index');
+      } else {
+        toast.error('Failed to build BM25 index');
+      }
+    }
+  };
+
   const exportDatabaseStats = () => {
     if (!databaseStats) return;
 
@@ -375,6 +397,8 @@ export default function ConfigPage() {
               activityLog={activityLog}
               showActivityLog={showActivityLog}
               onToggleActivityLog={handleToggleActivityLog}
+              onBuildBM25={handleBuildBM25}
+              isBuildingBM25={isBuildingBM25}
             />
           </TabsContent>
 

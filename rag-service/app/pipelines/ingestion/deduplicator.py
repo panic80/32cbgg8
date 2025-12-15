@@ -128,7 +128,27 @@ class Deduplicator:
         self,
         documents: List[Document],
     ) -> List[Document]:
-        """Deduplicate documents within the current batch."""
+        """Deduplicate documents within the current batch.
+
+        Uses fast hash-based deduplication instead of O(n²) similarity checks.
+        """
+        # For large batches, use fast hash-based deduplication only
+        # O(n²) similarity checks are too slow for batches > 100 chunks
+        if len(documents) > 100:
+            logger.info(f"Using fast hash-based deduplication for {len(documents)} chunks")
+            seen_hashes = {}
+            unique_docs = []
+            for doc in documents:
+                content_hash = self._hasher.generate_content_hash(doc.content)
+                if content_hash not in seen_hashes:
+                    seen_hashes[content_hash] = doc.id
+                    unique_docs.append(doc)
+
+            removed = len(documents) - len(unique_docs)
+            if removed > 0:
+                logger.info(f"Fast dedup removed {removed} exact duplicates within batch")
+            return unique_docs
+
         docs_for_dedup = [
             {
                 "id": doc.id,

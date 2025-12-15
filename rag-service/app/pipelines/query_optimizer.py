@@ -10,6 +10,7 @@ from langchain_core.output_parsers import PydanticOutputParser
 from pydantic import BaseModel, Field
 
 from app.core.logging import get_logger
+from app.core.config import settings
 
 logger = get_logger(__name__)
 
@@ -624,8 +625,13 @@ Provide your classification:""",
         else:
             return "en"
             
-    async def optimize_query(self, query: str) -> Dict[str, Any]:
-        """Full query optimization pipeline."""
+    async def optimize_query(self, query: str, hyde_generator=None) -> Dict[str, Any]:
+        """Full query optimization pipeline.
+
+        Args:
+            query: The user's query
+            hyde_generator: Optional HyDEGenerator instance for hypothesis generation
+        """
         # Detect language
         language = self.detect_language(query)
 
@@ -637,16 +643,16 @@ Provide your classification:""",
 
         # Classify query
         classification = await self.classify_query(expanded)
-        
+
         # Simplify if complex
         sub_queries = self.simplify_complex_query(expanded)
-        
+
         # Expand based on intent
         all_expansions = []
         for sub_query in sub_queries:
             expansions = self.expand_query(sub_query, classification.intent)
             all_expansions.extend(expansions)
-            
+
         # Remove duplicates while preserving order
         unique_expansions = []
         seen = set()
@@ -654,14 +660,22 @@ Provide your classification:""",
             if exp not in seen:
                 seen.add(exp)
                 unique_expansions.append(exp)
-                
+
+        # Generate HyDE hypothesis if enabled
+        hyde_hypothesis = None
+        if settings.enable_hyde and hyde_generator:
+            hyde_hypothesis = await hyde_generator.generate_hypothesis(expanded)
+            if hyde_hypothesis:
+                logger.debug(f"Generated HyDE hypothesis: {hyde_hypothesis[:100]}...")
+
         return {
             "original_query": query,
             "language": language,
             "classification": classification.model_dump(),
             "expanded_queries": unique_expansions,
             "requires_translation": language != "en",
-            "column_number": column_number  # Add detected column number for filtering
+            "column_number": column_number,  # Add detected column number for filtering
+            "hyde_hypothesis": hyde_hypothesis  # HyDE hypothetical answer for retrieval
         }
     
     def expand_query_for_retry(self, query: str) -> str:

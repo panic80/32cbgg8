@@ -57,7 +57,13 @@ async def purge_database(request: Request) -> dict:
         if cache_service:
             await cache_service.clear_all()
             logger.info("Cleared all cache entries")
-        
+
+        # Clear source repository if available
+        source_repository = getattr(app.state, "source_repository", None)
+        if source_repository:
+            await source_repository.clear_all()
+            logger.info("Cleared source repository")
+
         # Get updated stats
         document_count = 0
         if hasattr(vector_store_manager.vector_store, '_collection'):

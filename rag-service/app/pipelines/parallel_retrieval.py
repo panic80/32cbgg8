@@ -209,16 +209,18 @@ class ParallelRetrievalPipeline:
         self,
         query: str,
         k: int = 5,
-        merge_strategy: str = "weighted"
+        merge_strategy: str = "weighted",
+        hyde_hypothesis: Optional[str] = None
     ) -> List[Tuple[Document, float]]:
         """
         Retrieve documents from all retrievers in parallel.
-        
+
         Args:
             query: Search query
             k: Number of documents to return
             merge_strategy: How to merge results ("weighted", "round_robin", "score_based")
-            
+            hyde_hypothesis: Optional HyDE hypothetical document for additional retrieval
+
         Returns:
             List of (document, score) tuples
         """
@@ -228,16 +230,27 @@ class ParallelRetrievalPipeline:
             for name, retriever in self.retrievers.items()
             if not self.circuit_breaker.is_open(name)
         }
-        
+
         if not active_retrievers:
             logger.warning("All retrievers have open circuits!")
             return []
-        
-        # Create retrieval tasks
+
+        # Create retrieval tasks for main query
         tasks = []
         for name, retriever in active_retrievers.items():
             task = self._retrieve_with_timeout(name, retriever, query, k * 2)  # Get more for merging
             tasks.append(task)
+
+        # Add HyDE retrieval tasks if hypothesis provided
+        if hyde_hypothesis and hyde_hypothesis != query:
+            logger.info("Adding HyDE hypothesis to retrieval queries")
+            # Only use vector retrievers for HyDE (not BM25 - HyDE is for semantic search)
+            for name, retriever in active_retrievers.items():
+                if "bm25" not in name.lower():
+                    hyde_task = self._retrieve_with_timeout(
+                        f"{name}_hyde", retriever, hyde_hypothesis, k
+                    )
+                    tasks.append(hyde_task)
         
         monitor = get_performance_monitor()
 
@@ -604,22 +617,10 @@ def create_parallel_pipeline(
             logger.info(f"Unified config created: {list(unified_config.keys())}")
     
     # Create retrievers
-    # Attempt to provide a BM25 corpus by loading all documents once and caching
-    all_documents = None
-    try:
-        all_documents = vector_store_manager.get_all_documents()
-        if all_documents:
-            logger.info(f"BM25 corpus available: {len(all_documents)} documents")
-        else:
-            logger.warning("BM25 corpus not available or empty; BM25 will be disabled or fallback to vector")
-    except Exception as e:
-        logger.warning(f"Unable to prepare BM25 corpus: {e}")
-
     factory = HybridRetrieverFactory(
         vectorstore=vector_store_manager.vector_store,
         llm=llm,
-        embeddings=vector_store_manager.embeddings,
-        all_documents=all_documents
+        embeddings=vector_store_manager.embeddings
     )
     retrievers = {}
     
@@ -664,9 +665,24 @@ def create_parallel_pipeline(
     
     reranker = None
     if enable_reranker:
+        # Detect best available device
+        device = "cpu"
+        try:
+            import torch
+            if torch.cuda.is_available():
+                device = "cuda"
+                logger.info("Using CUDA for reranker")
+            elif torch.backends.mps.is_available():
+                device = "mps"
+                logger.info("Using MPS for reranker")
+            else:
+                logger.info("Using CPU for reranker")
+        except ImportError:
+            logger.warning("Torch not available, defaulting to CPU for reranker")
+
         reranker = CrossEncoderReranker(
             model_name="cross-encoder/ms-marco-MiniLM-L-6-v2",
-            device="cpu"
+            device=device
         )
     
     # Create table ranker for table-specific queries

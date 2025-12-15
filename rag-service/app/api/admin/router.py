@@ -9,6 +9,7 @@ from app.api.admin.backup import router as backup_router
 from app.api.admin.metrics import router as metrics_router
 from app.api.admin.queries import router as queries_router
 from app.api.admin.config import router as config_router
+from app.api.admin.bm25 import router as bm25_router
 
 router = APIRouter()
 
@@ -20,3 +21,4 @@ router.include_router(backup_router)
 router.include_router(metrics_router)
 router.include_router(queries_router)
 router.include_router(config_router)
+router.include_router(bm25_router)

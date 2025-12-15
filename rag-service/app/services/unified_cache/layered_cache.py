@@ -34,6 +34,9 @@ class CacheConfig:
     # Query classification - medium TTL
     classification_ttl: int = 3600  # 1 hour
 
+    # HyDE hypothesis - long TTL (hypotheses don't change for same query)
+    hyde_ttl: int = 86400  # 24 hours
+
     # Generic cache - default TTL
     default_ttl: int = 3600  # 1 hour
 
@@ -440,6 +443,35 @@ class LayeredCacheService:
         return await self.backend.set(
             key, classification, self.config.classification_ttl
         )
+
+    # =========================================================================
+    # HyDE (Hypothetical Document Embeddings) Cache
+    # =========================================================================
+
+    async def get_hyde_hypothesis(self, query: str) -> Optional[str]:
+        """Get cached HyDE hypothetical document.
+
+        Args:
+            query: The query for which a hypothesis was generated.
+
+        Returns:
+            Cached hypothesis string, or None if not found.
+        """
+        key = self.key_generator.hyde(query)
+        return await self.backend.get(key)
+
+    async def set_hyde_hypothesis(self, query: str, hypothesis: str) -> bool:
+        """Cache a HyDE hypothetical document.
+
+        Args:
+            query: The query for which hypothesis was generated.
+            hypothesis: The hypothetical document/answer.
+
+        Returns:
+            True if cached successfully.
+        """
+        key = self.key_generator.hyde(query)
+        return await self.backend.set(key, hypothesis, self.config.hyde_ttl)
 
     # =========================================================================
     # Generic Operations

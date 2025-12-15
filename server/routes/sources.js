@@ -123,6 +123,41 @@ export function createSourcesRoutes({ rateLimiter, requireAdminAuth, getRagAuthH
     }
   });
 
+  // Build BM25 index endpoint
+  router.post('/api/v2/database/build-bm25', adminMiddleware, rateLimiter, async (req, res) => {
+    try {
+      logger.info('BM25 index build requested');
+      const ragServiceUrl = process.env.RAG_SERVICE_URL || 'http://localhost:8000';
+      const ragResponse = await axios.post(
+        `${ragServiceUrl}/api/v1/admin/bm25/rebuild`,
+        {},
+        {
+          timeout: 30000,
+          headers: { 'Content-Type': 'application/json', ...buildRagAuthHeaders() },
+        },
+      );
+      logger.info('BM25 index build initiated', { result: ragResponse.data });
+      res.json(ragResponse.data);
+    } catch (error) {
+      if (error.response) {
+        return respondWithError(res, {
+          status: error.response.status,
+          error: 'BM25BuildUpstreamError',
+          message: error.response.data?.message || 'Failed to build BM25 index.',
+          logger,
+          cause: error,
+        });
+      }
+      return respondWithError(res, {
+        status: 500,
+        error: 'BM25BuildFailed',
+        message: 'Failed to build BM25 index.',
+        logger,
+        cause: error,
+      });
+    }
+  });
+
   return router;
 }
 

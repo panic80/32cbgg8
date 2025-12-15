@@ -174,6 +174,19 @@ class CacheKeyGenerator:
         return f"cls:{cls.VERSION}:{query_hash}"
 
     @classmethod
+    def hyde(cls, query: str) -> str:
+        """Generate cache key for HyDE hypothetical documents.
+
+        Args:
+            query: The query for which a hypothesis was generated.
+
+        Returns:
+            Cache key string.
+        """
+        query_hash = hashlib.md5(query.lower().strip().encode('utf-8')).hexdigest()
+        return f"hyde:{cls.VERSION}:{query_hash}"
+
+    @classmethod
     def generic(cls, prefix: str, *args: Any) -> str:
         """Generate a generic cache key with prefix and arguments.
 

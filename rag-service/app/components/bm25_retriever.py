@@ -7,6 +7,7 @@ with additional features for the travel domain.
 
 from typing import List, Dict, Any, Optional
 import logging
+import os
 
 from langchain_core.retrievers import BaseRetriever
 from langchain_core.documents import Document
@@ -42,22 +43,60 @@ class TravelBM25Retriever(BaseRetriever, BaseComponent):
     
     def __init__(
         self,
-        documents: List[Document],
+        documents: Optional[List[Document]] = None,
         k: int = 10,
         preprocess_query: bool = True,
         component_name: str = "bm25",
+        index_path: Optional[str] = None,
         **kwargs
     ):
         """
         Initialize the BM25 retriever.
         
         Args:
-            documents: List of documents to index
+            documents: List of documents to index (optional if loading from disk)
             k: Number of documents to retrieve
             preprocess_query: Whether to preprocess queries
+            index_path: Path to pickled BM25 index (optional)
         """
-        # Create underlying BM25 retriever
-        bm25_retriever = LangChainBM25Retriever.from_documents(documents, k=k)
+        bm25_retriever = None
+        
+        # Try loading from disk first if no documents provided or explicit path given
+        if not documents:
+            try:
+                if not index_path:
+                    # Determine base data directory
+                    if os.path.exists("/app/data"):
+                        base_data_dir = "/app/data"
+                    else:
+                        # Fallback to local data directory relative to project root
+                        # .../app/components/bm25_retriever.py -> .../
+                        project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+                        base_data_dir = os.path.join(project_root, "data")
+                    
+                    index_path = os.path.join(base_data_dir, "bm25", "bm25_retriever.pkl")
+                
+                if os.path.exists(index_path):
+                    import pickle
+                    logger.info(f"Loading BM25 index from {index_path}...")
+                    with open(index_path, "rb") as f:
+                        bm25_retriever = pickle.load(f)
+                    
+                    # Update k if different
+                    bm25_retriever.k = k
+                    logger.info(f"Successfully loaded BM25 index with {len(bm25_retriever.docs)} documents")
+            except Exception as e:
+                logger.warning(f"Failed to load BM25 index from disk: {e}")
+
+        # Fallback to building from documents if load failed or documents explicitly provided
+        if bm25_retriever is None:
+            if documents:
+                logger.info(f"Building BM25 index in-memory with {len(documents)} documents")
+                bm25_retriever = LangChainBM25Retriever.from_documents(documents, k=k)
+            else:
+                # Initialize empty if absolutely nothing available (prevents crash, but won't retrieve)
+                logger.warning("No documents or index provided for BM25. Initializing empty.")
+                bm25_retriever = LangChainBM25Retriever.from_documents([Document(page_content="")], k=k)
 
         # Initialize BaseRetriever with fields
         super().__init__(
@@ -72,8 +111,6 @@ class TravelBM25Retriever(BaseRetriever, BaseComponent):
         # Initialize BaseComponent after BaseRetriever so attribute mutation is
         # compatible with pydantic's BaseModel internals.
         BaseComponent.__init__(self, component_type="retriever", component_name=component_name)
-        
-        logger.info(f"Initialized BM25 retriever with {len(documents)} documents")
     
     def _preprocess_query(self, query: str) -> str:
         """

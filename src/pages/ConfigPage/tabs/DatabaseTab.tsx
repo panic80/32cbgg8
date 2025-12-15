@@ -56,6 +56,8 @@ type DatabaseTabProps = {
   activityLog: ActivityLogEntry[];
   showActivityLog: boolean;
   onToggleActivityLog: () => void;
+  onBuildBM25: () => void;
+  isBuildingBM25: boolean;
 };
 
 export const DatabaseTab: React.FC<DatabaseTabProps> = ({
@@ -78,6 +80,8 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
   activityLog,
   showActivityLog,
   onToggleActivityLog,
+  onBuildBM25,
+  isBuildingBM25,
 }) => {
   return (
     <div className="space-y-4 animate-fade-up">
@@ -293,6 +297,46 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
                     'No sources have been indexed yet. Ingest content to populate this list.'}
                 </p>
               ))}
+
+            <div className="p-4 border rounded-lg space-y-4">
+              <div className="space-y-1">
+                <h4 className="text-sm font-medium flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-blue-500" />
+                  Optimization
+                </h4>
+                <p className="text-xs text-muted-foreground">
+                  Perform maintenance tasks to optimize retrieval performance.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                <div className="space-y-1">
+                  <div className="text-sm font-medium">BM25 Index</div>
+                  <div className="text-xs text-muted-foreground">
+                    Rebuilds the keyword search index for hybrid retrieval.
+                  </div>
+                </div>
+                <AnimatedButton
+                  variant="outline"
+                  size="sm"
+                  onClick={onBuildBM25}
+                  disabled={isBuildingBM25}
+                  ripple
+                >
+                  {isBuildingBM25 ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Building...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Rebuild Index
+                    </>
+                  )}
+                </AnimatedButton>
+              </div>
+            </div>
 
             <div className="p-4 border rounded-lg space-y-4">
               <div className="space-y-1">

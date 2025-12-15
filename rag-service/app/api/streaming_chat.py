@@ -41,6 +41,7 @@ from app.utils.streaming_utils import (
 from app.services.policy_units import extract_policy_units_from_chunks
 from app.services.policy_diff import match_units, build_delta
 from app.services.policy_delta_summarizer import summarize_delta_with_llm
+from app.components.hyde_generator import get_hyde_generator
 
 # Import modular services
 from app.services.chat.query_processor import (
@@ -181,6 +182,12 @@ async def _run_streaming_flow(
     response_builder = ResponseBuilder()
     stream_emitter = StreamEmitter(perf_monitor, query_logger, source_repository)
 
+    # Initialize HyDE generator (skip for smart mode to reduce latency)
+    hyde_generator = None
+    if settings.enable_hyde and not is_smart_gpt5:
+        cache_service = getattr(app_state, "cache_service", None)
+        hyde_generator = get_hyde_generator(llm_pool, cache_service)
+
     # Initialize state
     retrieval_results: List[Tuple] = []
     follow_up_questions_payload: List[Dict[str, Any]] = []
@@ -237,6 +244,19 @@ async def _run_streaming_flow(
         classification_dict and classification_dict.get("entitlement_likely_denied")
     )
 
+    # Generate HyDE hypothesis if enabled
+    hyde_hypothesis = None
+    if hyde_generator and chat_request.use_rag:
+        try:
+            hyde_start = time.perf_counter()
+            hyde_hypothesis = await hyde_generator.generate_hypothesis(optimized_query)
+            hyde_time_ms = (time.perf_counter() - hyde_start) * 1000
+            if hyde_hypothesis:
+                logger.debug(f"HyDE hypothesis generated in {hyde_time_ms:.1f}ms")
+                perf_monitor.record_latency("hyde_latency_ms", hyde_time_ms)
+        except Exception as hyde_error:
+            logger.warning(f"HyDE generation failed: {hyde_error}")
+
     # Retrieval
     if chat_request.use_rag:
         yield f"data: {json.dumps({'type': 'retrieval_start'})}\n\n"
@@ -244,7 +264,8 @@ async def _run_streaming_flow(
         pipeline = await retrieval_executor.create_pipeline(chat_request, is_smart_gpt5)
         retrieval_start = time.perf_counter()
         retrieval_results = await retrieval_executor.retrieve(
-            pipeline, optimized_query, is_smart_mode=is_smart_gpt5
+            pipeline, optimized_query, is_smart_mode=is_smart_gpt5,
+            hyde_hypothesis=hyde_hypothesis
         )
         retrieval_time_ms = (time.perf_counter() - retrieval_start) * 1000
         retrieval_count = len(retrieval_results)
