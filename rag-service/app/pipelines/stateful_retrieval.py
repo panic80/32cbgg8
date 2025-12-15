@@ -140,11 +140,17 @@ class StatefulRetrievalPipeline:
         logger.info(f"Retrieval iteration {iteration + 1}: query='{query}'")
         
         try:
+            # Get HyDE hypothesis from state metadata (only use on first iteration)
+            hyde_hypothesis = None
+            if iteration == 0:
+                hyde_hypothesis = state.get("metadata", {}).get("hyde_hypothesis")
+
             # Call parallel retrieval pipeline
             documents = await self.parallel_pipeline.retrieve(
                 query=query,
                 k=settings.retrieval_k,
-                merge_strategy="weighted"
+                merge_strategy="weighted",
+                hyde_hypothesis=hyde_hypothesis
             )
             
             state["documents"] = documents
@@ -316,16 +322,18 @@ class StatefulRetrievalPipeline:
         query: str,
         k: int = 5,
         session_id: Optional[str] = None,
-        merge_strategy: str = "weighted"
+        merge_strategy: str = "weighted",
+        hyde_hypothesis: Optional[str] = None
     ) -> List[Tuple[Document, float]]:
         """Execute stateful retrieval with iterative refinement.
-        
+
         Args:
             query: Search query
             k: Number of documents to return
             session_id: Session ID for persistence (optional)
             merge_strategy: Strategy for merging results (passed to parallel pipeline)
-            
+            hyde_hypothesis: Optional HyDE hypothesis for improved retrieval
+
         Returns:
             List of (document, score) tuples
         """
@@ -352,7 +360,8 @@ class StatefulRetrievalPipeline:
             "metadata": {
                 "start_time": start_time,
                 "k": k,
-                "merge_strategy": merge_strategy
+                "merge_strategy": merge_strategy,
+                "hyde_hypothesis": hyde_hypothesis
             },
             "error": None,
             "finalized": False
@@ -384,5 +393,7 @@ class StatefulRetrievalPipeline:
             
             # Fallback to direct parallel pipeline
             logger.info("Falling back to parallel pipeline")
-            return await self.parallel_pipeline.retrieve(query, k, merge_strategy)
+            return await self.parallel_pipeline.retrieve(
+                query, k, merge_strategy, hyde_hypothesis=hyde_hypothesis
+            )
 
