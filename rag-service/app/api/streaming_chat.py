@@ -13,6 +13,7 @@ from typing import AsyncGenerator, Dict, List, Optional, Tuple, Any
 
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, Field
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from app.api.chat import get_llm
@@ -183,8 +184,13 @@ async def _run_streaming_flow(
     stream_emitter = StreamEmitter(perf_monitor, query_logger, source_repository)
 
     # Initialize HyDE generator (skip for smart mode to reduce latency)
+    # Check for per-request enable_hyde override
     hyde_generator = None
-    if settings.enable_hyde and not is_smart_gpt5:
+    enable_hyde = settings.enable_hyde
+    if chat_request.retrieval_config and chat_request.retrieval_config.enable_hyde is not None:
+        enable_hyde = chat_request.retrieval_config.enable_hyde
+        logger.info(f"Using per-request enable_hyde: {enable_hyde}")
+    if enable_hyde and not is_smart_gpt5:
         cache_service = getattr(app_state, "cache_service", None)
         hyde_generator = get_hyde_generator(llm_pool, cache_service)
 
@@ -640,3 +646,92 @@ async def streaming_chat_endpoint(request: Request, chat_request: ChatRequest) -
 async def streaming_chat_legacy(request: Request, chat_request: ChatRequest) -> StreamingResponse:
     """Legacy endpoint maintained for existing gateway integration."""
     return await streaming_chat_endpoint(request, chat_request)
+
+
+class RetrievalOnlyRequest(BaseModel):
+    """Request model for retrieval-only endpoint."""
+    query: str = Field(..., description="Search query")
+    retrieval_config: Optional[Dict[str, Any]] = Field(None, description="Retrieval config overrides")
+    use_hybrid_search: bool = Field(True, description="Enable hybrid search")
+
+
+class RetrievalOnlyResponse(BaseModel):
+    """Response model for retrieval-only endpoint."""
+    sources: List[Dict[str, Any]] = Field(..., description="Retrieved sources")
+    latency_ms: float = Field(..., description="Retrieval latency in milliseconds")
+    retrieval_count: int = Field(..., description="Number of sources retrieved")
+
+
+@router.post("/retrieval", response_model=RetrievalOnlyResponse)
+async def retrieval_only_endpoint(request: Request, retrieval_request: RetrievalOnlyRequest) -> RetrievalOnlyResponse:
+    """Fast retrieval-only endpoint - returns sources without LLM generation.
+
+    Useful for evaluation and testing retrieval configurations.
+    """
+    import time
+    from app.models.query import ChatRequest, RetrievalConfig
+
+    start_time = time.perf_counter()
+
+    vector_store_manager = getattr(request.app.state, "vector_store_manager", None)
+    if vector_store_manager is None:
+        raise RuntimeError("Vector store manager is not configured")
+
+    # Build a minimal ChatRequest to use the retrieval executor
+    retrieval_config = None
+    if retrieval_request.retrieval_config:
+        retrieval_config = RetrievalConfig(**retrieval_request.retrieval_config)
+
+    chat_request = ChatRequest(
+        message=retrieval_request.query,
+        use_rag=True,
+        use_hybrid_search=retrieval_request.use_hybrid_search,
+        retrieval_config=retrieval_config,
+    )
+
+    # Initialize retrieval executor
+    retrieval_executor = RetrievalExecutor(vector_store_manager, request.app.state, None)
+    response_builder = ResponseBuilder()
+
+    # Check for per-request enable_hyde override
+    enable_hyde = settings.enable_hyde
+    if retrieval_config and retrieval_config.enable_hyde is not None:
+        enable_hyde = retrieval_config.enable_hyde
+
+    # Initialize HyDE generator if enabled
+    hyde_generator = None
+    if enable_hyde:
+        cache_service = getattr(request.app.state, "cache_service", None)
+        hyde_generator = get_hyde_generator(llm_pool, cache_service)
+
+    # Generate HyDE hypothesis if enabled
+    hyde_hypothesis = None
+    if hyde_generator:
+        try:
+            hyde_hypothesis = await hyde_generator.generate_hypothesis(retrieval_request.query)
+        except Exception as hyde_error:
+            logger.warning(f"HyDE generation failed: {hyde_error}")
+
+    # Create pipeline and retrieve
+    pipeline = await retrieval_executor.create_pipeline(chat_request, is_smart_mode=False)
+    retrieval_results = await retrieval_executor.retrieve(
+        pipeline, retrieval_request.query, is_smart_mode=False, hyde_hypothesis=hyde_hypothesis
+    )
+
+    # Build sources
+    sources = []
+    if retrieval_results:
+        _, sources_list = await response_builder.build_context_and_sources(
+            retrieval_results, retrieval_request.query, vector_store_manager
+        )
+        sources = [s.model_dump() for s in sources_list]
+
+    latency_ms = (time.perf_counter() - start_time) * 1000
+
+    return RetrievalOnlyResponse(
+        sources=sources,
+        latency_ms=latency_ms,
+        retrieval_count=len(sources),
+    )
+
+

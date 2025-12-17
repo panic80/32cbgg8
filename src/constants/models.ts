@@ -1,8 +1,9 @@
 export interface LLMModel {
   id: string;
   name: string;
-  provider: 'openai' | 'google' | 'anthropic';
+  provider: 'openai' | 'google' | 'anthropic' | 'openrouter';
   description?: string;
+  tier?: 'fast' | 'smart' | 'balanced'; // Suggested tier for fast/smart selection
 }
 
 export const LLM_MODELS: LLMModel[] = [

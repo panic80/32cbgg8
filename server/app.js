@@ -11,6 +11,7 @@ import { loggingMiddleware } from './middleware/logging.js';
 import chatLogger, { getLogger } from './services/logger.js';
 import CacheService from './services/cache.js';
 import createSourcesRoutes from './routes/sources.js';
+import createModelConfigRoutes from './routes/model-config.js';
 import createLogsRoutes from './routes/logs.js';
 import createPerformanceHandler from './routes/performance.js';
 import createAdminRoutes from './routes/admin.js';
@@ -482,6 +483,7 @@ let rateLimitSweepCursor = 0;
 let geminiClient = null;
 let openaiClient = null;
 let anthropicClient = null;
+let openrouterClient = null;
 
 // Helper function to check if API key is valid (not a placeholder)
 const isValidApiKey = (key) => {
@@ -529,6 +531,21 @@ if (isValidApiKey(process.env.ANTHROPIC_API_KEY)) {
   log.info('Anthropic API client initialized');
 } else {
   log.info('Anthropic API key not configured or invalid');
+}
+
+// Initialize OpenRouter client (OpenAI-compatible API)
+if (isValidApiKey(process.env.OPENROUTER_API_KEY)) {
+  openrouterClient = new OpenAI({
+    apiKey: process.env.OPENROUTER_API_KEY,
+    baseURL: 'https://openrouter.ai/api/v1',
+    defaultHeaders: {
+      'HTTP-Referer': process.env.APP_URL || 'http://localhost:3000',
+      'X-Title': 'CF Travel Bot',
+    },
+  });
+  log.info('OpenRouter API client initialized');
+} else {
+  log.info('OpenRouter API key not configured');
 }
 
 // Initialize Google Maps client
@@ -730,6 +747,12 @@ const sourcesRouter = createSourcesRoutes({
 });
 app.use(sourcesRouter);
 
+const modelConfigRouter = createModelConfigRoutes({
+  rateLimiter,
+  requireAdminAuth,
+});
+app.use(modelConfigRouter);
+
 // Advanced health check endpoint with detailed system stats
 app.get('/health', async (req, res) => {
   // Get cache stats
@@ -856,6 +879,7 @@ app.get('/api/config', (req, res) => {
         google: !!geminiClient,
         openai: !!openaiClient,
         anthropic: !!anthropicClient,
+        openrouter: !!openrouterClient,
       },
     },
     caching: {

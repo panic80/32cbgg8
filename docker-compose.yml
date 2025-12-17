@@ -58,6 +58,7 @@ services:
       - RAG_ENABLE_LLM_POOL=true
       - RAG_ENABLE_STREAMING_RETRIEVAL=true
       - RAG_ENABLE_QUERY_LOGGING=true
+      - RAG_ENABLE_HYDE=false
       - ADMIN_API_TOKEN=${ADMIN_API_TOKEN:-changeme-admin-token}
     env_file:
       - .env

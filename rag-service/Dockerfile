@@ -31,6 +31,7 @@ RUN mkdir -p /app/nltk_data && \
 
 # Copy application code
 COPY app/ ./app/
+COPY evaluation/ ./evaluation/
 
 # Create directories for data, chroma_db, and logs, and set ownership
 RUN mkdir -p /app/data /app/chroma_db /app/logs /var/log/cbthis /home/appuser && \

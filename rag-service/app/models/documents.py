@@ -1,6 +1,6 @@
 """Document models for RAG service."""
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone
 from enum import Enum
@@ -27,6 +27,27 @@ class DocumentMetadata(BaseModel):
     last_modified: Optional[datetime] = Field(None, description="Last modification date")
     policy_reference: Optional[str] = Field(None, description="Policy reference number")
     tags: List[str] = Field(default_factory=list, description="Document tags")
+
+    @field_validator("tags", mode="before")
+    @classmethod
+    def parse_tags(cls, v):
+        """Handle tags stored as strings in ChromaDB."""
+        if v is None or v == "":
+            return []
+        if isinstance(v, str):
+            # Try JSON parse first, fall back to comma split
+            import json
+            try:
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return parsed
+            except (json.JSONDecodeError, TypeError):
+                pass
+            # Split by comma if it looks like a list
+            if "," in v:
+                return [t.strip() for t in v.split(",") if t.strip()]
+            return [v] if v else []
+        return v
     source_id: Optional[str] = Field(
         None,
         description="Stable identifier for the canonical source entry"

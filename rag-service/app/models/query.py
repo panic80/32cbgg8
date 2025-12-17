@@ -11,6 +11,7 @@ class Provider(str, Enum):
     OPENAI = "openai"
     GOOGLE = "google"
     ANTHROPIC = "anthropic"
+    OPENROUTER = "openrouter"
 
 
 class ChatMessage(BaseModel):
@@ -33,6 +34,20 @@ class Source(BaseModel):
     page: Optional[int] = Field(None, description="Page number")
     score: Optional[float] = Field(None, description="Relevance score")
     metadata: Optional[Dict[str, Any]] = Field(None, description="Additional metadata")
+
+
+class RetrievalConfig(BaseModel):
+    """Per-request retrieval configuration overrides."""
+    retrieval_k: Optional[int] = Field(None, description="Number of documents to retrieve")
+    rrf_k: Optional[int] = Field(None, description="RRF fusion parameter k")
+    enable_hyde: Optional[bool] = Field(None, description="Enable HyDE retrieval")
+    enable_reranker: Optional[bool] = Field(None, description="Enable cross-encoder reranking")
+    reranker_skip_similarity_threshold: Optional[float] = Field(
+        None, description="Skip reranking if top score above this threshold"
+    )
+    unified_retrieval_mode: Optional[str] = Field(
+        None, description="Retrieval mode: simple, balanced, advanced"
+    )
 
 
 class ChatRequest(BaseModel):
@@ -68,6 +83,9 @@ class ChatRequest(BaseModel):
     audience: Optional[str] = Field(
         default=None,
         description="Target audience for differences (e.g., 'classA')",
+    )
+    retrieval_config: Optional[RetrievalConfig] = Field(
+        None, description="Per-request retrieval configuration overrides"
     )
 
     model_config = ConfigDict(use_enum_values=True, populate_by_name=True)

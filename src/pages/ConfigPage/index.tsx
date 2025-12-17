@@ -2,16 +2,23 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { EnhancedBackButton } from '@/components/ui/enhanced-back-button';
 import { toast } from 'sonner';
-import { Brain, Globe, Trash2, FileText } from 'lucide-react';
+import { Brain, Globe, Trash2, FileText, Zap, Router, Sparkles, Loader2 } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { ModelSettingsTab } from './tabs/ModelSettingsTab';
 import { IngestionTab } from './tabs/IngestionTab';
 import { DatabaseTab } from './tabs/DatabaseTab';
 import { LogsTab } from './tabs/LogsTab';
+import { OpenRouterTab } from './tabs/OpenRouterTab';
+import { ModelDesignationSelector } from './components/ModelDesignationSelector';
 import { LLM_MODELS, type LLMModel, DEFAULT_MODEL_ID } from '@/constants/models';
 import { useModelPreferences } from './hooks/useModelPreferences';
+import { useModelConfig } from './hooks/useModelConfig';
+import { useRAGConfig } from './hooks/useRAGConfig';
 import { useActivityLog } from './hooks/useActivityLog';
 import { useDatabasePanel } from './hooks/useDatabasePanel';
-import type { LogFilters, ModelProvider } from './types';
+import type { LogFilters, ModelProvider, OpenRouterModel } from './types';
 import { LOGS_FILTER_DEFAULTS } from './types';
 import { useLogsPanel } from './hooks/useLogsPanel';
 import { useVisitSummary } from './hooks/useVisitSummary';
@@ -36,6 +43,35 @@ export default function ConfigPage() {
     savePreferences,
     resetPreferences,
   } = useModelPreferences(MODELS, DEFAULT_MODEL_ID, DEFAULT_PROVIDER);
+
+  // Model config (Fast/Smart) state
+  const {
+    fastModel,
+    smartModel,
+    operationModels,
+    hasUnsavedChanges: hasModelConfigChanges,
+    isSaving: isModelConfigSaving,
+    updateFastModel,
+    updateSmartModel,
+    updateOperationModel,
+    saveConfig: saveModelConfig,
+    resetConfig: resetModelConfig,
+  } = useModelConfig();
+
+  // RAG runtime config (hot-toggleable settings like HyDE)
+  const {
+    hydeEnabled,
+    isLoading: isRAGConfigLoading,
+    isSaving: isRAGConfigSaving,
+    toggleHyDE,
+  } = useRAGConfig();
+
+  // OpenRouter models state
+  const [openRouterModels, setOpenRouterModels] = useState<OpenRouterModel[]>([]);
+
+  const handleOpenRouterModelsLoaded = useCallback((models: OpenRouterModel[]) => {
+    setOpenRouterModels(models);
+  }, []);
 
   // Database management state
   const [isPurging, setIsPurging] = useState(false);
@@ -327,14 +363,22 @@ export default function ConfigPage() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="model" className="flex items-center gap-2">
               <Brain className="h-4 w-4" />
-              LLM Model
+              <span className="hidden sm:inline">LLM</span> Model
+            </TabsTrigger>
+            <TabsTrigger value="openrouter" className="flex items-center gap-2">
+              <Router className="h-4 w-4" />
+              <span className="hidden sm:inline">Open</span>Router
+            </TabsTrigger>
+            <TabsTrigger value="rag-config" className="flex items-center gap-2">
+              <Zap className="h-4 w-4" />
+              <span className="hidden sm:inline">RAG</span> Config
             </TabsTrigger>
             <TabsTrigger value="ingestion" className="flex items-center gap-2">
               <Globe className="h-4 w-4" />
-              URL Ingestion
+              <span className="hidden sm:inline">URL</span> Ingestion
             </TabsTrigger>
             <TabsTrigger value="database" className="flex items-center gap-2">
               <Trash2 className="h-4 w-4" />
@@ -358,6 +402,89 @@ export default function ConfigPage() {
               onSave={handleSaveModel}
               onReset={handleResetModel}
             />
+          </TabsContent>
+
+          <TabsContent value="openrouter">
+            <OpenRouterTab onModelsLoaded={handleOpenRouterModelsLoaded} />
+          </TabsContent>
+
+          <TabsContent value="rag-config">
+            <div className="space-y-4">
+              {/* Runtime Settings */}
+              <Card className="glass border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="h-5 w-5" />
+                    Runtime Settings
+                  </CardTitle>
+                  <CardDescription>
+                    Toggle features without restarting the service. Changes take effect immediately.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between p-3 border rounded-lg bg-background/50">
+                    <div className="flex-1 min-w-0 mr-4">
+                      <Label htmlFor="hyde-toggle" className="font-medium cursor-pointer">
+                        HyDE (Hypothetical Document Embeddings)
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Generate hypothetical answers to improve retrieval accuracy. Uses the Fast model.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {(isRAGConfigLoading || isRAGConfigSaving) && (
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      )}
+                      <Switch
+                        id="hyde-toggle"
+                        checked={hydeEnabled}
+                        onCheckedChange={toggleHyDE}
+                        disabled={isRAGConfigLoading || isRAGConfigSaving}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <ModelDesignationSelector
+                standardModels={MODELS}
+                openRouterModels={openRouterModels}
+                fastModel={fastModel}
+                smartModel={smartModel}
+                operationModels={operationModels}
+                onFastModelChange={updateFastModel}
+                onSmartModelChange={updateSmartModel}
+                onOperationModelChange={updateOperationModel}
+              />
+
+              {hasModelConfigChanges && (
+                <div className="flex gap-2 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                      You have unsaved changes
+                    </p>
+                    <p className="text-xs text-yellow-600 dark:text-yellow-300">
+                      Save your changes to apply the new model configuration.
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={resetModelConfig}
+                      className="px-3 py-1.5 text-sm border rounded-md hover:bg-muted"
+                    >
+                      Reset
+                    </button>
+                    <button
+                      onClick={saveModelConfig}
+                      disabled={isModelConfigSaving}
+                      className="px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50"
+                    >
+                      {isModelConfigSaving ? 'Saving...' : 'Save Changes'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </TabsContent>
 
           <TabsContent value="ingestion">

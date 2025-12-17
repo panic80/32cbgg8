@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     # OpenAI Configuration
     openai_api_key: Optional[str] = None
     openai_embedding_model: str = "text-embedding-3-large"
-    openai_embedding_dimensions: int = 3072  # Maximum dimensions for text-embedding-3-large
+    openai_embedding_dimensions: int = 1536  # Reduced from 3072 via Matryoshka for 50% storage savings
     openai_chat_model: str = "gpt-4.1-mini"  # Updated to gpt-4.1-mini
     openai_smart_model: str = "gpt-5-mini"  # Preferred GPT-5 model for Smart mode
     
@@ -38,7 +38,19 @@ class Settings(BaseSettings):
     # Anthropic Configuration
     anthropic_api_key: Optional[str] = None
     anthropic_chat_model: str = "claude-3-opus-20240229"
-    
+
+    # OpenRouter Configuration (OpenAI-compatible API for open-source models)
+    openrouter_api_key: Optional[str] = None
+    openrouter_base_url: str = "https://openrouter.ai/api/v1"
+    openrouter_default_model: str = "meta-llama/llama-3.1-70b-instruct"
+    openrouter_fast_model: str = "meta-llama/llama-3.1-8b-instruct"
+
+    # Fast/Smart Model Configuration
+    fast_model_provider: str = "openai"
+    fast_model_name: str = "gpt-4.1-mini"
+    smart_model_provider: str = "openai"
+    smart_model_name: str = "gpt-5-mini"
+
     # Vector Store Configuration
     vector_store_type: str = "chroma"  # chroma or qdrant
     chroma_persist_directory: str = "./chroma_db"
@@ -256,6 +268,13 @@ if gemini_env_key:
     
 if os.getenv("ANTHROPIC_API_KEY"):
     settings.anthropic_api_key = os.getenv("ANTHROPIC_API_KEY").strip()
-    
+
+if os.getenv("OPENROUTER_API_KEY"):
+    settings.openrouter_api_key = os.getenv("OPENROUTER_API_KEY").strip()
+
 if os.getenv("REDIS_URL"):
     settings.redis_url = os.getenv("REDIS_URL")
+
+# HyDE can be disabled via environment variable
+if os.getenv("RAG_ENABLE_HYDE") is not None:
+    settings.enable_hyde = os.getenv("RAG_ENABLE_HYDE", "true").lower() in ("true", "1", "yes")

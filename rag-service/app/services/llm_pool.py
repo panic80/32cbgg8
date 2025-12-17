@@ -154,6 +154,8 @@ class LLMPool:
             return bool(settings.google_api_key)
         elif provider == Provider.ANTHROPIC:
             return bool(settings.anthropic_api_key)
+        elif provider == Provider.OPENROUTER:
+            return bool(settings.openrouter_api_key)
         return False
     
     def _create_llm(self, provider: Provider, model: str) -> Any:
@@ -201,7 +203,7 @@ class LLMPool:
         elif provider == Provider.ANTHROPIC:
             if not settings.anthropic_api_key:
                 raise ValueError("Anthropic API key not configured")
-            
+
             # Check if this is Claude Sonnet 4
             if model == "claude-sonnet-4-20250514":
                 # Note: thinking mode requires direct Anthropic API usage
@@ -212,6 +214,24 @@ class LLMPool:
                 api_key=settings.anthropic_api_key,
                 model=model
             )
+            return RetryableLLM(llm)
+
+        elif provider == Provider.OPENROUTER:
+            if not settings.openrouter_api_key:
+                raise ValueError("OpenRouter API key not configured")
+
+            # OpenRouter uses OpenAI-compatible API
+            import os
+            llm = ChatOpenAI(
+                api_key=settings.openrouter_api_key,
+                base_url=settings.openrouter_base_url,
+                model=model,
+                default_headers={
+                    "HTTP-Referer": os.getenv("APP_URL", "http://localhost:3000"),
+                    "X-Title": "CF Travel Bot RAG"
+                }
+            )
+            logger.info(f"Created OpenRouter LLM connection for model: {model}")
             return RetryableLLM(llm)
 
         else:

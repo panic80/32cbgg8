@@ -565,6 +565,7 @@ def create_parallel_pipeline(
     enable_reranker: bool = True,
     enable_stateful: bool = None,
     redis_client = None,
+    rrf_k: Optional[int] = None,
 ) -> ParallelRetrievalPipeline:
     """Create a parallel retrieval pipeline with default retrievers."""
     from app.pipelines.retriever_factory import HybridRetrieverFactory, RetrieverConfig, RetrieverMode
@@ -687,14 +688,25 @@ def create_parallel_pipeline(
     
     # Create table ranker for table-specific queries
     table_ranker = TableRanker()
-    
+
+    # Create RRF merger with per-request rrf_k override if provided
+    effective_rrf_k = rrf_k if rrf_k is not None else getattr(settings, "rrf_k", 60)
+    if rrf_k is not None:
+        logger.info(f"Using per-request RRF k={effective_rrf_k}")
+    rrf_merger = RRFMerger(
+        k=effective_rrf_k,
+        normalize_scores=getattr(settings, "rrf_normalize_scores", True),
+        score_threshold=getattr(settings, "rrf_score_threshold", 0.0)
+    )
+
     pipeline = ParallelRetrievalPipeline(
         retrievers=retrievers,
         weights=weights,
         concurrency_limit=settings.parallel_retrieval_limit,
         timeout_per_retriever=settings.retriever_timeout,
         reranker=reranker,
-        table_ranker=table_ranker
+        table_ranker=table_ranker,
+        rrf_merger=rrf_merger
     )
     
     # Wrap with stateful pipeline if requested

@@ -25,6 +25,26 @@ class ConfigUpdateRequest(BaseModel):
     )
 
 
+@router.get("/config/status")
+async def get_configuration_status(
+    _: bool = Depends(verify_admin_bearer_token),
+) -> Dict[str, Any]:
+    """Get current configuration status for hot-toggleable settings."""
+    try:
+        return {
+            "status": "success",
+            "config": {
+                "enable_hyde": settings.enable_hyde,
+                "hyde_model": settings.hyde_model,
+                "hyde_timeout": settings.hyde_timeout,
+                "enable_query_logging": getattr(settings, "enable_query_logging", True),
+            },
+        }
+    except Exception as e:
+        logger.error(f"Failed to get configuration status: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get configuration status")
+
+
 @router.post("/config/update")
 async def update_configuration(
     request: ConfigUpdateRequest,

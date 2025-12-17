@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from app.core.config import settings
 from app.core.logging import get_logger
-from app.models.query import ChatRequest
+from app.models.query import ChatRequest, RetrievalConfig
 from app.pipelines.parallel_retrieval import create_parallel_pipeline
 from app.services.chat.query_processor import should_use_hybrid
 
@@ -57,17 +57,33 @@ class RetrievalExecutor:
         )
         enable_stateful = getattr(settings, "enable_stateful_retrieval", False)
 
+        # Extract per-request retrieval config overrides
+        retrieval_config = chat_request.retrieval_config
+        has_config_overrides = retrieval_config is not None
+
+        # Determine retrieval_k (default from settings if not overridden)
+        retrieval_k = getattr(settings, "retrieval_k", 10)
+        if retrieval_config and retrieval_config.retrieval_k is not None:
+            retrieval_k = retrieval_config.retrieval_k
+            logger.info(f"Using per-request retrieval_k: {retrieval_k}")
+
+        # Determine enable_reranker
+        enable_reranker = not is_smart_mode
+        if retrieval_config and retrieval_config.enable_reranker is not None:
+            enable_reranker = retrieval_config.enable_reranker
+            logger.info(f"Using per-request enable_reranker: {enable_reranker}")
+
         if should_use_hybrid(chat_request):
             logger.info("Hybrid search enabled - configuring BM25 + Vector retrievers")
             retriever_configs = {
                 "vector_similarity": {
                     "type": "vector",
                     "search_type": "similarity",
-                    "k": 10,
+                    "k": retrieval_k,
                 },
                 "bm25": {
                     "type": "bm25",
-                    "k": 10,
+                    "k": retrieval_k,
                 },
             }
             if self.llm_wrapper:
@@ -94,25 +110,52 @@ class RetrievalExecutor:
         provider_key = str(chat_request.provider)
         model_key = chat_request.model or "default"
         hybrid_key = "hybrid" if should_use_hybrid(chat_request) else "vector"
-        cache_key = f"{hybrid_key}|unified={enable_unified}|{provider_key}|{model_key}"
 
-        if pipeline_cache_store is not None and cache_key in pipeline_cache_store:
+        # If we have config overrides, create a unique cache key or skip cache entirely
+        if has_config_overrides:
+            # Build config-specific cache key components
+            config_parts = []
+            if retrieval_config.retrieval_k is not None:
+                config_parts.append(f"k={retrieval_config.retrieval_k}")
+            if retrieval_config.rrf_k is not None:
+                config_parts.append(f"rrf={retrieval_config.rrf_k}")
+            if retrieval_config.enable_hyde is not None:
+                config_parts.append(f"hyde={retrieval_config.enable_hyde}")
+            if retrieval_config.enable_reranker is not None:
+                config_parts.append(f"rerank={retrieval_config.enable_reranker}")
+            if retrieval_config.unified_retrieval_mode is not None:
+                config_parts.append(f"mode={retrieval_config.unified_retrieval_mode}")
+            config_suffix = "|".join(config_parts) if config_parts else "default"
+            cache_key = f"{hybrid_key}|unified={enable_unified}|{provider_key}|{model_key}|{config_suffix}"
+        else:
+            cache_key = f"{hybrid_key}|unified={enable_unified}|{provider_key}|{model_key}"
+
+        if pipeline_cache_store is not None and cache_key in pipeline_cache_store and not has_config_overrides:
             pipeline = pipeline_cache_store[cache_key]
             logger.info("Using cached retrieval pipeline: %s", cache_key)
         else:
+            # Extract rrf_k override for pipeline creation
+            rrf_k_override = None
+            if retrieval_config and retrieval_config.rrf_k is not None:
+                rrf_k_override = retrieval_config.rrf_k
+                logger.info(f"Using per-request rrf_k: {rrf_k_override}")
+
             pipeline = await asyncio.to_thread(
                 create_parallel_pipeline,
                 vector_store_manager=self.vector_store_manager,
                 llm=self.llm_wrapper,
                 enable_unified=enable_unified,
                 retriever_configs=retriever_configs,
-                enable_reranker=not is_smart_mode,
+                enable_reranker=enable_reranker,
                 enable_stateful=enable_stateful,
                 redis_client=redis_client,
+                rrf_k=rrf_k_override,
             )
-            if pipeline_cache_store is not None:
+            if pipeline_cache_store is not None and not has_config_overrides:
                 pipeline_cache_store[cache_key] = pipeline
                 logger.info("Cached retrieval pipeline: %s", cache_key)
+            elif has_config_overrides:
+                logger.info("Created pipeline with config overrides (not cached): %s", cache_key)
 
         return pipeline
 

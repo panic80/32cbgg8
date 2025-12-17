@@ -1,4 +1,44 @@
-export type ModelProvider = 'openai' | 'google' | 'anthropic';
+export type ModelProvider = 'openai' | 'google' | 'anthropic' | 'openrouter';
+
+export type ModelDesignation = 'fast' | 'smart';
+
+export type ModelConfig = {
+  provider: ModelProvider;
+  model: string;
+};
+
+export type OperationModelConfig = {
+  responseGeneration: ModelDesignation;
+  hydeExpansion: ModelDesignation;
+  queryRewriting: ModelDesignation;
+  followUpGeneration: ModelDesignation;
+};
+
+export type FullModelConfig = {
+  fastModel: ModelConfig;
+  smartModel: ModelConfig;
+  operationModels: OperationModelConfig;
+  updatedAt?: string;
+};
+
+export type OpenRouterModel = {
+  id: string;
+  name: string;
+  description: string;
+  contextLength: number;
+  isOpenSource: boolean;
+  pricing: {
+    prompt: string;
+    completion: string;
+  } | null;
+};
+
+export type OpenRouterModelsResponse = {
+  models: OpenRouterModel[];
+  total: number;
+  openSourceCount: number;
+  isConfigured: boolean;
+};
 
 export type DatabaseStats = {
   totalDocuments: number;

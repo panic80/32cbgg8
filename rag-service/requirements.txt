@@ -54,6 +54,10 @@ numpy>=1.26.0,<2.0
 sentence-transformers>=2.6.0
 nltk>=3.8.0
 
+# Evaluation framework dependencies
+transformers>=4.35.0  # For NLI hallucination detection (DeBERTa)
+torch>=2.0.0  # Required for transformer model inference
+
 # Additional dependencies found in code
 cryptography>=42.0.0
 datasketch>=1.6.0

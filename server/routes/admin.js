@@ -14,6 +14,133 @@ const createAdminRoutes = ({ rateLimiter, performanceHandler, chatLogger }) => {
   router.get('/performance', rateLimiter, (req, res, next) => performanceHandler(req, res, next));
   router.all('/performance', (_req, res) => res.status(405).json({ error: 'Method Not Allowed' }));
 
+  // OpenRouter models endpoint - fetches available models from OpenRouter API
+  logger.info('Registering /api/admin/openrouter/models route');
+  router.get('/openrouter/models', rateLimiter, async (req, res) => {
+    logger.debug('Handling GET /api/admin/openrouter/models');
+
+    try {
+      // Fetch models from OpenRouter (no auth required for models list)
+      const response = await fetch('https://openrouter.ai/api/v1/models');
+
+      if (!response.ok) {
+        throw new Error(`OpenRouter API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // Filter and map models for our use case
+      const models = data.data
+        .filter((m) => m.id && !m.id.includes('/vision')) // Exclude vision-only models
+        .map((m) => ({
+          id: m.id,
+          name: m.name || m.id,
+          description: m.description || '',
+          contextLength: m.context_length,
+          isOpenSource: m.hugging_face_id && m.hugging_face_id !== '',
+          pricing: m.pricing
+            ? {
+                prompt: m.pricing.prompt,
+                completion: m.pricing.completion,
+              }
+            : null,
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      return res.json({
+        models,
+        total: models.length,
+        openSourceCount: models.filter((m) => m.isOpenSource).length,
+        isConfigured: !!process.env.OPENROUTER_API_KEY,
+      });
+    } catch (error) {
+      logger.error('Failed to fetch OpenRouter models', error);
+      return respondWithError(res, {
+        status: 500,
+        error: 'OpenRouterError',
+        message: 'Failed to fetch OpenRouter models',
+        logger,
+        level: 'error',
+      });
+    }
+  });
+
+  // RAG Service Config endpoints - hot-toggle settings like HyDE
+  const RAG_SERVICE_URL = process.env.RAG_SERVICE_URL || 'http://localhost:8000';
+  const ADMIN_API_TOKEN = process.env.ADMIN_API_TOKEN;
+
+  logger.info('Registering /api/admin/rag/config routes');
+
+  // GET current RAG config
+  router.get('/rag/config', rateLimiter, async (req, res) => {
+    logger.debug('Handling GET /api/admin/rag/config');
+    try {
+      const headers = {};
+      if (ADMIN_API_TOKEN) {
+        headers['Authorization'] = `Bearer ${ADMIN_API_TOKEN}`;
+      }
+
+      const response = await fetch(`${RAG_SERVICE_URL}/api/v1/admin/config/status`, {
+        headers,
+      });
+
+      if (!response.ok) {
+        throw new Error(`RAG service error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return res.json(data);
+    } catch (error) {
+      logger.error('Failed to get RAG config', error);
+      return respondWithError(res, {
+        status: 500,
+        error: 'RAGConfigError',
+        message: 'Failed to get RAG configuration',
+        logger,
+        level: 'error',
+      });
+    }
+  });
+
+  // POST update RAG config (hot-toggle)
+  router.post('/rag/config', rateLimiter, async (req, res) => {
+    logger.debug('Handling POST /api/admin/rag/config', req.body);
+    try {
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+      if (ADMIN_API_TOKEN) {
+        headers['Authorization'] = `Bearer ${ADMIN_API_TOKEN}`;
+      }
+
+      const response = await fetch(`${RAG_SERVICE_URL}/api/v1/admin/config/update`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          config_updates: req.body.config_updates || req.body,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`RAG service error: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      logger.info('RAG config updated', { updates: req.body });
+      return res.json(data);
+    } catch (error) {
+      logger.error('Failed to update RAG config', error);
+      return respondWithError(res, {
+        status: 500,
+        error: 'RAGConfigUpdateError',
+        message: 'Failed to update RAG configuration',
+        logger,
+        level: 'error',
+      });
+    }
+  });
+
   logger.info('Registering admin analytics visits route');
   router.get('/analytics/visits', rateLimiter, (req, res) => {
     logger.debug('Handling GET /api/admin/analytics/visits');
