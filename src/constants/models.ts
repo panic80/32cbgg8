@@ -33,6 +33,12 @@ export const LLM_MODELS: LLMModel[] = [
     description: 'Lightweight version of GPT-4.1 for everyday coding needs',
   },
   {
+    id: 'gpt-4.1-nano',
+    name: 'GPT-4.1 Nano',
+    provider: 'openai',
+    description: 'Ultra-lightweight GPT-4.1 model for fast, cost-efficient responses',
+  },
+  {
     id: 'gpt-5-mini',
     name: 'GPT-5 Mini',
     provider: 'openai',

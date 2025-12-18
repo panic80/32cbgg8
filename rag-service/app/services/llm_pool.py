@@ -194,10 +194,24 @@ class LLMPool:
         elif provider == Provider.GOOGLE:
             if not settings.google_api_key:
                 raise ValueError("Google API key not configured")
-            llm = ChatGoogleGenerativeAI(
-                google_api_key=settings.google_api_key,
-                model=model
+
+            # Check if it's a Gemini 3 model (supports thinking_level)
+            is_gemini_3 = model and (
+                model.startswith('gemini-3-') or
+                model.startswith('gemini-3.')
             )
+
+            if is_gemini_3:
+                llm = ChatGoogleGenerativeAI(
+                    google_api_key=settings.google_api_key,
+                    model=model,
+                    thinking_level="low"  # Use low for faster responses
+                )
+            else:
+                llm = ChatGoogleGenerativeAI(
+                    google_api_key=settings.google_api_key,
+                    model=model
+                )
             return RetryableLLM(llm)
 
         elif provider == Provider.ANTHROPIC:
