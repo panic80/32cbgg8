@@ -109,19 +109,6 @@ def get_llm(provider: Provider, model: Optional[str] = None) -> RetryableLLM:
     raise ValueError(f"Unsupported provider: {provider}")
 
 
-@router.post("/chat", response_model=ChatResponse)
-async def chat(request: Request, chat_request: ChatRequest) -> ChatResponse:  # pylint: disable=unused-argument
-    """Deprecated synchronous chat endpoint."""
-
-    raise HTTPException(
-        status_code=status.HTTP_410_GONE,
-        detail={
-            "error": "deprecated_endpoint",
-            "message": "The synchronous /chat endpoint is deprecated. Use /chat/stream instead.",
-        },
-    )
-
-
 @router.post("/followup", response_model=FollowUpResponse)
 async def generate_followup(
     request: Request,  # pylint: disable=unused-argument

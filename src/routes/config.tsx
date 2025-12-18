@@ -65,11 +65,6 @@ export const appRoutes: AppRouteDefinition[] = [
     loader: loadOpiPage,
   },
   {
-    kind: 'element',
-    path: '/opi-test',
-    element: createDisabledFeatureElement('OPI Contacts'),
-  },
-  {
     kind: 'lazy',
     path: '/admin-tools',
     component: lazy(loadAdminToolsPage),
@@ -104,18 +99,6 @@ export const appRoutes: AppRouteDefinition[] = [
     path: '/privacy',
     component: lazy(loadPrivacyPage),
     loader: loadPrivacyPage,
-  },
-  {
-    kind: 'lazy',
-    path: '/home-v2',
-    component: lazy(loadLandingPage),
-    loader: loadLandingPage,
-  },
-  {
-    kind: 'lazy',
-    path: '/landing-test',
-    component: lazy(loadLandingPage),
-    loader: loadLandingPage,
   },
   {
     kind: 'lazy',
