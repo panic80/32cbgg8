@@ -60,16 +60,34 @@ export const LLM_MODELS: LLMModel[] = [
 
   // Google Models - Current 2025 API Identifiers
   {
-    id: 'gemini-2.5-flash-preview-05-20',
-    name: 'Gemini 2.5 Flash',
+    id: 'gemini-3-pro-preview',
+    name: 'Gemini 3 Pro',
     provider: 'google',
-    description: 'Best price-performance model with thinking capabilities',
+    description: 'Best model for multimodal understanding and agentic/vibe-coding',
+  },
+  {
+    id: 'gemini-3-flash-preview',
+    name: 'Gemini 3 Flash Preview',
+    provider: 'google',
+    description: 'Frontier-class performance at a fraction of the cost',
   },
   {
     id: 'gemini-2.5-pro',
     name: 'Gemini 2.5 Pro',
     provider: 'google',
     description: 'Most capable and intelligent Gemini model',
+  },
+  {
+    id: 'gemini-2.5-flash',
+    name: 'Gemini 2.5 Flash',
+    provider: 'google',
+    description: 'Best price-performance model with thinking capabilities',
+  },
+  {
+    id: 'gemini-2.5-flash-lite',
+    name: 'Gemini 2.5 Flash Lite',
+    provider: 'google',
+    description: 'Lightweight and cost-effective',
   },
 
   // Anthropic Models - Current 2025 API Identifiers

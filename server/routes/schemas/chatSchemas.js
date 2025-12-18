@@ -19,6 +19,7 @@ const optionalTrimmedString = (field) =>
 
 export const geminiGenerationSchema = z.object({
   prompt: trimmedString('Prompt'),
+  model: optionalTrimmedString('Model'),
 });
 
 export const standardChatSchema = z.object({
@@ -42,4 +43,5 @@ export const streamingChatSchema = ragChatSchema.extend({
   useHybridSearch: z.boolean().optional(),
   reasoningEffort: optionalTrimmedString('Reasoning effort'),
   responseVerbosity: optionalTrimmedString('Response verbosity'),
+  modelMode: z.enum(['fast', 'smart']).optional(),
 });

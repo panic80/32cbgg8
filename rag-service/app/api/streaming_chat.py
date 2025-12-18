@@ -175,7 +175,13 @@ async def _run_streaming_flow(
     requested_model = (chat_request.model or resolved_model_name or "").strip().lower()
     # Fast mode = optimized path (skip HyDE, limited context, skip classification)
     # Smart mode = full pipeline (thorough retrieval)
-    is_fast_mode = requested_model in ["gpt-4.1-mini", "gpt-5-nano", "fast", settings.fast_model_name.lower()]
+    # Mode is determined by frontend based on user's selection in Config page
+    is_fast_mode = chat_request.mode == "fast"
+    logger.info(f"Request mode: {chat_request.mode}, is_fast_mode: {is_fast_mode}, model: {requested_model}")
+
+    # Emit retrieval_start early in fast mode for better UX
+    if is_fast_mode and chat_request.use_rag:
+        yield f"data: {json.dumps({'type': 'retrieval_start'})}\n\n"
 
     # Determine fast model for classification
     classification_model = settings.fast_model_name
@@ -186,23 +192,30 @@ async def _run_streaming_flow(
     
     logger.info(f"Using classification model: {classification_model} (Provider: {provider_enum})")
 
-    # Process query with fast model
+    # Process query - skip LLM acquisition in fast mode since classification is skipped
     classification_start = time.perf_counter()
-    
     classification_data = None
-    try:
-        async with llm_pool.acquire(provider_enum, classification_model) as classifier_llm:
-            query_processor = QueryProcessor(classifier_llm)
-            classification_data = await query_processor.process_query(
-                chat_request.message, is_fast_mode=is_fast_mode
-            )
-    except Exception as e:
-        logger.warning(f"Fast model classification failed ({e}). Falling back to main model.")
-        # Fallback to main LLM if fast model fails
-        query_processor = QueryProcessor(llm_wrapper)
+
+    if is_fast_mode:
+        # Fast mode: skip LLM acquisition entirely, just expand abbreviations
+        query_processor = QueryProcessor(None)
         classification_data = await query_processor.process_query(
-            chat_request.message, is_fast_mode=is_fast_mode
+            chat_request.message, is_fast_mode=True
         )
+    else:
+        # Smart mode: use LLM for classification
+        try:
+            async with llm_pool.acquire(provider_enum, classification_model) as classifier_llm:
+                query_processor = QueryProcessor(classifier_llm)
+                classification_data = await query_processor.process_query(
+                    chat_request.message, is_fast_mode=False
+                )
+        except Exception as e:
+            logger.warning(f"Classification failed ({e}). Falling back to main model.")
+            query_processor = QueryProcessor(llm_wrapper)
+            classification_data = await query_processor.process_query(
+                chat_request.message, is_fast_mode=False
+            )
 
     optimized_query, classification, classification_dict = classification_data
     
@@ -299,7 +312,9 @@ async def _run_streaming_flow(
 
     # Retrieval
     if chat_request.use_rag:
-        yield f"data: {json.dumps({'type': 'retrieval_start'})}\n\n"
+        # Only emit retrieval_start for smart mode (fast mode already emitted it early)
+        if not is_fast_mode:
+            yield f"data: {json.dumps({'type': 'retrieval_start'})}\n\n"
 
         # Use fast model for retrieval (multi-query generation)
         retrieval_llm_wrapper = llm_wrapper

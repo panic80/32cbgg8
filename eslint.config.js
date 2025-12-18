@@ -17,6 +17,8 @@ export default [
       'node_modules',
       'rag-service/venv',
       'rag-service/venv/**',
+      'rag-service/.venv',
+      'rag-service/.venv/**',
       'rag-service/chroma_db',
       'rag-service/chroma_db/**',
       'rag-service/backups',

@@ -49,7 +49,7 @@ export const createChatController = ({
 }) => {
   const handleGeminiGenerateContent = async (req, res) => {
     try {
-      const { prompt } = req.body;
+      const { prompt, model: modelId } = req.body;
 
       if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
         return res.status(400).json({
@@ -65,7 +65,7 @@ export const createChatController = ({
         });
       }
 
-      const model = geminiClient.getGenerativeModel({ model: 'gemini-2.0-flash' });
+      const model = geminiClient.getGenerativeModel({ model: modelId || 'gemini-2.5-flash' });
       const result = await model.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
@@ -294,6 +294,7 @@ export const createChatController = ({
       reasoningEffort,
       responseVerbosity,
       audience,
+      modelMode,
     } = req.body;
 
     const isTripPlannerMessage = message?.startsWith('📋 **Trip Plan Request**');
@@ -342,6 +343,7 @@ export const createChatController = ({
           ...(responseVerbosity ? { response_verbosity: responseVerbosity } : {}),
           ...(jurisdiction ? { jurisdiction } : {}),
           ...(audience ? { audience } : {}),
+          ...(modelMode ? { mode: modelMode } : {}),
         },
         {
           responseType: 'stream',

@@ -80,27 +80,15 @@ def get_llm(provider: Provider, model: Optional[str] = None) -> RetryableLLM:
 
         model_name = model or settings.openai_chat_model
         model_name_lower = (model_name or "").strip().lower()
-        allowed_deterministic_models = {"gpt-5-mini", "gpt-4.1-mini"}
 
+        # Check if it's a reasoning model (for max_tokens handling)
         is_reasoning_model = bool(model_name_lower) and (
             model_name_lower.startswith("o1")
             or model_name_lower.startswith("o3")
             or model_name_lower.startswith("o4")
         )
-        is_allowed_deterministic = model_name_lower in allowed_deterministic_models
 
-        if not (is_reasoning_model or is_allowed_deterministic):
-            raise ValueError(
-                f"Unsupported OpenAI chat model '{model_name}'. "
-                "For deterministic retrieval runs, use gpt-5-mini, gpt-4.1-mini, "
-                "or an O-series reasoning model."
-            )
-
-        logger.info(
-            "Creating deterministic OpenAI LLM for model: %s (reasoning_model=%s)",
-            model_name,
-            is_reasoning_model,
-        )
+        logger.info("Creating OpenAI LLM for model: %s", model_name)
 
         llm_kwargs: Dict[str, Any] = {
             "api_key": settings.openai_api_key,

@@ -215,7 +215,7 @@ export const getFallbackResponse = (isSimplified: boolean): GeminiApiResponse =>
 export const sendToGemini = async (
   message: string,
   isSimplified = false,
-  model = 'gemini-2.5-flash-preview-05-20',
+  model = 'gemini-2.5-flash',
   preloadedInstructions: string | null = null,
   useFallback = false,
 ): Promise<GeminiApiResponse> => {

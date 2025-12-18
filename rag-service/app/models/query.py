@@ -1,7 +1,7 @@
 """Query and chat models for RAG service."""
 
 from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Literal
 from datetime import datetime, timezone
 from enum import Enum
 
@@ -86,6 +86,9 @@ class ChatRequest(BaseModel):
     )
     retrieval_config: Optional[RetrievalConfig] = Field(
         None, description="Per-request retrieval configuration overrides"
+    )
+    mode: Optional[Literal["fast", "smart"]] = Field(
+        None, description="Optimization mode: 'fast' for quick responses, 'smart' for thorough retrieval"
     )
 
     model_config = ConfigDict(use_enum_values=True, populate_by_name=True)

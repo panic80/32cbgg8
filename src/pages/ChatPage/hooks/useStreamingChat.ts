@@ -324,6 +324,7 @@ export const useStreamingChat = ({
           useRAG,
           shortAnswerMode,
           conversationId,
+          modelMode,
           chatHistory: messages.slice(-historyLimit).map((msg) => ({
             role: msg.sender === 'user' ? 'user' : 'assistant',
             content: msg.content,
