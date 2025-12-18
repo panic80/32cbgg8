@@ -183,14 +183,11 @@ async def _run_streaming_flow(
     if is_fast_mode and chat_request.use_rag:
         yield f"data: {json.dumps({'type': 'retrieval_start'})}\n\n"
 
-    # Determine fast model for classification
-    classification_model = settings.fast_model_name
-    if provider_enum == Provider.GOOGLE:
-        classification_model = settings.google_fast_model
-    elif provider_enum == Provider.OPENAI:
-        classification_model = settings.openai_fast_model
-    
-    logger.info(f"Using classification model: {classification_model} (Provider: {provider_enum})")
+    # Use gpt-4o-mini for all auxiliary tasks (classification, retrieval, HyDE)
+    auxiliary_model = settings.auxiliary_model
+    auxiliary_provider = Provider.OPENAI
+
+    logger.info(f"Using auxiliary model: {auxiliary_model} (Provider: {auxiliary_provider.value})")
 
     # Process query - skip LLM acquisition in fast mode since classification is skipped
     classification_start = time.perf_counter()
@@ -203,9 +200,9 @@ async def _run_streaming_flow(
             chat_request.message, is_fast_mode=True
         )
     else:
-        # Smart mode: use LLM for classification
+        # Smart mode: use auxiliary model (gpt-4o-mini) for classification
         try:
-            async with llm_pool.acquire(provider_enum, classification_model) as classifier_llm:
+            async with llm_pool.acquire(auxiliary_provider, auxiliary_model) as classifier_llm:
                 query_processor = QueryProcessor(classifier_llm)
                 classification_data = await query_processor.process_query(
                     chat_request.message, is_fast_mode=False
@@ -316,12 +313,12 @@ async def _run_streaming_flow(
         if not is_fast_mode:
             yield f"data: {json.dumps({'type': 'retrieval_start'})}\n\n"
 
-        # Use fast model for retrieval (multi-query generation)
+        # Use auxiliary model (gpt-4o-mini) for retrieval (multi-query generation)
         retrieval_llm_wrapper = llm_wrapper
         try:
-            async with llm_pool.acquire(provider_enum, classification_model) as retrieval_llm:
+            async with llm_pool.acquire(auxiliary_provider, auxiliary_model) as retrieval_llm:
                 retrieval_executor = RetrievalExecutor(vector_store, app_state, retrieval_llm)
-                
+
                 pipeline = await retrieval_executor.create_pipeline(chat_request, is_fast_mode)
                 retrieval_start = time.perf_counter()
                 retrieval_results = await retrieval_executor.retrieve(
@@ -329,7 +326,7 @@ async def _run_streaming_flow(
                     hyde_hypothesis=hyde_hypothesis
                 )
         except Exception as e:
-            logger.warning(f"Fast model retrieval failed ({e}). Falling back to main model.")
+            logger.warning(f"Auxiliary model retrieval failed ({e}). Falling back to main model.")
             retrieval_executor = RetrievalExecutor(vector_store, app_state, llm_wrapper)
             pipeline = await retrieval_executor.create_pipeline(chat_request, is_fast_mode)
             retrieval_start = time.perf_counter()

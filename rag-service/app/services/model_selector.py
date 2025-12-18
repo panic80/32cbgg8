@@ -42,8 +42,9 @@ class ModelSelector:
     def __init__(self):
         """Initialize the model selector with default configuration."""
         # Default to settings-based configuration
-        self._fast_provider = Provider(settings.fast_model_provider)
-        self._fast_model = settings.fast_model_name
+        # Fast/auxiliary model is always gpt-4o-mini via OpenAI
+        self._fast_provider = Provider.OPENAI
+        self._fast_model = settings.auxiliary_model
         self._smart_provider = Provider(settings.smart_model_provider)
         self._smart_model = settings.smart_model_name
 
@@ -80,7 +81,7 @@ class ModelSelector:
                 if "fastModel" in config:
                     fast = config["fastModel"]
                     self._fast_provider = Provider(fast.get("provider", "openai"))
-                    self._fast_model = fast.get("model", settings.fast_model_name)
+                    self._fast_model = fast.get("model", settings.auxiliary_model)
 
                 # Load smart model config
                 if "smartModel" in config:

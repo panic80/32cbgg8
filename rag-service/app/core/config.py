@@ -45,15 +45,13 @@ class Settings(BaseSettings):
     openrouter_default_model: str = "meta-llama/llama-3.1-70b-instruct"
     openrouter_fast_model: str = "meta-llama/llama-3.1-8b-instruct"
 
-    # Fast/Smart Model Configuration
-    fast_model_provider: str = "openai"
-    fast_model_name: str = "gpt-4.1-mini"
+    # Auxiliary Model (used for classification, retrieval multi-query, HyDE)
+    # Single model for all internal/auxiliary tasks - simplifies config
+    auxiliary_model: str = "gpt-4o-mini"
+
+    # Smart Model Configuration (for user-facing generation when "Smart" mode selected)
     smart_model_provider: str = "openai"
-    smart_model_name: str = "gpt-5-mini"
-    
-    # Provider-specific Fast Models (for classification/internal tasks)
-    google_fast_model: str = "gemini-2.0-flash"
-    openai_fast_model: str = "gpt-5-nano"
+    smart_model_name: str = "gpt-4o"
 
     # Vector Store Configuration
     vector_store_type: str = "chroma"  # chroma or qdrant
@@ -224,7 +222,7 @@ class Settings(BaseSettings):
 
     # HyDE (Hypothetical Document Embeddings) Configuration
     enable_hyde: bool = True  # Enable HyDE for improved retrieval
-    hyde_model: str = "gpt-4.1-mini"  # Model for generating hypothetical answers
+    hyde_model: str = "gpt-4o-mini"  # Model for generating hypothetical answers (uses auxiliary_model)
     hyde_cache_ttl: int = 86400  # 24 hours cache for hypothetical docs
     hyde_timeout: float = 2.0  # Max seconds for hypothesis generation
     hyde_max_tokens: int = 300  # Max tokens for hypothetical answer

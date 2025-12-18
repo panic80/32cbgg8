@@ -305,7 +305,7 @@ class EnhancedRetrievalPipeline:
         try:
             self.logger.debug(f"Starting query classification for: {state['query']}")
             
-            async with self.llm_pool.acquire(Provider.OPENAI, "gpt-4o-mini") as llm:
+            async with self.llm_pool.acquire(Provider.OPENAI, settings.auxiliary_model) as llm:
                 # Log the prompt template
                 self.logger.debug(f"Query classifier prompt template: {self.query_classifier}")
 
@@ -354,7 +354,7 @@ class EnhancedRetrievalPipeline:
             if state["query_type"] in [QueryType.MULTI_HOP.value, QueryType.COMPLEX.value]:
                 self.logger.debug(f"Expanding query. Type: {state['query_type']}")
                 
-                async with self.llm_pool.acquire(Provider.OPENAI, "gpt-4o-mini") as llm:
+                async with self.llm_pool.acquire(Provider.OPENAI, settings.auxiliary_model) as llm:
                     invoke_params = {
                         "query": state["query"],
                         "query_type": state["query_type"]
@@ -562,9 +562,9 @@ class EnhancedRetrievalPipeline:
             
             self.logger.debug(f"Context length: {len(context)} chars, Documents: {len(state['reranked_documents'])}")
             
-            # Get appropriate LLM based on query complexity
-            model = "gpt-4o" if state.get("query_type") in [QueryType.COMPLEX.value, QueryType.MULTI_HOP.value] else "gpt-4o-mini"
-            self.logger.debug(f"Using model: {model}")
+            # Use auxiliary model for synthesis in enhanced pipeline
+            model = settings.auxiliary_model
+            self.logger.debug(f"Using auxiliary model for synthesis: {model}")
             
             async with self.llm_pool.acquire(Provider.OPENAI, model) as llm:
                 try:
