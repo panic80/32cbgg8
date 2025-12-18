@@ -128,8 +128,9 @@ class LegacyConfigMapper:
         strategies = []
         
         # Query enhancement strategies
-        if config.use_multi_query and self.llm:
-            strategies.append(self._create_strategy_config("multi_query", order=10))
+        # Multi-query disabled for performance (saves ~6s, only 0.1 RRF weight)
+        # if config.use_multi_query and self.llm:
+        #     strategies.append(self._create_strategy_config("multi_query", order=10))
             
         if config.use_self_query and self.llm:
             strategies.append(self._create_strategy_config("self_query", order=20))

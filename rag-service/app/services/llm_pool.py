@@ -247,7 +247,10 @@ class LLMPool:
         try:
             # Simple test query to warm up the connection
             test_message = HumanMessage(content="Hello")
-            await conn.llm.ainvoke([test_message], max_tokens=10)
+            if conn.provider == Provider.GOOGLE:
+                await conn.llm.ainvoke([test_message])
+            else:
+                await conn.llm.ainvoke([test_message], max_tokens=10)
             logger.debug(f"Warmed up connection for {conn.provider.value}:{conn.model}")
         except Exception as e:
             logger.warning(f"Failed to warm connection: {e}")

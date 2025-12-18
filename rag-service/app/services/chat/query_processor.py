@@ -74,13 +74,13 @@ class QueryProcessor:
     async def process_query(
         self,
         message: str,
-        is_smart_mode: bool = False
+        is_fast_mode: bool = False
     ) -> tuple[str, Optional[QueryClassification], Optional[Dict[str, Any]]]:
         """Process and optimize a query.
 
         Args:
             message: The user's query message.
-            is_smart_mode: Whether to skip classification for smart mode.
+            is_fast_mode: Whether to skip classification for fast mode.
 
         Returns:
             Tuple of (optimized_query, classification, classification_dict)
@@ -93,8 +93,8 @@ class QueryProcessor:
             # Expand abbreviations
             optimized_query = self.optimizer.expand_abbreviations(message)
 
-            # Classify query (skip for smart mode)
-            if not is_smart_mode:
+            # Classify query (skip for fast mode - fast mode uses optimized path)
+            if not is_fast_mode:
                 classification, classification_dict = await self._get_classification(
                     optimized_query
                 )

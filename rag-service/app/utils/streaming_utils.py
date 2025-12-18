@@ -18,6 +18,10 @@ def coerce_to_text(payload: Any) -> str:
         return str(payload)
 
     if isinstance(payload, dict):
+        # Handle Gemini 3.0 structured chunks
+        if payload.get("type") == "text" and "text" in payload:
+            return str(payload["text"])
+
         for key in ("text", "output_text", "content", "delta", "message"):
             if key in payload:
                 text_value = coerce_to_text(payload[key])

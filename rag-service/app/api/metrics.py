@@ -19,3 +19,14 @@ async def metrics_summary() -> dict:
     except Exception as exc:  # pragma: no cover - defensive logging
         logger.error("Failed to build metrics summary", exc_info=exc)
         raise HTTPException(status_code=500, detail="Failed to build metrics summary")
+
+
+@router.get("/all")
+async def metrics_all() -> dict:
+    """Return all recorded metrics including detailed latencies."""
+    monitor = get_performance_monitor()
+    try:
+        return monitor.get_metrics_summary()
+    except Exception as exc:  # pragma: no cover - defensive logging
+        logger.error("Failed to build full metrics", exc_info=exc)
+        raise HTTPException(status_code=500, detail="Failed to build full metrics")

@@ -50,6 +50,10 @@ class Settings(BaseSettings):
     fast_model_name: str = "gpt-4.1-mini"
     smart_model_provider: str = "openai"
     smart_model_name: str = "gpt-5-mini"
+    
+    # Provider-specific Fast Models (for classification/internal tasks)
+    google_fast_model: str = "gemini-2.0-flash"
+    openai_fast_model: str = "gpt-5-nano"
 
     # Vector Store Configuration
     vector_store_type: str = "chroma"  # chroma or qdrant

@@ -125,29 +125,24 @@ class QueryOptimizer:
             
         self.parser = PydanticOutputParser(pydantic_object=QueryClassification)
         
+        # Simplified prompt for faster classification (reduced from 8 considerations to concise format)
         self.classification_prompt = PromptTemplate(
-            template="""Analyze the following query about Canadian Forces travel policies and classify it.
+            template="""Classify this Canadian Forces travel query concisely.
 
 Query: {query}
 
-Consider:
-1. What is the user's primary intent?
-2. What specific entities (rates, locations, benefits) are mentioned?
-3. Is there a time context (dates, periods)?
-4. Is there a location/jurisdiction context?
-5. Does this require looking up specific values from tables?
-6. Does the question explicitly involve Class A Reserve service?
-7. Based ONLY on the user's phrasing, determine whether the member is:
-   - working irregular hours (evenings, weekends, or outside a typical daytime schedule)
-   - ordered or directed to work outside normal hours
-   - on temporary duty (TD), an authorized tasking, or an MTEC assignment
-   - missing a meal because of the tasking
-   If the question does not mention one of these conditions, set the corresponding flag to false.
-8. Using the same information, decide if the entitlement is likely denied (for example: Class A member at their home unit without TD/tasking orders). Provide a boolean only—no explanations in this field.
+Extract:
+- intent: RATE_LOOKUP|ELIGIBILITY|PROCESS_INQUIRY|POLICY_QUESTION|COMPARISON|CALCULATION|DEFINITION|RESTRICTION_LOOKUP|AUTHORIZATION|GENERAL
+- entities: key terms (rates, locations, benefits)
+- requires_table_lookup: true if asking for specific values/rates
+- is_class_a_context: true if Class A Reserve mentioned
+- on_td_or_tasking: true if TD/tasking/MTEC mentioned
+- irregular_hours: true if evening/night/weekend work mentioned
+- ordered_outside_normal_hours: true if ordered to work outside normal hours
+- missed_meal_on_tasking: true if missed meal due to tasking
+- entitlement_likely_denied: true if Class A at home unit without TD/tasking
 
-{format_instructions}
-
-Provide your classification:""",
+{format_instructions}""",
             input_variables=["query"],
             partial_variables={"format_instructions": self.parser.get_format_instructions()}
         )
@@ -488,19 +483,74 @@ Provide your classification:""",
         if not self.llm:
             # Fallback to rule-based classification
             return self._rule_based_classification(query)
-            
+
+        # Fast path: use rule-based for simple queries to avoid 7+ second LLM call
+        # Simple query = short length AND clear intent keywords AND no complex entitlement context
+        if self._is_simple_query(query):
+            logger.info("Using fast-path rule-based classification for simple query")
+            return self._rule_based_classification(query)
+
         try:
-            # Use LLM for classification
+            # Use LLM for classification (complex queries only)
             prompt = self.classification_prompt.format(query=query)
             response = await self.llm.ainvoke(prompt)
-            
+
             # Parse response
             classification = self.parser.parse(response.content)
             return self._apply_classification_heuristics(classification, query)
-            
+
         except Exception as e:
             logger.warning(f"LLM classification failed: {e}, using rule-based")
             return self._rule_based_classification(query)
+
+    def _is_simple_query(self, query: str) -> bool:
+        """Check if query is simple enough for fast-path rule-based classification.
+
+        Simple queries are:
+        - Short (under 20 words)
+        - Have clear intent keywords (rate, allowance, eligible, how to, etc.)
+        - Don't involve complex entitlement scenarios (Class A, irregular hours, etc.)
+
+        Returns True to use fast rule-based path, False to use LLM.
+        """
+        query_lower = query.lower()
+        word_count = len(query.split())
+
+        # Long queries need LLM for nuanced understanding
+        if word_count > 25:
+            return False
+
+        # Complex entitlement scenarios need LLM analysis
+        complex_indicators = [
+            "class a", "class b", "class c",  # Reserve class context
+            "home unit",  # Location context matters
+            "evening", "night", "weekend", "after hours",  # Irregular hours
+            "ordered", "directed", "tasking",  # Authorization context
+            "missed meal", "entitled", "qualify",  # Entitlement determination
+            "1700", "1800", "1900", "2000", "2100", "2200",  # Time indicators
+        ]
+        if any(indicator in query_lower for indicator in complex_indicators):
+            return False
+
+        # Simple queries with clear keywords can use fast path
+        simple_keywords = [
+            # Rate lookups
+            "rate", "rates", "allowance", "$", "per diem", "amount", "cost",
+            "appendix c", "appendix d", "table",
+            # Simple definitions
+            "what is", "what are", "define", "meaning of",
+            # Simple process questions
+            "how to", "how do i", "process", "procedure",
+            # Policy questions without entitlement
+            "policy", "directive", "rule",
+        ]
+
+        has_simple_keyword = any(kw in query_lower for kw in simple_keywords)
+        is_short = word_count <= 15
+
+        # Use fast path if: has clear keyword AND is short
+        # OR: very short query (under 10 words) regardless of keywords
+        return (has_simple_keyword and is_short) or word_count < 10
             
     def _rule_based_classification(self, query: str) -> QueryClassification:
         """Rule-based query classification fallback."""

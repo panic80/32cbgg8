@@ -173,11 +173,54 @@ async def _run_streaming_flow(
     provider_enum = ensure_provider(chat_request.provider)
     resolved_model_name = resolve_model(provider_enum, chat_request.model)
     requested_model = (chat_request.model or resolved_model_name or "").strip().lower()
-    is_smart_gpt5 = requested_model == "gpt-5-mini"
+    # Fast mode = optimized path (skip HyDE, limited context, skip classification)
+    # Smart mode = full pipeline (thorough retrieval)
+    is_fast_mode = requested_model in ["gpt-4.1-mini", "gpt-5-nano", "fast", settings.fast_model_name.lower()]
 
-    # Initialize services
-    optimizer_llm = None if is_smart_gpt5 else llm_wrapper
-    query_processor = QueryProcessor(optimizer_llm)
+    # Determine fast model for classification
+    classification_model = settings.fast_model_name
+    if provider_enum == Provider.GOOGLE:
+        classification_model = settings.google_fast_model
+    elif provider_enum == Provider.OPENAI:
+        classification_model = settings.openai_fast_model
+    
+    logger.info(f"Using classification model: {classification_model} (Provider: {provider_enum})")
+
+    # Process query with fast model
+    classification_start = time.perf_counter()
+    
+    classification_data = None
+    try:
+        async with llm_pool.acquire(provider_enum, classification_model) as classifier_llm:
+            query_processor = QueryProcessor(classifier_llm)
+            classification_data = await query_processor.process_query(
+                chat_request.message, is_fast_mode=is_fast_mode
+            )
+    except Exception as e:
+        logger.warning(f"Fast model classification failed ({e}). Falling back to main model.")
+        # Fallback to main LLM if fast model fails
+        query_processor = QueryProcessor(llm_wrapper)
+        classification_data = await query_processor.process_query(
+            chat_request.message, is_fast_mode=is_fast_mode
+        )
+
+    optimized_query, classification, classification_dict = classification_data
+    
+    classification_time_ms = (time.perf_counter() - classification_start) * 1000
+    perf_monitor.record_latency("query_classification_latency_ms", classification_time_ms)
+
+    classification_note = build_classification_note(classification_dict)
+    entitlement_denial_required = bool(
+        classification_dict and classification_dict.get("entitlement_likely_denied")
+    )
+
+    # Initialize services with main LLM (for later use if needed)
+    # Note: QueryProcessor was already used, but we might need it again for other things? 
+    # Actually, process_query is the main thing.
+    
+    optimizer_llm = None if is_fast_mode else llm_wrapper
+    # Re-init processor just in case other methods are called later with main LLM
+    query_processor = QueryProcessor(optimizer_llm) 
     metadata_enricher = MetadataEnricher()
     retrieval_executor = RetrievalExecutor(vector_store, app_state, llm_wrapper)
     response_builder = ResponseBuilder()
@@ -190,7 +233,7 @@ async def _run_streaming_flow(
     if chat_request.retrieval_config and chat_request.retrieval_config.enable_hyde is not None:
         enable_hyde = chat_request.retrieval_config.enable_hyde
         logger.info(f"Using per-request enable_hyde: {enable_hyde}")
-    if enable_hyde and not is_smart_gpt5:
+    if enable_hyde and not is_fast_mode:
         cache_service = getattr(app_state, "cache_service", None)
         hyde_generator = get_hyde_generator(llm_pool, cache_service)
 
@@ -241,15 +284,6 @@ async def _run_streaming_flow(
         else:
             perf_monitor.record_cache_hit("l3", False)
 
-    # Process query
-    optimized_query, classification, classification_dict = await query_processor.process_query(
-        chat_request.message, is_smart_mode=is_smart_gpt5
-    )
-    classification_note = build_classification_note(classification_dict)
-    entitlement_denial_required = bool(
-        classification_dict and classification_dict.get("entitlement_likely_denied")
-    )
-
     # Generate HyDE hypothesis if enabled
     hyde_hypothesis = None
     if hyde_generator and chat_request.use_rag:
@@ -267,12 +301,28 @@ async def _run_streaming_flow(
     if chat_request.use_rag:
         yield f"data: {json.dumps({'type': 'retrieval_start'})}\n\n"
 
-        pipeline = await retrieval_executor.create_pipeline(chat_request, is_smart_gpt5)
-        retrieval_start = time.perf_counter()
-        retrieval_results = await retrieval_executor.retrieve(
-            pipeline, optimized_query, is_smart_mode=is_smart_gpt5,
-            hyde_hypothesis=hyde_hypothesis
-        )
+        # Use fast model for retrieval (multi-query generation)
+        retrieval_llm_wrapper = llm_wrapper
+        try:
+            async with llm_pool.acquire(provider_enum, classification_model) as retrieval_llm:
+                retrieval_executor = RetrievalExecutor(vector_store, app_state, retrieval_llm)
+                
+                pipeline = await retrieval_executor.create_pipeline(chat_request, is_fast_mode)
+                retrieval_start = time.perf_counter()
+                retrieval_results = await retrieval_executor.retrieve(
+                    pipeline, optimized_query, is_fast_mode=is_fast_mode,
+                    hyde_hypothesis=hyde_hypothesis
+                )
+        except Exception as e:
+            logger.warning(f"Fast model retrieval failed ({e}). Falling back to main model.")
+            retrieval_executor = RetrievalExecutor(vector_store, app_state, llm_wrapper)
+            pipeline = await retrieval_executor.create_pipeline(chat_request, is_fast_mode)
+            retrieval_start = time.perf_counter()
+            retrieval_results = await retrieval_executor.retrieve(
+                pipeline, optimized_query, is_fast_mode=is_fast_mode,
+                hyde_hypothesis=hyde_hypothesis
+            )
+
         retrieval_time_ms = (time.perf_counter() - retrieval_start) * 1000
         retrieval_count = len(retrieval_results)
 
@@ -296,7 +346,7 @@ async def _run_streaming_flow(
             )
 
             # Apply smart mode context limit
-            if is_smart_gpt5:
+            if is_fast_mode:
                 char_limit = getattr(settings, "smart_mode_context_char_limit", 0)
                 context = response_builder.truncate_context(context, char_limit)
 
@@ -713,9 +763,9 @@ async def retrieval_only_endpoint(request: Request, retrieval_request: Retrieval
             logger.warning(f"HyDE generation failed: {hyde_error}")
 
     # Create pipeline and retrieve
-    pipeline = await retrieval_executor.create_pipeline(chat_request, is_smart_mode=False)
+    pipeline = await retrieval_executor.create_pipeline(chat_request, is_fast_mode=False)
     retrieval_results = await retrieval_executor.retrieve(
-        pipeline, retrieval_request.query, is_smart_mode=False, hyde_hypothesis=hyde_hypothesis
+        pipeline, retrieval_request.query, is_fast_mode=False, hyde_hypothesis=hyde_hypothesis
     )
 
     # Build sources

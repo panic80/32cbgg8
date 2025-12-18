@@ -42,7 +42,7 @@ class ImprovedRetrievalPipeline:
         self,
         vector_store_manager: VectorStoreManager,
         llm: Optional[BaseLLM] = None,
-        use_multi_query: bool = True,
+        use_multi_query: bool = False,  # Disabled for performance (saves ~6s)
         use_compression: bool = True,
         use_smart_chunking: bool = True,
         use_self_query: bool = True

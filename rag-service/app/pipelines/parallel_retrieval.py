@@ -289,10 +289,14 @@ class ParallelRetrievalPipeline:
         merged_results: List[Tuple[Document, float]] = []
         
         if self.rrf_merger and results_by_retriever:
+            rrf_start = time.perf_counter()
             max_docs = k * 2 if self.reranker else k
             rrf_docs, rrf_stats = self.rrf_merger.merge(results_by_retriever, max_docs=max_docs)
             merged_results = [(rrf_doc.document, rrf_doc.rrf_score) for rrf_doc in rrf_docs]
             
+            if monitor:
+                monitor.record_latency("rrf_merge_latency_ms", (time.perf_counter() - rrf_start) * 1000)
+
             logger.debug(
                 "RRF merge completed with %d docs (filtered=%d, threshold=%.2f)",
                 len(merged_results),
@@ -324,6 +328,7 @@ class ParallelRetrievalPipeline:
 
         if is_table_query and self.table_ranker and merged_results:
             logger.info("Applying table-specific ranking (pre-reranker)")
+            table_start = time.perf_counter()
             score_map = {self._get_document_key(doc): score for doc, score in merged_results}
             documents_for_ranking = [doc for doc, _ in merged_results]
             ranked_docs = self.table_ranker.filter_and_rerank(
@@ -336,6 +341,8 @@ class ParallelRetrievalPipeline:
                 (doc, score_map.get(self._get_document_key(doc), 1.0 - (idx * 0.01)))
                 for idx, doc in enumerate(ranked_docs)
             ]
+            if monitor:
+                monitor.record_latency("table_ranker_latency_ms", (time.perf_counter() - table_start) * 1000)
             table_ranker_applied = True
 
         # Apply reranking if available
@@ -345,17 +352,23 @@ class ParallelRetrievalPipeline:
 
             if is_table_query and self.table_ranker and not table_ranker_applied:
                 logger.info("Applying table-specific ranking")
+                table_start = time.perf_counter()
                 documents = self.table_ranker.filter_and_rerank(
                     documents,
                     query,
                     top_k=min(len(documents), k * 2),  # Keep more for final reranking
                     query_type="table",
                 )
+                if monitor:
+                    monitor.record_latency("table_ranker_latency_ms", (time.perf_counter() - table_start) * 1000)
                 table_ranker_applied = True
 
             # Apply general reranking
             logger.info(f"Applying reranking to {len(documents)} documents")
+            rerank_start = time.perf_counter()
             reranked_docs = await self.reranker.arerank(query, documents, k)
+            if monitor:
+                monitor.record_latency("reranker_latency_ms", (time.perf_counter() - rerank_start) * 1000)
             
             # Convert back to tuples with scores
             merged_results = [(doc, 1.0 - (i * 0.1)) for i, doc in enumerate(reranked_docs)]
@@ -651,11 +664,11 @@ def create_parallel_pipeline(
             logger.error(f"Traceback: {traceback.format_exc()}")
     
     # Define weights based on retriever importance
+    # Note: multi_query removed - adds 6s latency for 0.1 weight, not worth the cost
     default_weights = {
         "vector_similarity": 0.4,
         "vector_mmr": 0.2,
         "bm25": 0.3,
-        "multi_query": 0.1,
         "unified": 0.5,
     }
     if retrievers:

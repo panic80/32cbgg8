@@ -49,7 +49,7 @@ class RetrieverConfig:
         self,
         mode: RetrieverMode = RetrieverMode.ADVANCED,
         use_bm25: bool = True,
-        use_multi_query: bool = True,
+        use_multi_query: bool = False,  # Disabled for performance (saves ~6s)
         use_self_query: bool = True,
         use_compression: bool = True,
         use_smart_chunking: bool = True,

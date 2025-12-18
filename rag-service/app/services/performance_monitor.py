@@ -393,6 +393,15 @@ class PerformanceMonitor:
             }
         }
         
+    async def export_metrics(self, format: str = "prometheus") -> Any:
+        """Export metrics in requested format."""
+        if format == "json":
+            return self.get_metrics_summary()
+        elif format == "prometheus":
+            return self.export_prometheus_metrics()
+        else:
+            raise ValueError(f"Unknown format: {format}")
+
     def export_prometheus_metrics(self) -> str:
         """Export metrics in Prometheus format."""
         lines = []

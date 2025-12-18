@@ -35,13 +35,13 @@ class RetrievalExecutor:
     async def create_pipeline(
         self,
         chat_request: ChatRequest,
-        is_smart_mode: bool = False,
+        is_fast_mode: bool = False,
     ) -> Any:
         """Create or retrieve cached retrieval pipeline.
 
         Args:
             chat_request: The chat request.
-            is_smart_mode: Whether using smart/streamlined mode.
+            is_fast_mode: Whether using fast/streamlined mode (skip reranker, limited context).
 
         Returns:
             The retrieval pipeline.
@@ -68,7 +68,7 @@ class RetrievalExecutor:
             logger.info(f"Using per-request retrieval_k: {retrieval_k}")
 
         # Determine enable_reranker
-        enable_reranker = not is_smart_mode
+        enable_reranker = not is_fast_mode
         if retrieval_config and retrieval_config.enable_reranker is not None:
             enable_reranker = retrieval_config.enable_reranker
             logger.info(f"Using per-request enable_reranker: {enable_reranker}")
@@ -86,16 +86,18 @@ class RetrievalExecutor:
                     "k": retrieval_k,
                 },
             }
-            if self.llm_wrapper:
-                retriever_configs["multi_query"] = {
-                    "type": "multi_query",
-                    "base_retriever": "vector_similarity",
-                    "llm": self.llm_wrapper,
-                }
+            # Multi-query retriever disabled for performance (saves ~6s)
+            # Analysis showed 0.1 RRF weight with high overlap, not worth 6s latency
+            # if self.llm_wrapper:
+            #     retriever_configs["multi_query"] = {
+            #         "type": "multi_query",
+            #         "base_retriever": "vector_similarity",
+            #         "llm": self.llm_wrapper,
+            #     }
 
-        if retriever_configs is None and is_smart_mode:
+        if retriever_configs is None and is_fast_mode:
             logger.info(
-                "Smart mode detected - using streamlined vector retriever configuration"
+                "Fast mode detected - using streamlined vector retriever configuration"
             )
             retriever_configs = {
                 "vector_similarity": {
@@ -164,7 +166,7 @@ class RetrievalExecutor:
         pipeline: Any,
         query: str,
         k: Optional[int] = None,
-        is_smart_mode: bool = False,
+        is_fast_mode: bool = False,
         hyde_hypothesis: Optional[str] = None,
     ) -> List[Tuple]:
         """Execute retrieval.
@@ -173,7 +175,7 @@ class RetrievalExecutor:
             pipeline: The retrieval pipeline.
             query: The query string.
             k: Number of results (defaults to settings).
-            is_smart_mode: Whether to apply smart mode limits.
+            is_fast_mode: Whether to apply fast mode limits (reduced chunks).
             hyde_hypothesis: Optional HyDE hypothesis for improved retrieval.
 
         Returns:
@@ -191,8 +193,8 @@ class RetrievalExecutor:
         else:
             results = await pipeline.retrieve(query=query, k=k)
 
-        # Apply smart mode chunk limit
-        if is_smart_mode:
+        # Apply fast mode chunk limit
+        if is_fast_mode:
             smart_chunk_limit = getattr(settings, "smart_mode_max_chunks", 0)
             if smart_chunk_limit:
                 results = results[:smart_chunk_limit]
