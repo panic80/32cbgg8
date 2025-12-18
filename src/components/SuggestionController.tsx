@@ -3,9 +3,9 @@
  * Implements smart progressive disclosure for follow-up questions
  */
 
-import React, { useReducer, useMemo, useEffect, useRef } from 'react';
+import React, { useReducer, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { HelpCircle, ChevronDown, MessageCircle } from 'lucide-react';
+import { HelpCircle, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FollowUpQuestion } from '@/types/chat';
 import { cn } from '@/lib/utils';
@@ -145,14 +145,6 @@ function selectSmartActions(
   return selection;
 }
 
-// Calculate dynamic delay based on content
-function calculateDelay(answerWordCount: number): number {
-  const baseDelay = 2000; // 2 seconds minimum
-  const wordsPerSecond = 4; // Reading speed assumption
-  const dynamicDelay = (answerWordCount / wordsPerSecond) * 1000;
-  return Math.min(Math.max(baseDelay, dynamicDelay), 5000); // Clamp between 2-5 seconds
-}
-
 const SuggestionController: React.FC<SuggestionControllerProps> = ({
   questions,
   onQuestionClick,
@@ -162,111 +154,12 @@ const SuggestionController: React.FC<SuggestionControllerProps> = ({
 }) => {
   const [state, dispatch] = useReducer(suggestionReducer, initialState);
   const observerRef = useRef<HTMLDivElement>(null);
-  const timerRef = useRef<number | null>(null);
 
   // Smart actions selection
   const smartActions = useMemo(
     () => selectSmartActions(questions, 3, isLatestMessage),
     [questions, isLatestMessage],
   );
-
-  // Intersection observer for viewport tracking - DISABLED to keep questions visible
-  // useEffect(() => {
-  //   const element = observerRef.current;
-  //   if (!element) return;
-
-  //   const observer = new IntersectionObserver(
-  //     ([entry]) => {
-  //       if (entry.isIntersecting) {
-  //         dispatch({ type: 'VIEWPORT_ENTER' });
-  //       } else {
-  //         dispatch({ type: 'VIEWPORT_EXIT' });
-  //         // Clear any pending timer when leaving viewport
-  //         if (timerRef.current) {
-  //           clearTimeout(timerRef.current);
-  //           timerRef.current = null;
-  //         }
-  //       }
-  //     },
-  //     {
-  //       threshold: 0.5, // Trigger when 50% visible
-  //       rootMargin: '0px 0px -20% 0px' // Only trigger when well within viewport
-  //     }
-  //   );
-
-  //   observer.observe(element);
-
-  //   return () => {
-  //     observer.disconnect();
-  //     if (timerRef.current) {
-  //       clearTimeout(timerRef.current);
-  //     }
-  //   };
-  // }, []);
-
-  // Timer management for smart actions - DISABLED to show questions immediately
-  // useEffect(() => {
-  //   if (state.isVisible && state.phase === 'hidden' && smartActions.length > 0) {
-  //     // Start timer for smart actions
-  //     const delay = calculateDelay(100); // TODO: Get actual word count from message
-
-  //     timerRef.current = window.setTimeout(() => {
-  //       dispatch({ type: 'SHOW_SMART_ACTIONS' });
-  //     }, delay);
-  //   }
-
-  //   return () => {
-  //     if (timerRef.current) {
-  //       clearTimeout(timerRef.current);
-  //       timerRef.current = null;
-  //     }
-  //   };
-  // }, [state.isVisible, state.phase, smartActions.length]);
-
-  // Enhanced timer management with pause/resume - DISABLED
-  // useEffect(() => {
-  //   const handlePauseTimers = () => {
-  //     if (timerRef.current) {
-  //       clearTimeout(timerRef.current);
-  //       timerRef.current = null;
-  //     }
-  //   };
-
-  //   const handleResumeTimers = () => {
-  //     if (state.isVisible && state.phase === 'hidden' && smartActions.length > 0) {
-  //       const delay = calculateDelay(100);
-  //       timerRef.current = window.setTimeout(() => {
-  //         dispatch({ type: 'SHOW_SMART_ACTIONS' });
-  //       }, delay);
-  //     }
-  //   };
-
-  //   window.addEventListener('suggestion-pause-timers', handlePauseTimers);
-  //   window.addEventListener('suggestion-resume-timers', handleResumeTimers);
-
-  //   return () => {
-  //     window.removeEventListener('suggestion-pause-timers', handlePauseTimers);
-  //     window.removeEventListener('suggestion-resume-timers', handleResumeTimers);
-  //   };
-  // }, [state.isVisible, state.phase, smartActions.length]);
-
-  // // Cancel timers on user interaction (exposed via global event)
-  // useEffect(() => {
-  //   const handleUserInteraction = () => {
-  //     if (timerRef.current) {
-  //       clearTimeout(timerRef.current);
-  //       timerRef.current = null;
-  //       dispatch({ type: 'CANCEL_TIMER' });
-  //     }
-  //   };
-
-  //   // Listen for global events that should cancel timers
-  //   window.addEventListener('suggestion-cancel-timers', handleUserInteraction);
-
-  //   return () => {
-  //     window.removeEventListener('suggestion-cancel-timers', handleUserInteraction);
-  //   };
-  // }, []);
 
   if (!questions || questions.length === 0) {
     return null;

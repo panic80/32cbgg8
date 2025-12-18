@@ -1,6 +1,5 @@
 import axios from 'axios';
-
-const DEFAULT_RAG_SERVICE_URL = process.env.RAG_SERVICE_URL || 'http://localhost:8000';
+import { RAG_SERVICE_URL, TRIP_PLANNER_MODEL, TRIP_PLANNER_PREFIX } from '../config/constants.js';
 
 const PROVINCE_MATCHERS = [
   { name: 'Alberta', re: /\b(AB|Alberta)\b/i },
@@ -83,11 +82,9 @@ export const createChatController = ({
   const handleStandardChat = async (req, res) => {
     const { message, model, provider } = req.body;
 
-    const isTripPlannerMessage = message?.startsWith('📋 **Trip Plan Request**');
-    const forcedModel = 'gpt-4.1-mini';
-    const forcedProvider = 'openai';
-    const effectiveModel = isTripPlannerMessage ? forcedModel : model;
-    const effectiveProvider = isTripPlannerMessage ? forcedProvider : provider;
+    const isTripPlannerMessage = message?.startsWith(TRIP_PLANNER_PREFIX);
+    const effectiveModel = isTripPlannerMessage ? TRIP_PLANNER_MODEL : model;
+    const effectiveProvider = isTripPlannerMessage ? 'openai' : provider;
 
     if (!effectiveModel) {
       return res.status(400).json({
@@ -224,11 +221,9 @@ export const createChatController = ({
       audience,
     } = req.body;
 
-    const isTripPlannerMessage = message?.startsWith('📋 **Trip Plan Request**');
-    const forcedModel = 'gpt-4.1-mini';
-    const forcedProvider = 'openai';
-    const effectiveModel = isTripPlannerMessage ? forcedModel : model;
-    const effectiveProvider = isTripPlannerMessage ? forcedProvider : provider;
+    const isTripPlannerMessage = message?.startsWith(TRIP_PLANNER_PREFIX);
+    const effectiveModel = isTripPlannerMessage ? TRIP_PLANNER_MODEL : model;
+    const effectiveProvider = isTripPlannerMessage ? 'openai' : provider;
 
     try {
       chatLogger?.info?.('Processing RAG chat request', {
@@ -240,7 +235,7 @@ export const createChatController = ({
       });
 
       const ragResponse = await axios.post(
-        `${DEFAULT_RAG_SERVICE_URL}/api/v1/chat`,
+        `${RAG_SERVICE_URL}/api/v1/chat`,
         {
           message: message.trim(),
           chat_history: chatHistory || [],
@@ -297,11 +292,9 @@ export const createChatController = ({
       modelMode,
     } = req.body;
 
-    const isTripPlannerMessage = message?.startsWith('📋 **Trip Plan Request**');
-    const forcedModel = 'gpt-5-mini';
-    const forcedProvider = 'openai';
-    const effectiveModel = isTripPlannerMessage ? forcedModel : model;
-    const effectiveProvider = isTripPlannerMessage ? forcedProvider : provider;
+    const isTripPlannerMessage = message?.startsWith(TRIP_PLANNER_PREFIX);
+    const effectiveModel = isTripPlannerMessage ? TRIP_PLANNER_MODEL : model;
+    const effectiveProvider = isTripPlannerMessage ? 'openai' : provider;
 
     try {
       chatLogger?.info?.('Processing streaming chat request', {
@@ -325,7 +318,7 @@ export const createChatController = ({
       const upstreamAbortController = new AbortController();
 
       const response = await axios.post(
-        `${DEFAULT_RAG_SERVICE_URL}/api/v1/streaming_chat`,
+        `${RAG_SERVICE_URL}/api/v1/streaming_chat`,
         {
           message: messageForRetrieval,
           chat_history: chatHistory || [],

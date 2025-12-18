@@ -23,7 +23,7 @@ import createAnalyticsRoutes from './routes/analytics.js';
 import { decodeUrlParams } from './utils/http.js';
 import { processContent } from './utils/html.js';
 import { setSseHeaders } from './utils/sse.js';
-import { DEFAULT_RAG_STREAM_TIMEOUT_MS, getEnvNumber } from './config/constants.js';
+import { DEFAULT_RAG_STREAM_TIMEOUT_MS, getEnvNumber, RAG_SERVICE_URL } from './config/constants.js';
 import { TRAVEL_PLANNER_ADDITIONAL_INSTRUCTIONS } from './constants/travelPlannerInstructions.js';
 import { pipeStreamingResponse } from './services/streaming.js';
 import helmet from 'helmet';
@@ -83,12 +83,12 @@ app.use(
         scriptSrc: [
           "'self'",
           "'unsafe-inline'", // Required for inline scripts in index.html
-          "'unsafe-eval'", // Required for some React development tools
+          ...(isDevelopment ? ["'unsafe-eval'"] : []), // Only in development for React dev tools
           'https://fonts.googleapis.com',
           'https://maps.googleapis.com', // Google Maps API
           'https://maps.gstatic.com', // Google Maps static content
         ],
-        scriptSrcAttr: ["'unsafe-inline'"], // Allow inline event handlers
+        scriptSrcAttr: ["'unsafe-inline'"], // Required for inline event handlers in React
         fontSrc: ["'self'", 'https://fonts.gstatic.com', 'https://r2cdn.perplexity.ai'],
         imgSrc: ["'self'", 'data:', 'https:'],
         connectSrc: [
@@ -618,14 +618,18 @@ const rateLimiter = async (req, res, next) => {
     // Prefer Redis-backed counter when cache (Redis) is connected
     if (cache && cache.redisConnected && cache.redisClient) {
       const key = `rl:${clientIP}:${windowStart}`;
-      // INCR and set expiry when first seen
-      count = await cache.redisClient.incr(key);
-      if (count === 1) {
-        await cache.redisClient.pexpire(key, windowMs);
-      }
+      // Atomic INCR with expiry using Lua script to prevent race condition
+      const luaScript = `
+        local count = redis.call('INCR', KEYS[1])
+        if count == 1 then
+          redis.call('PEXPIRE', KEYS[1], ARGV[1])
+        end
+        return count
+      `;
+      count = await cache.redisClient.eval(luaScript, { keys: [key], arguments: [String(windowMs)] });
       usedRedis = true;
     }
-  } catch (e) {
+  } catch (error) {
     // Fall back to memory on Redis error
     usedRedis = false;
   }
@@ -792,8 +796,7 @@ app.get('/health', async (req, res) => {
   let ragHealth = { status: 'unknown' };
   if (process.env.RAG_SERVICE_URL || req.query.checkRag === 'true') {
     try {
-      const ragServiceUrl = process.env.RAG_SERVICE_URL || 'http://localhost:8000';
-      const ragResponse = await axios.get(`${ragServiceUrl}/api/v1/health`, { timeout: 5000 });
+      const ragResponse = await axios.get(`${RAG_SERVICE_URL}/api/v1/health`, { timeout: 5000 });
       ragHealth = ragResponse.data;
     } catch (error) {
       ragHealth = { status: 'unhealthy', error: error.message };
@@ -903,7 +906,7 @@ app.get('/api/config', (req, res) => {
     // RAG service info
     rag: {
       enabled: !!process.env.RAG_SERVICE_URL,
-      serviceUrl: process.env.RAG_SERVICE_URL || 'http://localhost:8000',
+      serviceUrl: RAG_SERVICE_URL,
     },
     // Client-side configuration
     client: {

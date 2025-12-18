@@ -124,16 +124,6 @@ export const appRoutes: AppRouteDefinition[] = [
     loader: loadFaqPage,
   },
   {
-    kind: 'element',
-    path: '/coming-soon-1',
-    element: createComingSoonElement('Coming Soon'),
-  },
-  {
-    kind: 'element',
-    path: '/coming-soon-2',
-    element: createComingSoonElement('Coming Soon'),
-  },
-  {
     kind: 'lazy',
     path: '/loading-debug',
     component: lazy(loadLoadingDebugPage),

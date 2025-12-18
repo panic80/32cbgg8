@@ -11,8 +11,8 @@ import {
   ragChatSchema,
   streamingChatSchema,
 } from './schemas/chatSchemas.js';
+import { RAG_SERVICE_URL } from '../config/constants.js';
 
-const DEFAULT_RAG_SERVICE_URL = process.env.RAG_SERVICE_URL || 'http://localhost:8000';
 const logger = getLogger('routes:chat');
 
 const createChatRoutes = ({

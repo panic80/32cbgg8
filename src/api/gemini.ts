@@ -126,11 +126,6 @@ export const callGeminiAPI = async (
   // eslint-disable-next-line no-constant-condition
   while (true) {
     try {
-      console.log('[DEBUG] Sending request to consolidated Gemini API:', {
-        url,
-        method: 'POST',
-      });
-
       const response = await apiClient.request(url, {
         method: 'POST',
         headers,
@@ -138,26 +133,14 @@ export const callGeminiAPI = async (
         parseErrorResponse: true,
       });
 
-      console.log('[DEBUG] Received response:', {
-        status: response.status,
-        statusText: response.statusText,
-      });
-
       try {
         const data: any = await response.json();
-        console.log('[DEBUG] Parsing response data:', {
-          hasData: Boolean(data),
-          hasCandidates: Boolean(data?.candidates),
-          candidateCount: data?.candidates?.length,
-        });
 
         const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
         if (!text) {
-          console.error('[DEBUG] Invalid response structure:', JSON.stringify(data, null, 2));
           throw new Error('Invalid response format from Gemini API');
         }
 
-        console.log('[DEBUG] Successfully parsed response text:', `${text.substring(0, 50)}...`);
         return parseApiResponse(text, isSimplified);
       } catch (parseError) {
         if (parseError instanceof SyntaxError) {
@@ -166,11 +149,8 @@ export const callGeminiAPI = async (
         throw parseError;
       }
     } catch (error) {
-      if (error instanceof ApiError) {
-        console.error('[DEBUG] Response not OK:', error.status, error.statusText);
-        if (error.status === 429) {
-          throw new Error('Rate limit exceeded. Please try again later.');
-        }
+      if (error instanceof ApiError && error.status === 429) {
+        throw new Error('Rate limit exceeded. Please try again later.');
       }
 
       const normalised = toError(error);
@@ -188,7 +168,6 @@ export const callGeminiAPI = async (
         continue;
       }
 
-      console.error('Consolidated API error:', normalised);
       throw handleApiError(normalised);
     }
   }
@@ -224,22 +203,11 @@ export const sendToGemini = async (
       throw new Error('Travel instructions not loaded');
     }
 
-    try {
-      return await callGeminiAPI(message, isSimplified, model, preloadedInstructions, true);
-    } catch (error) {
-      console.error('Gemini API Error via consolidated server:', error);
-      throw error;
-    }
+    return await callGeminiAPI(message, isSimplified, model, preloadedInstructions, true);
   } catch (error) {
     const normalised = toError(error);
-    console.error('Gemini API Error:', {
-      type: normalised instanceof ChatError ? normalised.type : 'UNKNOWN',
-      message: normalised.message,
-      stack: normalised.stack,
-    });
 
     if (useFallback) {
-      console.log('Returning fallback response due to error');
       return getFallbackResponse(isSimplified);
     }
 

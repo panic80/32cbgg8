@@ -34,28 +34,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const { pullOffset, handleTouchStart, handleTouchMove, handleTouchEnd } =
     useChatPullToRefresh(messagesContainerRef);
 
-  //   // Detect user scroll position
-  //   useEffect(() => {
-  //     const handleScroll = () => {
-  //       if (messagesContainerRef.current) {
-  //         const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
-  //         const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
-  //         setIsUserNearBottom(distanceFromBottom < 100);
-  //       }
-  //     };
-  //
-  //     const container = messagesContainerRef.current;
-  //     container?.addEventListener('scroll', handleScroll);
-  //     return () => container?.removeEventListener('scroll', handleScroll);
-  //   }, []);
-
-  //   // Auto-scroll to bottom when new messages arrive
-  //   useEffect(() => {
-  //     if (messagesContainerRef.current && isUserNearBottom) {
-  //       messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
-  //     }
-  //   }, [messages, isUserNearBottom]);
-  //
   // Auto-resize textarea
   useEffect(() => {
     if (inputRef.current) {
@@ -82,11 +60,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   );
 
   const handleInputFocus = useCallback(() => {
-    //     setTimeout(() => {
-    //       if (messagesContainerRef.current) {
-    //         messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
-    //       }
-    //     }, 300);
+    // Focus handling - intentionally empty, keyboard handling is done elsewhere
   }, []);
 
   const handleCopy = useCallback(async (text: string) => {

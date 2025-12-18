@@ -2,6 +2,7 @@ import express from 'express';
 import axios from 'axios';
 import { getLogger } from '../services/logger.js';
 import { respondWithError } from '../utils/http.js';
+import { RAG_SERVICE_URL } from '../config/constants.js';
 
 export function createSourcesRoutes({ rateLimiter, requireAdminAuth, getRagAuthHeaders }) {
   const router = express.Router();
@@ -14,7 +15,7 @@ export function createSourcesRoutes({ rateLimiter, requireAdminAuth, getRagAuthH
   // List indexed sources
   router.get('/api/v2/sources', adminMiddleware, rateLimiter, async (req, res) => {
     try {
-      const ragServiceUrl = process.env.RAG_SERVICE_URL || 'http://localhost:8000';
+      const ragServiceUrl = RAG_SERVICE_URL;
       const ragResponse = await axios.get(`${ragServiceUrl}/api/v1/sources`, {
         params: req.query,
         timeout: 10000,
@@ -45,7 +46,7 @@ export function createSourcesRoutes({ rateLimiter, requireAdminAuth, getRagAuthH
   // Get source statistics
   router.get('/api/v2/sources/stats', adminMiddleware, rateLimiter, async (req, res) => {
     try {
-      const ragServiceUrl = process.env.RAG_SERVICE_URL || 'http://localhost:8000';
+      const ragServiceUrl = RAG_SERVICE_URL;
       const ragResponse = await axios.get(`${ragServiceUrl}/api/v1/sources/stats`, {
         timeout: 10000,
         headers: { ...buildRagAuthHeaders() },
@@ -75,7 +76,7 @@ export function createSourcesRoutes({ rateLimiter, requireAdminAuth, getRagAuthH
   // Get source count
   router.get('/api/v2/sources/count', adminMiddleware, rateLimiter, async (req, res) => {
     try {
-      const ragServiceUrl = process.env.RAG_SERVICE_URL || 'http://localhost:8000';
+      const ragServiceUrl = RAG_SERVICE_URL;
       const ragResponse = await axios.get(`${ragServiceUrl}/api/v1/sources/count`, {
         timeout: 10000,
         headers: { ...buildRagAuthHeaders() },
@@ -92,7 +93,7 @@ export function createSourcesRoutes({ rateLimiter, requireAdminAuth, getRagAuthH
   router.post('/api/v2/database/purge', adminMiddleware, rateLimiter, async (req, res) => {
     try {
       logger.info('Database purge requested');
-      const ragServiceUrl = process.env.RAG_SERVICE_URL || 'http://localhost:8000';
+      const ragServiceUrl = RAG_SERVICE_URL;
       const ragResponse = await axios.post(
         `${ragServiceUrl}/api/v1/database/purge`,
         {},
@@ -127,7 +128,7 @@ export function createSourcesRoutes({ rateLimiter, requireAdminAuth, getRagAuthH
   router.post('/api/v2/database/build-bm25', adminMiddleware, rateLimiter, async (req, res) => {
     try {
       logger.info('BM25 index build requested');
-      const ragServiceUrl = process.env.RAG_SERVICE_URL || 'http://localhost:8000';
+      const ragServiceUrl = RAG_SERVICE_URL;
       const ragResponse = await axios.post(
         `${ragServiceUrl}/api/v1/admin/bm25/rebuild`,
         {},

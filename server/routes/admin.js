@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { getLogger } from '../services/logger.js';
 import { respondWithError } from '../utils/http.js';
+import { RAG_SERVICE_URL } from '../config/constants.js';
 
 const toStringOrUndefined = (value) =>
   typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
@@ -66,7 +67,6 @@ const createAdminRoutes = ({ rateLimiter, performanceHandler, chatLogger }) => {
   });
 
   // RAG Service Config endpoints - hot-toggle settings like HyDE
-  const RAG_SERVICE_URL = process.env.RAG_SERVICE_URL || 'http://localhost:8000';
   const ADMIN_API_TOKEN = process.env.ADMIN_API_TOKEN;
 
   logger.info('Registering /api/admin/rag/config routes');

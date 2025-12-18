@@ -3,10 +3,9 @@ import {
   DEFAULT_INGEST_TIMEOUT_MS,
   DEFAULT_MAX_RETRIES,
   DEFAULT_RETRY_DELAY_MS,
+  RAG_SERVICE_URL,
 } from '../config/constants.js';
 import { respondWithError } from '../utils/http.js';
-
-const DEFAULT_RAG_SERVICE_URL = process.env.RAG_SERVICE_URL || 'http://localhost:8000';
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -19,7 +18,7 @@ export const createIngestionController = ({
   config = {},
   logger,
 }) => {
-  const ragServiceUrl = config.ragServiceUrl || DEFAULT_RAG_SERVICE_URL;
+  const ragServiceUrl = config.ragServiceUrl || RAG_SERVICE_URL;
   const ingestTimeout = config.ingestTimeout ?? DEFAULT_INGEST_TIMEOUT_MS;
   const maxRetries = config.ingestMaxRetries ?? config.maxRetries ?? DEFAULT_MAX_RETRIES;
   const retryDelayMs = config.ingestRetryDelay ?? config.retryDelay ?? DEFAULT_RETRY_DELAY_MS;

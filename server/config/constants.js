@@ -48,3 +48,10 @@ export const SERVER_DEFAULTS = {
 };
 
 export const getEnvNumber = (envKey, fallback) => parseEnvInt(process.env[envKey], fallback);
+
+// Shared service URLs
+export const RAG_SERVICE_URL = process.env.RAG_SERVICE_URL || 'http://localhost:8000';
+
+// Trip planner configuration
+export const TRIP_PLANNER_MODEL = process.env.TRIP_PLANNER_MODEL || 'gpt-4.1-mini';
+export const TRIP_PLANNER_PREFIX = '📋 **Trip Plan Request**';
