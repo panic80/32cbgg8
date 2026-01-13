@@ -28,7 +28,7 @@
 - [~] Task: Convert `scripts/run-vitest.mjs`
     - [ ] Sub-task: Rename to `scripts/run-vitest.ts`
     - [ ] Sub-task: Update `package.json` scripts to use `tsx` for execution
-- [ ] Task: Conductor - User Manual Verification 'Phase 3: Tests and Scripts Conversion' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 3: Tests and Scripts Conversion' (Protocol in workflow.md) [checkpoint: 6aecbb6]
 
 ## Phase 4: Final Validation and Cleanup
 - [ ] Task: Final Global Check
