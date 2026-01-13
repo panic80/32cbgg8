@@ -27,13 +27,14 @@ export const requiresConfigAuth = (pathname = '') => {
 
 /**
  * Creates admin authentication middleware.
- * Reads credentials from environment variables.
+ * Reads credentials from configuration or environment variables.
+ * @param {Object} [config] - Gateway configuration object
  * @returns {Object} { requireAdminAuth, adminAuthEnabled }
  */
-export const createAdminAuthMiddleware = () => {
-  const adminPassword = process.env.CONFIG_PANEL_PASSWORD;
-  const adminUser = process.env.CONFIG_PANEL_USER || 'admin';
-  const adminApiToken = process.env.ADMIN_API_TOKEN;
+export const createAdminAuthMiddleware = (config) => {
+  const adminPassword = config?.admin?.password || process.env.CONFIG_PANEL_PASSWORD;
+  const adminUser = config?.admin?.user || process.env.CONFIG_PANEL_USER || 'admin';
+  const adminApiToken = config?.admin?.apiToken || process.env.ADMIN_API_TOKEN;
 
   const adminAuthEnabled =
     typeof adminPassword === 'string' && adminPassword.length > 0;

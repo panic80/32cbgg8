@@ -1,11 +1,11 @@
-import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { Send, RefreshCw } from 'lucide-react';
+import React, { useRef, useEffect, useMemo, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { useMobileKeyboard } from '@/hooks/useMobileKeyboard';
 import type { Message as ChatMessage } from '@/types/chat';
 import { AnimatedButton } from '@/components/chat/AnimatedButton';
 import { ChatMessageBubble } from '@/components/chat/ChatMessageBubble';
 import { AssistantTypingIndicator } from '@/components/chat/AssistantTypingIndicator';
+import { ChatInput } from '@/components/chat/ChatInput';
 import { useChatPullToRefresh } from '@/hooks/useChatPullToRefresh';
 import { copyTextToClipboard } from '@/utils/clipboard';
 import './ChatInterface.css';
@@ -25,43 +25,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   className,
   assistant = 'assistant',
 }) => {
-  const [inputValue, setInputValue] = useState('');
-
   const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const { isKeyboardVisible, keyboardHeight } = useMobileKeyboard();
   const { pullOffset, handleTouchStart, handleTouchMove, handleTouchEnd } =
     useChatPullToRefresh(messagesContainerRef);
 
-  // Auto-resize textarea
-  useEffect(() => {
-    if (inputRef.current) {
-      inputRef.current.style.height = 'auto';
-      inputRef.current.style.height = Math.min(inputRef.current.scrollHeight, 120) + 'px';
-    }
-  }, [inputValue]);
-
-  const handleSend = useCallback(() => {
-    if (inputValue.trim() && !isLoading) {
-      onSendMessage(inputValue.trim());
-      setInputValue('');
-    }
-  }, [inputValue, isLoading, onSendMessage]);
-
-  const handleKeyPress = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        handleSend();
-      }
-    },
-    [handleSend],
-  );
-
-  const handleInputFocus = useCallback(() => {
-    // Focus handling - intentionally empty, keyboard handling is done elsewhere
-  }, []);
+  const handleSend = useCallback((message: string) => {
+    onSendMessage(message);
+  }, [onSendMessage]);
 
   const handleCopy = useCallback(async (text: string) => {
     try {
@@ -155,37 +127,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           transition: 'bottom 0.3s ease-out',
         }}
       >
-        <div className="input-wrapper">
-          <div className="input-field" style={{ touchAction: 'manipulation' }}>
-            <textarea
-              ref={inputRef}
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyPress={handleKeyPress}
-              onFocus={handleInputFocus}
-              placeholder="Type your message..."
-              className="message-input"
-              disabled={isLoading}
-              rows={1}
-              style={{ fontSize: '16px' }}
-            />
-
-            <AnimatedButton
-              onClick={handleSend}
-              disabled={!inputValue.trim() || isLoading}
-              title="Send message"
-              variant="default"
-              size="sm"
-              className="send-button"
-            >
-              {isLoading ? (
-                <RefreshCw className="h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
-            </AnimatedButton>
-          </div>
-        </div>
+        <ChatInput
+          onSendMessage={handleSend}
+          isLoading={isLoading}
+        />
       </div>
     </div>
   );

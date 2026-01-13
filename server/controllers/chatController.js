@@ -5,10 +5,7 @@ import { inferJurisdiction, buildTripPlannerHints } from '../services/tripPlanne
 export const createChatController = ({
   chatLogger,
   getRagAuthHeaders,
-  geminiClient,
-  openaiClient,
-  anthropicClient,
-  buildOpenAIParams,
+  aiService,
   config,
   pipeStreamingResponse,
   buildSseCorsHeaders,
@@ -16,6 +13,8 @@ export const createChatController = ({
   DEFAULT_RAG_STREAM_TIMEOUT_MS,
   TRAVEL_PLANNER_ADDITIONAL_INSTRUCTIONS,
 }) => {
+  const { geminiClient, openaiClient, anthropicClient, buildOpenAIParams } = aiService;
+
   const handleGeminiGenerateContent = async (req, res) => {
     try {
       const { prompt, model: modelId } = req.body;

@@ -21,10 +21,7 @@ const createChatRoutes = ({
   chatLogger,
   getRagAuthHeaders,
   decodeUrlParams,
-  geminiClient,
-  openaiClient,
-  anthropicClient,
-  buildOpenAIParams,
+  aiService,
   buildSseCorsHeaders,
   setSseHeaders,
 }) => {
@@ -32,10 +29,7 @@ const createChatRoutes = ({
   const controller = createChatController({
     chatLogger,
     getRagAuthHeaders,
-    geminiClient,
-    openaiClient,
-    anthropicClient,
-    buildOpenAIParams,
+    aiService,
     config,
     pipeStreamingResponse,
     buildSseCorsHeaders,

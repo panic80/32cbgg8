@@ -95,6 +95,12 @@ export const createGatewayConfig = (overrides = {}) => {
     sourcesTimeout: getEnvNumber('SOURCES_TIMEOUT_MS', DEFAULT_SOURCES_TIMEOUT_MS),
     sourcesStatsTimeout: getEnvNumber('SOURCES_STATS_TIMEOUT_MS', DEFAULT_SOURCES_STATS_TIMEOUT_MS),
     ragStreamTimeout: getEnvNumber('RAG_STREAM_TIMEOUT_MS', DEFAULT_RAG_STREAM_TIMEOUT_MS),
+
+    admin: {
+      user: process.env.CONFIG_PANEL_USER || 'admin',
+      password: process.env.CONFIG_PANEL_PASSWORD,
+      apiToken: process.env.ADMIN_API_TOKEN,
+    },
   };
 
   return {

@@ -101,8 +101,15 @@ const cache = config.cacheEnabled
 const aiClients = initializeAiClients();
 const { geminiClient, openaiClient, anthropicClient, openrouterClient, googleMapsClient } = aiClients;
 
+const aiService = {
+  geminiClient,
+  openaiClient,
+  anthropicClient,
+  buildOpenAIParams,
+};
+
 // Initialize admin auth middleware
-const { requireAdminAuth, adminAuthEnabled } = createAdminAuthMiddleware();
+const { requireAdminAuth, adminAuthEnabled } = createAdminAuthMiddleware(config);
 
 // Initialize rate limiter
 const { rateLimiter, apiRequestCounts } = createRateLimiter({
@@ -195,10 +202,7 @@ app.use(createChatRoutes({
   chatLogger,
   getRagAuthHeaders,
   decodeUrlParams,
-  geminiClient,
-  openaiClient,
-  anthropicClient,
-  buildOpenAIParams,
+  aiService,
   buildSseCorsHeaders,
   setSseHeaders,
   pipeStreamingResponse,
