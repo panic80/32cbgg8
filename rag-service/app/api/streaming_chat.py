@@ -410,10 +410,10 @@ async def _run_streaming_flow(
 
     llm = getattr(llm_wrapper, "llm", llm_wrapper)
 
-    # Compute Class A delta
-    delta_payload: Optional[dict] = None
+    # Compute Class A delta - START IN BACKGROUND to avoid blocking TTFT
+    delta_task: Optional[asyncio.Task[Optional[dict]]] = None
     if chat_request.use_rag and retrieval_results:
-        delta_payload = await _compute_class_a_delta(llm_wrapper, retrieval_results)
+        delta_task = asyncio.create_task(_compute_class_a_delta(llm_wrapper, retrieval_results))
 
     # Stream generation
     generation_start = time.perf_counter()
@@ -492,10 +492,12 @@ async def _run_streaming_flow(
     perf_monitor.record_latency("llm_latency_ms", answer_latency_ms)
     perf_monitor.record_latency("total_request_latency_ms", total_latency_ms)
 
-    # Emit delta if any
-    if delta_payload is not None:
+    # Emit delta if any (wait for the background task to complete)
+    if delta_task is not None:
         try:
-            yield f"data: {json.dumps({'type': 'metadata', 'delta': delta_payload})}\n\n"
+            delta_payload = await delta_task
+            if delta_payload:
+                yield f"data: {json.dumps({'type': 'metadata', 'delta': delta_payload})}\n\n"
         except Exception as emit_exc:
             logger.debug("Failed to emit delta metadata: %s", emit_exc)
 

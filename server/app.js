@@ -78,11 +78,18 @@ logger.info('Server configuration:', {
 });
 
 // Initialize cache service
+const getRedisUrl = () => {
+  if (process.env.REDIS_URL) return process.env.REDIS_URL;
+  if (process.env.REDIS_HOST && process.env.REDIS_PORT) {
+    const auth = process.env.REDIS_PASSWORD ? `default:${process.env.REDIS_PASSWORD}@` : '';
+    return `redis://${auth}${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`;
+  }
+  return 'redis://localhost:6379';
+};
+
 const cache = config.cacheEnabled
   ? new CacheService({
-      redisUrl:
-        process.env.REDIS_URL ||
-        'redis://default:' + process.env.REDIS_PASSWORD + '@localhost:6379',
+      redisUrl: getRedisUrl(),
       redisEnabled: config.cacheEnabled,
       defaultTTL: config.cacheTTL,
       memoryCleanupInterval: config.cacheCleanupInterval,

@@ -1,36 +1,6 @@
 import axios from 'axios';
 import { RAG_SERVICE_URL, TRIP_PLANNER_MODEL, TRIP_PLANNER_PREFIX } from '../config/constants.js';
-
-const PROVINCE_MATCHERS = [
-  { name: 'Alberta', re: /\b(AB|Alberta)\b/i },
-  { name: 'British Columbia', re: /\b(BC|British\s+Columbia)\b/i },
-  { name: 'Manitoba', re: /\b(MB|Manitoba)\b/i },
-  { name: 'New Brunswick', re: /\b(NB|New\s+Brunswick)\b/i },
-  { name: 'Newfoundland and Labrador', re: /\b(NL|Newfoundland(?:\s+and\s+Labrador)?|Nfld)\b/i },
-  { name: 'Nova Scotia', re: /\b(NS|Nova\s+Scotia)\b/i },
-  { name: 'Ontario', re: /\b(ON|Ont|Ontario)\b/i },
-  { name: 'Prince Edward Island', re: /\b(PE|PEI|Prince\s+Edward\s+Island)\b/i },
-  { name: 'Quebec', re: /\b(QC|Quebec|Québec)\b/i },
-  { name: 'Saskatchewan', re: /\b(SK|Saskatchewan)\b/i },
-  { name: 'Yukon', re: /\b(YT|Yukon)\b/i },
-  { name: 'Northwest Territories', re: /\b(NT|NWT|Northwest\s+Territories?)\b/i },
-  { name: 'Nunavut', re: /\b(NU|Nunavut)\b/i },
-];
-
-const inferJurisdiction = (message) => {
-  if (typeof message !== 'string') return undefined;
-  const found = PROVINCE_MATCHERS.find((p) => p.re.test(message));
-  return found ? `${found.name}, Canada` : undefined;
-};
-
-const buildTripPlannerHints = (jurisdiction) => {
-  const hints = [];
-  const province = jurisdiction ? String(jurisdiction).split(',')[0] : 'Ontario';
-  hints.push(`${province} private vehicle kilometric rate cents per kilometre Appendix B`);
-  hints.push(`meal allowance rates ${province}`);
-  hints.push(`incidental allowance daily rate`);
-  return hints;
-};
+import { inferJurisdiction, buildTripPlannerHints } from '../services/tripPlannerService.js';
 
 export const createChatController = ({
   chatLogger,

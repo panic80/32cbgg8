@@ -27,8 +27,8 @@ class Settings(BaseSettings):
     openai_api_key: Optional[str] = None
     openai_embedding_model: str = "text-embedding-3-large"
     openai_embedding_dimensions: int = 1536  # Reduced from 3072 via Matryoshka for 50% storage savings
-    openai_chat_model: str = "gpt-4.1-mini"  # Updated to gpt-4.1-mini
-    openai_smart_model: str = "gpt-5-mini"  # Preferred GPT-5 model for Smart mode
+    openai_chat_model: str = "gpt-4o-mini"  # Stable mini model
+    openai_smart_model: str = "gpt-4o"  # Stable smart model
     
     # Google Configuration
     google_api_key: Optional[str] = None
@@ -89,7 +89,7 @@ class Settings(BaseSettings):
     retrieval_lambda_mult: float = 0.7  # Only used for MMR
 
     # Smart mode tuning
-    smart_mode_max_chunks: int = 4  # Limit GPT-5 Mini to a handful of context chunks for speed
+    smart_mode_max_chunks: int = 4  # Limit smart model to a handful of context chunks for speed
     smart_mode_context_char_limit: int = 4000  # Trim Smart mode context of overly long prompts
     smart_mode_short_answer_max_tokens: int = 600  # Cap max tokens when users request short answers
     
