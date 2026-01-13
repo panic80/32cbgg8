@@ -1,7 +1,7 @@
-module.exports = {
+export default {
   apps: [{
     name: 'cf-travel-bot',
-    script: './server/main.js',
+    script: './dist-server/main.js',
     cwd: '/var/www/cbthis',
     instances: 1,
     exec_mode: 'fork',

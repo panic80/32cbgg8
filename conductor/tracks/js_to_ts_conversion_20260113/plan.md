@@ -7,15 +7,15 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Environment Readiness' (Protocol in workflow.md) [checkpoint: 7e2b17f]
 
 ## Phase 2: Configuration Files Conversion
-- [ ] Task: Convert Vite and Vitest configurations
+- [~] Task: Convert Vite and Vitest configurations
     - [ ] Sub-task: Rename `vite.config.js` to `vite.config.ts` and add types
     - [ ] Sub-task: Rename `vitest.config.js` to `vitest.config.ts` and add types
     - [ ] Sub-task: Verify `npm run dev` still works
-- [ ] Task: Convert Linting and Formatting configurations
-    - [ ] Sub-task: Convert `eslint.config.js` to `eslint.config.ts`
-    - [ ] Sub-task: Convert `prettier.config.cjs` to `prettier.config.ts` (or equivalent supported format)
-    - [ ] Sub-task: Verify `npm run lint` still works
-- [ ] Task: Convert CSS and Deployment configurations
+- [x] Task: Convert Linting and Formatting configurations
+    - [x] Sub-task: Convert `eslint.config.js` to `eslint.config.ts`
+    - [x] Sub-task: Convert `prettier.config.cjs` to `prettier.config.ts` (or equivalent supported format)
+    - [x] Sub-task: Verify `npm run lint` still works
+- [~] Task: Convert CSS and Deployment configurations
     - [ ] Sub-task: Convert `tailwind.config.js` and `postcss.config.cjs`
     - [ ] Sub-task: Convert `ecosystem.config.cjs`
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: Configuration Files Conversion' (Protocol in workflow.md)
