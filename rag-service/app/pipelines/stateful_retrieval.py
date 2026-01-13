@@ -22,6 +22,7 @@ from app.core.logging import get_logger
 from app.pipelines.parallel_retrieval import ParallelRetrievalPipeline
 from app.pipelines.query_optimizer import QueryOptimizer
 from app.services.performance_monitor import get_performance_monitor
+from app.services.cache import get_cache_service
 
 logger = get_logger(__name__)
 
@@ -69,17 +70,17 @@ class StatefulRetrievalPipeline:
 
         # Setup checkpointer using official langgraph-checkpoint-redis
         if enable_checkpointing:
-            # Use Redis URL from parameter or settings
-            effective_redis_url = redis_url or getattr(settings, 'redis_url', None)
-            if effective_redis_url:
+            # Try to use existing Redis client from CacheService
+            cache_service = get_cache_service()
+            if cache_service and cache_service.redis_client:
                 try:
-                    self.checkpointer = AsyncRedisSaver.from_conn_string(effective_redis_url)
-                    logger.info(f"Initialized AsyncRedisSaver with Redis URL")
+                    self.checkpointer = AsyncRedisSaver(cache_service.redis_client)
+                    logger.info("Initialized AsyncRedisSaver with existing Redis connection")
                 except Exception as e:
                     logger.warning(f"Failed to initialize Redis checkpointer: {e}. Falling back to MemorySaver.")
                     self.checkpointer = MemorySaver()
             else:
-                logger.info("No Redis URL provided, using in-memory checkpointer")
+                logger.warning("No Redis client available from CacheService, falling back to MemorySaver")
                 self.checkpointer = MemorySaver()
         else:
             self.checkpointer = MemorySaver()
