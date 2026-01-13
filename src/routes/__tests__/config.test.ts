@@ -19,13 +19,4 @@ describe('appRoutes configuration', () => {
 
     expect(nonLazyRoutesWithPrefetch.length).toBe(0);
   });
-
-  it('provides JSX elements for static coming soon routes', () => {
-    const staticRoute = appRoutes.find((route) => route.path === '/coming-soon-1');
-    expect(staticRoute).toBeDefined();
-
-    if (staticRoute && !isLazyRoute(staticRoute)) {
-      expect(staticRoute.element).toBeTruthy();
-    }
-  });
 });

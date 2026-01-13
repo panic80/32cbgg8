@@ -21,11 +21,11 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 2: Configuration Files Conversion' (Protocol in workflow.md) [checkpoint: ccc489e]
 
 ## Phase 3: Tests and Scripts Conversion
-- [ ] Task: Convert `server/__tests__/ragRefactor.test.js`
-    - [ ] Sub-task: Rename to `server/__tests__/ragRefactor.test.ts`
-    - [ ] Sub-task: Implement strict typing for all test mocks and assertions
-    - [ ] Sub-task: Verify tests pass with `npm test`
-- [ ] Task: Convert `scripts/run-vitest.mjs`
+- [x] Task: Convert `server/__tests__/ragRefactor.test.js`
+    - [x] Sub-task: Rename to `server/__tests__/ragRefactor.test.ts`
+    - [x] Sub-task: Implement strict typing for all test mocks and assertions
+    - [x] Sub-task: Verify tests pass with `npm test`
+- [~] Task: Convert `scripts/run-vitest.mjs`
     - [ ] Sub-task: Rename to `scripts/run-vitest.ts`
     - [ ] Sub-task: Update `package.json` scripts to use `tsx` for execution
 - [ ] Task: Conductor - User Manual Verification 'Phase 3: Tests and Scripts Conversion' (Protocol in workflow.md)

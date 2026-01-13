@@ -37,11 +37,6 @@ export const useRAGConfig = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load config from RAG service on mount
-  useEffect(() => {
-    loadConfig();
-  }, [loadConfig]);
-
   const loadConfig = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -59,6 +54,11 @@ export const useRAGConfig = () => {
       setIsLoading(false);
     }
   }, []);
+
+  // Load config from RAG service on mount
+  useEffect(() => {
+    loadConfig();
+  }, [loadConfig]);
 
   const updateConfig = useCallback(async (updates: Partial<RAGConfig>) => {
     setIsSaving(true);

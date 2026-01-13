@@ -34,6 +34,16 @@ window.matchMedia = vi.fn().mockImplementation((query) => ({
   dispatchEvent: vi.fn(),
 }));
 
+// Mock EventSource
+(global as any).EventSource = vi.fn().mockImplementation(() => ({
+  close: vi.fn(),
+  onmessage: null,
+  onerror: null,
+  onopen: null,
+  addEventListener: vi.fn(),
+  removeEventListener: vi.fn(),
+}));
+
 // Mock the import.meta.env
 vi.stubGlobal('import.meta', {
   env: {

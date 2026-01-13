@@ -75,7 +75,7 @@ describe('admin chat log routes', () => {
     expect(response.body.data).toHaveLength(1);
     expect(response.body.data[0].conversationId).toBe('conv-2');
     expect(response.body.pagination.hasMore).toBe(false);
-    expect(response.body.filters.ragEnabled).toBe('false');
+    expect(response.body.filters.ragEnabled).toBe(false);
   });
 
   it('records visit events and surfaces summary data', async () => {

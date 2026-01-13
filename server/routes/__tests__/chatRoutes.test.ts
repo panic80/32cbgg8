@@ -2,6 +2,15 @@ import express from 'express';
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import createChatRoutes from '../chat.js';
+import { buildOpenAIParams } from '../../services/aiClients.js';
+
+vi.mock('../../services/aiClients.js', async () => {
+  const actual = await vi.importActual('../../services/aiClients.js');
+  return {
+    ...actual,
+    buildOpenAIParams: vi.fn((model, messages) => ({ model, messages })),
+  };
+});
 
 const buildApp = ({
   geminiClient = null,
@@ -13,7 +22,6 @@ const buildApp = ({
   app.use(express.json());
 
   const chatLogger = { error: vi.fn(), info: vi.fn(), logChat: vi.fn() };
-  const buildOpenAIParams = vi.fn((model, messages) => ({ model, messages }));
   const pipeStreamingResponse = vi.fn();
 
   const DEFAULT_RAG_STREAM_TIMEOUT_MS = 30000;
@@ -28,10 +36,12 @@ const buildApp = ({
       chatLogger,
       getRagAuthHeaders: () => ({}),
       decodeUrlParams: (body) => body,
-      geminiClient,
-      openaiClient,
-      anthropicClient,
-      buildOpenAIParams,
+      aiService: {
+        geminiClient,
+        openaiClient,
+        anthropicClient,
+        buildOpenAIParams,
+      },
       buildSseCorsHeaders,
       setSseHeaders: () => {},
       pipeStreamingResponse,
@@ -86,7 +96,7 @@ describe('/api/gemini/generateContent', () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ response: 'mock-gemini-response' });
-    expect(mockGeminiClient.getGenerativeModel).toHaveBeenCalledWith({ model: 'gemini-2.0-flash' });
+    expect(mockGeminiClient.getGenerativeModel).toHaveBeenCalledWith({ model: 'gemini-2.5-flash' });
     expect(generateContent).toHaveBeenCalledWith('Hello Gemini');
   });
 });

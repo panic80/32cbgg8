@@ -37,11 +37,6 @@ export const useModelConfig = () => {
     JSON.stringify(config.smartModel) !== JSON.stringify(savedConfig.smartModel) ||
     JSON.stringify(config.operationModels) !== JSON.stringify(savedConfig.operationModels);
 
-  // Load config from server on mount
-  useEffect(() => {
-    loadConfig();
-  }, [loadConfig]);
-
   const loadConfig = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -84,6 +79,11 @@ export const useModelConfig = () => {
       setIsLoading(false);
     }
   }, []);
+
+  // Load config from server on mount
+  useEffect(() => {
+    loadConfig();
+  }, [loadConfig]);
 
   const updateFastModel = useCallback((model: ModelConfig) => {
     setConfig((prev) => ({ ...prev, fastModel: model }));
