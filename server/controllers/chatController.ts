@@ -336,8 +336,8 @@ export const createChatController = ({
       const streamingCorsHeaders = buildSseCorsHeaders?.(req.headers.origin) || {};
       let aggregatedAnswer = '';
       let remoteConversationId = conversationId || null;
-      let aggregatedSources = [];
-      let aggregatedFollowUps = [];
+      let aggregatedSources: any[] = [];
+      let aggregatedFollowUps: any[] = [];
       const streamStart = Date.now();
       const streamLogger = chatLogger?.child
         ? chatLogger.child({
