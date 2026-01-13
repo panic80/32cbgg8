@@ -127,53 +127,57 @@ export async function fetchPerformanceMetrics(
 ): Promise<PerformanceMetrics> {
   const { signal, forceRefresh = false } = options;
   const query = forceRefresh ? '?forceRefresh=true' : '';
-  let payload: any;
+  let payload: Record<string, unknown>;
   try {
-    payload = await apiClient.getJson<any>(`/api/admin/performance${query}`, {
+    payload = await apiClient.getJson<Record<string, unknown>>(`/api/admin/performance${query}`, {
       signal,
       parseErrorResponse: true,
     });
   } catch (error) {
     if (error instanceof ApiError) {
+      const errorData = error.data as Record<string, unknown> | null;
       const detail =
-        typeof (error.data as any)?.message === 'string'
-          ? (error.data as any).message
-          : error.statusText;
+        typeof errorData?.message === 'string' ? errorData.message : error.statusText;
       throw new Error(`Failed to load performance metrics (${error.status}): ${detail}`);
     }
     throw error;
   }
 
+  // Safe access using optional chaining on the typed payload
+  const latency = payload.latency as Record<string, unknown> | undefined;
+  const quality = payload.quality as Record<string, unknown> | undefined;
+  const retrievalScores = quality?.retrievalScores as Record<string, unknown> | undefined;
+
   return {
     latency: {
-      answerTime: mapMetric(payload?.latency?.answerTime),
-      searchTime: mapMetric(payload?.latency?.searchTime),
-      retrievalTime: mapMetric(payload?.latency?.retrievalTime),
-      answerGeneration: mapMetric(payload?.latency?.answerGeneration),
-      firstToken: mapMetric(payload?.latency?.firstToken),
+      answerTime: mapMetric(latency?.answerTime),
+      searchTime: mapMetric(latency?.searchTime),
+      retrievalTime: mapMetric(latency?.retrievalTime),
+      answerGeneration: mapMetric(latency?.answerGeneration),
+      firstToken: mapMetric(latency?.firstToken),
     },
     quality: {
-      contextCoverage: mapMetric(payload?.quality?.contextCoverage),
-      contextSupport: mapMetric(payload?.quality?.contextSupport),
-      answerToContext: mapMetric(payload?.quality?.answerToContext),
-      hallucinationRate: mapMetric(payload?.quality?.hallucinationRate),
-      answerTokens: mapMetric(payload?.quality?.answerTokens),
-      sourceTokens: mapMetric(payload?.quality?.sourceTokens),
-      sourceCount: mapMetric(payload?.quality?.sourceCount),
+      contextCoverage: mapMetric(quality?.contextCoverage),
+      contextSupport: mapMetric(quality?.contextSupport),
+      answerToContext: mapMetric(quality?.answerToContext),
+      hallucinationRate: mapMetric(quality?.hallucinationRate),
+      answerTokens: mapMetric(quality?.answerTokens),
+      sourceTokens: mapMetric(quality?.sourceTokens),
+      sourceCount: mapMetric(quality?.sourceCount),
       retrievalScores: {
-        avg: mapMetric(payload?.quality?.retrievalScores?.avg),
-        max: mapMetric(payload?.quality?.retrievalScores?.max),
-        min: mapMetric(payload?.quality?.retrievalScores?.min),
-        std: mapMetric(payload?.quality?.retrievalScores?.std),
-        gap: mapMetric(payload?.quality?.retrievalScores?.gap),
+        avg: mapMetric(retrievalScores?.avg),
+        max: mapMetric(retrievalScores?.max),
+        min: mapMetric(retrievalScores?.min),
+        std: mapMetric(retrievalScores?.std),
+        gap: mapMetric(retrievalScores?.gap),
       },
-      errorRate: mapErrorRate(payload?.quality?.errorRate),
+      errorRate: mapErrorRate(quality?.errorRate),
     },
-    throughput: mapThroughput(payload?.throughput),
-    cache: payload?.cache ?? {},
-    retrievers: payload?.retrievers ?? {},
-    tokenUsage: payload?.tokenUsage ?? {},
-    meta: mapMeta(payload?.meta),
-    gatewayMeta: mapGatewayMeta(payload?.gatewayMeta),
+    throughput: mapThroughput(payload.throughput),
+    cache: (payload.cache as Record<string, unknown>) ?? {},
+    retrievers: (payload.retrievers as Record<string, unknown>) ?? {},
+    tokenUsage: (payload.tokenUsage as Record<string, unknown>) ?? {},
+    meta: mapMeta(payload.meta),
+    gatewayMeta: mapGatewayMeta(payload.gatewayMeta),
   };
 }

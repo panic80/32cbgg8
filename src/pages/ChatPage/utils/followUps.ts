@@ -1,27 +1,43 @@
 import type { FollowUpQuestion } from '@/types/chat';
 
-export const mapFollowUpQuestions = (messageId: string, items: any[] = []): FollowUpQuestion[] =>
+interface FollowUpItem {
+  question?: string;
+  id?: string;
+  reference?: string;
+  title?: string;
+  category?: FollowUpQuestion['category'];
+  icon?: string;
+  confidence?: number;
+  groundingScore?: number;
+  sourceGrounding?: string;
+}
+
+export const mapFollowUpQuestions = (
+  messageId: string,
+  items: Array<string | FollowUpItem> = [],
+): FollowUpQuestion[] =>
   items
     .filter(Boolean)
     .map((item, index) => {
-      const question = typeof item === 'string' ? item : item.question;
+      const isString = typeof item === 'string';
+      const question = isString ? item : item.question;
       if (!question) return null;
 
       const baseId =
-        (typeof item === 'string' ? undefined : item.id || item.reference || item.title) ??
+        (isString ? undefined : item.id || item.reference || item.title) ??
         `${messageId}-fu-${index}`;
 
       return {
         id: baseId,
         question,
-        category: item.category || 'general',
-        icon: item.icon,
-        confidence: item.confidence,
-        groundingScore: item.groundingScore,
-        sourceGrounding: item.sourceGrounding,
+        category: (isString ? 'general' : item.category) || 'general',
+        icon: isString ? undefined : item.icon,
+        confidence: isString ? undefined : item.confidence,
+        groundingScore: isString ? undefined : item.groundingScore,
+        sourceGrounding: isString ? undefined : item.sourceGrounding,
       } as FollowUpQuestion;
     })
-    .filter(Boolean) as FollowUpQuestion[];
+    .filter((q): q is FollowUpQuestion => q !== null);
 
 export const areFollowUpQuestionsEqual = (
   prevQuestions?: FollowUpQuestion[],

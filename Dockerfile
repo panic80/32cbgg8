@@ -1,6 +1,6 @@
 # Multi-stage Dockerfile for CF Travel Bot
-# Stage 1: Build frontend
-FROM node:20-alpine AS frontend-builder
+# Stage 1: Build application (Frontend & Backend)
+FROM node:20-alpine AS app-builder
 
 WORKDIR /app
 
@@ -16,7 +16,7 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Build the frontend
+# Build the application (runs build:server and vite build)
 RUN npm run build
 
 # Stage 2: Production image
@@ -40,15 +40,13 @@ RUN apk add --no-cache python3 make g++
 # Install production dependencies only
 RUN npm ci --omit=dev && npm cache clean --force
 
-# Copy server code
-COPY server/ ./server/
-
-# Copy built frontend from builder stage
-COPY --from=frontend-builder /app/dist ./dist
+# Copy built backend and frontend from builder stage
+COPY --from=app-builder /app/dist-server ./dist-server
+COPY --from=app-builder /app/dist ./dist
 
 # Create log and data directories
-RUN mkdir -p /var/log/cbthis /app/server/data && \
-    chown -R nodejs:nodejs /var/log/cbthis /app/server/data
+RUN mkdir -p /var/log/cbthis /app/dist-server/data && \
+    chown -R nodejs:nodejs /var/log/cbthis /app/dist-server/data
 
 # Set environment variables
 ENV NODE_ENV=production
@@ -66,4 +64,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 
 # Start the application
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "server/main.js"]
+CMD ["node", "dist-server/main.js"]

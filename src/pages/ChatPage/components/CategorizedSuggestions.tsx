@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { StorageKeys } from '@/constants/storage';
 import { getLocalStorageItem, setLocalStorageItem } from '@/utils/storage';
-import { CATEGORIZED_SUGGESTIONS } from '../constants/suggestions';
+import { CATEGORIZED_SUGGESTIONS, type SuggestionItem } from '../constants/suggestions';
 
 interface CategorizedSuggestionsProps {
   onSuggestionClick: (title: string) => void;
@@ -58,7 +58,7 @@ export const CategorizedSuggestions: React.FC<CategorizedSuggestionsProps> = ({
     .variant-b [data-state="active"][role="tab"]::after { background: linear-gradient(90deg, var(--primary), var(--primary-hover)); }
   `;
 
-  const renderQuestionGrid = (questions: any[]) => (
+  const renderQuestionGrid = (questions: SuggestionItem[]) => (
     <motion.div
       className="grid grid-cols-1 sm:grid-cols-2 gap-4"
       initial="hidden"

@@ -86,7 +86,10 @@ export const usePlaceAutocomplete = ({
           components: `country:${countryRestriction}`,
         });
 
-        const data = await apiClient.getJson<any>(`/api/maps/autocomplete?${params}`, {
+        const data = await apiClient.getJson<{
+          status: string;
+          predictions: Prediction[];
+        }>(`/api/maps/autocomplete?${params}`, {
           parseErrorResponse: false,
         });
 
@@ -127,7 +130,9 @@ export const usePlaceAutocomplete = ({
           sessiontoken: sessionTokenRef.current,
         });
 
-        const data = await apiClient.getJson<any>(`/api/maps/place-details?${params}`, {
+        const data = await apiClient.getJson<{
+          result?: { formatted_address: string };
+        }>(`/api/maps/place-details?${params}`, {
           parseErrorResponse: false,
         });
 

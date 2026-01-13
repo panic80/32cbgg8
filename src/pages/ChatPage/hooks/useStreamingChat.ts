@@ -90,7 +90,38 @@ const streamingReducer = (state: StreamingState, action: StreamingAction): Strea
 
 const markdownPattern = /```|\n\s*#|\*\*|\n\s*[-*+]\s|\n\s*\d+[.)]\s|<[^>]+>/;
 
-const toSources = (eventSources: any[] = []): Source[] =>
+interface RawSource {
+  id?: string;
+  reference?: string;
+  title?: string;
+  url?: string;
+  content?: string;
+  text?: string;
+  section?: string;
+  page?: number;
+  score?: number;
+  source?: string;
+  metadata?: Record<string, any>;
+}
+
+interface StreamingEvent {
+  type:
+    | 'retrieval_start'
+    | 'retrieval_complete'
+    | 'sources'
+    | 'token'
+    | 'metadata'
+    | 'complete'
+    | 'error';
+  content?: string;
+  sources?: RawSource[];
+  conversation_id?: string;
+  follow_up_questions?: Array<string | any>;
+  delta?: any;
+  message?: string;
+}
+
+const toSources = (eventSources: RawSource[] = []): Source[] =>
   eventSources.map((source, index) => ({
     id: source.id || source.reference || source.title || source.url || `stream-source-${index}`,
     text: source.content || source.text || '',
@@ -379,7 +410,7 @@ export const useStreamingChat = ({
             if (data === '[DONE]' || data === '') continue;
 
             try {
-              const event = JSON.parse(data);
+              const event = JSON.parse(data) as StreamingEvent;
               switch (event.type) {
                 case 'retrieval_start':
                   dispatch({
@@ -391,21 +422,23 @@ export const useStreamingChat = ({
                   dispatch({ type: 'SET_RETRIEVAL_STATUS', status: 'Preparing answer...' });
                   break;
                 case 'sources':
-                  sources = toSources(event.sources);
-                  if (pendingMessageRef.current) {
-                    pendingMessageRef.current.sources = sources.length > 0 ? sources : undefined;
-                    flushPendingMessage();
-                  } else if (sources.length > 0) {
-                    dispatch({
-                      type: 'SET_MESSAGES',
-                      updater: (prev) => {
-                        if (prev.length === 0) return prev;
-                        const updated = [...prev];
-                        const lastIndex = updated.length - 1;
-                        updated[lastIndex] = { ...updated[lastIndex], sources };
-                        return updated;
-                      },
-                    });
+                  if (event.sources) {
+                    sources = toSources(event.sources);
+                    if (pendingMessageRef.current) {
+                      pendingMessageRef.current.sources = sources.length > 0 ? sources : undefined;
+                      flushPendingMessage();
+                    } else if (sources.length > 0) {
+                      dispatch({
+                        type: 'SET_MESSAGES',
+                        updater: (prev) => {
+                          if (prev.length === 0) return prev;
+                          const updated = [...prev];
+                          const lastIndex = updated.length - 1;
+                          updated[lastIndex] = { ...updated[lastIndex], sources };
+                          return updated;
+                        },
+                      });
+                    }
                   }
                   break;
                 case 'token':
@@ -447,28 +480,34 @@ export const useStreamingChat = ({
                         },
                       });
                     }
-                    if (event.delta) {
-                      deltaPayload = event.delta as import('@/types/policy').DeltaResponse;
-                      if (pendingMessageRef.current) {
-                        (pendingMessageRef.current as any).delta = deltaPayload;
-                        flushPendingMessage();
-                      } else {
-                        // Attach to the most recent assistant message
-                        dispatch({
-                          type: 'SET_MESSAGES',
-                          updater: (prev) => {
-                            if (prev.length === 0) return prev;
-                            const updated = [...prev];
-                            for (let i = updated.length - 1; i >= 0; i--) {
-                              if (updated[i].sender === 'assistant') {
-                                (updated[i] as any).delta = deltaPayload;
-                                break;
-                              }
+                  }
+                  if (event.delta) {
+                    deltaPayload = event.delta as import('@/types/policy').DeltaResponse;
+                    if (pendingMessageRef.current) {
+                      pendingMessageRef.current.metadata = {
+                        ...pendingMessageRef.current.metadata,
+                        delta: deltaPayload,
+                      };
+                      flushPendingMessage();
+                    } else {
+                      // Attach to the most recent assistant message
+                      dispatch({
+                        type: 'SET_MESSAGES',
+                        updater: (prev) => {
+                          if (prev.length === 0) return prev;
+                          const updated = [...prev];
+                          for (let i = updated.length - 1; i >= 0; i--) {
+                            if (updated[i].sender === 'assistant') {
+                              updated[i].metadata = {
+                                ...updated[i].metadata,
+                                delta: deltaPayload,
+                              };
+                              break;
                             }
-                            return updated;
-                          },
-                        });
-                      }
+                          }
+                          return updated;
+                        },
+                      });
                     }
                   }
                   break;

@@ -40,7 +40,7 @@ export const useModelConfig = () => {
   // Load config from server on mount
   useEffect(() => {
     loadConfig();
-  }, []);
+  }, [loadConfig]);
 
   const loadConfig = useCallback(async () => {
     setIsLoading(true);

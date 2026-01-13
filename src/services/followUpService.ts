@@ -2,6 +2,11 @@ import { apiClient, ApiError } from '@/api/client';
 import { StorageKeys } from '@/constants/storage';
 import { getLocalStorageItem } from '@/utils/storage';
 import { FollowUpQuestion, Source } from '@/types/chat';
+import {
+  FOLLOW_UP_CATEGORIES,
+  DEFAULT_CONFIDENCE,
+  FALLBACK_QUESTIONS,
+} from '@/constants/followUp';
 
 interface FollowUpGenerationParams {
   userQuestion: string;
@@ -12,6 +17,12 @@ interface FollowUpGenerationParams {
 
 interface FollowUpResponse {
   followUpQuestions: FollowUpQuestion[];
+}
+
+interface RawFollowUpQuestion {
+  question?: string;
+  category?: FollowUpQuestion['category'] | string;
+  confidence?: number;
 }
 
 /**
@@ -91,7 +102,7 @@ Please generate follow-up questions in the following JSON format:
   "questions": [
     {
       "question": "Specific follow-up question text",
-      "category": "clarification|related|practical|explore",
+      "category": "${FOLLOW_UP_CATEGORIES.CLARIFICATION}|${FOLLOW_UP_CATEGORIES.RELATED}|${FOLLOW_UP_CATEGORIES.PRACTICAL}|${FOLLOW_UP_CATEGORIES.EXPLORE}",
       "confidence": 0.9
     }
   ]
@@ -124,15 +135,26 @@ const parseFollowUpQuestions = (response: string): FollowUpQuestion[] => {
     }
 
     const parsed = JSON.parse(jsonMatch[0]);
-    const questions = parsed.questions || [];
+    const questions: RawFollowUpQuestion[] = Array.isArray(parsed.questions) ? parsed.questions : [];
 
     return questions
-      .map((q: any, index: number) => ({
-        id: `followup-${Date.now()}-${index}`,
-        question: q.question || '',
-        category: q.category || 'related',
-        confidence: q.confidence || 0.7,
-      }))
+      .map((q: RawFollowUpQuestion, index: number) => {
+        // Validate category against known types, default to RELATED
+        let category: FollowUpQuestion['category'] = FOLLOW_UP_CATEGORIES.RELATED;
+        if (
+          q.category &&
+          Object.values(FOLLOW_UP_CATEGORIES).includes(q.category as any)
+        ) {
+          category = q.category as FollowUpQuestion['category'];
+        }
+
+        return {
+          id: `followup-${Date.now()}-${index}`,
+          question: q.question || '',
+          category: category,
+          confidence: q.confidence || DEFAULT_CONFIDENCE.MEDIUM,
+        };
+      })
       .filter((q: FollowUpQuestion) => q.question.trim().length > 0);
   } catch (error) {
     console.error('Error parsing follow-up questions:', error);
@@ -163,8 +185,8 @@ const extractQuestionsFromText = (text: string): FollowUpQuestion[] => {
         questions.push({
           id: `followup-text-${Date.now()}-${index}`,
           question: cleanQuestion,
-          category: 'related',
-          confidence: 0.6,
+          category: FOLLOW_UP_CATEGORIES.RELATED,
+          confidence: DEFAULT_CONFIDENCE.LOW,
         });
       }
     }
@@ -191,27 +213,27 @@ const generateFallbackQuestions = (
   if (questionLower.includes('travel') || responseLower.includes('travel')) {
     fallbackQuestions.push({
       id: 'fallback-travel-1',
-      question: 'What documentation is required for this type of travel?',
-      category: 'practical',
-      confidence: 0.5,
+      question: FALLBACK_QUESTIONS.TRAVEL,
+      category: FOLLOW_UP_CATEGORIES.PRACTICAL,
+      confidence: DEFAULT_CONFIDENCE.FALLBACK,
     });
   }
 
   if (questionLower.includes('claim') || responseLower.includes('claim')) {
     fallbackQuestions.push({
       id: 'fallback-claim-1',
-      question: 'What is the timeline for submitting this claim?',
-      category: 'practical',
-      confidence: 0.5,
+      question: FALLBACK_QUESTIONS.CLAIM,
+      category: FOLLOW_UP_CATEGORIES.PRACTICAL,
+      confidence: DEFAULT_CONFIDENCE.FALLBACK,
     });
   }
 
   if (questionLower.includes('allowance') || responseLower.includes('allowance')) {
     fallbackQuestions.push({
       id: 'fallback-allowance-1',
-      question: 'Are there any restrictions or conditions for this allowance?',
-      category: 'clarification',
-      confidence: 0.5,
+      question: FALLBACK_QUESTIONS.ALLOWANCE,
+      category: FOLLOW_UP_CATEGORIES.CLARIFICATION,
+      confidence: DEFAULT_CONFIDENCE.FALLBACK,
     });
   }
 
@@ -220,15 +242,15 @@ const generateFallbackQuestions = (
     fallbackQuestions.push(
       {
         id: 'fallback-generic-1',
-        question: 'Can you provide more specific examples?',
-        category: 'clarification',
-        confidence: 0.4,
+        question: FALLBACK_QUESTIONS.GENERIC_EXAMPLES,
+        category: FOLLOW_UP_CATEGORIES.CLARIFICATION,
+        confidence: DEFAULT_CONFIDENCE.MINIMAL,
       },
       {
         id: 'fallback-generic-2',
-        question: 'What are the next steps I should take?',
-        category: 'practical',
-        confidence: 0.4,
+        question: FALLBACK_QUESTIONS.GENERIC_NEXT_STEPS,
+        category: FOLLOW_UP_CATEGORIES.PRACTICAL,
+        confidence: DEFAULT_CONFIDENCE.MINIMAL,
       },
     );
   }

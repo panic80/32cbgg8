@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Card } from './ui/card';
 import { ScrollArea } from './ui/scroll-area';
 import { CheckCircle2, Circle, Loader2, AlertCircle, Terminal } from 'lucide-react';
@@ -9,7 +9,19 @@ interface LogEntry {
   timestamp: Date;
   type: 'info' | 'success' | 'error' | 'warning' | 'progress';
   message: string;
-  details?: any;
+  details?: unknown;
+}
+
+interface ProgressData {
+  type: string;
+  stepId?: string;
+  message?: string;
+  progress?: number;
+  details?: {
+    current?: number;
+    total?: number;
+    rate?: number;
+  };
 }
 
 interface IngestionConsoleProps {
@@ -30,6 +42,75 @@ export default function IngestionConsole({
   const [currentStep, setCurrentStep] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
+
+  const addLog = useCallback((type: LogEntry['type'], message: string, details?: unknown) => {
+    const entry: LogEntry = {
+      id: `${Date.now()}-${Math.random()}`,
+      timestamp: new Date(),
+      type,
+      message,
+      details,
+    };
+    setLogs((prev) => [...prev, entry]);
+  }, []);
+
+  const handleProgressUpdate = useCallback((data: ProgressData) => {
+    switch (data.type) {
+      case 'connected':
+        addLog('success', 'Progress tracking initialized');
+        break;
+
+      case 'step_start':
+        setCurrentStep(data.stepId || null);
+        addLog('info', `[${data.stepId}] ${data.message || 'Started'}`);
+        break;
+
+      case 'step_progress':
+        if (data.details) {
+          const { current, total, rate } = data.details;
+          let progressMsg = `[${data.stepId}] Progress: ${data.progress?.toFixed(0)}%`;
+          if (current && total) {
+            progressMsg += ` (${current}/${total})`;
+          }
+          if (rate) {
+            progressMsg += ` - ${rate.toFixed(1)}/s`;
+          }
+          addLog('progress', progressMsg);
+        } else {
+          addLog('progress', `[${data.stepId}] ${data.message}`);
+        }
+        break;
+
+      case 'step_complete':
+        addLog('success', `[${data.stepId}] ${data.message || 'Completed'}`);
+        setCurrentStep(null);
+        break;
+
+      case 'step_error':
+        addLog('error', `[${data.stepId}] Error: ${data.message}`);
+        setCurrentStep(null);
+        break;
+
+      case 'overall_progress':
+        // Don't log overall progress to avoid clutter
+        break;
+
+      case 'complete':
+        addLog('success', '✓ Ingestion completed successfully!');
+        if (onComplete) onComplete(true);
+        eventSourceRef.current?.close();
+        break;
+
+      case 'error':
+        addLog('error', `✗ Ingestion failed: ${data.message}`);
+        if (onComplete) onComplete(false);
+        eventSourceRef.current?.close();
+        break;
+
+      default:
+        addLog('info', `[${data.type}] ${JSON.stringify(data)}`);
+    }
+  }, [addLog, onComplete]);
 
   useEffect(() => {
     // Initial log
@@ -81,83 +162,7 @@ export default function IngestionConsole({
         eventSourceRef.current.close();
       }
     };
-  }, [progressEndpoint, url]);
-
-  useEffect(() => {
-    // Auto-scroll to bottom when new logs are added
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [logs]);
-
-  const addLog = (type: LogEntry['type'], message: string, details?: any) => {
-    const entry: LogEntry = {
-      id: `${Date.now()}-${Math.random()}`,
-      timestamp: new Date(),
-      type,
-      message,
-      details,
-    };
-    setLogs((prev) => [...prev, entry]);
-  };
-
-  const handleProgressUpdate = (data: any) => {
-    switch (data.type) {
-      case 'connected':
-        addLog('success', 'Progress tracking initialized');
-        break;
-
-      case 'step_start':
-        setCurrentStep(data.stepId);
-        addLog('info', `[${data.stepId}] ${data.message || 'Started'}`);
-        break;
-
-      case 'step_progress':
-        if (data.details) {
-          const { current, total, rate } = data.details;
-          let progressMsg = `[${data.stepId}] Progress: ${data.progress?.toFixed(0)}%`;
-          if (current && total) {
-            progressMsg += ` (${current}/${total})`;
-          }
-          if (rate) {
-            progressMsg += ` - ${rate.toFixed(1)}/s`;
-          }
-          addLog('progress', progressMsg);
-        } else {
-          addLog('progress', `[${data.stepId}] ${data.message}`);
-        }
-        break;
-
-      case 'step_complete':
-        addLog('success', `[${data.stepId}] ${data.message || 'Completed'}`);
-        setCurrentStep(null);
-        break;
-
-      case 'step_error':
-        addLog('error', `[${data.stepId}] Error: ${data.message}`);
-        setCurrentStep(null);
-        break;
-
-      case 'overall_progress':
-        // Don't log overall progress to avoid clutter
-        break;
-
-      case 'complete':
-        addLog('success', '✓ Ingestion completed successfully!');
-        if (onComplete) onComplete(true);
-        eventSourceRef.current?.close();
-        break;
-
-      case 'error':
-        addLog('error', `✗ Ingestion failed: ${data.message}`);
-        if (onComplete) onComplete(false);
-        eventSourceRef.current?.close();
-        break;
-
-      default:
-        addLog('info', `[${data.type}] ${JSON.stringify(data)}`);
-    }
-  };
+  }, [progressEndpoint, url, addLog, handleProgressUpdate]);
 
   const getLogIcon = (type: LogEntry['type']) => {
     switch (type) {

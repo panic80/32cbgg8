@@ -7,7 +7,7 @@ const Contact: React.FC = () => {
   useEffect(() => {
     window.location.href = 'mailto:g8@sent.com?subject=Contact from Unofficial G8 Webpage';
     navigate('/');
-  }, []);
+  }, [navigate]);
 
   return null;
 };

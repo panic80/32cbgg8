@@ -40,7 +40,7 @@ export const useRAGConfig = () => {
   // Load config from RAG service on mount
   useEffect(() => {
     loadConfig();
-  }, []);
+  }, [loadConfig]);
 
   const loadConfig = useCallback(async () => {
     setIsLoading(true);

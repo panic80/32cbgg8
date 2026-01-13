@@ -2,7 +2,7 @@
 
 # Start the hardened gateway only (legacy proxy removed)
 echo "Starting main server on port 3000..."
-node server/main.js &
+node dist-server/main.js &
 MAIN_PID=$!
 
 # Handle graceful shutdown

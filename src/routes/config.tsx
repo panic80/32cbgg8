@@ -2,7 +2,7 @@ import { lazy } from 'react';
 import type { ComponentType, LazyExoticComponent } from 'react';
 import type { ThemeMode } from '@/utils/theme';
 
-type RouteLoader<T extends ComponentType<any> = ComponentType<any>> = () => Promise<{
+type RouteLoader<T extends ComponentType<unknown> = ComponentType<unknown>> = () => Promise<{
   default: T;
 }>;
 

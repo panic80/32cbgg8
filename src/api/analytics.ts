@@ -79,9 +79,10 @@ export async function fetchVisitSummary(filters: VisitSummaryFilters = {}): Prom
     );
   } catch (error) {
     if (error instanceof ApiError) {
+      const errorData = error.data as Record<string, unknown> | null;
       const message =
-        typeof (error.data as any)?.message === 'string'
-          ? (error.data as any).message
+        typeof errorData?.message === 'string'
+          ? errorData.message
           : `Failed to load visit analytics (${error.status})`;
       throw new Error(message);
     }
