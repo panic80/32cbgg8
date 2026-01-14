@@ -43,6 +43,7 @@ from app.services.policy_units import extract_policy_units_from_chunks
 from app.services.policy_diff import match_units, build_delta
 from app.services.policy_delta_summarizer import summarize_delta_with_llm
 from app.components.hyde_generator import get_hyde_generator
+from app.services.model_selector import get_model_selector
 
 # Import modular services
 from app.services.chat.query_processor import (
@@ -183,9 +184,18 @@ async def _run_streaming_flow(
     if is_fast_mode and chat_request.use_rag:
         yield f"data: {json.dumps({'type': 'retrieval_start'})}\n\n"
 
-    # Use gpt-4o-mini for all auxiliary tasks (classification, retrieval, HyDE)
-    auxiliary_model = settings.auxiliary_model
-    auxiliary_provider = Provider.OPENAI
+    # Determine auxiliary model using ModelSelector and overrides
+    model_selector = get_model_selector()
+    aux_provider, aux_model = model_selector.get_model_for_operation("retrieval")
+    
+    # Allow per-request override
+    if chat_request.retrieval_config and chat_request.retrieval_config.auxiliary_model:
+        aux_model = chat_request.retrieval_config.auxiliary_model
+        # Assume same provider for now, or default to OpenAI if unknown
+        # Ideally RetrievalConfig should support provider override too
+        
+    auxiliary_model = aux_model
+    auxiliary_provider = aux_provider
 
     logger.info(f"Using auxiliary model: {auxiliary_model} (Provider: {auxiliary_provider.value})")
 
@@ -200,7 +210,7 @@ async def _run_streaming_flow(
             chat_request.message, is_fast_mode=True
         )
     else:
-        # Smart mode: use auxiliary model (gpt-4o-mini) for classification
+        # Smart mode: use auxiliary model (gpt-5-mini) for classification
         try:
             async with llm_pool.acquire(auxiliary_provider, auxiliary_model) as classifier_llm:
                 query_processor = QueryProcessor(classifier_llm)
@@ -300,7 +310,7 @@ async def _run_streaming_flow(
         if not is_fast_mode:
             yield f"data: {json.dumps({'type': 'retrieval_start'})}\n\n"
 
-        # Use auxiliary model (gpt-4o-mini) for retrieval (multi-query generation)
+        # Use auxiliary model (gpt-5-mini) for retrieval (multi-query generation)
         retrieval_llm_wrapper = llm_wrapper
         try:
             async with llm_pool.acquire(auxiliary_provider, auxiliary_model) as retrieval_llm:
@@ -315,7 +325,8 @@ async def _run_streaming_flow(
                     optimized_query, 
                     is_fast_mode=is_fast_mode,
                     hyde_generator=hyde_generator,
-                    classification=classification_dict
+                    classification=classification_dict,
+                    auxiliary_model=auxiliary_model
                 )
         except Exception as e:
             logger.warning(f"Auxiliary model retrieval failed ({e}). Falling back to main model.")
@@ -327,7 +338,8 @@ async def _run_streaming_flow(
                 optimized_query, 
                 is_fast_mode=is_fast_mode,
                 hyde_generator=hyde_generator,
-                classification=classification_dict
+                classification=classification_dict,
+                auxiliary_model=auxiliary_model
             )
 
         retrieval_time_ms = (time.perf_counter() - retrieval_start) * 1000
@@ -764,6 +776,10 @@ async def retrieval_only_endpoint(request: Request, retrieval_request: Retrieval
         cache_service = getattr(request.app.state, "cache_service", None)
         hyde_generator = get_hyde_generator(llm_pool, cache_service)
 
+    auxiliary_model = None
+    if retrieval_config and retrieval_config.auxiliary_model:
+        auxiliary_model = retrieval_config.auxiliary_model
+
     # Create pipeline and retrieve
     pipeline = await retrieval_executor.create_pipeline(chat_request, is_fast_mode=False)
     
@@ -772,7 +788,8 @@ async def retrieval_only_endpoint(request: Request, retrieval_request: Retrieval
         pipeline, 
         retrieval_request.query, 
         is_fast_mode=False, 
-        hyde_generator=hyde_generator
+        hyde_generator=hyde_generator,
+        auxiliary_model=auxiliary_model
     )
 
     # Build sources

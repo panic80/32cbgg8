@@ -57,7 +57,9 @@ class HyDEGenerator(BaseComponent):
     async def generate_hypothesis(
         self,
         query: str,
-        use_cache: bool = True
+        use_cache: bool = True,
+        model: Optional[str] = None,
+        provider: Optional[Provider] = None
     ) -> Optional[str]:
         """
         Generate a hypothetical answer for a query.
@@ -96,8 +98,8 @@ class HyDEGenerator(BaseComponent):
         try:
             # Acquire LLM from pool
             async with self.llm_pool.acquire(
-                Provider.OPENAI,
-                settings.hyde_model
+                provider or Provider.OPENAI,
+                model or settings.hyde_model
             ) as llm:
                 if not llm:
                     logger.error("Failed to acquire LLM for HyDE generation")

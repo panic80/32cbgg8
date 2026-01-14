@@ -10,6 +10,7 @@ import aiofiles
 from app.api.security import verify_admin_bearer_token
 from app.core.config import settings
 from app.core.logging import get_logger
+from app.services.model_selector import reload_model_selector
 
 logger = get_logger(__name__)
 router = APIRouter(tags=["config"])
@@ -97,6 +98,19 @@ async def update_configuration(
     except Exception as e:
         logger.error(f"Configuration update failed: {e}")
         raise HTTPException(status_code=500, detail="Configuration update failed")
+
+
+@router.post("/config/reload-models")
+async def reload_model_config(
+    _: bool = Depends(verify_admin_bearer_token),
+) -> Dict[str, Any]:
+    """Reload model configuration from disk."""
+    try:
+        reload_model_selector()
+        return {"status": "success", "message": "Model configuration reloaded"}
+    except Exception as e:
+        logger.error(f"Failed to reload model config: {e}")
+        raise HTTPException(status_code=500, detail="Failed to reload model config")
 
 
 @router.get("/logs/tail")

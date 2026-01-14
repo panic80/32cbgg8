@@ -48,6 +48,9 @@ class RetrievalConfig(BaseModel):
     unified_retrieval_mode: Optional[str] = Field(
         None, description="Retrieval mode: simple, balanced, advanced"
     )
+    auxiliary_model: Optional[str] = Field(
+        None, description="Model to use for auxiliary tasks (classification, HyDE, etc.)"
+    )
 
 
 class ChatRequest(BaseModel):

@@ -42,7 +42,7 @@ class ModelSelector:
     def __init__(self):
         """Initialize the model selector with default configuration."""
         # Default to settings-based configuration
-        # Fast/auxiliary model is always gpt-4o-mini via OpenAI
+        # Fast/auxiliary model is always gpt-5-mini via OpenAI
         self._fast_provider = Provider.OPENAI
         self._fast_model = settings.auxiliary_model
         self._smart_provider = Provider(settings.smart_model_provider)
@@ -121,6 +121,7 @@ class ModelSelector:
             "hyde_expansion": self._operations.hyde_expansion,
             "query_rewrite": self._operations.query_rewriting,
             "query_rewriting": self._operations.query_rewriting,
+            "retrieval": self._operations.query_rewriting,
             "followup": self._operations.follow_up_generation,
             "follow_up_generation": self._operations.follow_up_generation,
         }

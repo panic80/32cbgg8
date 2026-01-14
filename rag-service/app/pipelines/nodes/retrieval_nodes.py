@@ -40,6 +40,7 @@ class RetrievalNodes:
         cache_service: Optional[CacheService] = None,
         llm_pool: Optional[LLMPool] = None,
         fallback_keywords: Optional[str] = None,
+        auxiliary_model: Optional[str] = None,
     ):
         self.retriever = retriever
         self.compressor = compressor
@@ -50,6 +51,7 @@ class RetrievalNodes:
         self.cache_service = cache_service
         self.llm_pool = llm_pool or LLMPool()
         self.fallback_keywords = fallback_keywords or ""
+        self.auxiliary_model = auxiliary_model or settings.auxiliary_model
         self.logger = get_logger(__name__)
         
         # Prompts
@@ -166,7 +168,7 @@ class RetrievalNodes:
         try:
             self.logger.debug(f"Starting query classification for: {state['query']}")
             
-            async with self.llm_pool.acquire(Provider.OPENAI, settings.auxiliary_model) as llm:
+            async with self.llm_pool.acquire(Provider.OPENAI, self.auxiliary_model) as llm:
                 invoke_params = {"query": state["query"]}
                 try:
                     result = await self._invoke_json_prompt(
@@ -206,7 +208,7 @@ class RetrievalNodes:
             if state["query_type"] in [QueryType.MULTI_HOP.value, QueryType.COMPLEX.value]:
                 self.logger.debug(f"Expanding query. Type: {state['query_type']}")
                 
-                async with self.llm_pool.acquire(Provider.OPENAI, settings.auxiliary_model) as llm:
+                async with self.llm_pool.acquire(Provider.OPENAI, self.auxiliary_model) as llm:
                     invoke_params = {
                         "query": state["query"],
                         "query_type": state["query_type"]
@@ -383,7 +385,7 @@ class RetrievalNodes:
                 for doc in state["reranked_documents"]
             ])
             
-            model = settings.auxiliary_model
+            model = self.auxiliary_model
             async with self.llm_pool.acquire(Provider.OPENAI, model) as llm:
                 try:
                     messages = self.answer_synthesizer.format_messages(

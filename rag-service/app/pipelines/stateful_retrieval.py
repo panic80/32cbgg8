@@ -141,8 +141,12 @@ class StatefulRetrievalPipeline:
         
         # Extract hyde_generator from config if available
         hyde_generator = None
+        auxiliary_model = None
+        auxiliary_provider = None
         if config and "configurable" in config:
             hyde_generator = config["configurable"].get("hyde_generator")
+            auxiliary_model = config["configurable"].get("auxiliary_model")
+            auxiliary_provider = config["configurable"].get("auxiliary_provider")
         
         logger.info(f"Retrieval iteration {iteration + 1}: query='{query}'")
         
@@ -158,7 +162,9 @@ class StatefulRetrievalPipeline:
                 k=settings.retrieval_k,
                 merge_strategy="weighted",
                 hyde_hypothesis=hyde_hypothesis,
-                hyde_generator=hyde_generator
+                hyde_generator=hyde_generator,
+                auxiliary_model=auxiliary_model,
+                auxiliary_provider=auxiliary_provider
             )
             
             state["documents"] = documents
@@ -332,7 +338,9 @@ class StatefulRetrievalPipeline:
         session_id: Optional[str] = None,
         merge_strategy: str = "weighted",
         hyde_hypothesis: Optional[str] = None,
-        hyde_generator: Optional[Any] = None
+        hyde_generator: Optional[Any] = None,
+        auxiliary_model: Optional[str] = None,
+        auxiliary_provider: Optional[Any] = None
     ) -> List[Tuple[Document, float]]:
         """Execute stateful retrieval with iterative refinement.
 
@@ -343,6 +351,8 @@ class StatefulRetrievalPipeline:
             merge_strategy: Strategy for merging results (passed to parallel pipeline)
             hyde_hypothesis: Optional HyDE hypothesis for improved retrieval
             hyde_generator: Optional HyDE generator instance for concurrent generation
+            auxiliary_model: Optional model for auxiliary tasks
+            auxiliary_provider: Optional provider for auxiliary tasks
 
         Returns:
             List of (document, score) tuples
@@ -362,7 +372,9 @@ class StatefulRetrievalPipeline:
         config = {
             "configurable": {
                 "thread_id": thread_id,
-                "hyde_generator": hyde_generator
+                "hyde_generator": hyde_generator,
+                "auxiliary_model": auxiliary_model,
+                "auxiliary_provider": auxiliary_provider
             }
         }
 
@@ -414,6 +426,8 @@ class StatefulRetrievalPipeline:
                 k, 
                 merge_strategy, 
                 hyde_hypothesis=hyde_hypothesis,
-                hyde_generator=hyde_generator
+                hyde_generator=hyde_generator,
+                auxiliary_model=auxiliary_model,
+                auxiliary_provider=auxiliary_provider
             )
 

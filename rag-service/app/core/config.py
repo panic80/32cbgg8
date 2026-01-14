@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     openai_api_key: Optional[str] = None
     openai_embedding_model: str = "text-embedding-3-large"
     openai_embedding_dimensions: int = 1536  # Reduced from 3072 via Matryoshka for 50% storage savings
-    openai_chat_model: str = "gpt-4o-mini"  # Stable mini model
+    openai_chat_model: str = "gpt-5-mini"  # Stable mini model
     openai_smart_model: str = "gpt-4o"  # Stable smart model
     
     # Google Configuration
@@ -47,7 +47,7 @@ class Settings(BaseSettings):
 
     # Auxiliary Model (used for classification, retrieval multi-query, HyDE)
     # Single model for all internal/auxiliary tasks - simplifies config
-    auxiliary_model: str = "gpt-4o-mini"
+    auxiliary_model: str = "gpt-5-mini"
 
     # Smart Model Configuration (for user-facing generation when "Smart" mode selected)
     smart_model_provider: str = "openai"
@@ -222,7 +222,7 @@ class Settings(BaseSettings):
 
     # HyDE (Hypothetical Document Embeddings) Configuration
     enable_hyde: bool = True  # Enable HyDE for improved retrieval
-    hyde_model: str = "gpt-4o-mini"  # Model for generating hypothetical answers (uses auxiliary_model)
+    hyde_model: str = "gpt-5-mini"  # Model for generating hypothetical answers (uses auxiliary_model)
     hyde_cache_ttl: int = 86400  # 24 hours cache for hypothetical docs
     hyde_timeout: float = 2.0  # Max seconds for hypothesis generation
     hyde_max_tokens: int = 300  # Max tokens for hypothetical answer

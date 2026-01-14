@@ -212,6 +212,8 @@ class ParallelRetrievalPipeline:
         merge_strategy: str = "weighted",
         hyde_hypothesis: Optional[str] = None,
         hyde_generator: Optional[Any] = None,
+        auxiliary_model: Optional[str] = None,
+        auxiliary_provider: Optional[Any] = None,
     ) -> List[Tuple[Document, float]]:
         """
         Retrieve documents from all retrievers in parallel.
@@ -222,6 +224,8 @@ class ParallelRetrievalPipeline:
             merge_strategy: How to merge results ("weighted", "round_robin", "score_based")
             hyde_hypothesis: Optional HyDE hypothetical document string
             hyde_generator: Optional HyDE generator instance for concurrent generation
+            auxiliary_model: Optional model to use for HyDE generation
+            auxiliary_provider: Optional provider to use for HyDE generation
 
         Returns:
             List of (document, score) tuples
@@ -249,7 +253,7 @@ class ParallelRetrievalPipeline:
         # 2. Start HyDE generation in background if generator provided
         hyde_gen_task = None
         if hyde_generator and not hyde_hypothesis and settings.enable_hyde:
-            hyde_gen_task = asyncio.create_task(hyde_generator.generate_hypothesis(query))
+            hyde_gen_task = asyncio.create_task(hyde_generator.generate_hypothesis(query, model=auxiliary_model, provider=auxiliary_provider))
 
         # 3. Execute Standard Tasks
         results_by_retriever = {}

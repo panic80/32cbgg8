@@ -45,3 +45,4 @@ Thumbs.db
 # RAG vector store artifacts
 rag-service/chroma_db_backup*/
 rag-service/data/chromadb/
+shared-config/

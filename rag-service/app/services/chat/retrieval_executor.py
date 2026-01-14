@@ -170,6 +170,8 @@ class RetrievalExecutor:
         hyde_hypothesis: Optional[str] = None,
         hyde_generator: Optional[Any] = None,
         classification: Optional[Dict[str, Any]] = None,
+        auxiliary_model: Optional[str] = None,
+        auxiliary_provider: Optional[Any] = None,
     ) -> List[Tuple]:
         """Execute retrieval.
 
@@ -181,6 +183,8 @@ class RetrievalExecutor:
             hyde_hypothesis: Optional HyDE hypothesis for improved retrieval.
             hyde_generator: Optional HyDE generator instance for concurrent generation.
             classification: Optional query classification.
+            auxiliary_model: Optional model for auxiliary tasks (HyDE).
+            auxiliary_provider: Optional provider for auxiliary tasks.
 
         Returns:
             List of (document, score) tuples.
@@ -195,10 +199,12 @@ class RetrievalExecutor:
                 query=query, 
                 k=k, 
                 hyde_hypothesis=hyde_hypothesis,
-                hyde_generator=hyde_generator
+                hyde_generator=hyde_generator,
+                auxiliary_model=auxiliary_model,
+                auxiliary_provider=auxiliary_provider
             )
         else:
-            results = await pipeline.retrieve(query=query, k=k)
+            results = await pipeline.retrieve(query=query, k=k, auxiliary_model=auxiliary_model, auxiliary_provider=auxiliary_provider)
 
         # Apply fast mode chunk limit
         if is_fast_mode:
