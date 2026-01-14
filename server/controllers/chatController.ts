@@ -3,6 +3,15 @@ import type { Request, Response } from 'express';
 import { RAG_SERVICE_URL, TRIP_PLANNER_MODEL, TRIP_PLANNER_PREFIX } from '../config/constants.js';
 import { inferJurisdiction, buildTripPlannerHints } from '../services/tripPlannerService.js';
 import { AiClients, buildOpenAIParams } from '../services/aiClients.js';
+import {
+  sendConfigurationError,
+  sendBadRequestError,
+  sendInternalServerError,
+  sendRateLimitError,
+  sendUnsupportedProviderError,
+  processTripPlannerMessage,
+  validateMessage,
+} from '../utils/chatHelpers.js';
 
 interface ChatControllerConfig {
   chatLogger: import('../services/logger.js').Logger;
@@ -33,18 +42,12 @@ export const createChatController = ({
     try {
       const { prompt, model: modelId } = req.body;
 
-      if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
-        return res.status(400).json({
-          error: 'Bad Request',
-          message: 'Prompt is required and must be a non-empty string',
-        });
+      if (!validateMessage(prompt)) {
+        return sendBadRequestError(res, 'Prompt is required and must be a non-empty string');
       }
 
       if (!geminiClient) {
-        return res.status(500).json({
-          error: 'Configuration Error',
-          message: 'Gemini API key is not configured.',
-        });
+        return sendConfigurationError(res, 'Gemini');
       }
 
       const model = geminiClient.getGenerativeModel({ model: modelId || 'gemini-2.5-flash' });
@@ -66,22 +69,18 @@ export const createChatController = ({
   const handleStandardChat = async (req: Request, res: Response) => {
     const { message, model, provider } = req.body;
 
-    const isTripPlannerMessage = message?.startsWith(TRIP_PLANNER_PREFIX);
-    const effectiveModel = isTripPlannerMessage ? TRIP_PLANNER_MODEL : model;
-    const effectiveProvider = isTripPlannerMessage ? 'openai' : provider;
+    const { effectiveModel, effectiveProvider } = processTripPlannerMessage(message, model, provider, {
+      prefix: TRIP_PLANNER_PREFIX,
+      model: TRIP_PLANNER_MODEL,
+      provider: 'openai',
+    });
 
     if (!effectiveModel) {
-      return res.status(400).json({
-        error: 'Bad Request',
-        message: 'Model parameter is required.',
-      });
+      return sendBadRequestError(res, 'Model parameter is required.');
     }
 
     if (!effectiveProvider) {
-      return res.status(400).json({
-        error: 'Bad Request',
-        message: 'Provider parameter is required.',
-      });
+      return sendBadRequestError(res, 'Provider parameter is required.');
     }
 
     try {
@@ -90,10 +89,7 @@ export const createChatController = ({
       switch (effectiveProvider) {
         case 'google': {
           if (!geminiClient) {
-            return res.status(500).json({
-              error: 'Configuration Error',
-              message: 'Google API key is not configured.',
-            });
+            return sendConfigurationError(res, 'Google');
           }
           responseText = await geminiClient
             .getGenerativeModel({ model: effectiveModel })
@@ -103,10 +99,7 @@ export const createChatController = ({
         }
         case 'openai': {
           if (!openaiClient) {
-            return res.status(500).json({
-              error: 'Configuration Error',
-              message: 'OpenAI API key is not configured.',
-            });
+            return sendConfigurationError(res, 'OpenAI');
           }
           responseText = await openaiClient.chat.completions
             .create(buildOpenAIParams(effectiveModel, [{ role: 'user', content: message.trim() }]))
@@ -115,10 +108,7 @@ export const createChatController = ({
         }
         case 'anthropic': {
           if (!anthropicClient) {
-            return res.status(500).json({
-              error: 'Configuration Error',
-              message: 'Anthropic API key is not configured.',
-            });
+            return sendConfigurationError(res, 'Anthropic');
           }
           responseText = await anthropicClient.messages
             .create({
@@ -136,10 +126,7 @@ export const createChatController = ({
           break;
         }
         default:
-          return res.status(400).json({
-            error: 'Bad Request',
-            message: `Unsupported provider: ${effectiveProvider}`,
-          });
+          return sendUnsupportedProviderError(res, effectiveProvider);
       }
 
       if (config?.loggingEnabled) {
@@ -181,23 +168,14 @@ export const createChatController = ({
       }
 
       if (err.status === 429) {
-        return res.status(429).json({
-          error: 'Rate Limit Exceeded',
-          message: 'Too many requests to the AI provider. Please try again later.',
-        });
+        return sendRateLimitError(res);
       }
 
       if (err.status === 401) {
-        return res.status(500).json({
-          error: 'Configuration Error',
-          message: 'Invalid API key for the selected provider.',
-        });
+        return sendConfigurationError(res, 'Invalid API key for the selected provider');
       }
 
-      return res.status(500).json({
-        error: 'Internal Server Error',
-        message: 'An error occurred while processing your request.',
-      });
+      return sendInternalServerError(res, 'An error occurred while processing your request.');
     }
   };
 
@@ -212,9 +190,11 @@ export const createChatController = ({
       audience,
     } = req.body;
 
-    const isTripPlannerMessage = message?.startsWith(TRIP_PLANNER_PREFIX);
-    const effectiveModel = isTripPlannerMessage ? TRIP_PLANNER_MODEL : model;
-    const effectiveProvider = isTripPlannerMessage ? 'openai' : provider;
+    const { effectiveModel, effectiveProvider } = processTripPlannerMessage(message, model, provider, {
+      prefix: TRIP_PLANNER_PREFIX,
+      model: TRIP_PLANNER_MODEL,
+      provider: 'openai',
+    });
 
     try {
       chatLogger?.info?.('Processing RAG chat request', {
@@ -288,9 +268,11 @@ export const createChatController = ({
       modelMode,
     } = req.body;
 
-    const isTripPlannerMessage = message?.startsWith(TRIP_PLANNER_PREFIX);
-    const effectiveModel = isTripPlannerMessage ? TRIP_PLANNER_MODEL : model;
-    const effectiveProvider = isTripPlannerMessage ? 'openai' : provider;
+    const { effectiveModel, effectiveProvider, isTripPlanner } = processTripPlannerMessage(message, model, provider, {
+      prefix: TRIP_PLANNER_PREFIX,
+      model: TRIP_PLANNER_MODEL,
+      provider: 'openai',
+    });
 
     try {
       chatLogger?.info?.('Processing streaming chat request', {
@@ -301,9 +283,9 @@ export const createChatController = ({
         conversationId,
       });
 
-      const jurisdiction = isTripPlannerMessage ? inferJurisdiction(message) : undefined;
+      const jurisdiction = isTripPlanner ? inferJurisdiction(message) : undefined;
       let messageForRetrieval = message.trim();
-      if (isTripPlannerMessage) {
+      if (isTripPlanner) {
         const hints = buildTripPlannerHints(jurisdiction);
         messageForRetrieval = `${messageForRetrieval}\n\nRetrieval focus: ${hints.join(' | ')}`;
       }
@@ -324,8 +306,8 @@ export const createChatController = ({
           use_rag: useRAG,
           include_sources: true,
           short_answer_mode: shortAnswerMode,
-          use_hybrid_search: isTripPlannerMessage ? true : useHybridSearch,
-          ...(isTripPlannerMessage
+          use_hybrid_search: isTripPlanner ? true : useHybridSearch,
+          ...(isTripPlanner
             ? { additionalInstructions: TRAVEL_PLANNER_ADDITIONAL_INSTRUCTIONS }
             : {}),
           ...(reasoningEffort ? { reasoning_effort: reasoningEffort } : {}),
@@ -452,10 +434,7 @@ export const createChatController = ({
         });
       }
 
-      return res.status(500).json({
-        error: 'Internal Server Error',
-        message: 'An error occurred while processing your streaming request.',
-      });
+      return sendInternalServerError(res, 'An error occurred while processing your streaming request.');
     }
   };
 

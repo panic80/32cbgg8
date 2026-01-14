@@ -11,7 +11,7 @@ const resolveLogger = (logger) => {
     }
     return logger;
 };
-export const pipeStreamingResponse = ({ req, res, upstream, corsHeaders = {}, logger, onMetadata, onComplete, heartbeatIntervalMs = 15000, idleTimeoutMs, traceId, }) => {
+export const pipeStreamingResponse = ({ req, res, upstream, corsHeaders = {}, logger, onMetadata, onToken, onComplete, heartbeatIntervalMs = 15000, idleTimeoutMs, traceId, }) => {
     const resolvedLogger = resolveLogger(logger);
     const emit = (level, message, meta) => {
         if (resolvedLogger &&
@@ -34,6 +34,7 @@ export const pipeStreamingResponse = ({ req, res, upstream, corsHeaders = {}, lo
     emit('info', 'stream.start', {
         corsApplied: Object.keys(corsHeaders).length > 0,
     });
+    const shouldParse = typeof onMetadata === 'function' || typeof onToken === 'function';
     let buffer = '';
     let heartbeatTimer = null;
     let idleTimer = null;
@@ -80,6 +81,9 @@ export const pipeStreamingResponse = ({ req, res, upstream, corsHeaders = {}, lo
         scheduleIdleTimeout();
         const fragment = chunk.toString();
         passThrough.write(fragment);
+        if (!shouldParse) {
+            return;
+        }
         buffer += fragment;
         const lines = buffer.split('\n');
         buffer = lines.pop() || '';
@@ -93,6 +97,9 @@ export const pipeStreamingResponse = ({ req, res, upstream, corsHeaders = {}, lo
                 const event = JSON.parse(data);
                 if (event.type === 'metadata' && typeof onMetadata === 'function') {
                     onMetadata(event);
+                }
+                if (event.type === 'token' && typeof event.content === 'string' && typeof onToken === 'function') {
+                    onToken(event.content);
                 }
             }
             catch (error) {

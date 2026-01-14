@@ -2,22 +2,17 @@ import axios from 'axios';
 import { RAG_SERVICE_URL, TRIP_PLANNER_MODEL, TRIP_PLANNER_PREFIX } from '../config/constants.js';
 import { inferJurisdiction, buildTripPlannerHints } from '../services/tripPlannerService.js';
 import { buildOpenAIParams } from '../services/aiClients.js';
+import { sendConfigurationError, sendBadRequestError, sendInternalServerError, sendRateLimitError, sendUnsupportedProviderError, processTripPlannerMessage, validateMessage, } from '../utils/chatHelpers.js';
 export const createChatController = ({ chatLogger, getRagAuthHeaders, aiService, config, pipeStreamingResponse, buildSseCorsHeaders, getEnvNumber, DEFAULT_RAG_STREAM_TIMEOUT_MS, TRAVEL_PLANNER_ADDITIONAL_INSTRUCTIONS, }) => {
     const { geminiClient, openaiClient, anthropicClient } = aiService;
     const handleGeminiGenerateContent = async (req, res) => {
         try {
             const { prompt, model: modelId } = req.body;
-            if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
-                return res.status(400).json({
-                    error: 'Bad Request',
-                    message: 'Prompt is required and must be a non-empty string',
-                });
+            if (!validateMessage(prompt)) {
+                return sendBadRequestError(res, 'Prompt is required and must be a non-empty string');
             }
             if (!geminiClient) {
-                return res.status(500).json({
-                    error: 'Configuration Error',
-                    message: 'Gemini API key is not configured.',
-                });
+                return sendConfigurationError(res, 'Gemini');
             }
             const model = geminiClient.getGenerativeModel({ model: modelId || 'gemini-2.5-flash' });
             const result = await model.generateContent(prompt);
@@ -36,30 +31,23 @@ export const createChatController = ({ chatLogger, getRagAuthHeaders, aiService,
     };
     const handleStandardChat = async (req, res) => {
         const { message, model, provider } = req.body;
-        const isTripPlannerMessage = message?.startsWith(TRIP_PLANNER_PREFIX);
-        const effectiveModel = isTripPlannerMessage ? TRIP_PLANNER_MODEL : model;
-        const effectiveProvider = isTripPlannerMessage ? 'openai' : provider;
+        const { effectiveModel, effectiveProvider } = processTripPlannerMessage(message, model, provider, {
+            prefix: TRIP_PLANNER_PREFIX,
+            model: TRIP_PLANNER_MODEL,
+            provider: 'openai',
+        });
         if (!effectiveModel) {
-            return res.status(400).json({
-                error: 'Bad Request',
-                message: 'Model parameter is required.',
-            });
+            return sendBadRequestError(res, 'Model parameter is required.');
         }
         if (!effectiveProvider) {
-            return res.status(400).json({
-                error: 'Bad Request',
-                message: 'Provider parameter is required.',
-            });
+            return sendBadRequestError(res, 'Provider parameter is required.');
         }
         try {
             let responseText = '';
             switch (effectiveProvider) {
                 case 'google': {
                     if (!geminiClient) {
-                        return res.status(500).json({
-                            error: 'Configuration Error',
-                            message: 'Google API key is not configured.',
-                        });
+                        return sendConfigurationError(res, 'Google');
                     }
                     responseText = await geminiClient
                         .getGenerativeModel({ model: effectiveModel })
@@ -69,10 +57,7 @@ export const createChatController = ({ chatLogger, getRagAuthHeaders, aiService,
                 }
                 case 'openai': {
                     if (!openaiClient) {
-                        return res.status(500).json({
-                            error: 'Configuration Error',
-                            message: 'OpenAI API key is not configured.',
-                        });
+                        return sendConfigurationError(res, 'OpenAI');
                     }
                     responseText = await openaiClient.chat.completions
                         .create(buildOpenAIParams(effectiveModel, [{ role: 'user', content: message.trim() }]))
@@ -81,10 +66,7 @@ export const createChatController = ({ chatLogger, getRagAuthHeaders, aiService,
                 }
                 case 'anthropic': {
                     if (!anthropicClient) {
-                        return res.status(500).json({
-                            error: 'Configuration Error',
-                            message: 'Anthropic API key is not configured.',
-                        });
+                        return sendConfigurationError(res, 'Anthropic');
                     }
                     responseText = await anthropicClient.messages
                         .create({
@@ -102,10 +84,7 @@ export const createChatController = ({ chatLogger, getRagAuthHeaders, aiService,
                     break;
                 }
                 default:
-                    return res.status(400).json({
-                        error: 'Bad Request',
-                        message: `Unsupported provider: ${effectiveProvider}`,
-                    });
+                    return sendUnsupportedProviderError(res, effectiveProvider);
             }
             if (config?.loggingEnabled) {
                 const loggedAt = new Date().toISOString();
@@ -144,28 +123,21 @@ export const createChatController = ({ chatLogger, getRagAuthHeaders, aiService,
                 });
             }
             if (err.status === 429) {
-                return res.status(429).json({
-                    error: 'Rate Limit Exceeded',
-                    message: 'Too many requests to the AI provider. Please try again later.',
-                });
+                return sendRateLimitError(res);
             }
             if (err.status === 401) {
-                return res.status(500).json({
-                    error: 'Configuration Error',
-                    message: 'Invalid API key for the selected provider.',
-                });
+                return sendConfigurationError(res, 'Invalid API key for the selected provider');
             }
-            return res.status(500).json({
-                error: 'Internal Server Error',
-                message: 'An error occurred while processing your request.',
-            });
+            return sendInternalServerError(res, 'An error occurred while processing your request.');
         }
     };
     const handleRagChat = async (req, res) => {
         const { message, model, provider, chatHistory, conversationId, useRAG = true, audience, } = req.body;
-        const isTripPlannerMessage = message?.startsWith(TRIP_PLANNER_PREFIX);
-        const effectiveModel = isTripPlannerMessage ? TRIP_PLANNER_MODEL : model;
-        const effectiveProvider = isTripPlannerMessage ? 'openai' : provider;
+        const { effectiveModel, effectiveProvider } = processTripPlannerMessage(message, model, provider, {
+            prefix: TRIP_PLANNER_PREFIX,
+            model: TRIP_PLANNER_MODEL,
+            provider: 'openai',
+        });
         try {
             chatLogger?.info?.('Processing RAG chat request', {
                 message: message?.substring(0, 50),
@@ -212,9 +184,11 @@ export const createChatController = ({ chatLogger, getRagAuthHeaders, aiService,
     };
     const handleStreamingChat = async (req, res) => {
         const { message, model, provider, chatHistory, conversationId, useRAG = true, shortAnswerMode = false, useHybridSearch = false, reasoningEffort, responseVerbosity, audience, modelMode, } = req.body;
-        const isTripPlannerMessage = message?.startsWith(TRIP_PLANNER_PREFIX);
-        const effectiveModel = isTripPlannerMessage ? TRIP_PLANNER_MODEL : model;
-        const effectiveProvider = isTripPlannerMessage ? 'openai' : provider;
+        const { effectiveModel, effectiveProvider, isTripPlanner } = processTripPlannerMessage(message, model, provider, {
+            prefix: TRIP_PLANNER_PREFIX,
+            model: TRIP_PLANNER_MODEL,
+            provider: 'openai',
+        });
         try {
             chatLogger?.info?.('Processing streaming chat request', {
                 message: message?.substring(0, 50),
@@ -223,9 +197,9 @@ export const createChatController = ({ chatLogger, getRagAuthHeaders, aiService,
                 hasHistory: !!chatHistory,
                 conversationId,
             });
-            const jurisdiction = isTripPlannerMessage ? inferJurisdiction(message) : undefined;
+            const jurisdiction = isTripPlanner ? inferJurisdiction(message) : undefined;
             let messageForRetrieval = message.trim();
-            if (isTripPlannerMessage) {
+            if (isTripPlanner) {
                 const hints = buildTripPlannerHints(jurisdiction);
                 messageForRetrieval = `${messageForRetrieval}\n\nRetrieval focus: ${hints.join(' | ')}`;
             }
@@ -241,8 +215,8 @@ export const createChatController = ({ chatLogger, getRagAuthHeaders, aiService,
                 use_rag: useRAG,
                 include_sources: true,
                 short_answer_mode: shortAnswerMode,
-                use_hybrid_search: isTripPlannerMessage ? true : useHybridSearch,
-                ...(isTripPlannerMessage
+                use_hybrid_search: isTripPlanner ? true : useHybridSearch,
+                ...(isTripPlanner
                     ? { additionalInstructions: TRAVEL_PLANNER_ADDITIONAL_INSTRUCTIONS }
                     : {}),
                 ...(reasoningEffort ? { reasoning_effort: reasoningEffort } : {}),
@@ -261,7 +235,10 @@ export const createChatController = ({ chatLogger, getRagAuthHeaders, aiService,
                 signal: upstreamAbortController.signal,
             });
             const streamingCorsHeaders = buildSseCorsHeaders?.(req.headers.origin) || {};
+            const shouldLogStream = Boolean(config?.loggingEnabled);
+            const maxAggregatedAnswerChars = getEnvNumber?.('STREAM_LOG_ANSWER_MAX_CHARS', 20000) ?? 20000;
             let aggregatedAnswer = '';
+            let hasReachedAnswerLimit = false;
             let remoteConversationId = conversationId || null;
             let aggregatedSources = [];
             let aggregatedFollowUps = [];
@@ -284,20 +261,37 @@ export const createChatController = ({ chatLogger, getRagAuthHeaders, aiService,
                 heartbeatIntervalMs: 15000,
                 idleTimeoutMs: DEFAULT_RAG_STREAM_TIMEOUT_MS,
                 traceId: req.headers['x-request-id'],
-                onMetadata: (meta) => {
-                    const event = meta;
-                    if (event.conversation_id) {
-                        remoteConversationId = event.conversation_id;
+                onMetadata: shouldLogStream
+                    ? (meta) => {
+                        const event = meta;
+                        if (event.conversation_id) {
+                            remoteConversationId = event.conversation_id;
+                        }
+                        if (Array.isArray(event.sources)) {
+                            aggregatedSources = event.sources;
+                        }
+                        if (Array.isArray(event.follow_up_questions)) {
+                            aggregatedFollowUps = event.follow_up_questions;
+                        }
                     }
-                    if (Array.isArray(event.sources)) {
-                        aggregatedSources = event.sources;
+                    : undefined,
+                onToken: shouldLogStream
+                    ? (token) => {
+                        if (hasReachedAnswerLimit)
+                            return;
+                        const remaining = maxAggregatedAnswerChars - aggregatedAnswer.length;
+                        if (remaining <= 0) {
+                            hasReachedAnswerLimit = true;
+                            return;
+                        }
+                        aggregatedAnswer += token.length > remaining ? token.slice(0, remaining) : token;
+                        if (aggregatedAnswer.length >= maxAggregatedAnswerChars) {
+                            hasReachedAnswerLimit = true;
+                        }
                     }
-                    if (Array.isArray(event.follow_up_questions)) {
-                        aggregatedFollowUps = event.follow_up_questions;
-                    }
-                },
+                    : undefined,
                 onComplete: () => {
-                    if (config?.loggingEnabled) {
+                    if (shouldLogStream) {
                         chatLogger.logChat?.(req, {
                             timestamp: new Date().toISOString(),
                             question: message.trim(),
@@ -317,29 +311,6 @@ export const createChatController = ({ chatLogger, getRagAuthHeaders, aiService,
                         });
                     }
                 },
-            });
-            response.data.on('data', (chunk) => {
-                const fragment = chunk.toString();
-                const lines = fragment.split('\n');
-                for (const line of lines) {
-                    if (!line.startsWith('data: '))
-                        continue;
-                    const data = line.slice(6).trim();
-                    if (!data || data === '[DONE]')
-                        continue;
-                    try {
-                        const event = JSON.parse(data);
-                        if (event.type === 'token' && typeof event.content === 'string') {
-                            aggregatedAnswer += event.content;
-                        }
-                    }
-                    catch (error) {
-                        chatLogger?.error?.('Error parsing SSE event', {
-                            error,
-                            sample: data.substring(0, 100),
-                        });
-                    }
-                }
             });
             req.on('close', () => {
                 upstreamAbortController.abort();
@@ -362,10 +333,7 @@ export const createChatController = ({ chatLogger, getRagAuthHeaders, aiService,
                     },
                 });
             }
-            return res.status(500).json({
-                error: 'Internal Server Error',
-                message: 'An error occurred while processing your streaming request.',
-            });
+            return sendInternalServerError(res, 'An error occurred while processing your streaming request.');
         }
     };
     return {
