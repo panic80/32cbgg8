@@ -125,11 +125,12 @@ class StatefulRetrievalPipeline:
 
         return compiled
         
-    async def _retrieve_node(self, state: RetrievalState) -> RetrievalState:
+    async def _retrieve_node(self, state: RetrievalState, config: Optional[Dict[str, Any]] = None) -> RetrievalState:
         """Retrieve documents using parallel pipeline.
         
         Args:
             state: Current retrieval state
+            config: Runtime configuration (contains hyde_generator)
             
         Returns:
             Updated state with retrieved documents
@@ -137,6 +138,11 @@ class StatefulRetrievalPipeline:
         start_time = time.time()
         query = state["query"]
         iteration = state["iteration_count"]
+        
+        # Extract hyde_generator from config if available
+        hyde_generator = None
+        if config and "configurable" in config:
+            hyde_generator = config["configurable"].get("hyde_generator")
         
         logger.info(f"Retrieval iteration {iteration + 1}: query='{query}'")
         
@@ -151,7 +157,8 @@ class StatefulRetrievalPipeline:
                 query=query,
                 k=settings.retrieval_k,
                 merge_strategy="weighted",
-                hyde_hypothesis=hyde_hypothesis
+                hyde_hypothesis=hyde_hypothesis,
+                hyde_generator=hyde_generator
             )
             
             state["documents"] = documents
@@ -324,7 +331,8 @@ class StatefulRetrievalPipeline:
         k: int = 5,
         session_id: Optional[str] = None,
         merge_strategy: str = "weighted",
-        hyde_hypothesis: Optional[str] = None
+        hyde_hypothesis: Optional[str] = None,
+        hyde_generator: Optional[Any] = None
     ) -> List[Tuple[Document, float]]:
         """Execute stateful retrieval with iterative refinement.
 
@@ -334,6 +342,7 @@ class StatefulRetrievalPipeline:
             session_id: Session ID for persistence (optional)
             merge_strategy: Strategy for merging results (passed to parallel pipeline)
             hyde_hypothesis: Optional HyDE hypothesis for improved retrieval
+            hyde_generator: Optional HyDE generator instance for concurrent generation
 
         Returns:
             List of (document, score) tuples
@@ -349,7 +358,13 @@ class StatefulRetrievalPipeline:
             # Use just query hash
             thread_id = hashlib.md5(query.encode()).hexdigest()
             
-        config = {"configurable": {"thread_id": thread_id}}
+        # Pass hyde_generator via configurable config
+        config = {
+            "configurable": {
+                "thread_id": thread_id,
+                "hyde_generator": hyde_generator
+            }
+        }
 
         # Initialize state
         initial_state: RetrievalState = {
@@ -395,6 +410,10 @@ class StatefulRetrievalPipeline:
             # Fallback to direct parallel pipeline
             logger.info("Falling back to parallel pipeline")
             return await self.parallel_pipeline.retrieve(
-                query, k, merge_strategy, hyde_hypothesis=hyde_hypothesis
+                query, 
+                k, 
+                merge_strategy, 
+                hyde_hypothesis=hyde_hypothesis,
+                hyde_generator=hyde_generator
             )
 

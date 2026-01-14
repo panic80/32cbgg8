@@ -210,7 +210,8 @@ class ParallelRetrievalPipeline:
         query: str,
         k: int = 5,
         merge_strategy: str = "weighted",
-        hyde_hypothesis: Optional[str] = None
+        hyde_hypothesis: Optional[str] = None,
+        hyde_generator: Optional[Any] = None,
     ) -> List[Tuple[Document, float]]:
         """
         Retrieve documents from all retrievers in parallel.
@@ -219,7 +220,8 @@ class ParallelRetrievalPipeline:
             query: Search query
             k: Number of documents to return
             merge_strategy: How to merge results ("weighted", "round_robin", "score_based")
-            hyde_hypothesis: Optional HyDE hypothetical document for additional retrieval
+            hyde_hypothesis: Optional HyDE hypothetical document string
+            hyde_generator: Optional HyDE generator instance for concurrent generation
 
         Returns:
             List of (document, score) tuples
@@ -234,34 +236,29 @@ class ParallelRetrievalPipeline:
         if not active_retrievers:
             logger.warning("All retrievers have open circuits!")
             return []
-
-        # Create retrieval tasks for main query
-        tasks = []
-        for name, retriever in active_retrievers.items():
-            task = self._retrieve_with_timeout(name, retriever, query, k * 2)  # Get more for merging
-            tasks.append(task)
-
-        # Add HyDE retrieval tasks if hypothesis provided
-        if hyde_hypothesis and hyde_hypothesis != query:
-            logger.info("Adding HyDE hypothesis to retrieval queries")
-            # Only use vector retrievers for HyDE (not BM25 - HyDE is for semantic search)
-            for name, retriever in active_retrievers.items():
-                if "bm25" not in name.lower():
-                    hyde_task = self._retrieve_with_timeout(
-                        f"{name}_hyde", retriever, hyde_hypothesis, k
-                    )
-                    tasks.append(hyde_task)
-        
+            
         monitor = get_performance_monitor()
+        start_time = time.perf_counter()
 
-        # Execute with concurrency limit
+        # 1. Start standard retrieval tasks immediately
+        standard_tasks = []
+        for name, retriever in active_retrievers.items():
+            task = self._retrieve_with_timeout(name, retriever, query, k * 2)
+            standard_tasks.append(task)
+            
+        # 2. Start HyDE generation in background if generator provided
+        hyde_gen_task = None
+        if hyde_generator and not hyde_hypothesis and settings.enable_hyde:
+            hyde_gen_task = asyncio.create_task(hyde_generator.generate_hypothesis(query))
+
+        # 3. Execute Standard Tasks
         results_by_retriever = {}
         latencies = {}
         
-        # Process in batches based on concurrency limit
-        for i in range(0, len(tasks), self.concurrency_limit):
-            batch = tasks[i:i + self.concurrency_limit]
-            batch_results = await asyncio.gather(*batch, return_exceptions=True)
+        # Process standard tasks
+        if standard_tasks:
+            # Gather standard results
+            batch_results = await asyncio.gather(*standard_tasks, return_exceptions=True)
             
             for result in batch_results:
                 if isinstance(result, Exception):
@@ -273,13 +270,80 @@ class ParallelRetrievalPipeline:
                     latencies[name] = latency
                     if monitor:
                         try:
-                            monitor.record_retriever_performance(
-                                name,
-                                float(latency) * 1000,
-                                len(docs),
-                            )
-                        except Exception as exc:  # pragma: no cover - defensive logging
-                            logger.debug("Failed to record retriever metric for %s: %s", name, exc)
+                            monitor.record_retriever_performance(name, float(latency) * 1000, len(docs))
+                        except Exception:
+                            pass
+
+        # 4. Check Early Exit / Execute HyDE
+        # Determine if we should proceed with HyDE based on standard results
+        should_run_hyde = False
+        final_hypothesis = hyde_hypothesis
+
+        # If we explicitly have a hypothesis string, we always run HyDE
+        if hyde_hypothesis:
+            should_run_hyde = True
+        # If we have a generator task, check if we need it
+        elif hyde_gen_task:
+            # Check standard results confidence
+            max_score = 0.0
+            total_docs = 0
+            
+            # Extract scores if available (depends on retriever type)
+            for docs in results_by_retriever.values():
+                total_docs += len(docs)
+                for doc in docs:
+                    # Try to find a relevance score
+                    if hasattr(doc, "metadata") and "score" in doc.metadata:
+                        try:
+                            max_score = max(max_score, float(doc.metadata["score"]))
+                        except (ValueError, TypeError):
+                            pass
+            
+            # Early Exit Condition: High confidence results found
+            # Note: Vector store scores vary. Assuming standard normalized scores or strong keyword matches.
+            # If we have plenty of results, we might skip HyDE for speed
+            if total_docs >= k * 2 and max_score > 0.88:
+                logger.info(f"Early exit: High confidence standard results (score={max_score:.2f}, count={total_docs}). Skipping HyDE.")
+                should_run_hyde = False
+                # Cancel the generation task to save LLM tokens/slots
+                hyde_gen_task.cancel()
+            else:
+                should_run_hyde = True
+                try:
+                    # Await the hypothesis generation
+                    gen_start = time.perf_counter()
+                    final_hypothesis = await hyde_gen_task
+                    gen_time = (time.perf_counter() - gen_start) * 1000
+                    if monitor:
+                        monitor.record_latency("hyde_latency_ms", gen_time)
+                except asyncio.CancelledError:
+                    pass
+                except Exception as e:
+                    logger.warning(f"HyDE generation failed in background: {e}")
+
+        # 5. Execute HyDE Retrieval if needed
+        if should_run_hyde and final_hypothesis and final_hypothesis != query:
+            logger.info("Executing concurrent HyDE retrieval")
+            hyde_tasks = []
+            # Only use vector retrievers for HyDE
+            for name, retriever in active_retrievers.items():
+                if "bm25" not in name.lower():
+                    hyde_task = self._retrieve_with_timeout(
+                        f"{name}_hyde", retriever, final_hypothesis, k
+                    )
+                    hyde_tasks.append(hyde_task)
+            
+            if hyde_tasks:
+                hyde_results = await asyncio.gather(*hyde_tasks, return_exceptions=True)
+                for result in hyde_results:
+                    if isinstance(result, Exception):
+                        logger.error(f"HyDE retrieval task failed: {result}")
+                    else:
+                        name, docs, latency = result
+                        if docs:
+                            results_by_retriever[name] = docs
+                        latencies[name] = latency
+
         
         # Log retrieval metrics
         logger.info(f"Parallel retrieval completed - Active: {len(active_retrievers)}, "

@@ -168,6 +168,8 @@ class RetrievalExecutor:
         k: Optional[int] = None,
         is_fast_mode: bool = False,
         hyde_hypothesis: Optional[str] = None,
+        hyde_generator: Optional[Any] = None,
+        classification: Optional[Dict[str, Any]] = None,
     ) -> List[Tuple]:
         """Execute retrieval.
 
@@ -177,6 +179,8 @@ class RetrievalExecutor:
             k: Number of results (defaults to settings).
             is_fast_mode: Whether to apply fast mode limits (reduced chunks).
             hyde_hypothesis: Optional HyDE hypothesis for improved retrieval.
+            hyde_generator: Optional HyDE generator instance for concurrent generation.
+            classification: Optional query classification.
 
         Returns:
             List of (document, score) tuples.
@@ -184,11 +188,14 @@ class RetrievalExecutor:
         if k is None:
             k = getattr(settings, "max_chunks_per_query", 6)
 
-        # Pass HyDE hypothesis to pipeline if available
-        if hyde_hypothesis and settings.enable_hyde:
-            logger.debug("Executing retrieval with HyDE hypothesis")
+        # Pass HyDE hypothesis string OR generator to pipeline
+        if settings.enable_hyde and (hyde_hypothesis or hyde_generator):
+            logger.debug("Executing retrieval with HyDE support")
             results = await pipeline.retrieve(
-                query=query, k=k, hyde_hypothesis=hyde_hypothesis
+                query=query, 
+                k=k, 
+                hyde_hypothesis=hyde_hypothesis,
+                hyde_generator=hyde_generator
             )
         else:
             results = await pipeline.retrieve(query=query, k=k)

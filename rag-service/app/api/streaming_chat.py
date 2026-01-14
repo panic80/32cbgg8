@@ -294,19 +294,6 @@ async def _run_streaming_flow(
         else:
             perf_monitor.record_cache_hit("l3", False)
 
-    # Generate HyDE hypothesis if enabled
-    hyde_hypothesis = None
-    if hyde_generator and chat_request.use_rag:
-        try:
-            hyde_start = time.perf_counter()
-            hyde_hypothesis = await hyde_generator.generate_hypothesis(optimized_query)
-            hyde_time_ms = (time.perf_counter() - hyde_start) * 1000
-            if hyde_hypothesis:
-                logger.debug(f"HyDE hypothesis generated in {hyde_time_ms:.1f}ms")
-                perf_monitor.record_latency("hyde_latency_ms", hyde_time_ms)
-        except Exception as hyde_error:
-            logger.warning(f"HyDE generation failed: {hyde_error}")
-
     # Retrieval
     if chat_request.use_rag:
         # Only emit retrieval_start for smart mode (fast mode already emitted it early)
@@ -321,9 +308,14 @@ async def _run_streaming_flow(
 
                 pipeline = await retrieval_executor.create_pipeline(chat_request, is_fast_mode)
                 retrieval_start = time.perf_counter()
+                
+                # Use concurrent HyDE execution (pass generator, not hypothesis string)
                 retrieval_results = await retrieval_executor.retrieve(
-                    pipeline, optimized_query, is_fast_mode=is_fast_mode,
-                    hyde_hypothesis=hyde_hypothesis
+                    pipeline, 
+                    optimized_query, 
+                    is_fast_mode=is_fast_mode,
+                    hyde_generator=hyde_generator,
+                    classification=classification_dict
                 )
         except Exception as e:
             logger.warning(f"Auxiliary model retrieval failed ({e}). Falling back to main model.")
@@ -331,11 +323,15 @@ async def _run_streaming_flow(
             pipeline = await retrieval_executor.create_pipeline(chat_request, is_fast_mode)
             retrieval_start = time.perf_counter()
             retrieval_results = await retrieval_executor.retrieve(
-                pipeline, optimized_query, is_fast_mode=is_fast_mode,
-                hyde_hypothesis=hyde_hypothesis
+                pipeline, 
+                optimized_query, 
+                is_fast_mode=is_fast_mode,
+                hyde_generator=hyde_generator,
+                classification=classification_dict
             )
 
         retrieval_time_ms = (time.perf_counter() - retrieval_start) * 1000
+
         retrieval_count = len(retrieval_results)
 
         yield f"data: {json.dumps({'type': 'retrieval_complete', 'duration': retrieval_time_ms / 1000, 'count': retrieval_count})}\n\n"
@@ -768,18 +764,15 @@ async def retrieval_only_endpoint(request: Request, retrieval_request: Retrieval
         cache_service = getattr(request.app.state, "cache_service", None)
         hyde_generator = get_hyde_generator(llm_pool, cache_service)
 
-    # Generate HyDE hypothesis if enabled
-    hyde_hypothesis = None
-    if hyde_generator:
-        try:
-            hyde_hypothesis = await hyde_generator.generate_hypothesis(retrieval_request.query)
-        except Exception as hyde_error:
-            logger.warning(f"HyDE generation failed: {hyde_error}")
-
     # Create pipeline and retrieve
     pipeline = await retrieval_executor.create_pipeline(chat_request, is_fast_mode=False)
+    
+    # Use concurrent HyDE execution
     retrieval_results = await retrieval_executor.retrieve(
-        pipeline, retrieval_request.query, is_fast_mode=False, hyde_hypothesis=hyde_hypothesis
+        pipeline, 
+        retrieval_request.query, 
+        is_fast_mode=False, 
+        hyde_generator=hyde_generator
     )
 
     # Build sources
