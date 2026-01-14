@@ -57,7 +57,6 @@ const MyComponent = () => {
     const result = await parseUrl(url);
     if (result) {
       // Handle successful parsing
-      console.log('Parsed URL:', result);
     }
   };
 

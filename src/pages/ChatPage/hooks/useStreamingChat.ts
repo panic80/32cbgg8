@@ -367,8 +367,7 @@ export const useStreamingChat = ({
           ...smartHints,
         });
 
-        // Debug log for active model selection
-        console.log(`[Chat Debug] Active Model: ${selectedModel} | Provider: ${selectedProvider} | Mode: ${modelMode}`);
+
 
         const response = await apiClient.request(endpoint, {
           method: 'POST',

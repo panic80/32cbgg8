@@ -175,9 +175,6 @@ export const addQuestion = async (questionText: string): Promise<void> => {
   const store = writeTransaction.objectStore(STORE_NAME);
 
   return new Promise((resolve, reject) => {
-    console.log('Adding question:', questionText);
-    console.log('Similar question found:', similarQuestion);
-
     if (similarQuestion) {
       // Update count for canonical question
       const canonicalId = (similarQuestion.canonicalId || similarQuestion.id) as number;
