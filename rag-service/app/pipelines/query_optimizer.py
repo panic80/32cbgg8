@@ -286,6 +286,10 @@ Extract:
             "parade night",
             "part-time service",
             "part time service",
+            # Implicit strong indicators
+            "parading",
+            "drill night",
+            "training night",
         ]
         if any(term in query_lower for term in class_a_terms):
             classification.is_class_a_context = True
