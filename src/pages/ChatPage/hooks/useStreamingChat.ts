@@ -358,7 +358,7 @@ export const useStreamingChat = ({
             ? { reasoningEffort: 'minimal', responseVerbosity: 'low' as const }
             : {};
 
-        const requestBody = JSON.stringify({
+        const requestBody = buildStreamingChatRequest({
           message: currentInput,
           model: selectedModel,
           provider: selectedProvider,
@@ -370,7 +370,8 @@ export const useStreamingChat = ({
             role: msg.sender === 'user' ? 'user' : 'assistant',
             content: msg.content,
           })),
-          ...smartHints,
+          reasoningEffort: smartHints.reasoningEffort,
+          responseVerbosity: smartHints.responseVerbosity,
         });
 
 
@@ -398,6 +399,16 @@ export const useStreamingChat = ({
         pendingMessageRef.current = createPendingMessage(messageId, modelMode, shortAnswerMode);
         dispatch({ type: 'SET_PENDING', message: { ...pendingMessageRef.current } });
 
+        // Create reusable event handler context
+        const eventHandlerCtx: EventHandlerContext = {
+          dispatch,
+          pendingMessageRef,
+          flushPendingMessage,
+          setConversationId,
+          conversationId,
+          messageId,
+        };
+
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
@@ -416,63 +427,31 @@ export const useStreamingChat = ({
               const event = JSON.parse(data) as StreamingEvent;
               switch (event.type) {
                 case 'retrieval_start':
-                  handleRetrievalStart({ 
-                    dispatch, 
-                    pendingMessageRef, 
-                    flushPendingMessage, 
-                    setConversationId, 
-                    conversationId, 
-                    messageId 
-                  });
+                  handleRetrievalStart(eventHandlerCtx);
                   break;
                 case 'retrieval_complete':
-                  handleRetrievalComplete({ 
-                    dispatch, 
-                    pendingMessageRef, 
-                    flushPendingMessage, 
-                    setConversationId, 
-                    conversationId, 
-                    messageId 
-                  });
+                  handleRetrievalComplete(eventHandlerCtx);
                   break;
                 case 'sources':
                   if (event.sources) {
                     sources = toSources(event.sources);
-                    handleSourcesEvent(
-                      { 
-                        dispatch, 
-                        pendingMessageRef, 
-                        flushPendingMessage, 
-                        setConversationId, 
-                        conversationId, 
-                        messageId 
-                      },
-                      sources,
-                      toSources
-                    );
+                    handleSourcesEvent(eventHandlerCtx, sources, toSources);
                   }
                   break;
                 case 'token':
                   if (event.content) {
-                    const tokenResult = handleTokenEventHelper(
-                      {
-                        dispatch,
-                        pendingMessageRef,
-                        flushPendingMessage,
-                        setConversationId,
-                        conversationId,
-                        messageId,
-                        streamingContent,
-                        streamHasMarkdownSyntax,
-                        lastMarkdownCheckAt,
-                        lastPlainFormatAt,
-                        markdownCheckIntervalMs,
-                        plainFormatIntervalMs,
-                        markdownPattern,
-                        formatPlainTextToMarkdown,
-                      },
-                      event.content
-                    );
+                    const tokenCtx: TokenEventContext = {
+                      ...eventHandlerCtx,
+                      streamingContent,
+                      streamHasMarkdownSyntax,
+                      lastMarkdownCheckAt,
+                      lastPlainFormatAt,
+                      markdownCheckIntervalMs,
+                      plainFormatIntervalMs,
+                      markdownPattern,
+                      formatPlainTextToMarkdown,
+                    };
+                    const tokenResult = handleTokenEventHelper(tokenCtx, event.content);
                     streamingContent = tokenResult.streamingContent;
                     streamHasMarkdownSyntax = tokenResult.streamHasMarkdownSyntax;
                     lastMarkdownCheckAt = tokenResult.lastMarkdownCheckAt;
@@ -480,18 +459,7 @@ export const useStreamingChat = ({
                   }
                   break;
                 case 'metadata':
-                  followUpQuestions = handleMetadataEvent(
-                    {
-                      dispatch,
-                      pendingMessageRef,
-                      flushPendingMessage,
-                      setConversationId,
-                      conversationId,
-                      messageId,
-                    },
-                    event,
-                    mapFollowUpQuestions
-                  );
+                  followUpQuestions = handleMetadataEvent(eventHandlerCtx, event, mapFollowUpQuestions);
                   if (event.delta) {
                     deltaPayload = event.delta as import('@/types/policy').DeltaResponse;
                     if (pendingMessageRef.current) {
