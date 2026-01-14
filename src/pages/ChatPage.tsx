@@ -8,7 +8,7 @@ import { useChatController } from './ChatPage/hooks';
 import { ChatCommandPalette } from './ChatPage/components/ChatCommandPalette';
 import { ChatMessagesPanel } from './ChatPage/components/ChatMessagesPanel';
 import { MaintenanceBanner } from './ChatPage/components/MaintenanceBanner';
-import { MAINTENANCE_MODE } from '@/constants/maintenance';
+import { MAINTENANCE_MODE } from '@/constants';
 
 interface ChatPageProps {
   theme?: string;

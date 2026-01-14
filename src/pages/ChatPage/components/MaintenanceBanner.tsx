@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { AlertTriangle } from 'lucide-react';
-import { MAINTENANCE_MESSAGE } from '@/constants/maintenance';
+import { MAINTENANCE_MESSAGE } from '@/constants';
 
 export const MaintenanceBanner: React.FC = () => {
   return (

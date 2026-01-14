@@ -1,4 +1,6 @@
 export * from './chat';
+export * from './followUp';
+export * from './maintenance';
 export * from './models';
 export * from './search';
 export * from './siteConfig.js';

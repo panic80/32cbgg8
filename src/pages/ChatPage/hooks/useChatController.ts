@@ -10,7 +10,7 @@ import {
   StorageKeys,
   getModelDisplayName,
 } from '@/constants';
-import { MAINTENANCE_MODE } from '@/constants/maintenance';
+import { MAINTENANCE_MODE } from '@/constants';
 import { getLocalStorageItem, removeLocalStorageItem } from '@/utils/storage';
 import { exportConversationAsMarkdown } from '@/utils/exportConversation';
 import { useTheme as useThemeContext } from '@/context/ThemeContext';

@@ -2,7 +2,7 @@ import { apiClient, ApiError } from '@/api/client';
 import { StorageKeys } from '@/constants/storage';
 import { getLocalStorageItem } from '@/utils/storage';
 import { FollowUpQuestion, Source } from '@/types/chat';
-import { FOLLOW_UP_CATEGORIES, DEFAULT_CONFIDENCE, FALLBACK_QUESTIONS } from '@/constants/followUp';
+import { FOLLOW_UP_CATEGORIES, DEFAULT_CONFIDENCE, FALLBACK_QUESTIONS } from '@/constants';
 
 interface FollowUpGenerationParams {
   userQuestion: string;
