@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useMemo, useCallback } from 'react';
 import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso';
 import { cn } from '@/lib/utils';
 import { useMobileKeyboard } from '@/hooks/useMobileKeyboard';
-import type { Message as ChatMessage } from '@/types/chat';
+import type { Message as ChatMessage } from '@/types';
 import { AnimatedButton } from '@/components/chat/AnimatedButton';
 import { ChatMessageBubble } from '@/components/chat/ChatMessageBubble';
 import { AssistantTypingIndicator } from '@/components/chat/AssistantTypingIndicator';

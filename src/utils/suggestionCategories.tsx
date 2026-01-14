@@ -2,7 +2,7 @@ import React from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { ArrowRight, HelpCircle, Lightbulb, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { FollowUpQuestion } from '@/types/chat';
+import type { FollowUpQuestion } from '@/types';
 
 type SuggestionCategory = NonNullable<FollowUpQuestion['category']>;
 type SuggestionCategoryKey = SuggestionCategory | 'default';

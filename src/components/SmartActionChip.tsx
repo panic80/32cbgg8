@@ -6,7 +6,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
-import { FollowUpQuestion } from '@/types/chat';
+import { FollowUpQuestion } from '@/types';
 import { cn } from '@/lib/utils';
 import { getSuggestionCategoryIcon } from '@/utils/suggestionCategories';
 

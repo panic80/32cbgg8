@@ -1,4 +1,4 @@
-import type { Message, Source, FollowUpQuestion } from '@/types/chat';
+import type { Message, Source, FollowUpQuestion } from '@/types';
 import type { StreamingAction } from './useStreamingChat';
 
 /**
