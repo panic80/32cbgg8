@@ -214,6 +214,41 @@ export const createPendingMessage = (
 };
 
 /**
+ * Reset streaming state after completion or error
+ */
+export const resetStreamingState = (
+  dispatch: React.Dispatch<import('./useStreamingChat').StreamingAction>,
+  pendingMessageRef: React.MutableRefObject<Message | null>,
+  abortControllerRef: React.MutableRefObject<AbortController | null>,
+  controller: AbortController,
+  setLoading = true,
+): void => {
+  pendingMessageRef.current = null;
+  dispatch({ type: 'SET_PENDING', message: null });
+  dispatch({ type: 'SET_RETRIEVAL_STATUS', status: null });
+  if (setLoading) {
+    dispatch({ type: 'SET_LOADING', value: false });
+  }
+  if (abortControllerRef.current === controller) {
+    abortControllerRef.current = null;
+  }
+};
+
+/**
+ * Create an error message for display
+ */
+export const createErrorMessage = (
+  error: unknown,
+  shortAnswerMode: boolean,
+): Message => ({
+  id: (Date.now() + 2).toString(),
+  content: `Sorry, I encountered an error while processing your request. Please try again. Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+  sender: 'assistant',
+  timestamp: Date.now(),
+  shortAnswerMode,
+});
+
+/**
  * Build request body for streaming chat
  */
 export const buildStreamingChatRequest = (params: {

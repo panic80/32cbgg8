@@ -1,19 +1,27 @@
-/* Elegant animations */
-.animate-fade-up {
-  animation: fadeUp 0.8s ease-out forwards;
-  opacity: 0;
+/* Landing Page Styles - Minimalist Centered Design */
+
+/* CSS Custom Properties for consistent spacing and timing */
+:root {
+  --landing-transition-fast: 0.2s ease;
+  --landing-transition-normal: 0.3s ease;
+  --landing-transition-slow: 0.8s ease-out;
+  --landing-spacing-xs: 0.25rem;
+  --landing-spacing-sm: 0.5rem;
+  --landing-spacing-md: 1rem;
+  --landing-spacing-lg: 1.5rem;
+  --landing-spacing-xl: 2rem;
+  --landing-spacing-2xl: 3rem;
+  --landing-max-width: 700px;
+  --landing-card-max-width: 680px;
+  --landing-search-max-width: 650px;
+  --landing-border-radius-full: 9999px;
+  --landing-border-radius-lg: 1.25rem;
+  --landing-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
+  --landing-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --landing-shadow-lg: 0 12px 24px -6px rgba(0, 0, 0, 0.15);
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.6s ease-out forwards;
-  opacity: 0;
-}
-
-.animate-scale {
-  animation: scale 0.6s ease-out forwards;
-  opacity: 0;
-}
-
+/* Shared Animations */
 @keyframes fadeUp {
   from {
     opacity: 0;
@@ -34,6 +42,17 @@
   }
 }
 
+@keyframes fadeDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @keyframes scale {
   from {
     opacity: 0;
@@ -45,12 +64,41 @@
   }
 }
 
+@keyframes floating {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* Animation Utility Classes */
+.animate-fade-up {
+  animation: fadeUp var(--landing-transition-slow) forwards;
+  opacity: 0;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.6s ease-out forwards;
+  opacity: 0;
+}
+
+.animate-scale {
+  animation: scale 0.6s ease-out forwards;
+  opacity: 0;
+}
+
+.floating {
+  animation: floating 3s ease-in-out infinite;
+}
+
 /* Elegant gradients */
 .hero-gradient {
   background: radial-gradient(circle at 50% 50%, var(--background) 0%, rgba(30, 41, 59, 0.8) 100%);
 }
 
-/* Light theme override for hero gradient */
 :root:not(.dark) .hero-gradient {
   background: radial-gradient(
     circle at 50% 50%,
@@ -58,8 +106,6 @@
     rgba(34, 139, 34, 0.15) 100%
   );
 }
-
-/* card-hover and glass effects centralized in index.css */
 
 /* Smooth scrolling */
 html {
@@ -69,20 +115,19 @@ html {
 /* Custom scroll indicator */
 .scroll-indicator {
   position: absolute;
-  bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+  bottom: calc(var(--landing-spacing-lg) + env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%);
   opacity: 0.6;
-  transition: opacity 0.3s ease;
-  z-index: 30; /* ensure above decorative layers */
-  pointer-events: none; /* avoid accidental occlusion by interactions */
+  transition: opacity var(--landing-transition-normal);
+  z-index: 30;
+  pointer-events: none;
 }
 
 .scroll-indicator:hover {
   opacity: 1;
 }
 
-/* Inline variant — used when rendering directly below hero text */
 .scroll-indicator.inline {
   position: static;
   left: auto;
@@ -91,21 +136,6 @@ html {
   display: flex;
   justify-content: center;
   opacity: 0.8;
-}
-
-/* Floating animation for decorative elements */
-.floating {
-  animation: floating 3s ease-in-out infinite;
-}
-
-@keyframes floating {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
 }
 
 /* Enhanced focus styles */
@@ -121,7 +151,6 @@ html {
   background-clip: text;
   color: transparent;
 }
-/* Landing Test - Minimalist Centered Design */
 
 /* Root Container */
 .lpt-minimal-root {
@@ -146,8 +175,8 @@ html {
 /* Theme Toggle */
 .lpt-minimal-theme {
   position: fixed;
-  top: 1.5rem;
-  right: 1.5rem;
+  top: var(--landing-spacing-lg);
+  right: var(--landing-spacing-lg);
   z-index: 50;
   width: 2.5rem;
   height: 2.5rem;
@@ -158,15 +187,15 @@ html {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: all var(--landing-transition-normal);
+  box-shadow: var(--landing-shadow-sm);
   opacity: 0.7;
 }
 
 .lpt-minimal-theme:hover {
   transform: scale(1.05);
   opacity: 1;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--landing-shadow-md);
 }
 
 /* Main Content */
@@ -178,35 +207,24 @@ html {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 3rem 1.5rem;
+  padding: var(--landing-spacing-2xl) var(--landing-spacing-lg);
   max-width: 100vw;
 }
 
 /* Hero Section */
 .lpt-minimal-hero {
   width: 100%;
-  max-width: 700px;
+  max-width: var(--landing-max-width);
   margin: 0 auto;
   text-align: center;
-  animation: fadeInUp 0.8s ease-out;
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  animation: fadeUp var(--landing-transition-slow);
 }
 
 /* Logo */
 .lpt-minimal-logo {
   margin-bottom: 2.5rem;
-  animation: fadeInDown 0.6s ease-out;
-  transition: transform 0.3s ease;
+  animation: fadeDown 0.6s ease-out;
+  transition: transform var(--landing-transition-normal);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -216,22 +234,11 @@ html {
   transform: scale(1.05);
 }
 
-@keyframes fadeInDown {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 /* Title */
 .lpt-minimal-title {
   font-size: clamp(1.75rem, 5vw, 3rem);
   font-weight: 700;
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--landing-spacing-sm);
   color: var(--text);
   letter-spacing: -0.02em;
   line-height: 1.2;
@@ -241,35 +248,35 @@ html {
 .lpt-minimal-subtitle {
   font-size: clamp(0.875rem, 2vw, 1.125rem);
   color: var(--text-secondary);
-  margin-bottom: 3rem;
+  margin-bottom: var(--landing-spacing-2xl);
   font-weight: 400;
   opacity: 0.8;
 }
 
 /* Search Form */
 .lpt-minimal-search {
-  margin-bottom: 2rem;
-  animation: fadeInUp 0.8s ease-out 0.2s both;
+  margin-bottom: var(--landing-spacing-xl);
+  animation: fadeUp var(--landing-transition-slow) 0.2s both;
 }
 
 .lpt-minimal-search-wrapper {
   position: relative;
   width: 100%;
-  max-width: 650px;
+  max-width: var(--landing-search-max-width);
   margin: 0 auto;
 }
 
 .lpt-minimal-search-box {
   display: flex;
   gap: 0.75rem;
-  padding: 1rem;
+  padding: var(--landing-spacing-md);
   background: var(--card);
   border: 2px solid var(--border);
-  border-radius: 9999px;
+  border-radius: var(--landing-border-radius-full);
   box-shadow:
     0 4px 6px -1px rgba(0, 0, 0, 0.05),
     0 10px 25px -5px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
+  transition: all var(--landing-transition-normal);
 }
 
 .lpt-minimal-search-box:focus-within {
@@ -282,7 +289,7 @@ html {
 
 .lpt-minimal-search-input {
   flex: 1;
-  padding: 0.5rem 1rem;
+  padding: var(--landing-spacing-sm) var(--landing-spacing-md);
   background: transparent;
   border: none;
   outline: none;
@@ -301,21 +308,21 @@ html {
   background: var(--primary);
   color: white;
   border: none;
-  border-radius: 9999px;
+  border-radius: var(--landing-border-radius-full);
   font-weight: 600;
   font-size: 1rem;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--landing-transition-normal);
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--landing-spacing-sm);
   white-space: nowrap;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .lpt-minimal-search-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--landing-shadow-md);
   opacity: 0.95;
 }
 
@@ -328,20 +335,20 @@ html {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 0.5rem;
+  gap: var(--landing-spacing-sm);
   margin-bottom: 3.5rem;
-  animation: fadeInUp 0.8s ease-out 0.4s both;
+  animation: fadeUp var(--landing-transition-slow) 0.4s both;
 }
 
 .lpt-minimal-chip {
-  padding: 0.5rem 1rem;
+  padding: var(--landing-spacing-sm) var(--landing-spacing-md);
   background: var(--background-secondary);
   border: 1px solid var(--border);
-  border-radius: 9999px;
+  border-radius: var(--landing-border-radius-full);
   font-size: 0.875rem;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--landing-transition-normal);
   white-space: nowrap;
 }
 
@@ -357,24 +364,22 @@ html {
 .lpt-minimal-cards {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 1.25rem;
+  gap: var(--landing-spacing-lg);
   width: 100%;
-  max-width: 680px;
+  max-width: var(--landing-card-max-width);
   margin: 0 auto 4rem;
-  animation: fadeInUp 0.8s ease-out 0.6s both;
+  animation: fadeUp var(--landing-transition-slow) 0.6s both;
 }
-
-/* Always keep a 2-column grid for clarity */
 
 .lpt-minimal-card {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 1.5rem 1rem;
+  padding: var(--landing-spacing-lg) var(--landing-spacing-md);
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 1.25rem;
+  border-radius: var(--landing-border-radius-lg);
   text-decoration: none;
   color: var(--text);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -389,12 +394,12 @@ html {
   inset: 0;
   background: linear-gradient(135deg, var(--primary) 0%, transparent 100%);
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: opacity var(--landing-transition-normal);
 }
 
 .lpt-minimal-card:hover {
   transform: translateY(-6px);
-  box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--landing-shadow-lg);
   border-color: var(--primary);
 }
 
@@ -412,7 +417,7 @@ html {
   height: 2.5rem;
   color: var(--primary);
   margin-bottom: 0.75rem;
-  transition: all 0.3s ease;
+  transition: all var(--landing-transition-normal);
 }
 
 .lpt-minimal-card:hover .lpt-minimal-card-icon {
@@ -427,7 +432,7 @@ html {
 }
 
 .lpt-minimal-card-subtitle {
-  margin-top: 0.25rem;
+  margin-top: var(--landing-spacing-xs);
   font-size: 0.8rem;
   color: var(--text-secondary);
   text-align: center;
@@ -436,13 +441,13 @@ html {
 
 .lpt-minimal-card-badge {
   position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
+  top: var(--landing-spacing-sm);
+  right: var(--landing-spacing-sm);
   font-size: 0.65rem;
-  padding: 0.25rem 0.5rem;
+  padding: var(--landing-spacing-xs) var(--landing-spacing-sm);
   background: var(--primary);
   color: white;
-  border-radius: 9999px;
+  border-radius: var(--landing-border-radius-full);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -460,13 +465,13 @@ html {
 .lpt-minimal-card-disabled::after {
   content: attr(data-disabled-tooltip);
   position: absolute;
-  bottom: calc(100% + 0.5rem);
+  bottom: calc(100% + var(--landing-spacing-sm));
   left: 50%;
   transform: translate(-50%, 6px);
   background: rgba(15, 23, 42, 0.95);
   color: #f9fafb;
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.5rem;
+  padding: var(--landing-spacing-sm) 0.75rem;
+  border-radius: var(--landing-spacing-sm);
   font-size: 0.75rem;
   line-height: 1.2;
   width: max(12rem, 70%);
@@ -475,8 +480,8 @@ html {
   opacity: 0;
   pointer-events: none;
   transition:
-    opacity 0.2s ease,
-    transform 0.2s ease;
+    opacity var(--landing-transition-fast),
+    transform var(--landing-transition-fast);
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
   z-index: 20;
 }
@@ -491,7 +496,7 @@ html {
 .lpt-minimal-footer {
   position: relative;
   z-index: 1;
-  padding: 2rem 1.5rem;
+  padding: var(--landing-spacing-xl) var(--landing-spacing-lg);
   text-align: center;
   border-top: 1px solid var(--border);
   background: var(--background);
@@ -501,7 +506,7 @@ html {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 1.5rem;
+  gap: var(--landing-spacing-lg);
   margin-bottom: 0.75rem;
 }
 
@@ -509,7 +514,7 @@ html {
   color: var(--text-secondary);
   text-decoration: none;
   font-size: 0.875rem;
-  transition: all 0.3s ease;
+  transition: all var(--landing-transition-normal);
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
@@ -531,40 +536,40 @@ html {
 /* Responsive Adjustments */
 @media (max-width: 640px) {
   .lpt-minimal-content {
-    padding: 2rem 1rem;
+    padding: var(--landing-spacing-xl) var(--landing-spacing-md);
   }
 
   .lpt-minimal-logo {
-    margin-bottom: 2rem;
+    margin-bottom: var(--landing-spacing-xl);
   }
 
   .lpt-minimal-subtitle {
-    margin-bottom: 2rem;
+    margin-bottom: var(--landing-spacing-xl);
   }
 
   .lpt-minimal-search-box {
     flex-direction: column;
-    border-radius: 1.25rem;
+    border-radius: var(--landing-border-radius-lg);
     padding: 0.75rem;
   }
 
   .lpt-minimal-search-input {
     font-size: 1rem;
-    padding: 0.5rem 0.75rem;
+    padding: var(--landing-spacing-sm) 0.75rem;
   }
 
   .lpt-minimal-search-btn {
     width: 100%;
     justify-content: center;
-    padding: 0.875rem 1.5rem;
+    padding: 0.875rem var(--landing-spacing-lg);
   }
 
   .lpt-minimal-cards {
-    gap: 1rem;
+    gap: var(--landing-spacing-md);
   }
 
   .lpt-minimal-card {
-    padding: 1.25rem 0.75rem;
+    padding: var(--landing-border-radius-lg) 0.75rem;
   }
 
   .lpt-minimal-card-icon {
@@ -578,7 +583,7 @@ html {
   }
 
   .lpt-minimal-footer-links {
-    gap: 1rem;
+    gap: var(--landing-spacing-md);
   }
 }
 

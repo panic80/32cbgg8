@@ -30,12 +30,12 @@ describe('LandingPage', () => {
 
     expect(
       screen.getByRole('link', {
-        name: /Policy Assistant – Interactive, RAG powered AI chat/i,
+        name: /Policy Assistant - Interactive, RAG powered AI chat/i,
       }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('link', {
-        name: /OPI Contacts – Find FSC & FMC contact information/i,
+        name: /OPI Contacts - Find FSC & FMC contact information/i,
       }),
     ).toBeInTheDocument();
   });

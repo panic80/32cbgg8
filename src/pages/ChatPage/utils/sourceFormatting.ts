@@ -22,8 +22,8 @@ interface RawSource {
 /**
  * Convert raw source objects from API to Source type
  */
-export const toSources = (eventSources: RawSource[] = []): Source[] =>
-  eventSources.map((source, index) => ({
+export function toSources(eventSources: RawSource[] = []): Source[] {
+  return eventSources.map((source, index) => ({
     id: source.id || source.reference || source.title || source.url || `stream-source-${index}`,
     text: source.content || source.text || '',
     title: source.title,
@@ -34,23 +34,26 @@ export const toSources = (eventSources: RawSource[] = []): Source[] =>
     reference: source.source || source.reference || source.title || '',
     metadata: source.metadata,
   }));
+}
 
 /**
  * Check if a string looks like a file path or URL
  */
-const looksLikePath = (value: string): boolean =>
-  /[\\/]/.test(value) || /^[a-z]+:\/\//i.test(value);
+function looksLikePath(value: string): boolean {
+  return /[\\/]/.test(value) || /^[a-z]+:\/\//i.test(value);
+}
 
 /**
  * Convert string to title case
  */
-const toTitleCase = (value: string): string =>
-  value.replace(/\b([a-zA-Z])/g, (match) => match.toUpperCase());
+function toTitleCase(value: string): string {
+  return value.replace(/\b([a-zA-Z])/g, (match) => match.toUpperCase());
+}
 
 /**
  * Sanitize a filename to extract a readable label
  */
-const sanitizeFilename = (value: string): string => {
+function sanitizeFilename(value: string): string {
   const withoutPath = value.split(/[\\\/]/).pop() || value;
   const withoutExt = withoutPath.replace(/\.[a-z0-9]+$/i, '');
   const normalized = withoutExt
@@ -58,108 +61,60 @@ const sanitizeFilename = (value: string): string => {
     .replace(/\s+/g, ' ')
     .trim();
   return normalized ? toTitleCase(normalized) : withoutExt;
-};
+}
+
+interface CandidateConfig {
+  value: string | undefined;
+  sanitize: boolean;
+}
 
 /**
  * Derive a human-readable label for a source
+ * Searches through title/metadata candidates, falling back to sanitized filenames
  */
-export const deriveSourceLabel = (source: Source, index: number): string => {
-  const candidates: Array<string | undefined> = [
-    source.title,
-    source.metadata?.title,
-    source.metadata?.documentTitle,
-    source.metadata?.displayTitle,
-    source.metadata?.display_name,
-    source.metadata?.displayName,
-    source.metadata?.catalogTitle,
-    source.metadata?.catalog_title,
-    source.metadata?.canonicalTitle,
-    source.metadata?.canonical_title,
-    source.metadata?.document_name,
-    source.metadata?.documentName,
-    source.metadata?.sourceTitle,
-    source.metadata?.source_name,
-    source.metadata?.sourceName,
-    source.metadata?.name,
-    source.reference,
-    source.section,
+export function deriveSourceLabel(source: Source, index: number): string {
+  const candidates: CandidateConfig[] = [
+    // Primary candidates - use directly if not a path
+    { value: source.title, sanitize: false },
+    { value: source.metadata?.title, sanitize: false },
+    { value: source.metadata?.documentTitle, sanitize: false },
+    { value: source.metadata?.displayTitle, sanitize: false },
+    { value: source.metadata?.display_name, sanitize: false },
+    { value: source.metadata?.displayName, sanitize: false },
+    { value: source.metadata?.catalogTitle, sanitize: false },
+    { value: source.metadata?.catalog_title, sanitize: false },
+    { value: source.metadata?.canonicalTitle, sanitize: false },
+    { value: source.metadata?.canonical_title, sanitize: false },
+    { value: source.metadata?.document_name, sanitize: false },
+    { value: source.metadata?.documentName, sanitize: false },
+    { value: source.metadata?.sourceTitle, sanitize: false },
+    { value: source.metadata?.source_name, sanitize: false },
+    { value: source.metadata?.sourceName, sanitize: false },
+    { value: source.metadata?.name, sanitize: false },
+    { value: source.reference, sanitize: false },
+    { value: source.section, sanitize: false },
+    // Fallback candidates - require sanitization
+    { value: source.metadata?.original_filename, sanitize: true },
+    { value: source.metadata?.original_name, sanitize: true },
+    { value: source.metadata?.filename, sanitize: true },
+    { value: source.metadata?.file_name, sanitize: true },
+    { value: source.metadata?.source, sanitize: true },
+    { value: source.reference, sanitize: true },
+    { value: source.url, sanitize: true },
   ];
 
-  for (const candidate of candidates) {
-    if (typeof candidate !== 'string') continue;
-    const trimmed = candidate.trim();
+  for (const { value, sanitize } of candidates) {
+    if (typeof value !== 'string') continue;
+    const trimmed = value.trim();
     if (!trimmed) continue;
-    if (looksLikePath(trimmed)) continue;
-    return trimmed;
-  }
 
-  const fallbackCandidates: Array<string | undefined> = [
-    source.metadata?.original_filename,
-    source.metadata?.original_name,
-    source.metadata?.filename,
-    source.metadata?.file_name,
-    source.metadata?.source,
-    source.reference,
-    source.url,
-  ];
-
-  for (const candidate of fallbackCandidates) {
-    if (typeof candidate !== 'string') continue;
-    const trimmed = candidate.trim();
-    if (!trimmed) continue;
-    const cleaned = sanitizeFilename(trimmed);
-    if (cleaned) {
-      return cleaned;
+    if (sanitize) {
+      const cleaned = sanitizeFilename(trimmed);
+      if (cleaned) return cleaned;
+    } else {
+      if (!looksLikePath(trimmed)) return trimmed;
     }
   }
 
   return `Source ${index + 1}`;
-};
-
-/**
- * Format sources as markdown list
- */
-export const formatSourcesMarkdown = (sourceList: Source[]): string => {
-  if (!sourceList || sourceList.length === 0) {
-    return '';
-  }
-
-  return sourceList
-    .map((source, index) => {
-      const label = deriveSourceLabel(source, index);
-      const metaParts: string[] = [];
-      if (source.section) {
-        metaParts.push(source.section);
-      }
-      if (source.page) {
-        metaParts.push(`p. ${source.page}`);
-      }
-      const metadataSuffix = metaParts.length > 0 ? ` — ${metaParts.join(' · ')}` : '';
-      return `${index + 1}. ${label}${metadataSuffix}`;
-    })
-    .join('\n');
-};
-
-/**
- * Format sources as inline reference line
- */
-export const formatInlineReferenceLine = (sourceList: Source[]): string => {
-  if (!sourceList || sourceList.length === 0) {
-    return '';
-  }
-
-  const entries = sourceList.map((source, index) => {
-    const label = deriveSourceLabel(source, index);
-    const metaParts: string[] = [];
-    if (source.section) {
-      metaParts.push(source.section);
-    }
-    if (source.page) {
-      metaParts.push(`p. ${source.page}`);
-    }
-    const metadataSuffix = metaParts.length > 0 ? ` — ${metaParts.join(' · ')}` : '';
-    return `[${index + 1}] ${label}${metadataSuffix}`;
-  });
-
-  return `_References for further detail: ${entries.join('; ')}_`;
-};
+}
