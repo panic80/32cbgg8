@@ -1,9 +1,15 @@
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Skeleton } from '@/components/ui/skeleton';
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardHeader, 
+  CardTitle, 
+  Button, 
+  Input, 
+  Label, 
+  Skeleton 
+} from '@/components/ui';
 import { Loader2, RefreshCw, TrendingUp } from 'lucide-react';
 import type { ChatLogEntry, LogFilters } from '../types';
 import type { VisitSummary } from '@/api/analytics';

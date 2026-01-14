@@ -1,9 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { AnimatedButton } from '@/components/ui/animated-button';
-import { Badge } from '@/components/ui/badge';
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardHeader, 
+  CardTitle, 
+  Input, 
+  Label, 
+  AnimatedButton, 
+  Badge 
+} from '@/components/ui';
 import {
   Loader2,
   CheckCircle,

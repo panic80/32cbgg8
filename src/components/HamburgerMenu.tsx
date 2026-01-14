@@ -14,10 +14,16 @@ import {
   FileQuestion,
   ChevronRight,
 } from 'lucide-react';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Separator } from '@/components/ui/separator';
+import { 
+  Sheet, 
+  SheetContent, 
+  SheetHeader, 
+  SheetTitle, 
+  SheetTrigger, 
+  Button, 
+  Switch, 
+  Separator 
+} from '@/components/ui';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
 
