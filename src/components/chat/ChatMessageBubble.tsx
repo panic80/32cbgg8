@@ -11,7 +11,7 @@ interface ChatMessageBubbleProps {
   onCopy: (content: string) => void;
 }
 
-export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
+const ChatMessageBubbleComponent: React.FC<ChatMessageBubbleProps> = ({
   message,
   assistantId,
   showAvatar,
@@ -75,3 +75,5 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
     </div>
   );
 };
+
+export const ChatMessageBubble = React.memo(ChatMessageBubbleComponent);

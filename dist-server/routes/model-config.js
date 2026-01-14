@@ -10,9 +10,26 @@ const getConfigPath = () => {
     if (customPath)
         return customPath;
     // Default to data directory in project
-    const dataDir = path.join(process.cwd(), 'server', 'data');
+    // In production (Docker), we use 'dist-server/data'
+    // In development, we use 'server/data'
+    let dataDir = path.join(process.cwd(), 'server', 'data');
+    const distDataDir = path.join(process.cwd(), 'dist-server', 'data');
+    if (process.env.NODE_ENV === 'production' && existsSync(path.join(process.cwd(), 'dist-server'))) {
+        dataDir = distDataDir;
+    }
     if (!existsSync(dataDir)) {
-        mkdirSync(dataDir, { recursive: true });
+        try {
+            mkdirSync(dataDir, { recursive: true });
+        }
+        catch (error) {
+            // If we can't create it (e.g. permission error in Docker root), fall back to dist-server if it exists
+            if (dataDir !== distDataDir && existsSync(distDataDir)) {
+                dataDir = distDataDir;
+            }
+            else {
+                throw error;
+            }
+        }
     }
     return path.join(dataDir, 'model-config.json');
 };

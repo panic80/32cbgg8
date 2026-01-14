@@ -573,8 +573,11 @@ class OptimizedVectorStoreWriter:
             # Convert to numpy array for efficient storage
             embeddings_array = np.array(embeddings)
             
-            # Prepare documents with pre-computed embeddings
-            langchain_docs = []
+            # Prepare data for add_texts
+            all_texts = []
+            all_metadatas = []
+            all_doc_ids = []
+            
             for i, doc in enumerate(documents):
                 metadata = doc.metadata.model_dump() if hasattr(doc.metadata, 'model_dump') else doc.metadata
                 metadata["id"] = doc.id
@@ -588,42 +591,45 @@ class OptimizedVectorStoreWriter:
                     elif isinstance(value, list) and key == "tags":
                         filtered_metadata[key] = ", ".join(str(v) for v in value)
                 
-                langchain_doc = LangchainDocument(
-                    page_content=doc.content,
-                    metadata=filtered_metadata
-                )
-                langchain_docs.append(langchain_doc)
+                all_texts.append(doc.content)
+                all_metadatas.append(filtered_metadata)
+                all_doc_ids.append(doc.id)
             
             # Add to vector store with pre-computed embeddings
-            logger.info(f"Adding {len(langchain_docs)} documents to vector store...")
+            logger.info(f"Adding {len(all_texts)} documents to vector store...")
             
             # Update progress for storing phase
             if self.progress_tracker:
                 await self.progress_tracker.start_step("storing")
             
-            # Most vector stores don't support pre-computed embeddings directly,
-            # so we'll still batch the addition for efficiency
             all_ids = []
             loop = asyncio.get_event_loop()
-            total_docs = len(langchain_docs)
+            total_docs = len(all_texts)
             docs_stored = 0
             
-            for i in range(0, len(langchain_docs), batch_size):
-                batch = langchain_docs[i:i + batch_size]
-                # Run synchronous add_documents in executor
+            for i in range(0, len(all_texts), batch_size):
+                batch_texts = all_texts[i:i + batch_size]
+                batch_metadatas = all_metadatas[i:i + batch_size]
+                batch_embeddings = embeddings_array[i:i + batch_size].tolist()
+                batch_ids = all_doc_ids[i:i + batch_size]
+                
+                # Run synchronous add_texts in executor
                 ids = await loop.run_in_executor(
                     None,
-                    self.vector_store.add_documents,
-                    batch
+                    lambda: self.vector_store.add_texts(
+                        texts=batch_texts,
+                        metadatas=batch_metadatas,
+                        embeddings=batch_embeddings,
+                        ids=batch_ids
+                    )
                 )
                 all_ids.extend(ids)
-                docs_stored += len(batch)
-                logger.info(f"Added batch {i//batch_size + 1}: {len(batch)} documents")
+                docs_stored += len(batch_texts)
+                logger.info(f"Added batch {i//batch_size + 1}: {len(batch_texts)} documents")
                 
                 # Update checkpoint with processed document IDs
                 if self.checkpoint_callback:
-                    for j, doc in enumerate(batch):
-                        doc_id = ids[j] if j < len(ids) else None
+                    for j, doc_id in enumerate(ids):
                         if doc_id:
                             await self.checkpoint_callback(doc_id)
                 

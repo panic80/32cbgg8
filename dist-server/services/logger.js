@@ -137,6 +137,8 @@ class ChatLogger {
     db;
     insertChatStmt;
     insertEventStmt;
+    buffer = [];
+    flushInterval;
     constructor({ level, service } = {}) {
         this.logLevel = normalizeLevel(level ?? process.env.LOG_LEVEL);
         this.baseContext = {
@@ -152,7 +154,10 @@ class ChatLogger {
         this.db.pragma('foreign_keys = ON');
         this.initialiseSchema();
         this.prepareStatements();
+        // Flush logs every 2 seconds
+        this.flushInterval = setInterval(() => this.flush(), 2000);
         process.on('exit', () => {
+            this.flush();
             try {
                 this.db.close();
             }
@@ -176,6 +181,33 @@ class ChatLogger {
                 }
             }
         });
+    }
+    flush() {
+        if (this.buffer.length === 0)
+            return;
+        const currentBatch = [...this.buffer];
+        this.buffer = [];
+        try {
+            this.db.transaction(() => {
+                for (const item of currentBatch) {
+                    try {
+                        if (item.type === 'chat') {
+                            this.insertChatStmt.run(item.data);
+                        }
+                        else {
+                            this.insertEventStmt.run(item.data);
+                        }
+                    }
+                    catch (error) {
+                        // We use console.error directly here to avoid infinite recursion if we tried to log this error to the DB
+                        console.error('Failed to insert log item in batch', error);
+                    }
+                }
+            })();
+        }
+        catch (error) {
+            console.error('Failed to commit log batch transaction', error);
+        }
     }
     initialiseSchema() {
         this.db.exec(`
@@ -324,15 +356,7 @@ class ChatLogger {
             message: typeof message === 'string' ? message : null,
             payload: toMetadataString(metadata),
         };
-        try {
-            this.insertEventStmt.run(record);
-        }
-        catch (error) {
-            this.emit('error', 'Failed to persist event log entry', {
-                error: serializeError(error),
-                record,
-            });
-        }
+        this.buffer.push({ type: 'event', data: record });
     }
     logChat(_req, chatData) {
         const cd = chatData;
@@ -354,15 +378,7 @@ class ChatLogger {
             short_answer_mode: toBooleanFlag(cd.shortAnswerMode),
             metadata: toMetadataString(cd.metadata),
         };
-        try {
-            this.insertChatStmt.run(record);
-        }
-        catch (error) {
-            this.emit('error', 'Failed to persist chat log entry', {
-                error: serializeError(error),
-                record,
-            });
-        }
+        this.buffer.push({ type: 'chat', data: record });
     }
     log(data) {
         if (!data || typeof data !== 'object') {

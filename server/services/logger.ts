@@ -228,6 +228,8 @@ class ChatLogger implements Logger {
   private db: Database.Database;
   private insertChatStmt!: Database.Statement;
   private insertEventStmt!: Database.Statement;
+  private buffer: Array<{ type: 'chat'; data: any } | { type: 'event'; data: any }> = [];
+  private flushInterval: NodeJS.Timeout;
 
   constructor({ level, service }: ChatLoggerConfig = {}) {
     this.logLevel = normalizeLevel(level ?? process.env.LOG_LEVEL);
@@ -249,7 +251,11 @@ class ChatLogger implements Logger {
     this.initialiseSchema();
     this.prepareStatements();
 
+    // Flush logs every 2 seconds
+    this.flushInterval = setInterval(() => this.flush(), 2000);
+
     process.on('exit', () => {
+      this.flush();
       try {
         this.db.close();
       } catch (error) {
@@ -273,6 +279,32 @@ class ChatLogger implements Logger {
         }
       }
     });
+  }
+
+  flush() {
+    if (this.buffer.length === 0) return;
+
+    const currentBatch = [...this.buffer];
+    this.buffer = [];
+
+    try {
+      this.db.transaction(() => {
+        for (const item of currentBatch) {
+          try {
+            if (item.type === 'chat') {
+              this.insertChatStmt.run(item.data);
+            } else {
+              this.insertEventStmt.run(item.data);
+            }
+          } catch (error) {
+            // We use console.error directly here to avoid infinite recursion if we tried to log this error to the DB
+            console.error('Failed to insert log item in batch', error);
+          }
+        }
+      })();
+    } catch (error) {
+      console.error('Failed to commit log batch transaction', error);
+    }
   }
 
   initialiseSchema() {
@@ -451,14 +483,7 @@ class ChatLogger implements Logger {
       payload: toMetadataString(metadata),
     };
 
-    try {
-      this.insertEventStmt.run(record);
-    } catch (error) {
-      this.emit('error', 'Failed to persist event log entry', {
-        error: serializeError(error),
-        record,
-      });
-    }
+    this.buffer.push({ type: 'event', data: record });
   }
 
   logChat(_req: unknown, chatData: unknown) {
@@ -484,14 +509,7 @@ class ChatLogger implements Logger {
       metadata: toMetadataString(cd.metadata),
     };
 
-    try {
-      this.insertChatStmt.run(record);
-    } catch (error) {
-      this.emit('error', 'Failed to persist chat log entry', {
-        error: serializeError(error),
-        record,
-      });
-    }
+    this.buffer.push({ type: 'chat', data: record });
   }
 
   log(data: unknown) {

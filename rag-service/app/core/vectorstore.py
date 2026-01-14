@@ -126,12 +126,16 @@ class VectorStoreManager:
     async def add_documents(
         self,
         documents: List[Document],
-        batch_size: Optional[int] = None
+        batch_size: Optional[int] = None,
+        embeddings: Optional[List[List[float]]] = None
     ) -> List[str]:
         """Add documents to vector store."""
         try:
-            # Convert to LangChain documents
-            langchain_docs = []
+            # Convert to LangChain documents and prepare lists for add_texts
+            texts = []
+            metadatas = []
+            ids = []
+            
             for doc in documents:
                 metadata = doc.metadata.model_dump() if hasattr(doc.metadata, 'model_dump') else doc.metadata
                 metadata["id"] = doc.id
@@ -149,28 +153,53 @@ class VectorStoreManager:
                         # Skip complex types or convert to string
                         logger.debug(f"Skipping complex metadata field: {key}")
                 
-                langchain_doc = LangchainDocument(
-                    page_content=doc.content,
-                    metadata=filtered_metadata
-                )
-                langchain_docs.append(langchain_doc)
+                texts.append(doc.content)
+                metadatas.append(filtered_metadata)
+                ids.append(doc.id) # Use the document ID if available? The original code didn't set IDs explicitly in add_documents but LangChain usually generates them or uses what's in doc.id if it's a Document object? 
+                # Wait, original code: langchain_doc = LangchainDocument(...); batch.append(langchain_doc); vector_store.add_documents(batch)
+                # Chroma add_documents uses UUIDs if not provided.
+                # Here we want to be consistent. Let's use doc.id if it exists, or let LangChain generate them if not. 
+                # But to use add_texts with embeddings we need parallel lists.
                 
             # Add documents in batches
             all_ids = []
             actual_batch_size = batch_size or settings.vector_store_batch_size
-            for i in range(0, len(langchain_docs), actual_batch_size):
-                batch = langchain_docs[i:i + actual_batch_size]
+            
+            for i in range(0, len(texts), actual_batch_size):
+                batch_texts = texts[i:i + actual_batch_size]
+                batch_metadatas = metadatas[i:i + actual_batch_size]
+                # batch_ids = ids[i:i + actual_batch_size] # Let's omit IDs for now unless we are sure, or just rely on add_texts returning IDs.
+                
+                batch_embeddings = None
+                if embeddings:
+                    batch_embeddings = embeddings[i:i + actual_batch_size]
                 
                 # Run in thread pool to avoid blocking
                 loop = asyncio.get_event_loop()
-                ids = await loop.run_in_executor(
-                    self.executor,
-                    self.vector_store.add_documents,
-                    batch
-                )
-                all_ids.extend(ids)
                 
-                logger.info(f"Added batch {i//batch_size + 1}: {len(batch)} documents")
+                if batch_embeddings:
+                     batch_ids = await loop.run_in_executor(
+                        self.executor,
+                        lambda: self.vector_store.add_texts(
+                            texts=batch_texts,
+                            metadatas=batch_metadatas,
+                            embeddings=batch_embeddings
+                        )
+                    )
+                else:
+                    # Fallback to creating Documents and using add_documents if no embeddings (or just use add_texts without embeddings)
+                    # Let's use add_texts without embeddings for consistency
+                     batch_ids = await loop.run_in_executor(
+                        self.executor,
+                        lambda: self.vector_store.add_texts(
+                            texts=batch_texts,
+                            metadatas=batch_metadatas
+                        )
+                    )
+                    
+                all_ids.extend(batch_ids)
+                
+                logger.info(f"Added batch {i//actual_batch_size + 1}: {len(batch_texts)} documents")
                 
             return all_ids
             

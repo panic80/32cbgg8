@@ -10,6 +10,7 @@ from typing import List, Optional, Dict, Any, Union
 import logging
 from functools import lru_cache
 
+from cachetools import LRUCache
 from langchain_core.documents import Document
 from langchain_core.language_models import BaseLLM
 from langchain_core.retrievers import BaseRetriever
@@ -127,7 +128,7 @@ class CrossEncoderReranker(BaseComponent):
         
         self.model = CrossEncoder(model_name, device=device, max_length=max_length)
         self.model_name = model_name
-        self._cache = {}
+        self._cache = LRUCache(maxsize=10000)
     
     def _get_cache_key(self, query: str, doc: Document) -> str:
         """Generate cache key for query-document pair."""
