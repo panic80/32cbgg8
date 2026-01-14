@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ChevronDown, Send } from 'lucide-react';
 import LogoImage from '@/components/LogoImage';
 
+import '@/styles/landing.css';
 import '@/styles/sticky-footer.css';
 import { SITE_CONFIG, getCopyrightText, getLastUpdatedText } from '@/constants/siteConfig';
 import { useTheme } from '@/context/ThemeContext';
