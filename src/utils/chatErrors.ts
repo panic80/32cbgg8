@@ -55,9 +55,9 @@ const ERROR_MESSAGES: Record<ChatErrorType, ChatErrorMessages> = {
 export class ChatError extends Error {
   type: ChatErrorType;
   timestamp: number;
-  details?: any;
+  details?: unknown;
 
-  constructor(type: ChatErrorType, details?: any) {
+  constructor(type: ChatErrorType, details?: unknown) {
     const errorInfo = ERROR_MESSAGES[type];
     super(errorInfo.message);
     this.name = 'ChatError';
@@ -70,22 +70,24 @@ export class ChatError extends Error {
     return ERROR_MESSAGES[this.type];
   }
 
-  static isApiKeyError(error: any): boolean {
-    return (
-      error?.message?.includes('API key not valid') ||
-      error?.message?.includes('API key is missing')
+  static isApiKeyError(error: unknown): boolean {
+    const err = error as Error | undefined;
+    return !!(
+      err?.message?.includes('API key not valid') || err?.message?.includes('API key is missing')
     );
   }
 
-  static isNetworkError(error: any): boolean {
-    return (
-      error?.message?.includes('network') ||
-      error?.name === 'NetworkError' ||
-      error?.name === 'TypeError'
+  static isNetworkError(error: unknown): boolean {
+    const err = error as Error | undefined;
+    return !!(
+      err?.message?.includes('network') ||
+      err?.name === 'NetworkError' ||
+      err?.name === 'TypeError'
     );
   }
 
-  static isRateLimitError(error: any): boolean {
-    return error?.message?.includes('rate limit') || error?.message?.includes('too many requests');
+  static isRateLimitError(error: unknown): boolean {
+    const err = error as Error | undefined;
+    return !!(err?.message?.includes('rate limit') || err?.message?.includes('too many requests'));
   }
 }

@@ -9,17 +9,17 @@ import {
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 interface RagServiceConfig {
-  httpClient?: AxiosInstance | any;
+  httpClient?: AxiosInstance;
   getRagAuthHeaders?: () => Record<string, string>;
-  config?: Record<string, any>;
-  logger?: any;
+  config?: Record<string, unknown>;
+  logger?: import('./logger.js').Logger;
 }
 
 interface IngestOptions {
   url: string;
   content?: string;
   type?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   forceRefresh?: boolean;
 }
 
@@ -35,45 +35,50 @@ export const createRagService = ({
   const retryDelayMs = config.ingestRetryDelay ?? config.retryDelay ?? DEFAULT_RETRY_DELAY_MS;
 
   const scopedLogger = logger?.child ? logger.child({ scope: 'service:rag' }) : logger;
-  const emit = (level: string, message: string, meta?: any) => scopedLogger?.[level]?.(message, meta);
-
-  const normalizeHttpClient = (): AxiosInstance => {
-    if (httpClient?.request || (httpClient?.post && httpClient?.get)) {
-      return httpClient as AxiosInstance;
-    }
-    return axios;
-  };
-
-  const client = normalizeHttpClient();
-
-  const prepareHeaders = (): Record<string, string> => ({
-    'Content-Type': 'application/json',
-    ...(typeof getRagAuthHeaders === 'function' ? getRagAuthHeaders() : {}),
-  });
-
-  const postWithRetry = async (endpoint: string, payload: any): Promise<AxiosResponse> => {
-    let lastError: any;
-    for (let attempt = 1; attempt <= Math.max(1, maxRetries); attempt += 1) {
-      try {
-        const response = await client.post(endpoint, payload, {
-          timeout: ingestTimeout,
-          headers: prepareHeaders(),
-        });
-        return response;
-      } catch (error: any) {
-        lastError = error;
-        const status = error?.response?.status;
+    const emit = (level: string, message: string, meta?: unknown) => {
+      const loggerFunc = (scopedLogger as unknown as Record<string, unknown>)[level];
+      if (typeof loggerFunc === 'function') {
+          (loggerFunc as Function)(message, meta);
+      }
+    };
+  
+    const normalizeHttpClient = (): AxiosInstance => {
+      if (httpClient && (typeof httpClient.post === 'function' && typeof httpClient.get === 'function')) {
+        return httpClient;
+      }
+      return axios;
+    };
+  
+    const client = normalizeHttpClient();
+  
+    const prepareHeaders = (): Record<string, string> => ({
+      'Content-Type': 'application/json',
+      ...(typeof getRagAuthHeaders === 'function' ? getRagAuthHeaders() : {}),
+    });
+  
+    const postWithRetry = async (endpoint: string, payload: unknown): Promise<AxiosResponse> => {
+      let lastError: Error | undefined;
+      for (let attempt = 1; attempt <= Math.max(1, maxRetries as number); attempt += 1) {
+        try {
+          const response = await client.post(endpoint, payload, {
+            timeout: (ingestTimeout as number) || DEFAULT_INGEST_TIMEOUT_MS,
+            headers: prepareHeaders(),
+          });
+          return response;
+        } catch (error: unknown) {        const err = error as Error & { response?: { status: number } };
+        lastError = err;
+        const status = err?.response?.status;
         emit('warn', 'rag_service.postFailed', {
           endpoint,
           attempt,
           status,
-          error: error?.message,
+          error: err?.message,
         });
         if (status && status < 500) {
           break;
         }
-        if (attempt < Math.max(1, maxRetries)) {
-          await wait(retryDelayMs * attempt);
+        if (attempt < Math.max(1, maxRetries as number)) {
+          await wait((retryDelayMs as number) * attempt);
         }
       }
     }
@@ -95,16 +100,16 @@ export const createRagService = ({
   };
 
   const getProgressStream = async (url: string) => {
-      return client.get(`${ragServiceUrl}/api/v1/ingest/progress`, {
-        params: { url },
-        responseType: 'stream',
-        headers: {
-          Accept: 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          ...prepareHeaders(),
-        },
-        timeout: ingestTimeout,
-      });
+    return client.get(`${ragServiceUrl}/api/v1/ingest/progress`, {
+      params: { url },
+      responseType: 'stream',
+      headers: {
+        Accept: 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        ...prepareHeaders(),
+      },
+      timeout: (ingestTimeout as number) || DEFAULT_INGEST_TIMEOUT_MS,
+    });
   };
 
   return {

@@ -4,28 +4,31 @@ import type { Request, Response } from 'express';
 interface PipeOptions {
   req: Request;
   res: Response;
-  upstream: any; // Can be a stream or an object with a .data stream
+  upstream: Readable | { data: Readable };
   corsHeaders?: Record<string, string>;
-  logger?: any;
-  onMetadata?: (meta: any) => void;
+  logger?: import('./logger.js').Logger | ((level: string, data: unknown) => void);
+  onMetadata?: (meta: unknown) => void;
   onComplete?: () => void;
   heartbeatIntervalMs?: number;
   idleTimeoutMs?: number;
   traceId?: string;
 }
 
-const resolveLogger = (logger: any) => {
+const resolveLogger = (logger: PipeOptions['logger']) => {
   if (!logger) return null;
 
   if (typeof logger === 'function') {
     return {
-      info: (message: string, meta?: any) => logger('info', { message, ...(meta || {}) }),
-      warn: (message: string, meta?: any) => logger('warn', { message, ...(meta || {}) }),
-      error: (message: string, meta?: any) => logger('error', { message, ...(meta || {}) }),
+      info: (message: string, meta?: unknown) =>
+        logger('info', { message, ...((meta as object) || {}) }),
+      warn: (message: string, meta?: unknown) =>
+        logger('warn', { message, ...((meta as object) || {}) }),
+      error: (message: string, meta?: unknown) =>
+        logger('error', { message, ...((meta as object) || {}) }),
     };
   }
 
-  return logger;
+  return logger as import('./logger.js').Logger;
 };
 
 export const pipeStreamingResponse = ({
@@ -41,14 +44,20 @@ export const pipeStreamingResponse = ({
   traceId,
 }: PipeOptions) => {
   const resolvedLogger = resolveLogger(logger);
-  const emit = (level: string, message: string, meta?: any) => {
-    if (resolvedLogger && typeof resolvedLogger[level] === 'function') {
-      resolvedLogger[level](message, { traceId, ...(meta || {}) });
+  const emit = (level: string, message: string, meta?: unknown) => {
+    if (
+      resolvedLogger &&
+      typeof (resolvedLogger as Record<string, unknown>)[level] === 'function'
+    ) {
+      ((resolvedLogger as Record<string, unknown>)[level] as Function)(message, {
+        traceId,
+        ...((meta as object) || {}),
+      });
     }
   };
 
   const passThrough = new PassThrough();
-  const upstreamStream: Readable = upstream?.data ?? upstream;
+  const upstreamStream: Readable = 'data' in upstream ? upstream.data : upstream;
 
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
@@ -58,11 +67,9 @@ export const pipeStreamingResponse = ({
   });
 
   passThrough.pipe(res);
-  emit('info', 'stream.start',
-    {
-      corsApplied: Object.keys(corsHeaders).length > 0,
-    }
-  );
+  emit('info', 'stream.start', {
+    corsApplied: Object.keys(corsHeaders).length > 0,
+  });
 
   let buffer = '';
   let heartbeatTimer: NodeJS.Timeout | null = null;
@@ -97,7 +104,9 @@ export const pipeStreamingResponse = ({
     idleTimer = setTimeout(() => {
       emit('error', 'stream.idleTimeout', { idleTimeoutMs });
       // Use explicit type cast or optional chaining for destroy
-      (upstreamStream as any)?.destroy?.(new Error('Stream exceeded idle timeout'));
+      if ('destroy' in upstreamStream && typeof upstreamStream.destroy === 'function') {
+        upstreamStream.destroy(new Error('Stream exceeded idle timeout'));
+      }
       passThrough.end();
       if (typeof res.end === 'function' && !res.writableEnded) {
         res.end();
@@ -155,7 +164,9 @@ export const pipeStreamingResponse = ({
     clearTimers();
     emit('warn', 'stream.clientDisconnected');
     // Use explicit type cast or optional chaining for destroy
-    (upstreamStream as any)?.destroy?.();
+    if ('destroy' in upstreamStream && typeof upstreamStream.destroy === 'function') {
+      upstreamStream.destroy();
+    }
     passThrough.end();
   });
 

@@ -76,11 +76,12 @@ const createRealtimeRoutes = ({ rateLimiter, chatLogger }) => {
             return res.json(sessionData);
         }
         catch (error) {
+            const err = error;
             if (chatLogger) {
                 chatLogger.log({
                     type: 'realtime-session-error',
-                    message: error.message,
-                    stack: error.stack,
+                    message: err.message,
+                    stack: err.stack,
                     timestamp: new Date().toISOString(),
                 });
             }
@@ -89,7 +90,7 @@ const createRealtimeRoutes = ({ rateLimiter, chatLogger }) => {
                 error: 'RealtimeSessionFailed',
                 message: 'Unable to create realtime session.',
                 logger,
-                cause: error,
+                cause: err,
             });
         }
     });
@@ -142,11 +143,12 @@ const createRealtimeRoutes = ({ rateLimiter, chatLogger }) => {
             return res.send(answer);
         }
         catch (error) {
+            const err = error;
             if (chatLogger) {
                 chatLogger.log({
                     type: 'realtime-answer-error',
-                    message: error.message,
-                    stack: error.stack,
+                    message: err.message,
+                    stack: err.stack,
                     timestamp: new Date().toISOString(),
                 });
             }
@@ -155,7 +157,7 @@ const createRealtimeRoutes = ({ rateLimiter, chatLogger }) => {
                 error: 'RealtimeAnswerFailed',
                 message: 'Unable to exchange realtime SDP.',
                 logger,
-                cause: error,
+                cause: err,
             });
         }
     });

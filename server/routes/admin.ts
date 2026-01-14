@@ -9,17 +9,21 @@ const toStringOrUndefined = (value: unknown): string | undefined =>
 const logger = getLogger('routes:admin');
 
 interface AdminRoutesConfig {
-  rateLimiter: any;
-  performanceHandler: any;
-  chatLogger: any;
+  rateLimiter: import('express').RequestHandler;
+  performanceHandler: import('express').RequestHandler;
+  chatLogger: import('../services/logger.js').Logger;
 }
 
 const createAdminRoutes = ({ rateLimiter, performanceHandler, chatLogger }: AdminRoutesConfig) => {
   const router = Router();
 
   logger.info('Registering /api/admin/performance route');
-  router.get('/performance', rateLimiter, (req: Request, res: Response, next: NextFunction) => performanceHandler(req, res, next));
-  router.all('/performance', (_req: Request, res: Response) => res.status(405).json({ error: 'Method Not Allowed' }));
+  router.get('/performance', rateLimiter, (req: Request, res: Response, next: NextFunction) =>
+    performanceHandler(req, res, next),
+  );
+  router.all('/performance', (_req: Request, res: Response) =>
+    res.status(405).json({ error: 'Method Not Allowed' }),
+  );
 
   // OpenRouter models endpoint - fetches available models from OpenRouter API
   logger.info('Registering /api/admin/openrouter/models route');
@@ -34,17 +38,28 @@ const createAdminRoutes = ({ rateLimiter, performanceHandler, chatLogger }: Admi
         throw new Error(`OpenRouter API error: ${response.status}`);
       }
 
-      const data = await response.json() as { data: any[] };
+      interface OpenRouterModel {
+        id: string;
+        name?: string;
+        description?: string;
+        context_length: number;
+        hugging_face_id?: string;
+        pricing?: {
+          prompt: string;
+          completion: string;
+        };
+      }
+      const data = (await response.json()) as { data: OpenRouterModel[] };
 
       // Filter and map models for our use case
       const models = data.data
-        .filter((m: any) => m.id && !m.id.includes('/vision')) // Exclude vision-only models
-        .map((m: any) => ({
+        .filter((m) => m.id && !m.id.includes('/vision')) // Exclude vision-only models
+        .map((m) => ({
           id: m.id,
           name: m.name || m.id,
           description: m.description || '',
           contextLength: m.context_length,
-          isOpenSource: m.hugging_face_id && m.hugging_face_id !== '',
+          isOpenSource: !!(m.hugging_face_id && m.hugging_face_id !== ''),
           pricing: m.pricing
             ? {
                 prompt: m.pricing.prompt,
@@ -52,12 +67,12 @@ const createAdminRoutes = ({ rateLimiter, performanceHandler, chatLogger }: Admi
               }
             : null,
         }))
-        .sort((a: any, b: any) => a.name.localeCompare(b.name));
+        .sort((a, b) => a.name.localeCompare(b.name));
 
       return res.json({
         models,
         total: models.length,
-        openSourceCount: models.filter((m: any) => m.isOpenSource).length,
+        openSourceCount: models.filter((m) => m.isOpenSource).length,
         isConfigured: !!process.env.OPENROUTER_API_KEY,
       });
     } catch (error) {

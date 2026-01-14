@@ -42,12 +42,13 @@ export const useDistanceMatrix = (tripData: TripData) => {
         );
 
         setDistanceData(data);
-      } catch (error) {
+      } catch (error: unknown) {
         console.error('Error fetching distance:', error);
         if (error instanceof ApiError) {
+          const errorData = error.data as Record<string, unknown> | undefined;
           const message =
-            typeof (error.data as any)?.error === 'string'
-              ? (error.data as any).error
+            typeof errorData?.error === 'string'
+              ? errorData.error
               : error.statusText || error.message;
           setDistanceError(message || 'Failed to calculate distance');
         } else if (error instanceof Error) {
@@ -84,6 +85,7 @@ export const useDistanceMatrix = (tripData: TripData) => {
       }
     };
   }, [
+    tripData,
     tripData.departureLocation,
     tripData.arrivalLocation,
     tripData.transportMethod,

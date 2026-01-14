@@ -20,21 +20,25 @@ describe('tripPlannerService', () => {
     });
 
     it('handles non-string input gracefully', () => {
-      expect(inferJurisdiction(null as any)).toBeUndefined();
+      expect(inferJurisdiction(null as unknown as string)).toBeUndefined();
     });
   });
 
   describe('buildTripPlannerHints', () => {
     it('builds hints for a specific jurisdiction', () => {
       const hints = buildTripPlannerHints('Alberta, Canada');
-      expect(hints).toContain('Alberta private vehicle kilometric rate cents per kilometre Appendix B');
+      expect(hints).toContain(
+        'Alberta private vehicle kilometric rate cents per kilometre Appendix B',
+      );
       expect(hints).toContain('meal allowance rates Alberta');
       expect(hints).toContain('incidental allowance daily rate');
     });
 
     it('defaults to Ontario if no jurisdiction is provided', () => {
       const hints = buildTripPlannerHints(undefined);
-      expect(hints).toContain('Ontario private vehicle kilometric rate cents per kilometre Appendix B');
+      expect(hints).toContain(
+        'Ontario private vehicle kilometric rate cents per kilometre Appendix B',
+      );
       expect(hints).toContain('meal allowance rates Ontario');
     });
   });

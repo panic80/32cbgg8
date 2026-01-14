@@ -60,7 +60,7 @@ interface GatewayConfig {
     password?: string;
     apiToken?: string;
   };
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export const createGatewayConfig = (overrides: Partial<GatewayConfig> = {}): GatewayConfig => {

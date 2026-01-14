@@ -24,25 +24,28 @@ const compareBy = (sortBy: SourceSort) => {
   }
 };
 
-const normaliseSources = (list: any[]): DatabaseSource[] =>
+const normaliseSources = (list: unknown[]): DatabaseSource[] =>
   list
-    .filter(Boolean)
+    .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object') // item is still somewhat any-like for dynamic access
     .map((item) => ({
       id:
-        item.id ??
-        item.source_id ??
-        `${normaliseString(item.label ?? item.title ?? item.name ?? '')}-${normaliseString(
-          item.canonicalUrl ?? item.canonical_url ?? item.url ?? '',
+        (item.id as string) ??
+        (item.source_id as string) ??
+        `${normaliseString(((item.label ?? item.title ?? item.name) as string) ?? '')}-${normaliseString(
+          ((item.canonicalUrl ?? item.canonical_url ?? item.url) as string) ?? '',
         )}`,
-      label: item.label ?? item.title ?? item.name ?? 'Untitled Source',
-      canonicalUrl: item.canonicalUrl ?? item.canonical_url ?? item.url ?? null,
-      chunkCount: typeof item.chunkCount === 'number' ? item.chunkCount : (item.chunk_count ?? 0),
+      label: ((item.label ?? item.title ?? item.name) as string) ?? 'Untitled Source',
+      canonicalUrl: ((item.canonicalUrl ?? item.canonical_url ?? item.url) as string) ?? null,
+      chunkCount:
+        typeof item.chunkCount === 'number' ? item.chunkCount : ((item.chunk_count as number) ?? 0),
       documentCount:
-        typeof item.documentCount === 'number' ? item.documentCount : (item.document_count ?? 0),
-      lastIngestedAt: item.lastIngestedAt ?? item.last_ingested_at ?? null,
+        typeof item.documentCount === 'number'
+          ? item.documentCount
+          : ((item.document_count as number) ?? 0),
+      lastIngestedAt: ((item.lastIngestedAt ?? item.last_ingested_at) as string) ?? null,
       searchText:
-        normaliseString(item.label ?? item.title ?? item.name ?? '') +
-        normaliseString(item.canonicalUrl ?? item.canonical_url ?? item.url ?? ''),
+        normaliseString(((item.label ?? item.title ?? item.name) as string) ?? '') +
+        normaliseString(((item.canonicalUrl ?? item.canonical_url ?? item.url) as string) ?? ''),
     }))
     .filter((source) => Boolean(source.id));
 
@@ -55,22 +58,26 @@ const fetchDatabaseStats = async (): Promise<DatabaseStats> => {
   };
 
   try {
-    const data = await apiClient.getJson<any>('/api/v2/sources/stats');
+    const data = await apiClient.getJson<Record<string, unknown>>('/api/v2/sources/stats');
     if (data) {
       return {
         totalDocuments:
           typeof data.total_documents === 'number'
-            ? data.total_documents
-            : (data.totalDocuments ?? 0),
+            ? (data.total_documents as number)
+            : ((data.totalDocuments as number) ?? 0),
         totalChunks:
-          typeof data.total_chunks === 'number' ? data.total_chunks : (data.totalChunks ?? 0),
+          typeof data.total_chunks === 'number'
+            ? (data.total_chunks as number)
+            : ((data.totalChunks as number) ?? 0),
         totalSources:
-          typeof data.total_sources === 'number' ? data.total_sources : (data.totalSources ?? 0),
+          typeof data.total_sources === 'number'
+            ? (data.total_sources as number)
+            : ((data.totalSources as number) ?? 0),
         lastIngestedAt:
           typeof data.last_ingested_at === 'string'
-            ? data.last_ingested_at
+            ? (data.last_ingested_at as string)
             : typeof data.lastIngestedAt === 'string'
-              ? data.lastIngestedAt
+              ? (data.lastIngestedAt as string)
               : null,
       };
     }
@@ -86,7 +93,7 @@ const fetchDatabaseStats = async (): Promise<DatabaseStats> => {
   }
 
   try {
-    const countData = await apiClient.getJson<any>('/api/v2/sources/count');
+    const countData = await apiClient.getJson<Record<string, unknown>>('/api/v2/sources/count');
     const count = typeof countData.count === 'number' ? countData.count : 0;
     const totalSources =
       typeof countData.total_sources === 'number'
@@ -97,8 +104,9 @@ const fetchDatabaseStats = async (): Promise<DatabaseStats> => {
 
     return {
       totalDocuments: count,
-      totalChunks: typeof countData.total_chunks === 'number' ? countData.total_chunks : count,
-      totalSources: totalSources || count,
+      totalChunks:
+        typeof countData.total_chunks === 'number' ? (countData.total_chunks as number) : count,
+      totalSources: (totalSources as number) || count,
       lastIngestedAt: null,
     };
   } catch (error) {
@@ -108,8 +116,10 @@ const fetchDatabaseStats = async (): Promise<DatabaseStats> => {
   }
 
   try {
-    const healthData = await apiClient.getJson<any>('/health?checkRag=true');
-    const vectorStore = healthData?.ragService?.components?.vector_store;
+    const healthData = await apiClient.getJson<Record<string, unknown>>('/health?checkRag=true');
+    const ragService = healthData?.ragService as Record<string, unknown> | undefined;
+    const components = ragService?.components as Record<string, unknown> | undefined;
+    const vectorStore = components?.vector_store as Record<string, unknown> | undefined;
     if (vectorStore) {
       const documentCount =
         typeof vectorStore.document_count === 'number' ? vectorStore.document_count : 0;
@@ -131,17 +141,19 @@ const fetchDatabaseStats = async (): Promise<DatabaseStats> => {
 
 const fetchDatabaseSources = async (): Promise<DatabaseSource[]> => {
   try {
-    const payload = await apiClient.getJson<any>('/api/v2/sources?page=1&page_size=100');
+    const payload = await apiClient.getJson<Record<string, unknown>>(
+      '/api/v2/sources?page=1&page_size=100',
+    );
     if (Array.isArray(payload?.data)) {
-      return normaliseSources(payload.data);
+      return normaliseSources(payload.data as unknown[]);
     }
 
     if (Array.isArray(payload?.items)) {
-      return normaliseSources(payload.items);
+      return normaliseSources(payload.items as unknown[]);
     }
 
     if (Array.isArray(payload)) {
-      return normaliseSources(payload);
+      return normaliseSources(payload as unknown[]);
     }
 
     return [];

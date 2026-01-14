@@ -2,7 +2,7 @@ import performanceService from '../services/performanceService.js';
 import { getLogger } from '../services/logger.js';
 import { respondWithError } from '../utils/http.js';
 const logger = getLogger('routes:performance');
-export const createPerformanceHandler = ({ service = performanceService } = {}) => {
+export const createPerformanceHandler = ({ service = performanceService, } = {}) => {
     return async (req, res, _next) => {
         logger.info('Handling /api/admin/performance request');
         try {

@@ -53,27 +53,32 @@ export const useLogsPanel = (initialFilters: LogFilters) => {
       setError(null);
 
       try {
-        const body = await apiClient.getJson<any>(`/api/admin/chat-logs?${query}`, {
-          parseErrorResponse: true,
-        });
-        const rows: ChatLogEntry[] = Array.isArray(body?.data)
-          ? body.data
+        const body = await apiClient.getJson<Record<string, unknown>>(
+          `/api/admin/chat-logs?${query}`,
+          {
+            parseErrorResponse: true,
+          },
+        );
+        const data = body?.data;
+        const rows: ChatLogEntry[] = Array.isArray(data)
+          ? (data as ChatLogEntry[])
           : Array.isArray(body?.rows)
-            ? body.rows
+            ? (body.rows as ChatLogEntry[])
             : [];
 
         setLogs(rows);
 
+        const paginationData = body?.pagination as Record<string, unknown> | undefined;
         const baseOffset = Math.max(offset, 0);
-        const parsedLimit = Number(body?.pagination?.limit);
+        const parsedLimit = Number(paginationData?.limit);
         const limitFromResponse =
           Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : LOGS_PAGE_SIZE;
-        const parsedOffset = Number(body?.pagination?.offset);
+        const parsedOffset = Number(paginationData?.offset);
         const offsetFromResponse =
           Number.isFinite(parsedOffset) && parsedOffset >= 0 ? parsedOffset : baseOffset;
-        const hasMoreFromResponse = Boolean(body?.pagination?.hasMore);
+        const hasMoreFromResponse = Boolean(paginationData?.hasMore);
         const hasMore = hasMoreFromResponse || rows.length === limitFromResponse;
-        const parsedNextOffset = Number(body?.pagination?.nextOffset);
+        const parsedNextOffset = Number(paginationData?.nextOffset);
         const nextOffsetFromResponse =
           Number.isFinite(parsedNextOffset) && parsedNextOffset >= 0 ? parsedNextOffset : null;
 
@@ -90,8 +95,11 @@ export const useLogsPanel = (initialFilters: LogFilters) => {
         if (err instanceof ApiError) {
           if (err.status === 503) {
             message = 'Logging is disabled on the server. Enable ENABLE_LOGGING to view analytics.';
-          } else if (typeof (err.data as any)?.message === 'string') {
-            message = (err.data as any).message;
+          } else {
+            const errorData = err.data as Record<string, unknown> | undefined;
+            if (typeof errorData?.message === 'string') {
+              message = errorData.message;
+            }
           }
         }
         setError(message);

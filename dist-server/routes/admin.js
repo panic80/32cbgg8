@@ -19,7 +19,7 @@ const createAdminRoutes = ({ rateLimiter, performanceHandler, chatLogger }) => {
             if (!response.ok) {
                 throw new Error(`OpenRouter API error: ${response.status}`);
             }
-            const data = await response.json();
+            const data = (await response.json());
             // Filter and map models for our use case
             const models = data.data
                 .filter((m) => m.id && !m.id.includes('/vision')) // Exclude vision-only models
@@ -28,7 +28,7 @@ const createAdminRoutes = ({ rateLimiter, performanceHandler, chatLogger }) => {
                 name: m.name || m.id,
                 description: m.description || '',
                 contextLength: m.context_length,
-                isOpenSource: m.hugging_face_id && m.hugging_face_id !== '',
+                isOpenSource: !!(m.hugging_face_id && m.hugging_face_id !== ''),
                 pricing: m.pricing
                     ? {
                         prompt: m.pricing.prompt,

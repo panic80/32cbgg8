@@ -23,8 +23,8 @@ export const findExistingPath = (paths: string[]): string | null => {
         if (stats.isDirectory()) {
           return testPath;
         }
-      } catch (err: any) {
-        logger.error(`Error checking path ${testPath}:`, err.message);
+      } catch (err: unknown) {
+        logger.error(`Error checking path ${testPath}:`, (err as Error).message);
       }
     }
   }
@@ -160,7 +160,13 @@ export const createMimeTypeMiddleware = () => (req: Request, res: Response, next
  * @param {Object} options.app - Express app
  * @param {string} options.landingPath - Path to landing page assets
  */
-export const setupLandingRoutes = ({ app, landingPath }: { app: express.Application; landingPath: string | null }) => {
+export const setupLandingRoutes = ({
+  app,
+  landingPath,
+}: {
+  app: express.Application;
+  landingPath: string | null;
+}) => {
   if (!landingPath) {
     logger.error('Could not find landing page directory');
     return;
@@ -191,16 +197,18 @@ export const setupLandingRoutes = ({ app, landingPath }: { app: express.Applicat
  * @param {string} options.distPath - Path to static assets
  * @returns {Function} Express route handler
  */
-export const createSpaCatchAllHandler = ({ distPath }: { distPath: string | null }) => (req: Request, res: Response, next: NextFunction) => {
-  // Skip API routes and landing routes
-  if (req.path.startsWith('/api/') || req.path.startsWith('/landing')) {
-    return next();
-  }
+export const createSpaCatchAllHandler =
+  ({ distPath }: { distPath: string | null }) =>
+  (req: Request, res: Response, next: NextFunction) => {
+    // Skip API routes and landing routes
+    if (req.path.startsWith('/api/') || req.path.startsWith('/landing')) {
+      return next();
+    }
 
-  // Serve React app for all other routes
-  if (distPath) {
-    res.sendFile(path.join(distPath, 'index.html'));
-  } else {
-    return next(); // Let 404 handler take over
-  }
-};
+    // Serve React app for all other routes
+    if (distPath) {
+      res.sendFile(path.join(distPath, 'index.html'));
+    } else {
+      return next(); // Let 404 handler take over
+    }
+  };

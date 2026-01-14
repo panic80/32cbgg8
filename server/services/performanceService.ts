@@ -5,8 +5,22 @@ const DEFAULT_TIMEOUT_MS = 7000;
 const DEFAULT_CACHE_MS = 5000;
 
 interface PerformanceCache {
-  data: any | null;
+  data: Record<string, unknown> | null;
   expiresAt: number;
+}
+
+interface MetricData {
+  count: number;
+  mean: number;
+  min: number;
+  max: number;
+  p50: number;
+  p75: number;
+  p95: number;
+  p99: number;
+  rate_per_minute: number;
+  window_size: number;
+  recent: unknown[];
 }
 
 const cacheState: PerformanceCache = {
@@ -35,7 +49,7 @@ const normaliseNumber = (value: unknown): number => {
   return 0;
 };
 
-const normaliseMetric = (metric: any) => {
+const normaliseMetric = (metric: unknown): MetricData => {
   if (!metric || typeof metric !== 'object') {
     return {
       count: 0,
@@ -52,22 +66,24 @@ const normaliseMetric = (metric: any) => {
     };
   }
 
+  const m = metric as Record<string, unknown>;
+
   return {
-    count: normaliseNumber(metric.count),
-    mean: normaliseNumber(metric.mean),
-    min: normaliseNumber(metric.min),
-    max: normaliseNumber(metric.max),
-    p50: normaliseNumber(metric.p50),
-    p75: normaliseNumber(metric.p75),
-    p95: normaliseNumber(metric.p95),
-    p99: normaliseNumber(metric.p99),
-    rate_per_minute: normaliseNumber(metric.rate_per_minute),
-    window_size: normaliseNumber(metric.window_size),
-    recent: Array.isArray(metric.recent) ? metric.recent : [],
+    count: normaliseNumber(m.count),
+    mean: normaliseNumber(m.mean),
+    min: normaliseNumber(m.min),
+    max: normaliseNumber(m.max),
+    p50: normaliseNumber(m.p50),
+    p75: normaliseNumber(m.p75),
+    p95: normaliseNumber(m.p95),
+    p99: normaliseNumber(m.p99),
+    rate_per_minute: normaliseNumber(m.rate_per_minute),
+    window_size: normaliseNumber(m.window_size),
+    recent: Array.isArray(m.recent) ? m.recent : [],
   };
 };
 
-const normalisePayload = (payload: any) => {
+const normalisePayload = (payload: unknown) => {
   if (!payload || typeof payload !== 'object') {
     return {
       latency: {},
@@ -81,8 +97,9 @@ const normalisePayload = (payload: any) => {
     };
   }
 
-  const latencies = payload.latency || {};
-  const quality = payload.quality || {};
+  const p = payload as any;
+  const latencies = p.latency || {};
+  const quality = p.quality || {};
   const retrievalScores = quality.retrievalScores || {};
 
   return {
@@ -115,12 +132,12 @@ const normalisePayload = (payload: any) => {
         errors_by_type: quality.errorRate?.errors_by_type ?? {},
       },
     },
-    throughput: payload.throughput || {},
-    cache: payload.cache || {},
-    retrievers: payload.retrievers || {},
-    tokenUsage: payload.tokenUsage || {},
-    meta: payload.meta || {},
-    gatewayMeta: payload.gatewayMeta || {},
+    throughput: p.throughput || {},
+    cache: p.cache || {},
+    retrievers: p.retrievers || {},
+    tokenUsage: p.tokenUsage || {},
+    meta: p.meta || {},
+    gatewayMeta: p.gatewayMeta || {},
   };
 };
 
@@ -130,12 +147,13 @@ const performanceService = {
     const ttl = parseDuration(process.env.PERFORMANCE_METRICS_CACHE_MS, DEFAULT_CACHE_MS);
 
     if (!forceRefresh && cacheState.data && cacheState.expiresAt > now) {
+      const data = cacheState.data as any;
       return {
-        ...cacheState.data,
+        ...data,
         gatewayMeta: {
-          ...cacheState.data.gatewayMeta,
+          ...data.gatewayMeta,
           cached: true,
-          fetchedAt: cacheState.data.gatewayMeta?.fetchedAt,
+          fetchedAt: data.gatewayMeta?.fetchedAt,
         },
       };
     }

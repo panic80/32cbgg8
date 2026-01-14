@@ -3,9 +3,11 @@ import axios from 'axios';
 import { getLogger } from '../services/logger.js';
 import { respondWithError } from '../utils/http.js';
 import { RAG_SERVICE_URL } from '../config/constants.js';
-export function createSourcesRoutes({ rateLimiter, requireAdminAuth, getRagAuthHeaders }) {
+export function createSourcesRoutes({ rateLimiter, requireAdminAuth, getRagAuthHeaders, }) {
     const router = express.Router();
-    const adminMiddleware = typeof requireAdminAuth === 'function' ? requireAdminAuth : (req, res, next) => next();
+    const adminMiddleware = typeof requireAdminAuth === 'function'
+        ? requireAdminAuth
+        : (req, res, next) => next();
     const buildRagAuthHeaders = typeof getRagAuthHeaders === 'function' ? getRagAuthHeaders : () => ({});
     const logger = getLogger('routes:sources');
     // List indexed sources
@@ -20,13 +22,14 @@ export function createSourcesRoutes({ rateLimiter, requireAdminAuth, getRagAuthH
             res.json(ragResponse.data);
         }
         catch (error) {
-            if (error.response) {
+            const err = error;
+            if (err.response) {
                 return respondWithError(res, {
-                    status: error.response.status,
+                    status: err.response.status,
                     error: 'SourcesUpstreamError',
-                    message: error.response.data?.message || 'Failed to list sources.',
+                    message: err.response.data?.message || 'Failed to list sources.',
                     logger,
-                    cause: error,
+                    cause: err,
                 });
             }
             return respondWithError(res, {
@@ -34,7 +37,7 @@ export function createSourcesRoutes({ rateLimiter, requireAdminAuth, getRagAuthH
                 error: 'SourcesListFailed',
                 message: 'Failed to list sources.',
                 logger,
-                cause: error,
+                cause: err,
             });
         }
     });
@@ -49,13 +52,14 @@ export function createSourcesRoutes({ rateLimiter, requireAdminAuth, getRagAuthH
             res.json(ragResponse.data);
         }
         catch (error) {
-            if (error.response) {
+            const err = error;
+            if (err.response) {
                 return respondWithError(res, {
-                    status: error.response.status,
+                    status: err.response.status,
                     error: 'SourcesStatsUpstreamError',
-                    message: error.response.data?.message || 'Failed to get source statistics.',
+                    message: err.response.data?.message || 'Failed to get source statistics.',
                     logger,
-                    cause: error,
+                    cause: err,
                 });
             }
             return respondWithError(res, {
@@ -63,7 +67,7 @@ export function createSourcesRoutes({ rateLimiter, requireAdminAuth, getRagAuthH
                 error: 'SourcesStatsFailed',
                 message: 'Failed to get source statistics.',
                 logger,
-                cause: error,
+                cause: err,
             });
         }
     });
@@ -95,13 +99,14 @@ export function createSourcesRoutes({ rateLimiter, requireAdminAuth, getRagAuthH
             res.json(ragResponse.data);
         }
         catch (error) {
-            if (error.response) {
+            const err = error;
+            if (err.response) {
                 return respondWithError(res, {
-                    status: error.response.status,
+                    status: err.response.status,
                     error: 'DatabasePurgeUpstreamError',
-                    message: error.response.data?.message || 'Failed to purge database.',
+                    message: err.response.data?.message || 'Failed to purge database.',
                     logger,
-                    cause: error,
+                    cause: err,
                 });
             }
             return respondWithError(res, {
@@ -109,7 +114,7 @@ export function createSourcesRoutes({ rateLimiter, requireAdminAuth, getRagAuthH
                 error: 'DatabasePurgeFailed',
                 message: 'Failed to purge database.',
                 logger,
-                cause: error,
+                cause: err,
             });
         }
     });
@@ -126,13 +131,14 @@ export function createSourcesRoutes({ rateLimiter, requireAdminAuth, getRagAuthH
             res.json(ragResponse.data);
         }
         catch (error) {
-            if (error.response) {
+            const err = error;
+            if (err.response) {
                 return respondWithError(res, {
-                    status: error.response.status,
+                    status: err.response.status,
                     error: 'BM25BuildUpstreamError',
-                    message: error.response.data?.message || 'Failed to build BM25 index.',
+                    message: err.response.data?.message || 'Failed to build BM25 index.',
                     logger,
-                    cause: error,
+                    cause: err,
                 });
             }
             return respondWithError(res, {
@@ -140,7 +146,7 @@ export function createSourcesRoutes({ rateLimiter, requireAdminAuth, getRagAuthH
                 error: 'BM25BuildFailed',
                 message: 'Failed to build BM25 index.',
                 logger,
-                cause: error,
+                cause: err,
             });
         }
     });

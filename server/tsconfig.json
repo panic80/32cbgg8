@@ -12,15 +12,15 @@
 
     /* Strictness */
     "strict": true,
-    
+
     /* Output */
     "outDir": "../dist-server",
     "rootDir": "../server",
     "sourceMap": true,
-    
+
     /* Path Resolution */
     "baseUrl": "..",
-    
+
     /* Types */
     "types": ["node"]
   },

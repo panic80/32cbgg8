@@ -5,25 +5,21 @@ import { startVitest } from 'vitest/node';
 async function main() {
   const cliFilters = process.argv.slice(2);
 
-  const ctx = await startVitest(
-    'test',
-    cliFilters,
-    {
-      watch: false,
-      run: true,
-      reporters: 'default',
-      pool: 'forks',
-      test: {
-        pool: {
-          forks: {
-            singleFork: true,
-            minForks: 1,
-            maxForks: 1,
-          },
+  const ctx = await startVitest('test', cliFilters, {
+    watch: false,
+    run: true,
+    reporters: 'default',
+    pool: 'forks',
+    test: {
+      pool: {
+        forks: {
+          singleFork: true,
+          minForks: 1,
+          maxForks: 1,
         },
       },
     },
-  );
+  });
 
   const state = ctx.state;
   const failedFiles = state.getFailedFilepaths().length;

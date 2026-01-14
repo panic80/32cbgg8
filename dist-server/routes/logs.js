@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import chatLogger from '../services/logger.js';
-const parseNumber = (value, { fallback, min = 0, max = Number.MAX_SAFE_INTEGER }) => {
+const parseNumber = (value, { fallback, min = 0, max = Number.MAX_SAFE_INTEGER, }) => {
     const parsed = typeof value === 'string' ? Number.parseInt(value, 10) : Number(value);
     if (Number.isNaN(parsed) || !Number.isFinite(parsed)) {
         return fallback;
@@ -33,8 +33,16 @@ const createLogsRoutes = ({ rateLimiter, requireAdminAuth }) => {
             conversationId: sanitizeString(req.query.conversationId),
             model: sanitizeString(req.query.model),
             provider: sanitizeString(req.query.provider),
-            ragEnabled: req.query.ragEnabled === 'true' ? true : req.query.ragEnabled === 'false' ? false : undefined,
-            shortAnswerMode: req.query.shortAnswerMode === 'true' ? true : req.query.shortAnswerMode === 'false' ? false : undefined,
+            ragEnabled: req.query.ragEnabled === 'true'
+                ? true
+                : req.query.ragEnabled === 'false'
+                    ? false
+                    : undefined,
+            shortAnswerMode: req.query.shortAnswerMode === 'true'
+                ? true
+                : req.query.shortAnswerMode === 'false'
+                    ? false
+                    : undefined,
             search: sanitizeString(req.query.search),
         };
         const rows = chatLogger.getChatLogs(filters);

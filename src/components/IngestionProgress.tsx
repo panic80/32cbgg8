@@ -62,92 +62,110 @@ const initialSteps: IngestionStep[] = [
 
 // Hook to manage progress state and SSE connection
 function useIngestionProgress(url: string, progressEndpoint?: string, enabled: boolean = true) {
-  const [steps, setSteps] = useState<IngestionStep[]>(initialSteps.map(s => ({ ...s })));
+  const [steps, setSteps] = useState<IngestionStep[]>(initialSteps.map((s) => ({ ...s })));
   const [overallProgress, setOverallProgress] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
-  const handleProgressUpdate = useCallback((data: any, eventSourceRef: { current: EventSource | null }) => {
-    switch (data.type) {
-      case 'connected':
-        setIsConnected(true);
-        break;
+  const handleProgressUpdate = useCallback(
+    (
+      data: {
+        type: string;
+        stepId?: string;
+        message?: string;
+        progress?: number;
+        details?: Record<string, unknown>;
+      },
+      eventSourceRef: { current: EventSource | null },
+    ) => {
+      switch (data.type) {
+        case 'connected':
+          setIsConnected(true);
+          break;
 
-      case 'step_start':
-        setSteps((prev) =>
-          prev.map((step) =>
-            step.id === data.stepId
-              ? { ...step, status: 'in_progress', startTime: Date.now(), message: data.message, progress: 0 }
-              : step,
-          ),
-        );
-        break;
+        case 'step_start':
+          setSteps((prev) =>
+            prev.map((step) =>
+              step.id === data.stepId
+                ? {
+                    ...step,
+                    status: 'in_progress',
+                    startTime: Date.now(),
+                    message: data.message,
+                    progress: 0,
+                  }
+                : step,
+            ),
+          );
+          break;
 
-      case 'step_progress':
-        setSteps((prev) =>
-          prev.map((step) =>
-            step.id === data.stepId
-              ? {
-                  ...step,
-                  status: step.status === 'pending' ? 'in_progress' : step.status,
-                  startTime: step.status === 'pending' ? Date.now() : step.startTime,
-                  progress: data.progress,
-                  message: data.message,
-                  details: data.details,
-                }
-              : step,
-          ),
-        );
-        break;
+        case 'step_progress':
+          setSteps((prev) =>
+            prev.map((step) =>
+              step.id === data.stepId
+                ? {
+                    ...step,
+                    status: step.status === 'pending' ? 'in_progress' : step.status,
+                    startTime: step.status === 'pending' ? Date.now() : step.startTime,
+                    progress: data.progress,
+                    message: data.message,
+                    details: data.details,
+                  }
+                : step,
+            ),
+          );
+          break;
 
-      case 'step_complete':
-        setSteps((prev) =>
-          prev.map((step) =>
-            step.id === data.stepId
-              ? {
-                  ...step,
-                  status: 'completed',
-                  endTime: Date.now(),
-                  message: data.message,
-                  progress: 100,
-                }
-              : step,
-          ),
-        );
-        break;
+        case 'step_complete':
+          setSteps((prev) =>
+            prev.map((step) =>
+              step.id === data.stepId
+                ? {
+                    ...step,
+                    status: 'completed',
+                    endTime: Date.now(),
+                    message: data.message,
+                    progress: 100,
+                  }
+                : step,
+            ),
+          );
+          break;
 
-      case 'step_error':
-        setSteps((prev) =>
-          prev.map((step) =>
-            step.id === data.stepId ? { ...step, status: 'error', message: data.message } : step,
-          ),
-        );
-        setError(data.message);
-        break;
+        case 'step_error':
+          setSteps((prev) =>
+            prev.map((step) =>
+              step.id === data.stepId ? { ...step, status: 'error', message: data.message } : step,
+            ),
+          );
+          setError(data.message);
+          break;
 
-      case 'overall_progress':
-        setOverallProgress(Math.round(data.progress));
-        break;
+        case 'overall_progress':
+          setOverallProgress(Math.round(data.progress));
+          break;
 
-      case 'complete':
-        setIsComplete(true);
-        setOverallProgress(100);
-        eventSourceRef.current?.close();
-        break;
+        case 'complete':
+          setIsComplete(true);
+          setOverallProgress(100);
+          eventSourceRef.current?.close();
+          break;
 
-      case 'error':
-        setError(data.message);
-        eventSourceRef.current?.close();
-        break;
-    }
-  }, []);
+        case 'error':
+          setError(data.message);
+          eventSourceRef.current?.close();
+          break;
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!enabled || !url) return;
 
     // Reset state when starting new ingestion
-    setSteps(initialSteps.map(s => ({ ...s })));
+    setSteps(initialSteps.map((s) => ({ ...s })));
     setOverallProgress(0);
     setIsComplete(false);
     setError(null);
@@ -231,7 +249,7 @@ function ProgressContent({
   compact?: boolean;
 }) {
   return (
-    <div className={cn("space-y-4", compact && "space-y-3")}>
+    <div className={cn('space-y-4', compact && 'space-y-3')}>
       {/* URL being processed */}
       {showUrl && url && (
         <div className="p-3 bg-muted rounded-lg">
@@ -250,7 +268,7 @@ function ProgressContent({
       </div>
 
       {/* Individual steps */}
-      <div className={cn("space-y-3", compact && "space-y-2")}>
+      <div className={cn('space-y-3', compact && 'space-y-2')}>
         {steps.map((step) => (
           <div key={step.id} className="space-y-1">
             <div className="flex items-start gap-3">
@@ -268,11 +286,13 @@ function ProgressContent({
                     {step.name}
                   </p>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    {step.details && step.details.current !== undefined && step.details.total !== undefined && (
-                      <span className="text-xs text-muted-foreground tabular-nums">
-                        {step.details.current}/{step.details.total}
-                      </span>
-                    )}
+                    {step.details &&
+                      step.details.current !== undefined &&
+                      step.details.total !== undefined && (
+                        <span className="text-xs text-muted-foreground tabular-nums">
+                          {step.details.current}/{step.details.total}
+                        </span>
+                      )}
                     {step.details?.rate !== undefined && (
                       <span className="text-xs text-muted-foreground tabular-nums">
                         {formatRate(
@@ -325,12 +345,12 @@ function ProgressContent({
 }
 
 // Dialog version (original)
-export default function IngestionProgress({
-  isOpen,
-  onClose,
-  url,
-}: IngestionProgressProps) {
-  const { steps, overallProgress, isComplete, error } = useIngestionProgress(url, undefined, isOpen);
+export default function IngestionProgress({ isOpen, onClose, url }: IngestionProgressProps) {
+  const { steps, overallProgress, isComplete, error } = useIngestionProgress(
+    url,
+    undefined,
+    isOpen,
+  );
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -360,7 +380,7 @@ export function InlineIngestionProgress({
   const { steps, overallProgress, isComplete, error, isConnected } = useIngestionProgress(
     url,
     progressEndpoint,
-    true
+    true,
   );
 
   // Call onComplete when ingestion finishes
@@ -384,7 +404,7 @@ export function InlineIngestionProgress({
             <div
               className={cn(
                 'h-2 w-2 rounded-full transition-colors duration-300',
-                isConnected ? 'bg-green-600' : 'bg-muted-foreground'
+                isConnected ? 'bg-green-600' : 'bg-muted-foreground',
               )}
             />
             {isConnected ? 'Live' : 'Connecting...'}

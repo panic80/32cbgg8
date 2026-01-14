@@ -5,10 +5,17 @@ type ImportFn = () => Promise<unknown>;
 type CleanupFn = () => void;
 
 const createPrefetch = (importFn: ImportFn): CleanupFn => {
-  const nav = typeof navigator !== 'undefined' ? (navigator as any) : undefined;
-  const connection: any = nav
-    ? nav.connection || nav.mozConnection || nav.webkitConnection
-    : undefined;
+  interface Connection {
+    saveData?: boolean;
+    effectiveType?: string;
+  }
+  interface NavigatorWithConnection extends Navigator {
+    connection?: Connection;
+    mozConnection?: Connection;
+    webkitConnection?: Connection;
+  }
+  const nav = typeof navigator !== 'undefined' ? (navigator as NavigatorWithConnection) : undefined;
+  const connection = nav ? nav.connection || nav.mozConnection || nav.webkitConnection : undefined;
 
   const saveData = connection && 'saveData' in connection ? connection.saveData : false;
   const isSlowConnection =

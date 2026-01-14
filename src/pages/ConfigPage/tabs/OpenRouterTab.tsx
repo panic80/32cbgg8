@@ -4,7 +4,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AnimatedButton } from '@/components/ui/animated-button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, CheckCircle, AlertCircle, Key, Search, ExternalLink, Star, Zap, Brain } from 'lucide-react';
+import {
+  Loader2,
+  CheckCircle,
+  AlertCircle,
+  Key,
+  Search,
+  ExternalLink,
+  Star,
+  Zap,
+  Brain,
+} from 'lucide-react';
 import { apiClient } from '@/api/client';
 import type { OpenRouterModel, OpenRouterModelsResponse } from '../types';
 
@@ -61,15 +71,15 @@ export const OpenRouterTab: React.FC<OpenRouterTabProps> = ({ onModelsLoaded }) 
   // Load models on mount
   useEffect(() => {
     loadModels();
-  }, []);
+  }, [loadModels]);
 
-  const loadModels = async () => {
+  const loadModels = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
       const response = await apiClient.getJson<OpenRouterModelsResponse>(
-        '/api/admin/openrouter/models'
+        '/api/admin/openrouter/models',
       );
 
       setModels(response.models || []);
@@ -78,13 +88,13 @@ export const OpenRouterTab: React.FC<OpenRouterTabProps> = ({ onModelsLoaded }) 
       if (onModelsLoaded && response.models) {
         onModelsLoaded(response.models);
       }
-    } catch (err) {
+    } catch (err: unknown) {
       setError('Failed to fetch OpenRouter models. Please try again.');
-      console.error('OpenRouter models fetch error:', err);
+      console.error('OpenRouter models fetch error:', err instanceof Error ? err.message : err);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [onModelsLoaded]);
 
   // Filter models based on search and open-source filter
   const filteredModels = useMemo(() => {
@@ -100,7 +110,7 @@ export const OpenRouterTab: React.FC<OpenRouterTabProps> = ({ onModelsLoaded }) 
         (m) =>
           m.id.toLowerCase().includes(query) ||
           m.name.toLowerCase().includes(query) ||
-          m.description?.toLowerCase().includes(query)
+          m.description?.toLowerCase().includes(query),
       );
     }
 
@@ -161,8 +171,9 @@ export const OpenRouterTab: React.FC<OpenRouterTabProps> = ({ onModelsLoaded }) 
                     </a>
                   </li>
                   <li>
-                    Add <code className="px-1 py-0.5 bg-background rounded">OPENROUTER_API_KEY</code>{' '}
-                    to your server environment variables
+                    Add{' '}
+                    <code className="px-1 py-0.5 bg-background rounded">OPENROUTER_API_KEY</code> to
+                    your server environment variables
                   </li>
                   <li>Restart the server to apply changes</li>
                 </ol>
@@ -196,7 +207,9 @@ export const OpenRouterTab: React.FC<OpenRouterTabProps> = ({ onModelsLoaded }) 
             <h4 className="flex items-center gap-2 font-medium mb-3">
               <Zap className="h-4 w-4 text-amber-500" />
               Fast Models
-              <Badge variant="secondary" className="text-xs">For HyDE, Query Expansion</Badge>
+              <Badge variant="secondary" className="text-xs">
+                For HyDE, Query Expansion
+              </Badge>
             </h4>
             <div className="grid gap-2">
               {RECOMMENDED_RAG_MODELS.fast.map((model, idx) => (
@@ -222,7 +235,9 @@ export const OpenRouterTab: React.FC<OpenRouterTabProps> = ({ onModelsLoaded }) 
             <h4 className="flex items-center gap-2 font-medium mb-3">
               <Brain className="h-4 w-4 text-purple-500" />
               Smart Models
-              <Badge variant="secondary" className="text-xs">For Response Generation</Badge>
+              <Badge variant="secondary" className="text-xs">
+                For Response Generation
+              </Badge>
             </h4>
             <div className="grid gap-2">
               {RECOMMENDED_RAG_MODELS.smart.map((model, idx) => (

@@ -7,14 +7,17 @@ import { createIngestionController } from '../controllers/ingestionController.js
 import { createRagService } from '../services/RagService.js';
 
 interface IngestionRoutesConfig {
-  rateLimiter: any;
-  requireAdminAuth: any;
+  rateLimiter: import('express').RequestHandler;
+  requireAdminAuth: import('express').RequestHandler;
   validateIngestionUrl: (url: string) => Promise<string>;
   getRagAuthHeaders: () => Record<string, string>;
   buildSseCorsHeaders: (origin?: string) => Record<string, string>;
-  setSseHeaders: any;
+  setSseHeaders: (
+    res: import('express').Response,
+    headers?: Record<string, string | number>,
+  ) => void;
   httpClient?: AxiosInstance;
-  config?: any;
+  config?: Record<string, unknown>;
 }
 
 const createIngestionRoutes = ({

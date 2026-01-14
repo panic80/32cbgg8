@@ -19,9 +19,18 @@ import { DEFAULT_RAG_STREAM_TIMEOUT_MS, getEnvNumber } from './config/constants.
 import { TRAVEL_PLANNER_ADDITIONAL_INSTRUCTIONS } from './constants/travelPlannerInstructions.js';
 
 // Extracted modules
-import { createHelmetConfig, createCorsConfig, createSecurityHeadersMiddleware, buildSseCorsHeaders } from './config/security.js';
+import {
+  createHelmetConfig,
+  createCorsConfig,
+  createSecurityHeadersMiddleware,
+  buildSseCorsHeaders,
+} from './config/security.js';
 import { validateIngestionUrl } from './utils/urlValidation.js';
-import { createAdminAuthMiddleware, requiresConfigAuth, getRagAuthHeaders } from './middleware/adminAuth.js';
+import {
+  createAdminAuthMiddleware,
+  requiresConfigAuth,
+  getRagAuthHeaders,
+} from './middleware/adminAuth.js';
 import { createRateLimiter } from './middleware/rateLimiter.js';
 import { initializeAiClients, buildOpenAIParams } from './services/aiClients.js';
 import createSystemRoutes from './routes/system.js';
@@ -99,7 +108,8 @@ const cache = config.cacheEnabled
 
 // Initialize AI clients
 const aiClients = initializeAiClients();
-const { geminiClient, openaiClient, anthropicClient, openrouterClient, googleMapsClient } = aiClients;
+const { geminiClient, openaiClient, anthropicClient, openrouterClient, googleMapsClient } =
+  aiClients;
 
 const aiService = {
   geminiClient,
@@ -150,7 +160,7 @@ if (distPath) {
       distPath,
       requiresConfigAuth,
       requireAdminAuth,
-    })
+    }),
   );
 }
 
@@ -177,48 +187,57 @@ if (config.loggingEnabled) {
 
 // Admin routes
 app.use('/api/admin', requireAdminAuth);
-app.use('/api/admin', createAdminRoutes({
-  rateLimiter,
-  performanceHandler: createPerformanceHandler(),
-  chatLogger,
-}));
+app.use(
+  '/api/admin',
+  createAdminRoutes({
+    rateLimiter,
+    performanceHandler: createPerformanceHandler(),
+    chatLogger,
+  }),
+);
 
 // Logs routes
 app.use(createLogsRoutes({ rateLimiter, requireAdminAuth }));
 
 // Ingestion routes
-app.use(createIngestionRoutes({
-  rateLimiter,
-  requireAdminAuth,
-  validateIngestionUrl,
-  getRagAuthHeaders,
-  buildSseCorsHeaders,
-  setSseHeaders,
-  config,
-}));
+app.use(
+  createIngestionRoutes({
+    rateLimiter,
+    requireAdminAuth,
+    validateIngestionUrl,
+    getRagAuthHeaders,
+    buildSseCorsHeaders,
+    setSseHeaders,
+    config,
+  }),
+);
 
 // Chat routes
-app.use(createChatRoutes({
-  rateLimiter,
-  config,
-  chatLogger,
-  getRagAuthHeaders,
-  decodeUrlParams,
-  aiService,
-  buildSseCorsHeaders,
-  setSseHeaders,
-}));
+app.use(
+  createChatRoutes({
+    rateLimiter,
+    config,
+    chatLogger,
+    getRagAuthHeaders,
+    decodeUrlParams,
+    aiService,
+    buildSseCorsHeaders,
+    setSseHeaders,
+  }),
+);
 
 // Support routes
-app.use(createSupportRoutes({
-  rateLimiter,
-  cache,
-  config,
-  processContent,
-  geminiClient,
-  openaiClient,
-  anthropicClient,
-}));
+app.use(
+  createSupportRoutes({
+    rateLimiter,
+    cache,
+    config: config as unknown as Parameters<typeof createSupportRoutes>[0]['config'],
+    processContent,
+    geminiClient,
+    openaiClient,
+    anthropicClient,
+  }),
+);
 
 // Maps routes
 app.use(createMapsRoutes({ rateLimiter, googleMapsClient, config }));
@@ -233,14 +252,16 @@ app.use(createSourcesRoutes({ rateLimiter, requireAdminAuth, getRagAuthHeaders }
 app.use(createModelConfigRoutes({ rateLimiter, requireAdminAuth }));
 
 // System routes (health, config, deployment-info, clear-cache)
-app.use(createSystemRoutes({
-  config,
-  cache,
-  requireAdminAuth,
-  chatLogger,
-  aiClients,
-  apiRequestCounts,
-}));
+app.use(
+  createSystemRoutes({
+    config,
+    cache,
+    requireAdminAuth,
+    chatLogger,
+    aiClients,
+    apiRequestCounts,
+  }),
+);
 
 // =============================================================================
 // STATIC FILES & SPA FALLBACK
@@ -266,10 +287,12 @@ app.get('*', createSpaCatchAllHandler({ distPath }));
 app.use(createNotFoundHandler({ distPath }));
 
 // Global error handler
-app.use(createGlobalErrorHandler({
-  chatLogger,
-  loggingEnabled: config.loggingEnabled,
-}));
+app.use(
+  createGlobalErrorHandler({
+    chatLogger,
+    loggingEnabled: config.loggingEnabled,
+  }),
+);
 
 // =============================================================================
 // EXPORTS

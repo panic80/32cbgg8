@@ -68,7 +68,7 @@ export const resolveHostAddresses = async (hostname) => {
  * @param {Object} addressInfo - Address info with address and family
  * @returns {boolean} True if disallowed
  */
-export const isAddressDisallowed = ({ address, family }) => {
+export const isAddressDisallowed = ({ address, family, }) => {
     if (family === 4) {
         return isPrivateIpv4(address);
     }

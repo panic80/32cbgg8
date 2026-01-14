@@ -14,12 +14,16 @@ const resolveLogger = (logger) => {
 export const pipeStreamingResponse = ({ req, res, upstream, corsHeaders = {}, logger, onMetadata, onComplete, heartbeatIntervalMs = 15000, idleTimeoutMs, traceId, }) => {
     const resolvedLogger = resolveLogger(logger);
     const emit = (level, message, meta) => {
-        if (resolvedLogger && typeof resolvedLogger[level] === 'function') {
-            resolvedLogger[level](message, { traceId, ...(meta || {}) });
+        if (resolvedLogger &&
+            typeof resolvedLogger[level] === 'function') {
+            resolvedLogger[level](message, {
+                traceId,
+                ...(meta || {}),
+            });
         }
     };
     const passThrough = new PassThrough();
-    const upstreamStream = upstream?.data ?? upstream;
+    const upstreamStream = 'data' in upstream ? upstream.data : upstream;
     res.writeHead(200, {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
@@ -61,7 +65,9 @@ export const pipeStreamingResponse = ({ req, res, upstream, corsHeaders = {}, lo
         idleTimer = setTimeout(() => {
             emit('error', 'stream.idleTimeout', { idleTimeoutMs });
             // Use explicit type cast or optional chaining for destroy
-            upstreamStream?.destroy?.(new Error('Stream exceeded idle timeout'));
+            if ('destroy' in upstreamStream && typeof upstreamStream.destroy === 'function') {
+                upstreamStream.destroy(new Error('Stream exceeded idle timeout'));
+            }
             passThrough.end();
             if (typeof res.end === 'function' && !res.writableEnded) {
                 res.end();
@@ -113,7 +119,9 @@ export const pipeStreamingResponse = ({ req, res, upstream, corsHeaders = {}, lo
         clearTimers();
         emit('warn', 'stream.clientDisconnected');
         // Use explicit type cast or optional chaining for destroy
-        upstreamStream?.destroy?.();
+        if ('destroy' in upstreamStream && typeof upstreamStream.destroy === 'function') {
+            upstreamStream.destroy();
+        }
         passThrough.end();
     });
     return passThrough;

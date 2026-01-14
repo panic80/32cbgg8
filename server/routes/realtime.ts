@@ -26,8 +26,8 @@ const resolveOpenAiApiKey = (): string | null => {
 };
 
 interface RealtimeRoutesConfig {
-  rateLimiter: any;
-  chatLogger: any;
+  rateLimiter: import('express').RequestHandler;
+  chatLogger: import('../services/logger.js').Logger | null;
 }
 
 const createRealtimeRoutes = ({ rateLimiter, chatLogger }: RealtimeRoutesConfig) => {
@@ -91,12 +91,13 @@ const createRealtimeRoutes = ({ rateLimiter, chatLogger }: RealtimeRoutesConfig)
 
       const sessionData = await sessionResponse.json();
       return res.json(sessionData);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as Error;
       if (chatLogger) {
         chatLogger.log({
           type: 'realtime-session-error',
-          message: error.message,
-          stack: error.stack,
+          message: err.message,
+          stack: err.stack,
           timestamp: new Date().toISOString(),
         });
       }
@@ -105,7 +106,7 @@ const createRealtimeRoutes = ({ rateLimiter, chatLogger }: RealtimeRoutesConfig)
         error: 'RealtimeSessionFailed',
         message: 'Unable to create realtime session.',
         logger,
-        cause: error,
+        cause: err,
       });
     }
   });
@@ -162,12 +163,13 @@ const createRealtimeRoutes = ({ rateLimiter, chatLogger }: RealtimeRoutesConfig)
       logger.info('Realtime SDP exchange succeeded', { model });
       res.setHeader('Content-Type', 'application/sdp');
       return res.send(answer);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as Error;
       if (chatLogger) {
         chatLogger.log({
           type: 'realtime-answer-error',
-          message: error.message,
-          stack: error.stack,
+          message: err.message,
+          stack: err.stack,
           timestamp: new Date().toISOString(),
         });
       }
@@ -177,7 +179,7 @@ const createRealtimeRoutes = ({ rateLimiter, chatLogger }: RealtimeRoutesConfig)
         error: 'RealtimeAnswerFailed',
         message: 'Unable to exchange realtime SDP.',
         logger,
-        cause: error,
+        cause: err,
       });
     }
   });

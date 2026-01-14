@@ -5,11 +5,11 @@ import { inferJurisdiction, buildTripPlannerHints } from '../services/tripPlanne
 import { AiClients, buildOpenAIParams } from '../services/aiClients.js';
 
 interface ChatControllerConfig {
-  chatLogger: any;
+  chatLogger: import('../services/logger.js').Logger;
   getRagAuthHeaders: () => Record<string, string>;
   aiService: AiClients & { buildOpenAIParams: typeof buildOpenAIParams };
-  config: any;
-  pipeStreamingResponse: any;
+  config: { loggingEnabled?: boolean };
+  pipeStreamingResponse: typeof import('../services/streaming.js').pipeStreamingResponse;
   buildSseCorsHeaders: (origin?: string) => Record<string, string>;
   getEnvNumber: (key: string, fallback: number) => number;
   DEFAULT_RAG_STREAM_TIMEOUT_MS: number;
@@ -53,11 +53,12 @@ export const createChatController = ({
       const text = response.text();
 
       return res.json({ response: text });
-    } catch (error: any) {
-      chatLogger?.error?.('Gemini API error', { error });
+    } catch (error: unknown) {
+      const err = error as Error;
+      chatLogger?.error?.('Gemini API error', { error: err });
       return res.status(500).json({
         error: 'Internal Server Error',
-        message: error.message,
+        message: err.message,
       });
     }
   };
@@ -125,7 +126,13 @@ export const createChatController = ({
               max_tokens: 4096,
               messages: [{ role: 'user', content: message.trim() }],
             })
-            .then((anthropicMessage) => (anthropicMessage.content[0] as any).text); // type assertion needed for Anthropic SDK structure
+            .then((anthropicMessage) => {
+              const firstContent = anthropicMessage.content[0];
+              if (firstContent && 'text' in firstContent) {
+                return firstContent.text as string;
+              }
+              return '';
+            });
           break;
         }
         default:
@@ -154,8 +161,9 @@ export const createChatController = ({
         conversation_id: null,
         model: effectiveModel,
       });
-    } catch (error: any) {
-      chatLogger?.error?.('Error processing chat request', { error });
+    } catch (error: unknown) {
+      const err = error as Error & { status?: number };
+      chatLogger?.error?.('Error processing chat request', { error: err });
 
       if (config?.loggingEnabled) {
         chatLogger.logChat?.(req, {
@@ -167,19 +175,19 @@ export const createChatController = ({
           ragEnabled: false,
           metadata: {
             route: '/api/v2/chat',
-            error: error instanceof Error ? error.message : 'Unknown error',
+            error: err.message || 'Unknown error',
           },
         });
       }
 
-      if (error.status === 429) {
+      if (err.status === 429) {
         return res.status(429).json({
           error: 'Rate Limit Exceeded',
           message: 'Too many requests to the AI provider. Please try again later.',
         });
       }
 
-      if (error.status === 401) {
+      if (err.status === 401) {
         return res.status(500).json({
           error: 'Configuration Error',
           message: 'Invalid API key for the selected provider.',
@@ -239,17 +247,22 @@ export const createChatController = ({
       );
 
       return res.json(ragResponse.data);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as Error & {
+        code?: string;
+        response?: { data: unknown; status: number };
+        stack?: string;
+      };
       chatLogger?.error?.('RAG chat error', {
-        message: error.message,
-        code: error.code,
-        response: error.response?.data,
-        status: error.response?.status,
-        stack: error.stack,
+        message: err.message,
+        code: err.code,
+        response: err.response?.data,
+        status: err.response?.status,
+        stack: err.stack,
       });
 
-      if (error.response) {
-        return res.status(error.response.status).json(error.response.data);
+      if (err.response) {
+        return res.status(err.response.status).json(err.response.data);
       }
 
       return res.status(502).json({
@@ -336,8 +349,8 @@ export const createChatController = ({
       const streamingCorsHeaders = buildSseCorsHeaders?.(req.headers.origin) || {};
       let aggregatedAnswer = '';
       let remoteConversationId = conversationId || null;
-      let aggregatedSources: any[] = [];
-      let aggregatedFollowUps: any[] = [];
+      let aggregatedSources: unknown[] = [];
+      let aggregatedFollowUps: unknown[] = [];
       const streamStart = Date.now();
       const streamLogger = chatLogger?.child
         ? chatLogger.child({
@@ -354,11 +367,12 @@ export const createChatController = ({
           ...streamingCorsHeaders,
           'X-Accel-Buffering': 'no',
         },
-        logger: streamLogger,
+        logger: streamLogger || undefined,
         heartbeatIntervalMs: 15000,
         idleTimeoutMs: DEFAULT_RAG_STREAM_TIMEOUT_MS,
         traceId: req.headers['x-request-id'] as string,
-        onMetadata: (event: any) => {
+        onMetadata: (meta: unknown) => {
+          const event = meta as { conversation_id?: string; sources?: unknown[]; follow_up_questions?: unknown[] };
           if (event.conversation_id) {
             remoteConversationId = event.conversation_id;
           }
@@ -418,8 +432,9 @@ export const createChatController = ({
       req.on('close', () => {
         upstreamAbortController.abort();
       });
-    } catch (error: any) {
-      chatLogger?.error?.('Error with streaming chat', { error });
+    } catch (error: unknown) {
+      const err = error as Error;
+      chatLogger?.error?.('Error with streaming chat', { error: err });
 
       if (config?.loggingEnabled) {
         chatLogger.logChat?.(req, {
@@ -431,7 +446,7 @@ export const createChatController = ({
           ragEnabled: useRAG,
           metadata: {
             route: '/api/v2/chat/stream',
-            error: error instanceof Error ? error.message : 'Unknown error',
+            error: err.message || 'Unknown error',
           },
         });
       }

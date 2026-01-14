@@ -25,7 +25,7 @@ export interface Source {
     type?: string;
     last_modified?: string;
     tags?: string[];
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -38,7 +38,7 @@ export interface Message {
   isTyping?: boolean;
   attachments?: Attachment[];
   reactions?: Reaction[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   sources?: Source[];
   isFormatted?: boolean;
   followUpQuestions?: FollowUpQuestion[];
@@ -55,7 +55,7 @@ export interface Attachment {
   name?: string;
   size?: number;
   thumbnail?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface Reaction {

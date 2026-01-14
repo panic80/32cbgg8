@@ -12,8 +12,8 @@ describe('CacheService', () => {
     vi.restoreAllMocks();
 
     vi.spyOn(global, 'setInterval').mockImplementation(
-      (handler: TimerHandler, timeout?: number, ...args: any[]) => {
-        const timer = realSetInterval(handler, timeout, ...args);
+      (handler: TimerHandler, timeout?: number) => {
+        const timer = realSetInterval(handler, timeout);
         if (typeof (timer as NodeJS.Timeout).unref === 'function') {
           (timer as NodeJS.Timeout).unref();
         }

@@ -474,6 +474,7 @@ export const useRealtimeDictation = ({
     clearConnectionTimeout,
     handleDictationFailure,
     handleRealtimeMessage,
+    isActive,
     model,
     sendCreateResponseEvent,
   ]);

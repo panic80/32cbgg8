@@ -15,80 +15,88 @@ const logger = getLogger('middleware:errorHandlers');
  * @param {string} options.distPath - Path to static assets
  * @returns {Function} Express middleware
  */
-export const createNotFoundHandler = ({ distPath }: { distPath: string | null }) => (req: Request, res: Response) => {
-  const requestedUrl = req.url;
-  let suggestions: string[] = [];
+export const createNotFoundHandler =
+  ({ distPath }: { distPath: string | null }) =>
+  (req: Request, res: Response) => {
+    const requestedUrl = req.url;
+    let suggestions: string[] = [];
 
-  // Check if URL might be close to a valid endpoint and suggest alternatives
-  if (requestedUrl.includes('gemini') || requestedUrl.includes('chat')) {
-    suggestions.push('/api/gemini/generateContent', '/api/v2/chat');
-  }
-
-  if (requestedUrl.includes('travel') || requestedUrl.includes('instructions')) {
-    suggestions.push('/api/travel-instructions');
-  }
-
-  if (requestedUrl.includes('health') || requestedUrl.includes('status')) {
-    suggestions.push('/health');
-  }
-
-  if (requestedUrl.includes('config') || requestedUrl.includes('settings')) {
-    suggestions.push('/api/config');
-  }
-
-  // If it looks like an API request, provide JSON response
-  if (requestedUrl.startsWith('/api/')) {
-    const response: any = {
-      error: 'Not Found',
-      message: `Cannot ${req.method} ${req.url}`,
-      timestamp: new Date().toISOString(),
-    };
-
-    // Add suggestions if available
-    if (suggestions.length > 0) {
-      response.suggestions = suggestions;
-      response.message += `. Available endpoints that might help: ${suggestions.join(', ')}`;
-    } else {
-      // Generic suggestion
-      response.message += '. Try /api/config for available endpoints.';
+    // Check if URL might be close to a valid endpoint and suggest alternatives
+    if (requestedUrl.includes('gemini') || requestedUrl.includes('chat')) {
+      suggestions.push('/api/gemini/generateContent', '/api/v2/chat');
     }
 
-    return res.status(404).json(response);
-  }
+    if (requestedUrl.includes('travel') || requestedUrl.includes('instructions')) {
+      suggestions.push('/api/travel-instructions');
+    }
 
-  // Check if this is a request for a static file
-  const staticFileExtensions = [
-    '.ico',
-    '.png',
-    '.jpg',
-    '.jpeg',
-    '.gif',
-    '.svg',
-    '.css',
-    '.js',
-    '.json',
-    '.woff',
-    '.woff2',
-    '.ttf',
-    '.eot',
-  ];
-  const hasStaticExtension = staticFileExtensions.some((ext) =>
-    req.path.toLowerCase().endsWith(ext),
-  );
+    if (requestedUrl.includes('health') || requestedUrl.includes('status')) {
+      suggestions.push('/health');
+    }
 
-  if (hasStaticExtension) {
-    // For static files, return proper 404
-    return res.status(404).send('File not found');
-  }
+    if (requestedUrl.includes('config') || requestedUrl.includes('settings')) {
+      suggestions.push('/api/config');
+    }
 
-  // For non-API, non-static requests, serve the React app if available (which will handle its own 404)
-  if (distPath) {
-    res.sendFile(path.join(distPath, 'index.html'));
-  } else {
-    // Plain text 404 for non-API requests when no React app is available
-    res.status(404).send('404 - Page not found');
-  }
-};
+    // If it looks like an API request, provide JSON response
+    if (requestedUrl.startsWith('/api/')) {
+      interface ApiErrorResponse {
+        error: string;
+        message: string;
+        timestamp: string;
+        suggestions?: string[];
+      }
+      const response: ApiErrorResponse = {
+        error: 'Not Found',
+        message: `Cannot ${req.method} ${req.url}`,
+        timestamp: new Date().toISOString(),
+      };
+
+      // Add suggestions if available
+      if (suggestions.length > 0) {
+        response.suggestions = suggestions;
+        response.message += `. Available endpoints that might help: ${suggestions.join(', ')}`;
+      } else {
+        // Generic suggestion
+        response.message += '. Try /api/config for available endpoints.';
+      }
+
+      return res.status(404).json(response);
+    }
+
+    // Check if this is a request for a static file
+    const staticFileExtensions = [
+      '.ico',
+      '.png',
+      '.jpg',
+      '.jpeg',
+      '.gif',
+      '.svg',
+      '.css',
+      '.js',
+      '.json',
+      '.woff',
+      '.woff2',
+      '.ttf',
+      '.eot',
+    ];
+    const hasStaticExtension = staticFileExtensions.some((ext) =>
+      req.path.toLowerCase().endsWith(ext),
+    );
+
+    if (hasStaticExtension) {
+      // For static files, return proper 404
+      return res.status(404).send('File not found');
+    }
+
+    // For non-API, non-static requests, serve the React app if available (which will handle its own 404)
+    if (distPath) {
+      res.sendFile(path.join(distPath, 'index.html'));
+    } else {
+      // Plain text 404 for non-API requests when no React app is available
+      res.status(404).send('404 - Page not found');
+    }
+  };
 
 /**
  * Creates global error handler.
@@ -98,8 +106,19 @@ export const createNotFoundHandler = ({ distPath }: { distPath: string | null })
  * @returns {Function} Express error middleware
  */
 export const createGlobalErrorHandler =
-  ({ chatLogger, loggingEnabled }: { chatLogger?: any; loggingEnabled: boolean }) =>
-  (err: any, req: Request, res: Response, next: NextFunction) => {
+  ({
+    chatLogger,
+    loggingEnabled,
+  }: {
+    chatLogger?: import('../services/logger.js').Logger;
+    loggingEnabled: boolean;
+  }) =>
+  (
+    err: Error & { statusCode?: number; status?: number; code?: string },
+    req: Request,
+    res: Response,
+    _next: NextFunction,
+  ) => {
     const errorId = Date.now().toString(36);
     const errorDetails = {
       id: errorId,

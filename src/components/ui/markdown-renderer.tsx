@@ -48,13 +48,13 @@ const CodeBlock = ({ children, className, language, ...restProps }: CodeBlockPro
   );
 };
 
-function childrenTakeAllStringContents(element: any): string {
+function childrenTakeAllStringContents(element: React.ReactNode): string {
   if (typeof element === 'string') {
     return element;
   }
 
-  if (element?.props?.children) {
-    let children = element.props.children;
+  if (React.isValidElement(element) && element.props?.children) {
+    const children = element.props.children;
 
     if (Array.isArray(children)) {
       return children.map((child) => childrenTakeAllStringContents(child)).join('');
@@ -75,10 +75,20 @@ const COMPONENTS = {
   strong: withClass('strong', 'font-semibold'),
   a: withClass('a', 'text-primary underline underline-offset-2'),
   blockquote: withClass('blockquote', 'border-l-2 border-primary pl-4'),
-  code: ({ children, className, node, ...rest }: any) => {
+  code: ({
+    children,
+    className,
+    _node,
+    ...rest
+  }: {
+    children: React.ReactNode;
+    className?: string;
+    _node?: unknown;
+    [key: string]: unknown;
+  }) => {
     const match = /language-(\w+)/.exec(className || '');
     return match ? (
-      <CodeBlock className={className} language={match[1]} {...rest}>
+      <CodeBlock language={match[1]} {...(rest as unknown as CodeBlockProps)}>
         {children}
       </CodeBlock>
     ) : (
@@ -86,21 +96,21 @@ const COMPONENTS = {
         className={cn(
           'font-mono [:not(pre)>&]:rounded-md [:not(pre)>&]:bg-background/50 [:not(pre)>&]:px-1 [:not(pre)>&]:py-0.5',
         )}
-        {...rest}
+        {...(rest as Record<string, unknown>)}
       >
         {children}
       </code>
     );
   },
-  pre: ({ children }: any) => children,
+  pre: ({ children }: { children: React.ReactNode }) => children,
   ol: withClass('ol', 'list-decimal space-y-2 pl-6'),
   ul: withClass('ul', 'list-disc space-y-2 pl-6'),
-  li: ({ children, ...props }: any) => (
+  li: ({ children, ...props }: { children: React.ReactNode; [key: string]: unknown }) => (
     <li className="my-1.5" {...props}>
       {children}
     </li>
   ),
-  table: ({ children, ...props }: any) => (
+  table: ({ children, ...props }: { children: React.ReactNode; [key: string]: unknown }) => (
     <div className="relative w-full my-4">
       <div className="overflow-x-auto touch-pan-x rounded-md border border-foreground/20 [-webkit-overflow-scrolling:touch]">
         <table className="min-w-[600px] w-full border-collapse" {...props}>
@@ -123,7 +133,9 @@ const COMPONENTS = {
 };
 
 function withClass(Tag: keyof JSX.IntrinsicElements, classes: string) {
-  const Component = ({ node, ...props }: any) => <Tag className={classes} {...props} />;
+  const Component = ({ _node, ...props }: { _node?: unknown; [key: string]: unknown }) => (
+    <Tag className={classes} {...(props as Record<string, unknown>)} />
+  );
   Component.displayName = Tag;
   return Component;
 }

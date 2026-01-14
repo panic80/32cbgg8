@@ -71,7 +71,7 @@ export const useIngestionController = ({
 
       let targetUsed: (typeof ingestionTargets)[number] | null = null;
       let lastError: string | null = null;
-      let responseData: any = null;
+      let responseData: unknown = null;
       let responseOk = false;
 
       for (const target of ingestionTargets) {
@@ -98,10 +98,9 @@ export const useIngestionController = ({
           break;
         } catch (error) {
           if (error instanceof ApiError) {
+            const data = error.data as Record<string, unknown> | undefined;
             const message =
-              typeof (error.data as any)?.message === 'string'
-                ? (error.data as any).message
-                : error.statusText || error.message;
+              typeof data?.message === 'string' ? data.message : error.statusText || error.message;
             lastError = message;
             responseData = error.data;
             if (error.status === 404) {
@@ -121,7 +120,7 @@ export const useIngestionController = ({
         return;
       }
 
-      const data = responseData || {};
+      const data = (responseData as Record<string, unknown>) || {};
       // Update progress endpoint if different target was used
       if (targetUsed.progress && targetUsed.progress !== ingestionProgressEndpoint) {
         setIngestionProgressEndpoint(targetUsed.progress);
@@ -129,22 +128,27 @@ export const useIngestionController = ({
 
       if (responseOk) {
         if (data.status === 'success') {
-          toast.success(`Successfully ingested ${data.chunks_created} chunks from URL`);
+          toast.success(`Successfully ingested ${data.chunks_created as number} chunks from URL`);
         } else if (data.status === 'exists') {
           toast.info('Document already exists in the database. Use force refresh to re-ingest.');
           resetIngestionProgress();
         } else {
-          toast.info(data.message || 'Ingestion request received. Monitoring progress...');
+          toast.info(
+            (data.message as string) || 'Ingestion request received. Monitoring progress...',
+          );
         }
 
         const historyEntry: IngestionHistoryEntry = {
           url: normalizedUrl,
-          status: data.status === 'exists' ? 'exists' : data.status || 'pending',
+          status: (data.status === 'exists' ? 'exists' : (data.status as string)) || 'pending',
           timestamp: new Date().toISOString(),
         };
         recordHistoryEntry(historyEntry);
 
-        onActivityLog('Document Ingested', `${normalizedUrl} - ${data.chunks_created ?? 0} chunks`);
+        onActivityLog(
+          'Document Ingested',
+          `${normalizedUrl} - ${(data.chunks_created as number) ?? 0} chunks`,
+        );
 
         setUrlInput('');
         setForceRefresh(false);
@@ -153,7 +157,7 @@ export const useIngestionController = ({
           void refreshDatabaseMetrics();
         }
       } else {
-        const errorMessage = data?.message || lastError || 'Failed to ingest URL';
+        const errorMessage = (data?.message as string) || lastError || 'Failed to ingest URL';
         toast.error(errorMessage);
         resetIngestionProgress();
 

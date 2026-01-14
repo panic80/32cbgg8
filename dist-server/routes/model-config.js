@@ -65,9 +65,11 @@ const writeModelConfig = (config) => {
     logger.info('Model configuration saved', { path: configPath });
     return fullConfig;
 };
-export function createModelConfigRoutes({ rateLimiter, requireAdminAuth }) {
+export function createModelConfigRoutes({ rateLimiter, requireAdminAuth, }) {
     const router = express.Router();
-    const adminMiddleware = typeof requireAdminAuth === 'function' ? requireAdminAuth : (req, res, next) => next();
+    const adminMiddleware = typeof requireAdminAuth === 'function'
+        ? requireAdminAuth
+        : (req, res, next) => next();
     logger.info('Registering model config routes');
     // Get current model configuration
     router.get('/api/admin/model-config', rateLimiter, (req, res) => {

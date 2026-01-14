@@ -3,7 +3,7 @@ import { useEffect, Dispatch, SetStateAction } from 'react';
 interface KeyboardShortcutsOptions {
   showInlineCommand: boolean;
   selectedCommandIndex: number;
-  inlineCommands: any[];
+  inlineCommands: Array<{ command: string }>;
   setCommandOpen: Dispatch<SetStateAction<boolean>>;
   setSelectedCommandIndex: Dispatch<SetStateAction<number>>;
   setInput: (value: string) => void;

@@ -20,7 +20,7 @@ export const initDB = (
 
       // Add error handler for all database operations
       db.onerror = (event) => {
-        console.error('Database error:', (event.target as any).error);
+        console.error('Database error:', (event.target as IDBDatabase).error);
       };
 
       resolve(db);

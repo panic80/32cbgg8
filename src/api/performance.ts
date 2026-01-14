@@ -136,8 +136,7 @@ export async function fetchPerformanceMetrics(
   } catch (error) {
     if (error instanceof ApiError) {
       const errorData = error.data as Record<string, unknown> | null;
-      const detail =
-        typeof errorData?.message === 'string' ? errorData.message : error.statusText;
+      const detail = typeof errorData?.message === 'string' ? errorData.message : error.statusText;
       throw new Error(`Failed to load performance metrics (${error.status}): ${detail}`);
     }
     throw error;

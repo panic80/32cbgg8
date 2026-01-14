@@ -12,7 +12,7 @@ import { DEFAULT_CACHE_CLEANUP_INTERVAL_MS, DEFAULT_CACHE_TTL_MS } from '../conf
  * - Health monitoring and metrics
  * - Configurable cache strategies
  */
-class CacheService {
+export class CacheService {
     config;
     redisClient = null;
     redisConnected = false;
@@ -100,8 +100,9 @@ class CacheService {
         }
         catch (error) {
             this.metrics.redisErrors++;
-            this.metrics.lastRedisError = error.message;
-            this.log('Failed to connect to Redis, falling back to memory cache', { error: error.message }, 'warn');
+            const err = error;
+            this.metrics.lastRedisError = err.message;
+            this.log('Failed to connect to Redis, falling back to memory cache', { error: err.message }, 'warn');
             this.redisConnected = false;
         }
     }
@@ -289,7 +290,7 @@ class CacheService {
                 this.log('Redis cache cleared');
             }
             catch (error) {
-                this.log('Redis clear failed', { error: error.message }, 'warn');
+                this.log(`Redis clear failed`, { error: error.message }, 'warn');
             }
         }
         // Clear memory cache
@@ -376,6 +377,15 @@ class CacheService {
         this.log('Cache service disconnected');
     }
     /**
+     * Execute a Lua script on Redis
+     */
+    async eval(script, options) {
+        if (this.redisConnected && this.redisClient) {
+            return this.redisClient.eval(script, options);
+        }
+        throw new Error('Redis not connected');
+    }
+    /**
      * Internal logging method
      * @param {string} message - Log message
      * @param {object} data - Additional data
@@ -385,10 +395,10 @@ class CacheService {
         if (!this.config.enableLogging)
             return;
         const logger = this.logger;
-        if (logger?.[level]) {
+        if (typeof logger[level] === 'function') {
             logger[level](message, data);
         }
-        else if (logger?.info) {
+        else if (typeof logger.info === 'function') {
             logger.info(message, data);
         }
     }

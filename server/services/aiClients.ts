@@ -38,7 +38,10 @@ export const isOSeriesModel = (model: string | undefined): boolean => {
  * @param {Array} messages - Chat messages
  * @returns {Object} OpenAI API parameters
  */
-export const buildOpenAIParams = (model: string, messages: any[]) => {
+export const buildOpenAIParams = (
+  model: string,
+  messages: import('openai/resources/chat/completions').ChatCompletionMessageParam[],
+) => {
   const baseParams = {
     model: model,
     messages: messages,

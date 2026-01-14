@@ -2,11 +2,7 @@ import { apiClient, ApiError } from '@/api/client';
 import { StorageKeys } from '@/constants/storage';
 import { getLocalStorageItem } from '@/utils/storage';
 import { FollowUpQuestion, Source } from '@/types/chat';
-import {
-  FOLLOW_UP_CATEGORIES,
-  DEFAULT_CONFIDENCE,
-  FALLBACK_QUESTIONS,
-} from '@/constants/followUp';
+import { FOLLOW_UP_CATEGORIES, DEFAULT_CONFIDENCE, FALLBACK_QUESTIONS } from '@/constants/followUp';
 
 interface FollowUpGenerationParams {
   userQuestion: string;
@@ -135,16 +131,16 @@ const parseFollowUpQuestions = (response: string): FollowUpQuestion[] => {
     }
 
     const parsed = JSON.parse(jsonMatch[0]);
-    const questions: RawFollowUpQuestion[] = Array.isArray(parsed.questions) ? parsed.questions : [];
+    const questions: RawFollowUpQuestion[] = Array.isArray(parsed.questions)
+      ? parsed.questions
+      : [];
 
     return questions
       .map((q: RawFollowUpQuestion, index: number) => {
         // Validate category against known types, default to RELATED
         let category: FollowUpQuestion['category'] = FOLLOW_UP_CATEGORIES.RELATED;
-        if (
-          q.category &&
-          Object.values(FOLLOW_UP_CATEGORIES).includes(q.category as any)
-        ) {
+        const validCategories = Object.values(FOLLOW_UP_CATEGORIES) as string[];
+        if (q.category && validCategories.includes(q.category)) {
           category = q.category as FollowUpQuestion['category'];
         }
 

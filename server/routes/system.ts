@@ -13,12 +13,12 @@ import { AiClients } from '../services/aiClients.js';
 const logger = getLogger('routes:system');
 
 interface SystemRoutesConfig {
-  config: any;
-  cache: any;
-  requireAdminAuth: any;
-  chatLogger: any;
+  config: ReturnType<typeof import('../config/index.js').createGatewayConfig>;
+  cache: import('../services/cache.js').CacheService | null;
+  requireAdminAuth: import('express').RequestHandler;
+  chatLogger: import('../services/logger.js').Logger | null;
   aiClients: AiClients;
-  apiRequestCounts: any;
+  apiRequestCounts: Map<string, number> | null;
 }
 
 /**
@@ -50,7 +50,11 @@ const createSystemRoutes = ({
     const cacheHealth = cache ? cache.getHealth() : { status: 'disabled' };
 
     // Try to get travel instructions cache info
-    const travelInstructionsCache = cache ? await cache.get('travel-instructions') : null;
+    interface CachedInstructions {
+      timestamp: number;
+      content: string;
+    }
+    const travelInstructionsCache = cache ? await cache.get<CachedInstructions>('travel-instructions') : null;
     const cacheAge =
       travelInstructionsCache && travelInstructionsCache.timestamp
         ? Math.floor((Date.now() - travelInstructionsCache.timestamp) / 1000) + 's'
@@ -74,20 +78,20 @@ const createSystemRoutes = ({
     // Rate limiting stats
     const activeClients = apiRequestCounts ? apiRequestCounts.size : 0;
     const clientsAtLimit = apiRequestCounts
-      ? Array.from(apiRequestCounts.entries()).filter((entry: any) => {
-          const count = entry[1] as number;
-          return count >= config.rateLimitMax;
+      ? Array.from(apiRequestCounts.entries()).filter((entry) => {
+          const count = entry[1];
+          return count >= (config.rateLimitMax as number);
         }).length
       : 0;
 
     // Check RAG service health
-    let ragHealth: any = { status: 'unknown' };
+    let ragHealth: Record<string, unknown> = { status: 'unknown' };
     if (process.env.RAG_SERVICE_URL || req.query.checkRag === 'true') {
       try {
         const ragResponse = await axios.get(`${RAG_SERVICE_URL}/api/v1/health`, { timeout: 5000 });
         ragHealth = ragResponse.data;
-      } catch (error: any) {
-        ragHealth = { status: 'unhealthy', error: error.message };
+      } catch (error: unknown) {
+        ragHealth = { status: 'unhealthy', error: (error as Error).message };
       }
     }
 
@@ -105,9 +109,9 @@ const createSystemRoutes = ({
         ? {
             enabled: true,
             status: cacheHealth.status,
-            redis: cacheHealth.redis,
-            memory: cacheHealth.memory,
-            performance: cacheHealth.performance,
+            redis: (cacheHealth as any).redis,
+            memory: (cacheHealth as any).memory,
+            performance: (cacheHealth as any).performance,
             stats: cacheStats
               ? {
                   totalHits: cacheStats.combined.totalHits,
@@ -137,7 +141,7 @@ const createSystemRoutes = ({
       timestamp: new Date().toISOString(),
     };
 
-    const publicHealthData: any = { ...healthData };
+    const publicHealthData: Record<string, unknown> = { ...healthData };
     delete publicHealthData.memory;
     delete publicHealthData.rateLimiting;
 
@@ -151,7 +155,7 @@ const createSystemRoutes = ({
   });
 
   // API configuration endpoint with environment-specific settings
-  router.get('/api/config', (req: Request, res: Response) => {
+  router.get('/api/config', (_req: Request, res: Response) => {
     // Safe configuration that doesn't expose sensitive info
     const responseConfig = {
       version: '1.0.0',
@@ -173,7 +177,7 @@ const createSystemRoutes = ({
       },
       caching: {
         enabled: config.cacheEnabled,
-        duration: Math.floor(config.cacheTTL / 1000 / 60) + ' minutes',
+        duration: Math.floor((config.cacheTTL as number) / 1000 / 60) + ' minutes',
       },
       // Public-facing URLs and endpoints
       api: {
@@ -208,8 +212,8 @@ const createSystemRoutes = ({
   });
 
   // Deployment verification endpoint (for debugging cache issues)
-  router.get('/api/deployment-info', requireAdminAuth, (req: Request, res: Response) => {
-    const buildInfo: any = {
+  router.get('/api/deployment-info', requireAdminAuth, (_req: Request, res: Response) => {
+    const buildInfo: Record<string, unknown> = {
       timestamp: new Date().toISOString(),
       buildTime: process.env.BUILD_TIMESTAMP,
       nodeEnv: process.env.NODE_ENV,
@@ -226,8 +230,8 @@ const createSystemRoutes = ({
         const pkg = JSON.parse(readFileSync(packagePath, 'utf8'));
         buildInfo.version = pkg.version;
       }
-    } catch (err: any) {
-      logger.info('Could not read package.json:', err.message);
+    } catch (err: unknown) {
+      logger.info('Could not read package.json:', (err as Error).message);
     }
 
     // Add cache-busting headers

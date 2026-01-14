@@ -6,9 +6,9 @@ import { createMapsController } from '../controllers/mapsController.js';
 import { Client } from '@googlemaps/google-maps-services-js';
 
 interface MapsRoutesConfig {
-  rateLimiter: any;
+  rateLimiter: import('express').RequestHandler;
   googleMapsClient: Client | null;
-  config?: any;
+  config?: { mapsTimeout?: number };
 }
 
 const createMapsRoutes = ({ rateLimiter, googleMapsClient, config = {} }: MapsRoutesConfig) => {

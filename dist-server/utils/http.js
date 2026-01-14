@@ -10,7 +10,10 @@ const serializeCause = (cause) => {
     if (!cause || typeof cause !== 'object') {
         return cause ?? null;
     }
-    return Object.fromEntries(Object.entries(cause).map(([key, value]) => [key, serializeCause(value)]));
+    return Object.fromEntries(Object.entries(cause).map(([key, value]) => [
+        key,
+        serializeCause(value),
+    ]));
 };
 export const createErrorResponse = ({ status = 500, error = status >= 500 ? 'InternalServerError' : 'BadRequest', message = status >= 500 ? 'An unexpected error occurred.' : 'Invalid request.', logger, cause, details, level, }) => {
     const traceId = randomUUID();
@@ -50,8 +53,11 @@ export const decodeUrlParams = (value) => {
     if (Array.isArray(value)) {
         return value.map((item) => decodeUrlParams(item));
     }
-    if (typeof value === 'object') {
-        return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, decodeUrlParams(item)]));
+    if (typeof value === 'object' && value !== null) {
+        return Object.fromEntries(Object.entries(value).map(([key, item]) => [
+            key,
+            decodeUrlParams(item),
+        ]));
     }
     return value;
 };

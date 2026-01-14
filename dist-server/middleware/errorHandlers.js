@@ -82,7 +82,7 @@ export const createNotFoundHandler = ({ distPath }) => (req, res) => {
  * @param {boolean} options.loggingEnabled - Whether logging is enabled
  * @returns {Function} Express error middleware
  */
-export const createGlobalErrorHandler = ({ chatLogger, loggingEnabled }) => (err, req, res, next) => {
+export const createGlobalErrorHandler = ({ chatLogger, loggingEnabled, }) => (err, req, res, _next) => {
     const errorId = Date.now().toString(36);
     const errorDetails = {
         id: errorId,

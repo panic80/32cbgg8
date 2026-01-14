@@ -47,7 +47,8 @@ export const SERVER_DEFAULTS = {
   PERFORMANCE_CACHE_MS: DEFAULT_PERFORMANCE_CACHE_MS,
 };
 
-export const getEnvNumber = (envKey: string, fallback: number): number => parseEnvInt(process.env[envKey], fallback);
+export const getEnvNumber = (envKey: string, fallback: number): number =>
+  parseEnvInt(process.env[envKey], fallback);
 
 // Shared service URLs
 export const RAG_SERVICE_URL = process.env.RAG_SERVICE_URL || 'http://localhost:8000';

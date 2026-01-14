@@ -20,11 +20,11 @@ Get your API key at: https://openrouter.ai/keys
 
 ### Required Headers
 
-| Header | Required | Description |
-|--------|----------|-------------|
-| `Authorization` | Yes | Bearer token with API key |
-| `HTTP-Referer` | Recommended | Your app URL (for attribution on openrouter.ai/activity) |
-| `X-Title` | Recommended | Your app name (shows in OpenRouter dashboard) |
+| Header          | Required    | Description                                              |
+| --------------- | ----------- | -------------------------------------------------------- |
+| `Authorization` | Yes         | Bearer token with API key                                |
+| `HTTP-Referer`  | Recommended | Your app URL (for attribution on openrouter.ai/activity) |
+| `X-Title`       | Recommended | Your app name (shows in OpenRouter dashboard)            |
 
 ### Example Request
 
@@ -52,13 +52,13 @@ const openrouter = new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
   defaultHeaders: {
     'HTTP-Referer': 'https://your-app.com',
-    'X-Title': 'Your App Name'
-  }
+    'X-Title': 'Your App Name',
+  },
 });
 
 const response = await openrouter.chat.completions.create({
   model: 'meta-llama/llama-3.1-70b-instruct',
-  messages: [{ role: 'user', content: 'Hello!' }]
+  messages: [{ role: 'user', content: 'Hello!' }],
 });
 ```
 
@@ -100,17 +100,17 @@ curl https://openrouter.ai/api/v1/models
 
 Each model object contains:
 
-| Field | Description |
-|-------|-------------|
-| `id` | Model identifier (e.g., `openai/gpt-4`, `meta-llama/llama-3-70b`) |
-| `name` | Human-readable name |
-| `description` | Model description |
-| `context_length` | Maximum context window |
-| `hugging_face_id` | HuggingFace model ID (empty for proprietary models) |
-| `architecture` | Object with `modality`, `input_modalities`, `output_modalities`, `tokenizer` |
-| `pricing` | Cost per token (`prompt`, `completion`, `request`, `image`) |
-| `top_provider` | Provider info including `context_length`, `max_completion_tokens`, `is_moderated` |
-| `supported_parameters` | List of supported API parameters |
+| Field                  | Description                                                                       |
+| ---------------------- | --------------------------------------------------------------------------------- |
+| `id`                   | Model identifier (e.g., `openai/gpt-4`, `meta-llama/llama-3-70b`)                 |
+| `name`                 | Human-readable name                                                               |
+| `description`          | Model description                                                                 |
+| `context_length`       | Maximum context window                                                            |
+| `hugging_face_id`      | HuggingFace model ID (empty for proprietary models)                               |
+| `architecture`         | Object with `modality`, `input_modalities`, `output_modalities`, `tokenizer`      |
+| `pricing`              | Cost per token (`prompt`, `completion`, `request`, `image`)                       |
+| `top_provider`         | Provider info including `context_length`, `max_completion_tokens`, `is_moderated` |
+| `supported_parameters` | List of supported API parameters                                                  |
 
 ## Filtering Open Source vs Proprietary Models
 
@@ -147,14 +147,14 @@ curl -s "https://openrouter.ai/api/v1/models" | \
 
 Models can have special suffixes that modify behavior:
 
-| Variant | Description |
-|---------|-------------|
-| `:free` | Free tier with low rate limits |
-| `:extended` | Extended context length |
-| `:exacto` | OpenRouter-curated high-quality endpoints only |
-| `:thinking` | Model supports reasoning by default |
-| `:nitro` | Providers sorted by throughput (faster) |
-| `:floor` | Providers sorted by price (cheapest) |
+| Variant     | Description                                    |
+| ----------- | ---------------------------------------------- |
+| `:free`     | Free tier with low rate limits                 |
+| `:extended` | Extended context length                        |
+| `:exacto`   | OpenRouter-curated high-quality endpoints only |
+| `:thinking` | Model supports reasoning by default            |
+| `:nitro`    | Providers sorted by throughput (faster)        |
+| `:floor`    | Providers sorted by price (cheapest)           |
 
 ---
 
@@ -162,26 +162,27 @@ Models can have special suffixes that modify behavior:
 
 ### Fast Models (Cost-efficient, quick responses)
 
-| Model ID | Context | Notes |
-|----------|---------|-------|
-| `meta-llama/llama-3.1-8b-instruct` | 128k | Great for query expansion, HyDE |
-| `mistralai/mistral-7b-instruct` | 32k | Fast, reliable |
-| `qwen/qwen-2.5-7b-instruct` | 128k | Strong multilingual |
-| `google/gemma-2-9b-it` | 8k | Google's efficient model |
+| Model ID                           | Context | Notes                           |
+| ---------------------------------- | ------- | ------------------------------- |
+| `meta-llama/llama-3.1-8b-instruct` | 128k    | Great for query expansion, HyDE |
+| `mistralai/mistral-7b-instruct`    | 32k     | Fast, reliable                  |
+| `qwen/qwen-2.5-7b-instruct`        | 128k    | Strong multilingual             |
+| `google/gemma-2-9b-it`             | 8k      | Google's efficient model        |
 
 ### Smart Models (Higher accuracy, complex reasoning)
 
-| Model ID | Context | Notes |
-|----------|---------|-------|
-| `meta-llama/llama-3.1-70b-instruct` | 128k | Excellent for RAG responses |
-| `meta-llama/llama-3.3-70b-instruct` | 128k | Latest Llama, best quality |
-| `qwen/qwen-2.5-72b-instruct` | 128k | Strong reasoning |
-| `mistralai/mixtral-8x22b-instruct` | 64k | MoE architecture |
-| `deepseek/deepseek-chat` | 64k | Strong coding/reasoning |
+| Model ID                            | Context | Notes                       |
+| ----------------------------------- | ------- | --------------------------- |
+| `meta-llama/llama-3.1-70b-instruct` | 128k    | Excellent for RAG responses |
+| `meta-llama/llama-3.3-70b-instruct` | 128k    | Latest Llama, best quality  |
+| `qwen/qwen-2.5-72b-instruct`        | 128k    | Strong reasoning            |
+| `mistralai/mixtral-8x22b-instruct`  | 64k     | MoE architecture            |
+| `deepseek/deepseek-chat`            | 64k     | Strong coding/reasoning     |
 
 ### Free Tier Models (`:free` suffix)
 
 These have rate limits but no cost:
+
 - `meta-llama/llama-3.1-8b-instruct:free`
 - `qwen/qwen-2.5-7b-instruct:free`
 - `google/gemma-2-9b-it:free`
@@ -196,7 +197,7 @@ OpenRouter supports SSE streaming like OpenAI:
 const stream = await openrouter.chat.completions.create({
   model: 'meta-llama/llama-3.1-70b-instruct',
   messages: [{ role: 'user', content: 'Hello!' }],
-  stream: true
+  stream: true,
 });
 
 for await (const chunk of stream) {
@@ -208,13 +209,13 @@ for await (const chunk of stream) {
 
 ## Error Handling
 
-| Status | Meaning |
-|--------|---------|
-| 400 | Bad request (invalid model, params) |
-| 401 | Invalid API key |
-| 402 | Insufficient credits |
-| 429 | Rate limited |
-| 502 | Model provider error (retry) |
+| Status | Meaning                             |
+| ------ | ----------------------------------- |
+| 400    | Bad request (invalid model, params) |
+| 401    | Invalid API key                     |
+| 402    | Insufficient credits                |
+| 429    | Rate limited                        |
+| 502    | Model provider error (retry)        |
 
 ---
 

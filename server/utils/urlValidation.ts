@@ -46,7 +46,9 @@ export const isPrivateIpv6 = (ip: string): boolean => {
  * @param {string} hostname - Hostname to resolve
  * @returns {Promise<Array<{address: string, family: number}>>} Resolved addresses
  */
-export const resolveHostAddresses = async (hostname: string): Promise<Array<{ address: string; family: number }>> => {
+export const resolveHostAddresses = async (
+  hostname: string,
+): Promise<Array<{ address: string; family: number }>> => {
   try {
     const results = await dns.lookup(hostname, { all: true });
     return results.map(({ address, family }) => ({ address, family }));
@@ -60,7 +62,13 @@ export const resolveHostAddresses = async (hostname: string): Promise<Array<{ ad
  * @param {Object} addressInfo - Address info with address and family
  * @returns {boolean} True if disallowed
  */
-export const isAddressDisallowed = ({ address, family }: { address: string; family: number }): boolean => {
+export const isAddressDisallowed = ({
+  address,
+  family,
+}: {
+  address: string;
+  family: number;
+}): boolean => {
   if (family === 4) {
     return isPrivateIpv4(address);
   }
@@ -126,7 +134,9 @@ export const validateIngestionUrl = async (rawUrl: string): Promise<string> => {
   }
 
   if (addresses.some(isAddressDisallowed)) {
-    const error: ValidationError = new Error('Ingestion URL resolves to a private or disallowed address');
+    const error: ValidationError = new Error(
+      'Ingestion URL resolves to a private or disallowed address',
+    );
     error.statusCode = 400;
     throw error;
   }

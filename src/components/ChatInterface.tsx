@@ -31,9 +31,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const { pullOffset, handleTouchStart, handleTouchMove, handleTouchEnd } =
     useChatPullToRefresh(messagesContainerRef);
 
-  const handleSend = useCallback((message: string) => {
-    onSendMessage(message);
-  }, [onSendMessage]);
+  const handleSend = useCallback(
+    (message: string) => {
+      onSendMessage(message);
+    },
+    [onSendMessage],
+  );
 
   const handleCopy = useCallback(async (text: string) => {
     try {
@@ -127,10 +130,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           transition: 'bottom 0.3s ease-out',
         }}
       >
-        <ChatInput
-          onSendMessage={handleSend}
-          isLoading={isLoading}
-        />
+        <ChatInput onSendMessage={handleSend} isLoading={isLoading} />
       </div>
     </div>
   );

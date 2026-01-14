@@ -76,7 +76,7 @@ export const createHelmetConfig = () => ({
  * @param {Function} options.logger - Logger function for warnings
  * @returns {CorsOptions} CORS options
  */
-export const createCorsConfig = ({ logger } = {}) => {
+export const createCorsConfig = ({ logger, } = {}) => {
     const allowedOrigins = isDevelopment
         ? [
             'http://localhost:3000',

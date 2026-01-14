@@ -1,6 +1,7 @@
 # Retrieval Pipeline Latency Trace
 
 ## Summary
+
 I traced the retrieval pipeline using `trace_retrieval.py` against the `gemini-3-pro-preview` model.
 
 **Total Latency:** ~65s (Client-side) / ~56s (Server reported)
@@ -8,19 +9,19 @@ I traced the retrieval pipeline using `trace_retrieval.py` against the `gemini-3
 ## Latency Breakdown
 
 1.  **Query Classification:** **7.78s**
-    *   This step uses the "Fast Model" (`gemini-2.5-flash`) to classify intent and extract entities.
-    *   Latency is higher than expected for a Flash model, possibly due to cold start or network overhead.
+    - This step uses the "Fast Model" (`gemini-2.5-flash`) to classify intent and extract entities.
+    - Latency is higher than expected for a Flash model, possibly due to cold start or network overhead.
 
 2.  **Retrieval Phase:** **6.72s**
-    *   **Multi-Query Generation:** **6.06s** (Major component). This uses `gemini-2.5-flash` to generate synonyms.
-    *   **Vector Search:** ~1.5s
-    *   **BM25:** ~0.004s (Very fast)
-    *   **Reranking:** ~0.65s (Fast)
-    *   **RRF Merge:** ~0.001s (Negligible)
+    - **Multi-Query Generation:** **6.06s** (Major component). This uses `gemini-2.5-flash` to generate synonyms.
+    - **Vector Search:** ~1.5s
+    - **BM25:** ~0.004s (Very fast)
+    - **Reranking:** ~0.65s (Fast)
+    - **RRF Merge:** ~0.001s (Negligible)
 
 3.  **Generation Phase:** **25.06s**
-    *   This is the Gemini 3 Pro model generating the final answer.
-    *   Time to First Token: **17.58s** (Total time before user sees text).
+    - This is the Gemini 3 Pro model generating the final answer.
+    - Time to First Token: **17.58s** (Total time before user sees text).
 
 ## Optimizations Implemented
 

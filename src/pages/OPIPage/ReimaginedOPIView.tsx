@@ -280,7 +280,7 @@ export default function ReimaginedOPIView({
   }, [allUnits, localSearchTerm]);
 
   // Get contacts based on view and filter
-  const getDisplayContacts = () => {
+  const getDisplayContacts = useCallback(() => {
     let contacts = [];
 
     switch (localView) {
@@ -304,12 +304,9 @@ export default function ReimaginedOPIView({
     }
 
     return contacts;
-  };
+  }, [localView, fscContacts, fmcContacts, allContacts, filterType]);
 
-  const displayContacts = useMemo(
-    () => getDisplayContacts(),
-    [localView, fscContacts, fmcContacts, allContacts, filterType],
-  );
+  const displayContacts = useMemo(() => getDisplayContacts(), [getDisplayContacts]);
 
   const handleContactClick = useCallback((email) => {
     window.location.href = `mailto:${email}`;

@@ -2,15 +2,20 @@ import { UnitSystem } from '@googlemaps/google-maps-services-js';
 import { DEFAULT_MAPS_TIMEOUT_MS, getEnvNumber } from '../config/constants.js';
 import { respondWithError } from '../utils/http.js';
 const getTimeout = (config) => {
-    if (Number.isFinite(config?.mapsTimeout)) {
+    if (config?.mapsTimeout && Number.isFinite(config.mapsTimeout)) {
         return config.mapsTimeout;
     }
     const envTimeout = getEnvNumber('MAPS_TIMEOUT', DEFAULT_MAPS_TIMEOUT_MS);
     return envTimeout || DEFAULT_MAPS_TIMEOUT_MS;
 };
-export const createMapsController = ({ googleMapsClient, config = {}, logger }) => {
+export const createMapsController = ({ googleMapsClient, config = {}, logger, }) => {
     const scopedLogger = logger?.child ? logger.child({ scope: 'controller:maps' }) : logger;
-    const emit = (level, message, meta) => scopedLogger?.[level]?.(message, meta);
+    const emit = (level, message, meta) => {
+        const loggerFunc = scopedLogger[level];
+        if (typeof loggerFunc === 'function') {
+            loggerFunc(message, meta);
+        }
+    };
     const ensureClient = (res) => {
         if (!googleMapsClient) {
             respondWithError(res, {
@@ -54,10 +59,11 @@ export const createMapsController = ({ googleMapsClient, config = {}, logger }) 
                 });
             }
             if (element.status !== 'OK') {
+                const errorData = element;
                 return respondWithError(res, {
                     status: 422,
                     error: element.status,
-                    message: element.error_message || 'Failed to calculate distance', // error_message might not be in generic types
+                    message: errorData.error_message || 'Failed to calculate distance',
                     logger: scopedLogger,
                     level: 'warn',
                     details: { origin, destination, mode, elementStatus: element.status },
@@ -88,23 +94,24 @@ export const createMapsController = ({ googleMapsClient, config = {}, logger }) 
             res.json(result);
         }
         catch (error) {
-            if (error?.response?.status === 403) {
+            const err = error;
+            if (err?.response?.status === 403) {
                 return respondWithError(res, {
                     status: 403,
                     error: 'Forbidden',
                     message: 'Ensure the Google Maps API key has Distance Matrix API enabled.',
                     logger: scopedLogger,
                     level: 'warn',
-                    cause: error,
+                    cause: err,
                     details: { origin, destination, mode },
                 });
             }
             return respondWithError(res, {
-                status: error?.response?.status || 500,
+                status: err?.response?.status || 500,
                 error: 'FailedToCalculateDistance',
-                message: error?.message || 'Failed to calculate distance',
+                message: err?.message || 'Failed to calculate distance',
                 logger: scopedLogger,
-                cause: error,
+                cause: err,
                 details: { origin, destination, mode },
             });
         }
@@ -135,29 +142,30 @@ export const createMapsController = ({ googleMapsClient, config = {}, logger }) 
                 params.components = components;
             }
             const response = await googleMapsClient.placeAutocomplete({
-                params,
+                params: params,
                 timeout: getTimeout(config),
             });
             res.json(response.data);
         }
         catch (error) {
-            if (error?.response?.status === 403) {
+            const err = error;
+            if (err?.response?.status === 403) {
                 return respondWithError(res, {
                     status: 403,
                     error: 'Forbidden',
                     message: 'Ensure the Google Maps API key has Places API enabled.',
                     logger: scopedLogger,
                     level: 'warn',
-                    cause: error,
+                    cause: err,
                     details: { input },
                 });
             }
             return respondWithError(res, {
-                status: error?.response?.status || 500,
+                status: err?.response?.status || 500,
                 error: 'AutocompleteFailed',
-                message: error?.message || 'Failed to fetch autocomplete predictions',
+                message: err?.message || 'Failed to fetch autocomplete predictions',
                 logger: scopedLogger,
-                cause: error,
+                cause: err,
                 details: { input },
             });
         }
@@ -185,29 +193,30 @@ export const createMapsController = ({ googleMapsClient, config = {}, logger }) 
                 params.sessiontoken = sessiontoken;
             }
             const response = await googleMapsClient.placeDetails({
-                params,
+                params: params,
                 timeout: getTimeout(config),
             });
             res.json(response.data);
         }
         catch (error) {
-            if (error?.response?.status === 403) {
+            const err = error;
+            if (err?.response?.status === 403) {
                 return respondWithError(res, {
                     status: 403,
                     error: 'Forbidden',
                     message: 'Ensure the Google Maps API key has Places API enabled.',
                     logger: scopedLogger,
                     level: 'warn',
-                    cause: error,
+                    cause: err,
                     details: { placeId },
                 });
             }
             return respondWithError(res, {
-                status: error?.response?.status || 500,
+                status: err?.response?.status || 500,
                 error: 'PlaceDetailsFailed',
-                message: error?.message || 'Failed to fetch place details',
+                message: err?.message || 'Failed to fetch place details',
                 logger: scopedLogger,
-                cause: error,
+                cause: err,
                 details: { placeId },
             });
         }

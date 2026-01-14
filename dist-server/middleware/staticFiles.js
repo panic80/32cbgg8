@@ -149,7 +149,7 @@ export const createMimeTypeMiddleware = () => (req, res, next) => {
  * @param {Object} options.app - Express app
  * @param {string} options.landingPath - Path to landing page assets
  */
-export const setupLandingRoutes = ({ app, landingPath }) => {
+export const setupLandingRoutes = ({ app, landingPath, }) => {
     if (!landingPath) {
         logger.error('Could not find landing page directory');
         return;

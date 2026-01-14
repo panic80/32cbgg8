@@ -100,7 +100,7 @@ export const useModelConfig = () => {
         operationModels: { ...prev.operationModels, [operation]: designation },
       }));
     },
-    []
+    [],
   );
 
   const saveConfig = useCallback(async () => {
@@ -114,7 +114,7 @@ export const useModelConfig = () => {
           fastModel: config.fastModel,
           smartModel: config.smartModel,
           operationModels: config.operationModels,
-        }
+        },
       );
 
       if (response.success) {

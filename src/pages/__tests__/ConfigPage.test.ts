@@ -3,12 +3,21 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 
-(globalThis as any).$RefreshReg$ = () => {};
-(globalThis as any).$RefreshSig$ = () => () => {};
-(globalThis as any).__vite_plugin_react_preamble_installed__ = true;
+declare global {
+  // eslint-disable-next-line no-var
+  var $RefreshReg$: () => void;
+  // eslint-disable-next-line no-var
+  var $RefreshSig$: () => () => void;
+  // eslint-disable-next-line no-var
+  var __vite_plugin_react_preamble_installed__: boolean;
+}
+
+globalThis.$RefreshReg$ = () => {};
+globalThis.$RefreshSig$ = () => () => {};
+globalThis.__vite_plugin_react_preamble_installed__ = true;
 
 let ConfigPage: typeof import('@/pages/ConfigPage').default;
-let fetchMock: ReturnType<typeof vi.fn>;
+let fetchMock: import('vitest').Mock;
 
 vi.mock('react-router-dom', () => {
   const React = require('react');
@@ -48,7 +57,17 @@ vi.mock('@/components/ui/tabs', () => {
 
   const TabsContext = React.createContext<TabsState | null>(null);
 
-  const Tabs = ({ defaultValue, value, onValueChange, children }: any) => {
+  const Tabs = ({
+    defaultValue,
+    value,
+    onValueChange,
+    children,
+  }: {
+    defaultValue?: string;
+    value?: string;
+    onValueChange?: (v: string) => void;
+    children: React.ReactNode;
+  }) => {
     const [internalValue, setInternalValue] = React.useState<string>(value ?? defaultValue ?? '');
     const active = value ?? internalValue;
     const setActive = (next: string) => {
@@ -59,10 +78,18 @@ vi.mock('@/components/ui/tabs', () => {
     return React.createElement(TabsContext.Provider, { value: { active, setActive } }, children);
   };
 
-  const TabsList = ({ children, ...rest }: any) =>
+  const TabsList = ({ children, ...rest }: { children: React.ReactNode; [key: string]: unknown }) =>
     React.createElement('div', { role: 'tablist', ...rest }, children);
 
-  const TabsTrigger = ({ value, children, ...rest }: any) => {
+  const TabsTrigger = ({
+    value,
+    children,
+    ...rest
+  }: {
+    value: string;
+    children: React.ReactNode;
+    [key: string]: unknown;
+  }) => {
     const ctx = React.useContext(TabsContext);
     if (!ctx) {
       throw new Error('TabsTrigger must be used within Tabs');
@@ -81,7 +108,15 @@ vi.mock('@/components/ui/tabs', () => {
     );
   };
 
-  const TabsContent = ({ value, children, ...rest }: any) => {
+  const TabsContent = ({
+    value,
+    children,
+    ...rest
+  }: {
+    value: string;
+    children: React.ReactNode;
+    [key: string]: unknown;
+  }) => {
     const ctx = React.useContext(TabsContext);
     if (!ctx) {
       throw new Error('TabsContent must be used within Tabs');
@@ -100,8 +135,8 @@ describe('ConfigPage', () => {
     localStorage.clear();
     vi.clearAllMocks();
     fetchMock = vi.fn();
-    (globalThis as any).fetch = fetchMock;
-    (fetchMock as any).mockResolvedValue({
+    Object.defineProperty(globalThis, 'fetch', { value: fetchMock, writable: true });
+    fetchMock.mockResolvedValue({
       ok: true,
       json: async () => ({}),
     });
@@ -174,13 +209,13 @@ describe('ConfigPage', () => {
       page_size: 100,
     };
 
-    (fetchMock as any).mockImplementation((input: RequestInfo | URL) => {
+    fetchMock.mockImplementation((input: RequestInfo | URL) => {
       const url =
         typeof input === 'string'
           ? input
           : input instanceof URL
             ? input.toString()
-            : ((input as any).url ?? input.toString());
+            : (input as Request).url;
 
       if (url === '/api/v2/sources/stats') {
         return Promise.resolve({
@@ -230,13 +265,13 @@ describe('ConfigPage', () => {
   });
 
   it('clears ingestion progress when the ingest request fails', async () => {
-    (fetchMock as any).mockImplementation((input: RequestInfo | URL) => {
+    fetchMock.mockImplementation((input: RequestInfo | URL) => {
       const url =
         typeof input === 'string'
           ? input
           : input instanceof URL
             ? input.toString()
-            : ((input as any).url ?? input.toString());
+            : (input as Request).url;
 
       if (url === '/api/v2/ingest') {
         return Promise.resolve({
@@ -306,13 +341,13 @@ describe('ConfigPage', () => {
       },
     };
 
-    (fetchMock as any).mockImplementation((input: RequestInfo | URL) => {
+    fetchMock.mockImplementation((input: RequestInfo | URL) => {
       const url =
         typeof input === 'string'
           ? input
           : input instanceof URL
             ? input.toString()
-            : ((input as any).url ?? input.toString());
+            : (input as Request).url;
 
       if (url.startsWith('/api/admin/chat-logs?')) {
         return Promise.resolve({
@@ -340,7 +375,7 @@ describe('ConfigPage', () => {
               ? requestUrl
               : requestUrl instanceof URL
                 ? requestUrl.toString()
-                : ((requestUrl as any).url ?? requestUrl.toString());
+                : ((requestUrl as Request).url ?? requestUrl.toString());
           return (
             typeof urlString === 'string' &&
             urlString.startsWith('/api/admin/chat-logs?limit=20&offset=0')
@@ -383,13 +418,13 @@ describe('ConfigPage', () => {
       },
     };
 
-    (fetchMock as any).mockImplementation((input: RequestInfo | URL) => {
+    fetchMock.mockImplementation((input: RequestInfo | URL) => {
       const url =
         typeof input === 'string'
           ? input
           : input instanceof URL
             ? input.toString()
-            : ((input as any).url ?? input.toString());
+            : (input as Request).url;
 
       if (url.startsWith('/api/admin/analytics/visits')) {
         return Promise.resolve({

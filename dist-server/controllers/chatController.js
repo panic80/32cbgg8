@@ -26,10 +26,11 @@ export const createChatController = ({ chatLogger, getRagAuthHeaders, aiService,
             return res.json({ response: text });
         }
         catch (error) {
-            chatLogger?.error?.('Gemini API error', { error });
+            const err = error;
+            chatLogger?.error?.('Gemini API error', { error: err });
             return res.status(500).json({
                 error: 'Internal Server Error',
-                message: error.message,
+                message: err.message,
             });
         }
     };
@@ -91,7 +92,13 @@ export const createChatController = ({ chatLogger, getRagAuthHeaders, aiService,
                         max_tokens: 4096,
                         messages: [{ role: 'user', content: message.trim() }],
                     })
-                        .then((anthropicMessage) => anthropicMessage.content[0].text); // type assertion needed for Anthropic SDK structure
+                        .then((anthropicMessage) => {
+                        const firstContent = anthropicMessage.content[0];
+                        if (firstContent && 'text' in firstContent) {
+                            return firstContent.text;
+                        }
+                        return '';
+                    });
                     break;
                 }
                 default:
@@ -120,7 +127,8 @@ export const createChatController = ({ chatLogger, getRagAuthHeaders, aiService,
             });
         }
         catch (error) {
-            chatLogger?.error?.('Error processing chat request', { error });
+            const err = error;
+            chatLogger?.error?.('Error processing chat request', { error: err });
             if (config?.loggingEnabled) {
                 chatLogger.logChat?.(req, {
                     timestamp: new Date().toISOString(),
@@ -131,17 +139,17 @@ export const createChatController = ({ chatLogger, getRagAuthHeaders, aiService,
                     ragEnabled: false,
                     metadata: {
                         route: '/api/v2/chat',
-                        error: error instanceof Error ? error.message : 'Unknown error',
+                        error: err.message || 'Unknown error',
                     },
                 });
             }
-            if (error.status === 429) {
+            if (err.status === 429) {
                 return res.status(429).json({
                     error: 'Rate Limit Exceeded',
                     message: 'Too many requests to the AI provider. Please try again later.',
                 });
             }
-            if (error.status === 401) {
+            if (err.status === 401) {
                 return res.status(500).json({
                     error: 'Configuration Error',
                     message: 'Invalid API key for the selected provider.',
@@ -185,15 +193,16 @@ export const createChatController = ({ chatLogger, getRagAuthHeaders, aiService,
             return res.json(ragResponse.data);
         }
         catch (error) {
+            const err = error;
             chatLogger?.error?.('RAG chat error', {
-                message: error.message,
-                code: error.code,
-                response: error.response?.data,
-                status: error.response?.status,
-                stack: error.stack,
+                message: err.message,
+                code: err.code,
+                response: err.response?.data,
+                status: err.response?.status,
+                stack: err.stack,
             });
-            if (error.response) {
-                return res.status(error.response.status).json(error.response.data);
+            if (err.response) {
+                return res.status(err.response.status).json(err.response.data);
             }
             return res.status(502).json({
                 error: 'RAG Service Unavailable',
@@ -271,11 +280,12 @@ export const createChatController = ({ chatLogger, getRagAuthHeaders, aiService,
                     ...streamingCorsHeaders,
                     'X-Accel-Buffering': 'no',
                 },
-                logger: streamLogger,
+                logger: streamLogger || undefined,
                 heartbeatIntervalMs: 15000,
                 idleTimeoutMs: DEFAULT_RAG_STREAM_TIMEOUT_MS,
                 traceId: req.headers['x-request-id'],
-                onMetadata: (event) => {
+                onMetadata: (meta) => {
+                    const event = meta;
                     if (event.conversation_id) {
                         remoteConversationId = event.conversation_id;
                     }
@@ -336,7 +346,8 @@ export const createChatController = ({ chatLogger, getRagAuthHeaders, aiService,
             });
         }
         catch (error) {
-            chatLogger?.error?.('Error with streaming chat', { error });
+            const err = error;
+            chatLogger?.error?.('Error with streaming chat', { error: err });
             if (config?.loggingEnabled) {
                 chatLogger.logChat?.(req, {
                     timestamp: new Date().toISOString(),
@@ -347,7 +358,7 @@ export const createChatController = ({ chatLogger, getRagAuthHeaders, aiService,
                     ragEnabled: useRAG,
                     metadata: {
                         route: '/api/v2/chat/stream',
-                        error: error instanceof Error ? error.message : 'Unknown error',
+                        error: err.message || 'Unknown error',
                     },
                 });
             }

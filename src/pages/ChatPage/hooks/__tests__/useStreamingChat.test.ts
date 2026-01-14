@@ -164,7 +164,7 @@ describe('useStreamingChat', () => {
   it('aborts the active fetch when the hook unmounts mid-stream', async () => {
     let capturedSignal: AbortSignal | undefined;
     global.fetch = vi.fn(async (_endpoint, init?: RequestInit) => {
-      capturedSignal = init?.signal as AbortSignal | undefined;
+      capturedSignal = init?.signal ?? undefined;
       return {
         ok: true,
         body: {
@@ -172,7 +172,7 @@ describe('useStreamingChat', () => {
             read: () => new Promise(() => {}),
           }),
         },
-      } as any;
+      } as unknown as Response;
     }) as unknown as typeof fetch;
 
     const hook = mountHook();

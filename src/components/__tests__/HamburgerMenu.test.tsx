@@ -31,13 +31,27 @@ const SheetContext = React.createContext<{
 }>({ open: false, setOpen: () => {} });
 
 vi.mock('@/components/ui/sheet', () => {
-  const Sheet = ({ open, onOpenChange, children }: any) => (
+  const Sheet = ({
+    open,
+    onOpenChange,
+    children,
+  }: {
+    open?: boolean;
+    onOpenChange?: (open: boolean) => void;
+    children: React.ReactNode;
+  }) => (
     <SheetContext.Provider value={{ open: !!open, setOpen: onOpenChange || (() => {}) }}>
       {children}
     </SheetContext.Provider>
   );
 
-  const SheetTrigger = ({ asChild, children }: any) => {
+  const SheetTrigger = ({
+    asChild,
+    children,
+  }: {
+    asChild?: boolean;
+    children: React.ReactNode;
+  }) => {
     const { setOpen } = React.useContext(SheetContext);
     if (asChild && React.isValidElement(children)) {
       const childProps = children.props as { onClick?: (event: React.MouseEvent) => void };
@@ -55,13 +69,13 @@ vi.mock('@/components/ui/sheet', () => {
     );
   };
 
-  const SheetContent = ({ children }: any) => {
+  const SheetContent = ({ children }: { children: React.ReactNode }) => {
     const { open } = React.useContext(SheetContext);
     return open ? <div>{children}</div> : null;
   };
 
-  const SheetHeader = ({ children }: any) => <div>{children}</div>;
-  const SheetTitle = ({ children }: any) => <h2>{children}</h2>;
+  const SheetHeader = ({ children }: { children: React.ReactNode }) => <div>{children}</div>;
+  const SheetTitle = ({ children }: { children: React.ReactNode }) => <h2>{children}</h2>;
 
   return {
     Sheet,
@@ -96,8 +110,16 @@ vi.mock('@/components/ui/separator', () => ({
 }));
 
 vi.mock('react-router-dom', () => ({
-  Link: ({ to, children, ...props }: any) => (
-    <a href={to} {...props}>
+  Link: ({
+    to,
+    children,
+    ...props
+  }: {
+    to: string;
+    children: React.ReactNode;
+    [key: string]: unknown;
+  }) => (
+    <a href={to} {...(props as Record<string, unknown>)}>
       {children}
     </a>
   ),

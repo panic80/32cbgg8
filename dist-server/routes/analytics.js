@@ -20,7 +20,7 @@ const createAnalyticsRoutes = ({ rateLimiter, chatLogger }) => {
             title: title || null,
             viewport: viewport || null,
             metadata: metadata && typeof metadata === 'object' ? metadata : undefined,
-            userAgent: req.get('user-agent') || null,
+            userAgent: req.get('user-agent') || undefined,
         });
         return res.status(202).json({ ok: true });
     });

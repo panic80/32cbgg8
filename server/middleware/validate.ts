@@ -1,26 +1,27 @@
 import { ZodError, ZodSchema } from 'zod';
 import type { Request, Response, NextFunction } from 'express';
 
-export const validateRequest = (schema: ZodSchema) => (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const parsed = schema.parse(req.body ?? {});
-    req.body = parsed;
-    return next();
-  } catch (error) {
-    if (error instanceof ZodError) {
+export const validateRequest =
+  (schema: ZodSchema) => (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const parsed = schema.parse(req.body ?? {});
+      req.body = parsed;
+      return next();
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return res.status(400).json({
+          error: 'Bad Request',
+          message: 'Validation failed',
+          details: error.issues.map((issue) => ({
+            path: issue.path.join('.'),
+            message: issue.message,
+          })),
+        });
+      }
+
       return res.status(400).json({
         error: 'Bad Request',
-        message: 'Validation failed',
-        details: error.issues.map((issue) => ({
-          path: issue.path.join('.'),
-          message: issue.message,
-        })),
+        message: 'Invalid request payload.',
       });
     }
-
-    return res.status(400).json({
-      error: 'Bad Request',
-      message: 'Invalid request payload.',
-    });
-  }
-};
+  };

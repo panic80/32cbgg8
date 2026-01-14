@@ -14,9 +14,9 @@ import CacheService from './services/cache.js';
 import { loadEnvironment } from './config/environment.js';
 import { createGatewayConfig } from './config/index.js';
 // Extracted modules
-import { createHelmetConfig, createCorsConfig, createSecurityHeadersMiddleware, buildSseCorsHeaders } from './config/security.js';
+import { createHelmetConfig, createCorsConfig, createSecurityHeadersMiddleware, buildSseCorsHeaders, } from './config/security.js';
 import { validateIngestionUrl } from './utils/urlValidation.js';
-import { createAdminAuthMiddleware, requiresConfigAuth, getRagAuthHeaders } from './middleware/adminAuth.js';
+import { createAdminAuthMiddleware, requiresConfigAuth, getRagAuthHeaders, } from './middleware/adminAuth.js';
 import { createRateLimiter } from './middleware/rateLimiter.js';
 import { initializeAiClients, buildOpenAIParams } from './services/aiClients.js';
 import createSystemRoutes from './routes/system.js';
@@ -169,7 +169,7 @@ app.use(createChatRoutes({
 app.use(createSupportRoutes({
     rateLimiter,
     cache,
-    config,
+    config: config,
     processContent,
     geminiClient,
     openaiClient,

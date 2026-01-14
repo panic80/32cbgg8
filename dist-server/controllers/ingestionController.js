@@ -1,8 +1,13 @@
 import { respondWithError } from '../utils/http.js';
 export const createIngestionController = ({ validateIngestionUrl, buildSseCorsHeaders, setSseHeaders, ragService, logger, }) => {
     const scopedLogger = logger?.child ? logger.child({ scope: 'controller:ingestion' }) : logger;
-    const emit = (level, message, meta) => scopedLogger?.[level]?.(message, meta);
-    const sanitizeUrl = async (rawUrl, contextMessage) => {
+    const emit = (level, message, meta) => {
+        const loggerFunc = scopedLogger[level];
+        if (typeof loggerFunc === 'function') {
+            loggerFunc(message, meta);
+        }
+    };
+    const sanitizeUrl = async (rawUrl, _contextMessage) => {
         if (!rawUrl)
             return null;
         if (!validateIngestionUrl)
@@ -13,7 +18,8 @@ export const createIngestionController = ({ validateIngestionUrl, buildSseCorsHe
             return sanitized;
         }
         catch (error) {
-            emit('warn', 'ingestion.urlRejected', { rawUrl, error: error?.message });
+            const err = error;
+            emit('warn', 'ingestion.urlRejected', { rawUrl, error: err.message });
             throw error;
         }
     };
@@ -34,10 +40,11 @@ export const createIngestionController = ({ validateIngestionUrl, buildSseCorsHe
                 sanitizedUrl = await sanitizeUrl(url, 'ingest');
             }
             catch (validationError) {
+                const err = validationError;
                 return respondWithError(res, {
-                    status: validationError.statusCode || 400,
+                    status: err.statusCode || 400,
                     error: 'InvalidIngestionUrl',
-                    message: validationError.message,
+                    message: err.message,
                     logger: scopedLogger,
                     level: 'warn',
                 });
@@ -49,7 +56,7 @@ export const createIngestionController = ({ validateIngestionUrl, buildSseCorsHe
                 content,
                 type,
                 metadata,
-                forceRefresh
+                forceRefresh,
             });
             emit('info', 'ingestion.forwardSuccess', {
                 hasUrl: Boolean(sanitizedUrl),
@@ -59,19 +66,20 @@ export const createIngestionController = ({ validateIngestionUrl, buildSseCorsHe
             return res.json(response.data);
         }
         catch (error) {
+            const err = error;
             emit('error', 'ingestion.forwardFailed', {
-                error: error?.message,
-                status: error?.response?.status,
+                error: err.message,
+                status: err.response?.status,
             });
-            if (error.response) {
-                return res.status(error.response.status).json(error.response.data);
+            if (err.response) {
+                return res.status(err.response.status).json(err.response.data);
             }
             return respondWithError(res, {
                 status: 500,
                 error: 'IngestionUpstreamFailure',
                 message: 'Failed to ingest document.',
                 logger: scopedLogger,
-                cause: error,
+                cause: err,
             });
         }
     };
@@ -82,19 +90,20 @@ export const createIngestionController = ({ validateIngestionUrl, buildSseCorsHe
             return res.json(response.data);
         }
         catch (error) {
+            const err = error;
             emit('error', 'ingestion.canadaCaFailed', {
-                error: error?.message,
-                status: error?.response?.status,
+                error: err.message,
+                status: err.response?.status,
             });
-            if (error.response) {
-                return res.status(error.response.status).json(error.response.data);
+            if (err.response) {
+                return res.status(err.response.status).json(err.response.data);
             }
             return respondWithError(res, {
                 status: 500,
                 error: 'CanadaCaIngestionFailure',
                 message: 'Failed to ingest Canada.ca content.',
                 logger: scopedLogger,
-                cause: error,
+                cause: err,
             });
         }
     };
@@ -115,10 +124,11 @@ export const createIngestionController = ({ validateIngestionUrl, buildSseCorsHe
             sanitizedTargetUrl = await sanitizeUrl(targetUrl, 'progress');
         }
         catch (validationError) {
+            const err = validationError;
             return respondWithError(res, {
-                status: validationError.statusCode || 400,
+                status: err.statusCode || 400,
                 error: 'InvalidIngestionUrl',
-                message: validationError.message,
+                message: err.message,
                 logger: scopedLogger,
                 level: 'warn',
             });
@@ -138,16 +148,17 @@ export const createIngestionController = ({ validateIngestionUrl, buildSseCorsHe
             });
         }
         catch (error) {
+            const err = error;
             emit('error', 'ingestion.progressFailed', {
-                error: error?.message,
-                status: error?.response?.status,
+                error: err.message,
+                status: err.response?.status,
             });
             return respondWithError(res, {
                 status: 500,
                 error: 'ProgressStreamError',
                 message: 'Failed to connect to progress stream',
                 logger: scopedLogger,
-                cause: error,
+                cause: err,
             });
         }
     };

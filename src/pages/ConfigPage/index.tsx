@@ -270,11 +270,12 @@ export default function ConfigPage() {
       addActivityLogEntry('Database Purged', 'All documents removed from vector database');
       // Reload database stats
       await refreshDatabaseMetrics();
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof ApiError) {
+        const errorData = error.data as Record<string, unknown> | undefined;
         const message =
-          typeof (error.data as any)?.message === 'string'
-            ? (error.data as any).message
+          typeof errorData?.message === 'string'
+            ? errorData.message
             : error.statusText || error.message;
         toast.error(message || 'Failed to purge database');
       } else if (error instanceof Error) {
@@ -293,11 +294,12 @@ export default function ConfigPage() {
       await buildBM25Index();
       toast.success('BM25 index build started');
       addActivityLogEntry('BM25 Build', 'Started rebuilding BM25 index');
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof ApiError) {
+        const errorData = error.data as Record<string, unknown> | undefined;
         const message =
-          typeof (error.data as any)?.message === 'string'
-            ? (error.data as any).message
+          typeof errorData?.message === 'string'
+            ? errorData.message
             : error.statusText || error.message;
         toast.error(message || 'Failed to build BM25 index');
       } else if (error instanceof Error) {
@@ -428,7 +430,8 @@ export default function ConfigPage() {
                         HyDE (Hypothetical Document Embeddings)
                       </Label>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Generate hypothetical answers to improve retrieval accuracy. Uses the Fast model.
+                        Generate hypothetical answers to improve retrieval accuracy. Uses the Fast
+                        model.
                       </p>
                     </div>
                     <div className="flex items-center gap-2">

@@ -3,8 +3,8 @@ import { validateRequest } from '../middleware/validate.js';
 import { visitEventSchema } from './schemas/analyticsSchemas.js';
 
 interface AnalyticsRoutesConfig {
-  rateLimiter: any;
-  chatLogger: any;
+  rateLimiter: import('express').RequestHandler;
+  chatLogger: import('../services/logger.js').Logger;
 }
 
 const createAnalyticsRoutes = ({ rateLimiter, chatLogger }: AnalyticsRoutesConfig) => {
@@ -29,7 +29,7 @@ const createAnalyticsRoutes = ({ rateLimiter, chatLogger }: AnalyticsRoutesConfi
       title: title || null,
       viewport: viewport || null,
       metadata: metadata && typeof metadata === 'object' ? metadata : undefined,
-      userAgent: req.get('user-agent') || null,
+      userAgent: req.get('user-agent') || undefined,
     });
 
     return res.status(202).json({ ok: true });

@@ -34,24 +34,24 @@ export default defineConfig(({ command, mode }) => {
                 url: req.url,
                 headers: req.headers,
               });
-              
+
               try {
                 // Ensure res is a ServerResponse before trying to write to it
                 if (!res.headersSent) {
-                    res.writeHead(500, {
-                        'Content-Type': 'application/json',
-                    });
-                    res.end(
-                        JSON.stringify({
-                        error: 'Proxy Error',
-                        message: 'Failed to connect to consolidated backend server',
-                        details: err.message,
-                        timestamp: new Date().toISOString(),
-                        }),
-                    );
+                  res.writeHead(500, {
+                    'Content-Type': 'application/json',
+                  });
+                  res.end(
+                    JSON.stringify({
+                      error: 'Proxy Error',
+                      message: 'Failed to connect to consolidated backend server',
+                      details: err.message,
+                      timestamp: new Date().toISOString(),
+                    }),
+                  );
                 }
               } catch (e) {
-                  console.error('Error sending error response:', e);
+                console.error('Error sending error response:', e);
               }
             });
 

@@ -65,10 +65,9 @@ export const useRAGConfig = () => {
     setError(null);
 
     try {
-      const response = await apiClient.postJson<RAGConfigUpdateResponse>(
-        '/api/admin/rag/config',
-        { config_updates: updates }
-      );
+      const response = await apiClient.postJson<RAGConfigUpdateResponse>('/api/admin/rag/config', {
+        config_updates: updates,
+      });
 
       if (response.status === 'success') {
         // Update local state
@@ -93,9 +92,12 @@ export const useRAGConfig = () => {
     }
   }, []);
 
-  const toggleHyDE = useCallback(async (enabled: boolean) => {
-    return updateConfig({ enable_hyde: enabled });
-  }, [updateConfig]);
+  const toggleHyDE = useCallback(
+    async (enabled: boolean) => {
+      return updateConfig({ enable_hyde: enabled });
+    },
+    [updateConfig],
+  );
 
   return {
     config,

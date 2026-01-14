@@ -101,7 +101,7 @@ interface RawSource {
   page?: number;
   score?: number;
   source?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 interface StreamingEvent {
@@ -116,8 +116,8 @@ interface StreamingEvent {
   content?: string;
   sources?: RawSource[];
   conversation_id?: string;
-  follow_up_questions?: Array<string | any>;
-  delta?: any;
+  follow_up_questions?: Array<string | Record<string, unknown>>;
+  delta?: unknown;
   message?: string;
 }
 

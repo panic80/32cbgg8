@@ -5,9 +5,9 @@ export const loggingMiddleware = (req: Request, res: Response, next: NextFunctio
   const originalSend = res.send;
 
   // Override send method to capture responses
-  res.send = function (data: any) {
-    res.locals.responseData = data;
-    return originalSend.apply(res, arguments as any);
+  res.send = function (this: Response, body?: unknown): Response {
+    res.locals.responseData = body;
+    return originalSend.call(this, body);
   };
 
   // Continue to next middleware

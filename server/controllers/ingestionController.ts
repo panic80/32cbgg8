@@ -5,8 +5,8 @@ interface IngestionControllerConfig {
   validateIngestionUrl?: (url: string) => Promise<string>;
   buildSseCorsHeaders?: (origin?: string) => Record<string, string>;
   setSseHeaders?: (res: Response, headers?: Record<string, string | number>) => void;
-  ragService: any;
-  logger: any;
+  ragService: ReturnType<typeof import('../services/RagService.js').createRagService>;
+  logger: import('../services/logger.js').Logger;
 }
 
 export const createIngestionController = ({
@@ -17,9 +17,17 @@ export const createIngestionController = ({
   logger,
 }: IngestionControllerConfig) => {
   const scopedLogger = logger?.child ? logger.child({ scope: 'controller:ingestion' }) : logger;
-  const emit = (level: string, message: string, meta?: any) => scopedLogger?.[level]?.(message, meta);
+  const emit = (level: string, message: string, meta?: unknown) => {
+    const loggerFunc = (scopedLogger as unknown as Record<string, unknown>)[level];
+    if (typeof loggerFunc === 'function') {
+      (loggerFunc as Function)(message, meta);
+    }
+  };
 
-  const sanitizeUrl = async (rawUrl: string | undefined, contextMessage: string): Promise<string | null> => {
+  const sanitizeUrl = async (
+    rawUrl: string | undefined,
+    _contextMessage: string,
+  ): Promise<string | null> => {
     if (!rawUrl) return null;
     if (!validateIngestionUrl) return rawUrl;
 
@@ -27,8 +35,9 @@ export const createIngestionController = ({
       const sanitized = await validateIngestionUrl(rawUrl);
       emit('debug', 'ingestion.urlValidated', { rawUrl, sanitized });
       return sanitized;
-    } catch (error: any) {
-      emit('warn', 'ingestion.urlRejected', { rawUrl, error: error?.message });
+    } catch (error: unknown) {
+      const err = error as Error;
+      emit('warn', 'ingestion.urlRejected', { rawUrl, error: err.message });
       throw error;
     }
   };
@@ -50,11 +59,12 @@ export const createIngestionController = ({
     if (url) {
       try {
         sanitizedUrl = await sanitizeUrl(url, 'ingest');
-      } catch (validationError: any) {
+      } catch (validationError: unknown) {
+        const err = validationError as Error & { statusCode?: number };
         return respondWithError(res, {
-          status: validationError.statusCode || 400,
+          status: err.statusCode || 400,
           error: 'InvalidIngestionUrl',
-          message: validationError.message,
+          message: err.message,
           logger: scopedLogger,
           level: 'warn',
         });
@@ -63,11 +73,11 @@ export const createIngestionController = ({
 
     try {
       const response = await ragService.ingest({
-        url: sanitizedUrl,
+        url: sanitizedUrl as string,
         content,
         type,
         metadata,
-        forceRefresh
+        forceRefresh,
       });
 
       emit('info', 'ingestion.forwardSuccess', {
@@ -77,14 +87,15 @@ export const createIngestionController = ({
       });
 
       return res.json(response.data);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as Error & { response?: { status: number; data: Record<string, unknown> } };
       emit('error', 'ingestion.forwardFailed', {
-        error: error?.message,
-        status: error?.response?.status,
+        error: err.message,
+        status: err.response?.status,
       });
 
-      if (error.response) {
-        return res.status(error.response.status).json(error.response.data);
+      if (err.response) {
+        return res.status(err.response.status).json(err.response.data);
       }
 
       return respondWithError(res, {
@@ -92,7 +103,7 @@ export const createIngestionController = ({
         error: 'IngestionUpstreamFailure',
         message: 'Failed to ingest document.',
         logger: scopedLogger,
-        cause: error,
+        cause: err,
       });
     }
   };
@@ -102,14 +113,15 @@ export const createIngestionController = ({
       const response = await ragService.ingestCanadaCa();
       emit('info', 'ingestion.canadaCaSuccess');
       return res.json(response.data);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as Error & { response?: { status: number; data: Record<string, unknown> } };
       emit('error', 'ingestion.canadaCaFailed', {
-         error: error?.message,
-         status: error?.response?.status,
+        error: err.message,
+        status: err.response?.status,
       });
 
-      if (error.response) {
-        return res.status(error.response.status).json(error.response.data);
+      if (err.response) {
+        return res.status(err.response.status).json(err.response.data);
       }
 
       return respondWithError(res, {
@@ -117,7 +129,7 @@ export const createIngestionController = ({
         error: 'CanadaCaIngestionFailure',
         message: 'Failed to ingest Canada.ca content.',
         logger: scopedLogger,
-        cause: error,
+        cause: err,
       });
     }
   };
@@ -139,11 +151,12 @@ export const createIngestionController = ({
     let sanitizedTargetUrl;
     try {
       sanitizedTargetUrl = await sanitizeUrl(targetUrl, 'progress');
-    } catch (validationError: any) {
+    } catch (validationError: unknown) {
+      const err = validationError as Error & { statusCode?: number };
       return respondWithError(res, {
-        status: validationError.statusCode || 400,
+        status: err.statusCode || 400,
         error: 'InvalidIngestionUrl',
-        message: validationError.message,
+        message: err.message,
         logger: scopedLogger,
         level: 'warn',
       });
@@ -165,17 +178,18 @@ export const createIngestionController = ({
       req.on('close', () => {
         response.data.destroy();
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as Error & { response?: { status: number } };
       emit('error', 'ingestion.progressFailed', {
-        error: error?.message,
-        status: error?.response?.status,
+        error: err.message,
+        status: err.response?.status,
       });
       return respondWithError(res, {
         status: 500,
         error: 'ProgressStreamError',
         message: 'Failed to connect to progress stream',
         logger: scopedLogger,
-        cause: error,
+        cause: err,
       });
     }
   };

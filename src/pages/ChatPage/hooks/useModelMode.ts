@@ -21,7 +21,10 @@ interface ModelConfig {
  * Get the configured fast/smart models from localStorage.
  * This reads the config saved by the config page.
  */
-const getConfiguredModels = (): { fast: { provider: string; model: string }; smart: { provider: string; model: string } } => {
+const getConfiguredModels = (): {
+  fast: { provider: string; model: string };
+  smart: { provider: string; model: string };
+} => {
   try {
     const stored = getLocalStorageItem(MODEL_CONFIG_STORAGE_KEY);
     if (stored) {

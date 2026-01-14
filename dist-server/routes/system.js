@@ -27,7 +27,6 @@ const createSystemRoutes = ({ config, cache, requireAdminAuth, chatLogger, aiCli
         // Get cache stats
         const cacheStats = cache ? cache.getStats() : null;
         const cacheHealth = cache ? cache.getHealth() : { status: 'disabled' };
-        // Try to get travel instructions cache info
         const travelInstructionsCache = cache ? await cache.get('travel-instructions') : null;
         const cacheAge = travelInstructionsCache && travelInstructionsCache.timestamp
             ? Math.floor((Date.now() - travelInstructionsCache.timestamp) / 1000) + 's'
@@ -121,7 +120,7 @@ const createSystemRoutes = ({ config, cache, requireAdminAuth, chatLogger, aiCli
         res.json(publicHealthData);
     });
     // API configuration endpoint with environment-specific settings
-    router.get('/api/config', (req, res) => {
+    router.get('/api/config', (_req, res) => {
         // Safe configuration that doesn't expose sensitive info
         const responseConfig = {
             version: '1.0.0',
@@ -176,7 +175,7 @@ const createSystemRoutes = ({ config, cache, requireAdminAuth, chatLogger, aiCli
         res.json(responseConfig);
     });
     // Deployment verification endpoint (for debugging cache issues)
-    router.get('/api/deployment-info', requireAdminAuth, (req, res) => {
+    router.get('/api/deployment-info', requireAdminAuth, (_req, res) => {
         const buildInfo = {
             timestamp: new Date().toISOString(),
             buildTime: process.env.BUILD_TIMESTAMP,

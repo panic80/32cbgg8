@@ -61,15 +61,16 @@ const gracefulShutdown = async (signal: string) => {
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
-process.on('unhandledRejection', (reason: any, promise) => {
+process.on('unhandledRejection', (reason: unknown, _promise) => {
+  const err = reason as Error & { stack?: string };
   logger.error('Unhandled promise rejection', {
-    reason: reason instanceof Error ? reason.message : reason,
+    reason: err instanceof Error ? err.message : String(reason),
   });
   if (chatLogger && config.loggingEnabled) {
     chatLogger.log({
       type: 'unhandledRejection',
-      reason: reason?.toString(),
-      stack: reason?.stack,
+      reason: String(reason),
+      stack: err?.stack,
       timestamp: new Date().toISOString(),
     });
   }

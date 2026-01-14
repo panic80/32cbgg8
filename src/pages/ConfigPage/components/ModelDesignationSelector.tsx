@@ -44,7 +44,7 @@ interface ModelDesignationSelectorProps {
   onSmartModelChange: (config: ModelConfig) => void;
   onOperationModelChange: (
     operation: keyof OperationModelConfig,
-    designation: ModelDesignation
+    designation: ModelDesignation,
   ) => void;
 }
 
@@ -83,7 +83,10 @@ export const ModelDesignationSelector: React.FC<ModelDesignationSelectorProps> =
       id: m.id,
       name: m.name,
       provider: 'openrouter' as ModelProvider,
-      description: m.recommended === 'fast' ? 'Recommended for fast operations' : 'Recommended for smart operations',
+      description:
+        m.recommended === 'fast'
+          ? 'Recommended for fast operations'
+          : 'Recommended for smart operations',
       isRecommended: true,
     }));
 
@@ -184,7 +187,10 @@ export const ModelDesignationSelector: React.FC<ModelDesignationSelectorProps> =
               <Zap className="h-4 w-4 text-amber-500" />
               Fast Model
             </Label>
-            <Select value={getFullModelId(fastModel)} onValueChange={(v) => handleModelSelect('fast', v)}>
+            <Select
+              value={getFullModelId(fastModel)}
+              onValueChange={(v) => handleModelSelect('fast', v)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select fast model" />
               </SelectTrigger>
@@ -199,7 +205,9 @@ export const ModelDesignationSelector: React.FC<ModelDesignationSelectorProps> =
                       {models.map((m) => (
                         <SelectItem key={`${provider}:${m.id}`} value={`${provider}:${m.id}`}>
                           <span className="flex items-center gap-1.5 truncate">
-                            {m.isRecommended && <Star className="h-3 w-3 text-yellow-500 shrink-0" />}
+                            {m.isRecommended && (
+                              <Star className="h-3 w-3 text-yellow-500 shrink-0" />
+                            )}
                             {m.name}
                           </span>
                         </SelectItem>
@@ -219,7 +227,10 @@ export const ModelDesignationSelector: React.FC<ModelDesignationSelectorProps> =
               <Brain className="h-4 w-4 text-purple-500" />
               Smart Model
             </Label>
-            <Select value={getFullModelId(smartModel)} onValueChange={(v) => handleModelSelect('smart', v)}>
+            <Select
+              value={getFullModelId(smartModel)}
+              onValueChange={(v) => handleModelSelect('smart', v)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select smart model" />
               </SelectTrigger>
@@ -234,7 +245,9 @@ export const ModelDesignationSelector: React.FC<ModelDesignationSelectorProps> =
                       {models.map((m) => (
                         <SelectItem key={`${provider}:${m.id}`} value={`${provider}:${m.id}`}>
                           <span className="flex items-center gap-1.5 truncate">
-                            {m.isRecommended && <Star className="h-3 w-3 text-yellow-500 shrink-0" />}
+                            {m.isRecommended && (
+                              <Star className="h-3 w-3 text-yellow-500 shrink-0" />
+                            )}
                             {m.name}
                           </span>
                         </SelectItem>

@@ -7,9 +7,14 @@ export const createRagService = ({ httpClient = axios, getRagAuthHeaders, config
     const maxRetries = config.ingestMaxRetries ?? config.maxRetries ?? DEFAULT_MAX_RETRIES;
     const retryDelayMs = config.ingestRetryDelay ?? config.retryDelay ?? DEFAULT_RETRY_DELAY_MS;
     const scopedLogger = logger?.child ? logger.child({ scope: 'service:rag' }) : logger;
-    const emit = (level, message, meta) => scopedLogger?.[level]?.(message, meta);
+    const emit = (level, message, meta) => {
+        const loggerFunc = scopedLogger[level];
+        if (typeof loggerFunc === 'function') {
+            loggerFunc(message, meta);
+        }
+    };
     const normalizeHttpClient = () => {
-        if (httpClient?.request || (httpClient?.post && httpClient?.get)) {
+        if (httpClient && (typeof httpClient.post === 'function' && typeof httpClient.get === 'function')) {
             return httpClient;
         }
         return axios;
@@ -24,19 +29,20 @@ export const createRagService = ({ httpClient = axios, getRagAuthHeaders, config
         for (let attempt = 1; attempt <= Math.max(1, maxRetries); attempt += 1) {
             try {
                 const response = await client.post(endpoint, payload, {
-                    timeout: ingestTimeout,
+                    timeout: ingestTimeout || DEFAULT_INGEST_TIMEOUT_MS,
                     headers: prepareHeaders(),
                 });
                 return response;
             }
             catch (error) {
-                lastError = error;
-                const status = error?.response?.status;
+                const err = error;
+                lastError = err;
+                const status = err?.response?.status;
                 emit('warn', 'rag_service.postFailed', {
                     endpoint,
                     attempt,
                     status,
-                    error: error?.message,
+                    error: err?.message,
                 });
                 if (status && status < 500) {
                     break;
@@ -69,7 +75,7 @@ export const createRagService = ({ httpClient = axios, getRagAuthHeaders, config
                 'Cache-Control': 'no-cache',
                 ...prepareHeaders(),
             },
-            timeout: ingestTimeout,
+            timeout: ingestTimeout || DEFAULT_INGEST_TIMEOUT_MS,
         });
     };
     return {

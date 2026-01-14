@@ -22,8 +22,8 @@ const parseQuestions = (text) => {
             .map((q, idx) => ({
             id: `followup-${Date.now()}-${idx}`,
             question: typeof q === 'string' ? q : (q?.question ?? ''),
-            category: q?.category || 'related',
-            confidence: q?.confidence || 0.7,
+            category: typeof q === 'string' ? 'related' : q?.category || 'related',
+            confidence: typeof q === 'string' ? 0.7 : q?.confidence || 0.7,
         }))
             .filter((q) => q.question.trim().length > 0);
     }
@@ -64,7 +64,8 @@ export const createSupportController = ({ geminiClient, openaiClient, anthropicC
                             max_tokens: 4096,
                             messages: [{ role: 'user', content: prompt }],
                         });
-                        const text = response.content?.[0]?.text ?? '';
+                        const firstContent = response.content?.[0];
+                        const text = firstContent && 'text' in firstContent ? firstContent.text : '';
                         followUpQuestions = parseQuestions(text);
                     }
                     break;
@@ -94,7 +95,7 @@ export const createSupportController = ({ geminiClient, openaiClient, anthropicC
             const ifNoneMatch = req.headers['if-none-match'];
             if (cache) {
                 const cachedData = await cache.get('travel-instructions');
-                if (cachedData?.content && cachedData.etag) {
+                if (cachedData && cachedData.content && cachedData.etag) {
                     if (ifNoneMatch && ifNoneMatch === cachedData.etag) {
                         return res.status(304).send();
                     }
@@ -166,9 +167,10 @@ export const createSupportController = ({ geminiClient, openaiClient, anthropicC
             });
         }
         catch (error) {
+            const err = error;
             return res.status(500).json({
                 error: 'Failed to fetch travel instructions',
-                message: error.message,
+                message: err.message,
             });
         }
     };

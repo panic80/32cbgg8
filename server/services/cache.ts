@@ -11,10 +11,10 @@ interface CacheConfig {
   redisRetryAttempts?: number;
   redisTimeout?: number;
   enableLogging?: boolean;
-  logger?: any;
+  logger?: import('./logger.js').Logger;
 }
 
-interface MemoryEntry<T> {
+interface MemoryEntry<_T> {
   value: string;
   timestamp: number;
   expiry: number;
@@ -41,12 +41,12 @@ interface CacheMetrics {
  * - Health monitoring and metrics
  * - Configurable cache strategies
  */
-class CacheService {
+export class CacheService {
   public config: Required<Omit<CacheConfig, 'redisUrl' | 'logger'>> & { redisUrl: string };
   private redisClient: RedisClientType | null = null;
-  private redisConnected: boolean = false;
-  private memoryCache: Map<string, MemoryEntry<any>> = new Map();
-  private logger: any;
+  public redisConnected: boolean = false;
+  private memoryCache: Map<string, MemoryEntry<unknown>> = new Map();
+  private logger: import('./logger.js').Logger;
   private metrics: CacheMetrics;
 
   constructor(config: CacheConfig = {}) {
@@ -146,12 +146,13 @@ class CacheService {
 
       // Connect to Redis
       await this.redisClient.connect();
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.metrics.redisErrors++;
-      this.metrics.lastRedisError = error.message;
+      const err = error as Error;
+      this.metrics.lastRedisError = err.message;
       this.log(
         'Failed to connect to Redis, falling back to memory cache',
-        { error: error.message },
+        { error: err.message },
         'warn',
       );
       this.redisConnected = false;
@@ -205,8 +206,8 @@ class CacheService {
           remaining: this.memoryCache.size,
         });
       }
-    } catch (error: any) {
-      this.log('Memory cache cleanup error', { error: error.message }, 'error');
+    } catch (error: unknown) {
+      this.log('Memory cache cleanup error', { error: (error as Error).message }, 'error');
     }
   }
 
@@ -228,9 +229,9 @@ class CacheService {
         await this.redisClient.setEx(key, ttlSeconds, serializedValue);
         this.log(`Redis SET: ${key}`, { ttl: actualTTL });
         return true;
-      } catch (error: any) {
+      } catch (error: unknown) {
         this.metrics.redisErrors++;
-        this.log(`Redis SET failed for key ${key}`, { error: error.message }, 'warn');
+        this.log(`Redis SET failed for key ${key}`, { error: (error as Error).message }, 'warn');
       }
     }
 
@@ -263,9 +264,9 @@ class CacheService {
           this.metrics.redisMisses++;
           this.log(`Redis MISS: ${key}`);
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         this.metrics.redisErrors++;
-        this.log(`Redis GET failed for key ${key}`, { error: error.message }, 'warn');
+        this.log(`Redis GET failed for key ${key}`, { error: (error as Error).message }, 'warn');
       }
     }
 
@@ -303,8 +304,8 @@ class CacheService {
         if (exists) {
           return true;
         }
-      } catch (error: any) {
-        this.log(`Redis EXISTS failed for key ${key}`, { error: error.message }, 'warn');
+      } catch (error: unknown) {
+        this.log(`Redis EXISTS failed for key ${key}`, { error: (error as Error).message }, 'warn');
       }
     }
 
@@ -332,8 +333,8 @@ class CacheService {
       try {
         await this.redisClient.del(key);
         this.log(`Redis DEL: ${key}`);
-      } catch (error: any) {
-        this.log(`Redis DEL failed for key ${key}`, { error: error.message }, 'warn');
+      } catch (error: unknown) {
+        this.log(`Redis DEL failed for key ${key}`, { error: (error as Error).message }, 'warn');
       }
     }
 
@@ -355,8 +356,8 @@ class CacheService {
       try {
         await this.redisClient.flushDb();
         this.log('Redis cache cleared');
-      } catch (error: any) {
-        this.log('Redis clear failed', { error: error.message }, 'warn');
+      } catch (error: unknown) {
+        this.log(`Redis clear failed`, { error: (error as Error).message }, 'warn');
       }
     }
 
@@ -442,8 +443,8 @@ class CacheService {
     if (this.redisClient) {
       try {
         await this.redisClient.quit();
-      } catch (error: any) {
-        this.log('Error disconnecting Redis', { error: error.message }, 'warn');
+      } catch (error: unknown) {
+        this.log('Error disconnecting Redis', { error: (error as Error).message }, 'warn');
       }
     }
 
@@ -452,18 +453,28 @@ class CacheService {
   }
 
   /**
+   * Execute a Lua script on Redis
+   */
+  async eval(script: string, options: { keys: string[]; arguments: string[] }): Promise<any> {
+    if (this.redisConnected && this.redisClient) {
+      return this.redisClient.eval(script, options);
+    }
+    throw new Error('Redis not connected');
+  }
+
+  /**
    * Internal logging method
    * @param {string} message - Log message
    * @param {object} data - Additional data
    * @param {string} level - Log level
    */
-  log(message: string, data: Record<string, any> = {}, level: string = 'info') {
+  log(message: string, data: Record<string, unknown> = {}, level: string = 'info') {
     if (!this.config.enableLogging) return;
-    const logger = this.logger;
-    if (logger?.[level]) {
-      logger[level](message, data);
-    } else if (logger?.info) {
-      logger.info(message, data);
+    const logger = this.logger as unknown as Record<string, unknown>;
+    if (typeof logger[level] === 'function') {
+      (logger[level] as Function)(message, data);
+    } else if (typeof logger.info === 'function') {
+      (logger.info as Function)(message, data);
     }
   }
 }

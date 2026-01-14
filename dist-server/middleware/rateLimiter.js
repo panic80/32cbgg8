@@ -11,7 +11,7 @@ const logger = getLogger('middleware:rateLimiter');
  * @param {Object} options.chatLogger - Chat logger for rate limit events
  * @returns {Object} { rateLimiter, rateLimitBuckets, apiRequestCounts }
  */
-export const createRateLimiter = ({ config, cache, chatLogger }) => {
+export const createRateLimiter = ({ config, cache, chatLogger, }) => {
     const rateLimitBuckets = config.rateLimitEnabled ? new Map() : null;
     const apiRequestCounts = config.rateLimitEnabled ? new Map() : null;
     const rateLimiter = async (req, res, next) => {
@@ -30,7 +30,7 @@ export const createRateLimiter = ({ config, cache, chatLogger }) => {
         let usedRedis = false;
         try {
             // Prefer Redis-backed counter when cache (Redis) is connected
-            if (cache && cache.redisConnected && cache.redisClient) {
+            if (cache && cache.redisConnected) {
                 const key = `rl:${clientIP}:${windowStart}`;
                 // Atomic INCR with expiry using Lua script to prevent race condition
                 const luaScript = `
@@ -40,16 +40,17 @@ export const createRateLimiter = ({ config, cache, chatLogger }) => {
           end
           return count
         `;
-                count = await cache.redisClient.eval(luaScript, {
+                count = Number(await cache.eval(luaScript, {
                     keys: [key],
                     arguments: [String(windowMs)],
-                });
+                }));
                 usedRedis = true;
             }
         }
         catch (error) {
             // Fall back to memory on Redis error
-            logger.warn('Redis rate limit failed, using memory fallback', { error: error.message });
+            const err = error;
+            logger.warn('Redis rate limit failed, using memory fallback', { error: err.message });
             usedRedis = false;
         }
         if (!usedRedis && rateLimitBuckets) {

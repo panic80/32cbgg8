@@ -112,7 +112,10 @@ const serializeError = (error: unknown): SerializedError | unknown | null => {
   }
 
   return Object.fromEntries(
-    Object.entries(error as Record<string, unknown>).map(([key, value]) => [key, serializeError(value)]),
+    Object.entries(error as Record<string, unknown>).map(([key, value]) => [
+      key,
+      serializeError(value),
+    ]),
   );
 };
 
@@ -128,7 +131,10 @@ const normalizeLogContext = (context: unknown): unknown => {
   }
   if (typeof context === 'object') {
     return Object.fromEntries(
-      Object.entries(context as Record<string, unknown>).map(([key, value]) => [key, normalizeLogContext(value)]),
+      Object.entries(context as Record<string, unknown>).map(([key, value]) => [
+        key,
+        normalizeLogContext(value),
+      ]),
     );
   }
   return context;
@@ -200,7 +206,21 @@ interface ChatLogFilter {
   search?: string;
 }
 
-class ChatLogger {
+export interface Logger {
+  debug: (message: unknown, context?: unknown) => void;
+  info: (message: unknown, context?: unknown) => void;
+  warn: (message: unknown, context?: unknown) => void;
+  error: (message: unknown, context?: unknown) => void;
+  log: (data: unknown) => void;
+  logChat: (req: unknown, chatData: unknown) => void;
+  logVisit: (visitData?: VisitData) => void;
+  getVisitSummary: (filters?: { startAt?: string; endAt?: string; path?: string }) => VisitSummary;
+  getChatLogs: (filters?: ChatLogFilter) => ChatLogEntry[];
+  clearAllLogs: () => void;
+  child: (binding?: unknown) => Logger;
+}
+
+class ChatLogger implements Logger {
   private logLevel: LogLevel;
   private baseContext: Record<string, unknown>;
   private dbPath: string;
@@ -382,7 +402,7 @@ class ChatLogger {
     this.logWithLevel('error', message, context);
   }
 
-  child(binding: unknown = {}): any {
+  child(binding: unknown = {}): Logger {
     const bound = normalizeLogContext(binding);
     const combine = (context: unknown) => mergeContext(bound, context);
 
@@ -391,21 +411,37 @@ class ChatLogger {
       info: (message: unknown, context?: unknown) => this.info(message, combine(context)),
       warn: (message: unknown, context?: unknown) => this.warn(message, combine(context)),
       error: (message: unknown, context?: unknown) => this.error(message, combine(context)),
-      log: (data: any = {}) =>
+      log: (data: unknown = {}) => {
+        const d = data as Record<string, unknown>;
         this.log({
-          ...data,
-          metadata: combine(data.metadata ?? data.payload ?? {}),
-        }),
-      logChat: (req: any, chatData: any = {}) =>
+          ...d,
+          metadata: combine(d.metadata ?? d.payload ?? {}),
+        });
+      },
+      logChat: (req: unknown, chatData: unknown = {}) => {
+        const cd = chatData as Record<string, unknown>;
         this.logChat(req, {
-          ...chatData,
-          metadata: combine(chatData.metadata),
-        }),
+          ...cd,
+          metadata: combine(cd.metadata),
+        });
+      },
+      logVisit: (visitData?: VisitData) => this.logVisit(visitData),
+      getVisitSummary: (filters?: { startAt?: string; endAt?: string; path?: string }) => this.getVisitSummary(filters),
+      getChatLogs: (filters?: ChatLogFilter) => this.getChatLogs(filters),
+      clearAllLogs: () => this.clearAllLogs(),
       child: (extra: unknown = {}) => this.child(mergeContext(bound, extra)),
     };
   }
 
-  recordEvent({ type, message, metadata }: { type: string | null; message: string | null; metadata?: unknown }) {
+  recordEvent({
+    type,
+    message,
+    metadata,
+  }: {
+    type: string | null;
+    message: string | null;
+    metadata?: unknown;
+  }) {
     const now = Date.now();
     const record = {
       recorded_at: now,
@@ -425,26 +461,27 @@ class ChatLogger {
     }
   }
 
-  logChat(_req: unknown, chatData: any) {
-    if (!chatData || !chatData.question) {
+  logChat(_req: unknown, chatData: unknown) {
+    const cd = chatData as Record<string, unknown>;
+    if (!cd || !cd.question) {
       this.warn('logChat called without a question payload');
       return;
     }
 
-    const askedAt = chatData.timestamp ? Date.parse(chatData.timestamp) : Date.now();
+    const askedAt = cd.timestamp ? Date.parse(cd.timestamp as string) : Date.now();
     const askedAtIso = new Date(askedAt).toISOString();
 
     const record = {
       asked_at: askedAt,
       asked_at_iso: askedAtIso,
-      question: chatData.question,
-      answer: chatData.answer ?? null,
-      conversation_id: chatData.conversationId ?? chatData.conversation_id ?? null,
-      model: chatData.model ?? null,
-      provider: chatData.provider ?? null,
-      rag_enabled: toBooleanFlag(chatData.ragEnabled ?? chatData.useRAG),
-      short_answer_mode: toBooleanFlag(chatData.shortAnswerMode),
-      metadata: toMetadataString(chatData.metadata),
+      question: cd.question,
+      answer: cd.answer ?? null,
+      conversation_id: cd.conversationId ?? cd.conversation_id ?? null,
+      model: cd.model ?? null,
+      provider: cd.provider ?? null,
+      rag_enabled: toBooleanFlag(cd.ragEnabled ?? cd.useRAG),
+      short_answer_mode: toBooleanFlag(cd.shortAnswerMode),
+      metadata: toMetadataString(cd.metadata),
     };
 
     try {
@@ -457,17 +494,19 @@ class ChatLogger {
     }
   }
 
-  log(data: any) {
+  log(data: unknown) {
     if (!data || typeof data !== 'object') {
       this.warn('log called without structured payload');
       return;
     }
 
+    const d = data as Record<string, unknown>;
+
     const rawMetadata =
-      data.metadata ??
-      data.payload ??
+      d.metadata ??
+      d.payload ??
       (() => {
-        const clone = { ...data };
+        const clone = { ...d };
         delete clone.type;
         delete clone.message;
         delete clone.metadata;
@@ -476,8 +515,8 @@ class ChatLogger {
       })();
 
     this.recordEvent({
-      type: typeof data.type === 'string' ? data.type : null,
-      message: typeof data.message === 'string' ? data.message : null,
+      type: typeof d.type === 'string' ? d.type : null,
+      message: typeof d.message === 'string' ? d.message : null,
       metadata: normalizeLogContext(rawMetadata),
     });
   }
@@ -511,9 +550,13 @@ class ChatLogger {
     });
   }
 
-  getVisitSummary({ startAt, endAt, path }: { startAt?: string; endAt?: string; path?: string } = {}): VisitSummary {
+  getVisitSummary({
+    startAt,
+    endAt,
+    path,
+  }: { startAt?: string; endAt?: string; path?: string } = {}): VisitSummary {
     const conditions = ['type = @eventType'];
-    const params: Record<string, any> = { eventType: 'visit' };
+    const params: Record<string, unknown> = { eventType: 'visit' };
 
     if (startAt) {
       const parsedStart = Date.parse(startAt);
@@ -551,7 +594,7 @@ class ChatLogger {
         ${whereClause}
       `);
 
-      const totalsRow = (totalsStmt.get(params) as any) || {};
+      const totalsRow = (totalsStmt.get(params) as Record<string, unknown>) || {};
 
       const trendStmt = this.db.prepare(`
         SELECT
@@ -563,12 +606,12 @@ class ChatLogger {
         ORDER BY date ASC
       `);
 
-      const trendRows = (trendStmt.all(params) as any[]) || [];
+      const trendRows = (trendStmt.all(params) as Array<{ date: string; count: number }>) || [];
 
       return {
         totalVisits: Number(totalsRow.totalVisits) || 0,
-        firstVisit: totalsRow.firstVisit ?? null,
-        lastVisit: totalsRow.lastVisit ?? null,
+        firstVisit: (totalsRow.firstVisit as string) ?? null,
+        lastVisit: (totalsRow.lastVisit as string) ?? null,
         dailyCounts: trendRows.map((row) => ({
           date: row.date,
           count: Number(row.count) || 0,
@@ -600,7 +643,7 @@ class ChatLogger {
     search,
   }: ChatLogFilter = {}): ChatLogEntry[] {
     const conditions: string[] = [];
-    const params: Record<string, any> = { limit, offset };
+    const params: Record<string, unknown> = { limit, offset };
 
     if (startAt) {
       const parsed = Date.parse(startAt);
@@ -675,7 +718,7 @@ class ChatLogger {
         let parsedMetadata = null;
         if (row.metadata) {
           try {
-            parsedMetadata = JSON.parse(row.metadata);
+            parsedMetadata = JSON.parse(row.metadata as string);
           } catch (error) {
             this.emit('warn', 'Failed to parse metadata for chat log row', {
               rowId: row.id,
@@ -686,7 +729,13 @@ class ChatLogger {
         }
 
         return {
-          ...row,
+          id: row.id,
+          askedAt: row.askedAt,
+          question: row.question,
+          answer: row.answer,
+          conversationId: row.conversationId,
+          model: row.model,
+          provider: row.provider,
           ragEnabled: row.ragEnabled === null ? null : row.ragEnabled === 1,
           shortAnswerMode: row.shortAnswerMode === null ? null : row.shortAnswerMode === 1,
           metadata: parsedMetadata,

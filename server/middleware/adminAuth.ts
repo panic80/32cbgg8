@@ -45,8 +45,7 @@ export const createAdminAuthMiddleware = (config: AdminAuthConfig) => {
   const adminUser = config?.admin?.user || process.env.CONFIG_PANEL_USER || 'admin';
   const adminApiToken = config?.admin?.apiToken || process.env.ADMIN_API_TOKEN;
 
-  const adminAuthEnabled =
-    typeof adminPassword === 'string' && adminPassword.length > 0;
+  const adminAuthEnabled = typeof adminPassword === 'string' && adminPassword.length > 0;
 
   if (!adminAuthEnabled) {
     throw new Error('CONFIG_PANEL_PASSWORD must be set before starting the server.');

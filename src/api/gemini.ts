@@ -134,7 +134,16 @@ export const callGeminiAPI = async (
       });
 
       try {
-        const data: any = await response.json();
+        interface GeminiPart {
+          text?: string;
+        }
+        interface GeminiCandidate {
+          content?: { parts?: GeminiPart[] };
+        }
+        interface GeminiResponse {
+          candidates?: GeminiCandidate[];
+        }
+        const data = (await response.json()) as GeminiResponse;
 
         const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
         if (!text) {

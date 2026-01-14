@@ -9,7 +9,9 @@ interface PerformanceHandlerOptions {
   service?: typeof performanceService;
 }
 
-export const createPerformanceHandler = ({ service = performanceService }: PerformanceHandlerOptions = {}) => {
+export const createPerformanceHandler = ({
+  service = performanceService,
+}: PerformanceHandlerOptions = {}) => {
   return async (req: Request, res: Response, _next: NextFunction) => {
     logger.info('Handling /api/admin/performance request');
     try {

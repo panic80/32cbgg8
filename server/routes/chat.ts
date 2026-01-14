@@ -15,12 +15,14 @@ import {
 const logger = getLogger('routes:chat');
 
 interface ChatRoutesConfig {
-  rateLimiter: any;
-  config: any;
-  chatLogger: any;
+  rateLimiter: import('express').RequestHandler;
+  config: { loggingEnabled?: boolean };
+  chatLogger: import('../services/logger.js').Logger;
   getRagAuthHeaders: () => Record<string, string>;
-  decodeUrlParams: (value: any) => any;
-  aiService: any;
+  decodeUrlParams: (value: unknown) => unknown;
+  aiService: import('../services/aiClients.js').AiClients & {
+    buildOpenAIParams: typeof import('../services/aiClients.js').buildOpenAIParams;
+  };
   buildSseCorsHeaders: (origin?: string) => Record<string, string>;
   setSseHeaders: (res: Response, headers?: Record<string, string | number>) => void;
 }
@@ -64,7 +66,7 @@ const createChatRoutes = ({
       // and `validateRequest` returns a middleware `(req, res, next)`.
       // We need to manually chain them here or rewrite how `use` works.
       // Simpler approach: call middleware logic then controller.
-      
+
       // Let's use the middleware as intended by Express
       return validateGemini(req, res, () => controller.handleGeminiGenerateContent(req, res));
     }

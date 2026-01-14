@@ -5,21 +5,30 @@ import { respondWithError } from '../utils/http.js';
 
 interface MapsControllerConfig {
   googleMapsClient: Client | null;
-  config?: any;
-  logger: any;
+  config?: { mapsTimeout?: number };
+  logger: import('../services/logger.js').Logger;
 }
 
-const getTimeout = (config: any) => {
-  if (Number.isFinite(config?.mapsTimeout)) {
+const getTimeout = (config: MapsControllerConfig['config']) => {
+  if (config?.mapsTimeout && Number.isFinite(config.mapsTimeout)) {
     return config.mapsTimeout;
   }
   const envTimeout = getEnvNumber('MAPS_TIMEOUT', DEFAULT_MAPS_TIMEOUT_MS);
   return envTimeout || DEFAULT_MAPS_TIMEOUT_MS;
 };
 
-export const createMapsController = ({ googleMapsClient, config = {}, logger }: MapsControllerConfig) => {
+export const createMapsController = ({
+  googleMapsClient,
+  config = {},
+  logger,
+}: MapsControllerConfig) => {
   const scopedLogger = logger?.child ? logger.child({ scope: 'controller:maps' }) : logger;
-  const emit = (level: string, message: string, meta?: any) => scopedLogger?.[level]?.(message, meta);
+  const emit = (level: string, message: string, meta?: unknown) => {
+    const loggerFunc = (scopedLogger as unknown as Record<string, unknown>)[level];
+    if (typeof loggerFunc === 'function') {
+      (loggerFunc as Function)(message, meta);
+    }
+  };
 
   const ensureClient = (res: Response): boolean => {
     if (!googleMapsClient) {
@@ -69,18 +78,28 @@ export const createMapsController = ({ googleMapsClient, config = {}, logger }: 
         });
       }
 
-      if (element.status !== 'OK') {
-        return respondWithError(res, {
-          status: 422,
-          error: element.status,
-          message: (element as any).error_message || 'Failed to calculate distance', // error_message might not be in generic types
-          logger: scopedLogger,
-          level: 'warn',
-          details: { origin, destination, mode, elementStatus: element.status },
-        });
+            if (element.status !== 'OK') {
+              const errorData = element as unknown as Record<string, unknown>;
+              return respondWithError(res, {
+                status: 422,
+                error: element.status,
+                message: (errorData.error_message as string) || 'Failed to calculate distance', 
+                logger: scopedLogger,
+                level: 'warn',
+                details: { origin, destination, mode, elementStatus: element.status },
+              });
+            }
+      interface DistanceResult {
+        distance: import('@googlemaps/google-maps-services-js').Distance;
+        duration: import('@googlemaps/google-maps-services-js').Duration;
+        origin: string;
+        destination: string;
+        mode: string;
+        totalDistance?: number;
+        totalDuration?: number;
       }
 
-      const result: any = {
+      const result: DistanceResult = {
         distance: element.distance,
         duration: element.duration,
         origin: data.origin_addresses?.[0] ?? origin,
@@ -107,25 +126,26 @@ export const createMapsController = ({ googleMapsClient, config = {}, logger }: 
       }
 
       res.json(result);
-    } catch (error: any) {
-      if (error?.response?.status === 403) {
+    } catch (error: unknown) {
+      const err = error as Error & { response?: { status: number } };
+      if (err?.response?.status === 403) {
         return respondWithError(res, {
           status: 403,
           error: 'Forbidden',
           message: 'Ensure the Google Maps API key has Distance Matrix API enabled.',
           logger: scopedLogger,
           level: 'warn',
-          cause: error,
+          cause: err,
           details: { origin, destination, mode },
         });
       }
 
       return respondWithError(res, {
-        status: error?.response?.status || 500,
+        status: err?.response?.status || 500,
         error: 'FailedToCalculateDistance',
-        message: error?.message || 'Failed to calculate distance',
+        message: err?.message || 'Failed to calculate distance',
         logger: scopedLogger,
-        cause: error,
+        cause: err,
         details: { origin, destination, mode },
       });
     }
@@ -149,7 +169,7 @@ export const createMapsController = ({ googleMapsClient, config = {}, logger }: 
     emit('info', 'maps.autocomplete', { input, hasSessionToken: Boolean(sessiontoken) });
 
     try {
-      const params: any = {
+      const params: Record<string, unknown> = {
         input: input as string,
         key: process.env.GOOGLE_MAPS_API_KEY as string,
       };
@@ -163,30 +183,32 @@ export const createMapsController = ({ googleMapsClient, config = {}, logger }: 
       }
 
       const response = await googleMapsClient!.placeAutocomplete({
-        params,
+        params:
+          params as unknown as import('@googlemaps/google-maps-services-js').PlaceAutocompleteRequest['params'],
         timeout: getTimeout(config),
       });
 
       res.json(response.data);
-    } catch (error: any) {
-      if (error?.response?.status === 403) {
+    } catch (error: unknown) {
+      const err = error as Error & { response?: { status: number } };
+      if (err?.response?.status === 403) {
         return respondWithError(res, {
           status: 403,
           error: 'Forbidden',
           message: 'Ensure the Google Maps API key has Places API enabled.',
           logger: scopedLogger,
           level: 'warn',
-          cause: error,
+          cause: err,
           details: { input },
         });
       }
 
       return respondWithError(res, {
-        status: error?.response?.status || 500,
+        status: err?.response?.status || 500,
         error: 'AutocompleteFailed',
-        message: error?.message || 'Failed to fetch autocomplete predictions',
+        message: err?.message || 'Failed to fetch autocomplete predictions',
         logger: scopedLogger,
-        cause: error,
+        cause: err,
         details: { input },
       });
     }
@@ -210,7 +232,7 @@ export const createMapsController = ({ googleMapsClient, config = {}, logger }: 
     emit('info', 'maps.placeDetails', { placeId });
 
     try {
-      const params: any = {
+      const params: Record<string, unknown> = {
         place_id: placeId as string,
         key: process.env.GOOGLE_MAPS_API_KEY as string,
       };
@@ -220,30 +242,32 @@ export const createMapsController = ({ googleMapsClient, config = {}, logger }: 
       }
 
       const response = await googleMapsClient!.placeDetails({
-        params,
+        params:
+          params as unknown as import('@googlemaps/google-maps-services-js').PlaceDetailsRequest['params'],
         timeout: getTimeout(config),
       });
 
       res.json(response.data);
-    } catch (error: any) {
-      if (error?.response?.status === 403) {
+    } catch (error: unknown) {
+      const err = error as Error & { response?: { status: number } };
+      if (err?.response?.status === 403) {
         return respondWithError(res, {
           status: 403,
           error: 'Forbidden',
           message: 'Ensure the Google Maps API key has Places API enabled.',
           logger: scopedLogger,
           level: 'warn',
-          cause: error,
+          cause: err,
           details: { placeId },
         });
       }
 
       return respondWithError(res, {
-        status: error?.response?.status || 500,
+        status: err?.response?.status || 500,
         error: 'PlaceDetailsFailed',
-        message: error?.message || 'Failed to fetch place details',
+        message: err?.message || 'Failed to fetch place details',
         logger: scopedLogger,
-        cause: error,
+        cause: err,
         details: { placeId },
       });
     }

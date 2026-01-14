@@ -1,15 +1,8 @@
 import { randomUUID } from 'crypto';
 import type { Response } from 'express';
+import type { Logger } from '../services/logger.js';
 
 type LogLevel = 'info' | 'warn' | 'error' | 'debug';
-
-interface Logger {
-  info: (message: string, meta?: any) => void;
-  warn: (message: string, meta?: any) => void;
-  error: (message: string, meta?: any) => void;
-  debug: (message: string, meta?: any) => void;
-  [key: string]: any; // Allow indexing by string for dynamic access
-}
 
 interface ErrorResponseOptions {
   status?: number;
@@ -25,7 +18,7 @@ interface SerializedCause {
   name?: string;
   message?: string;
   stack?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 const serializeCause = (cause: unknown): SerializedCause | unknown | null => {
@@ -42,7 +35,10 @@ const serializeCause = (cause: unknown): SerializedCause | unknown | null => {
   }
 
   return Object.fromEntries(
-    Object.entries(cause as Record<string, unknown>).map(([key, value]) => [key, serializeCause(value)]),
+    Object.entries(cause as Record<string, unknown>).map(([key, value]) => [
+      key,
+      serializeCause(value),
+    ]),
   );
 };
 
@@ -81,7 +77,7 @@ export const createErrorResponse = ({
   return { status, body, traceId };
 };
 
-export const decodeUrlParams = (value: any): any => {
+export const decodeUrlParams = (value: unknown): unknown => {
   if (value == null) {
     return value;
   }
@@ -99,9 +95,12 @@ export const decodeUrlParams = (value: any): any => {
     return value.map((item) => decodeUrlParams(item));
   }
 
-  if (typeof value === 'object') {
+  if (typeof value === 'object' && value !== null) {
     return Object.fromEntries(
-      Object.entries(value).map(([key, item]) => [key, decodeUrlParams(item)]),
+      Object.entries(value as Record<string, unknown>).map(([key, item]) => [
+        key,
+        decodeUrlParams(item),
+      ]),
     );
   }
 

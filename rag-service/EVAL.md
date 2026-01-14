@@ -27,6 +27,7 @@ docker compose exec rag-service python3 -m evaluation.cli.main generate \
 ```
 
 This creates Q&A pairs in three categories:
+
 - **Factual**: Questions about specific facts, numbers, dates, rates
 - **Procedural**: Questions about processes and step-by-step instructions
 - **Comparison**: Questions comparing different options or scenarios
@@ -68,15 +69,15 @@ docker compose exec rag-service python3 -m evaluation.cli.main eval \
 python3 -m evaluation.cli.main generate [OPTIONS]
 ```
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--rag-url` | http://localhost:8000 | RAG service URL |
-| `--admin-token` | "" | Admin API token |
-| `--output` | (required) | Output dataset file path |
-| `--num-questions` | 50 | Questions per type (factual/procedural/comparison) |
-| `--question-types` | factual procedural comparison | Types to generate |
-| `--model` | gpt-4.1-mini | LLM for question generation |
-| `--verbose` | false | Show progress |
+| Option             | Default                       | Description                                        |
+| ------------------ | ----------------------------- | -------------------------------------------------- |
+| `--rag-url`        | http://localhost:8000         | RAG service URL                                    |
+| `--admin-token`    | ""                            | Admin API token                                    |
+| `--output`         | (required)                    | Output dataset file path                           |
+| `--num-questions`  | 50                            | Questions per type (factual/procedural/comparison) |
+| `--question-types` | factual procedural comparison | Types to generate                                  |
+| `--model`          | gpt-4.1-mini                  | LLM for question generation                        |
+| `--verbose`        | false                         | Show progress                                      |
 
 ### `eval` - Run Evaluation
 
@@ -84,17 +85,17 @@ python3 -m evaluation.cli.main generate [OPTIONS]
 python3 -m evaluation.cli.main eval [OPTIONS]
 ```
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--dataset` | (required) | Path to evaluation dataset JSON |
-| `--rag-url` | http://localhost:8000 | RAG service URL |
-| `--admin-token` | "" | Admin API token |
-| `--output` | results.json | Output file path |
-| `--output-format` | json | Output format: json, csv, markdown |
-| `--retrieval-only` | false | Skip generation and hallucination checks |
-| `--skip-hallucination` | false | Skip hallucination detection only |
-| `--k-values` | 1 3 5 10 | K values for @k metrics |
-| `--verbose` | false | Show progress |
+| Option                 | Default               | Description                              |
+| ---------------------- | --------------------- | ---------------------------------------- |
+| `--dataset`            | (required)            | Path to evaluation dataset JSON          |
+| `--rag-url`            | http://localhost:8000 | RAG service URL                          |
+| `--admin-token`        | ""                    | Admin API token                          |
+| `--output`             | results.json          | Output file path                         |
+| `--output-format`      | json                  | Output format: json, csv, markdown       |
+| `--retrieval-only`     | false                 | Skip generation and hallucination checks |
+| `--skip-hallucination` | false                 | Skip hallucination detection only        |
+| `--k-values`           | 1 3 5 10              | K values for @k metrics                  |
+| `--verbose`            | false                 | Show progress                            |
 
 ### `compare` - Compare Configurations
 
@@ -108,6 +109,7 @@ python3 -m evaluation.cli.main compare \
 ```
 
 Example `configs.json`:
+
 ```json
 {
   "baseline": {
@@ -129,34 +131,35 @@ Example `configs.json`:
 
 ### Retrieval Metrics
 
-| Metric | Description | Range |
-|--------|-------------|-------|
-| **Precision@k** | % of top-k retrieved docs that are relevant | 0-1 |
-| **Recall@k** | % of all relevant docs found in top-k | 0-1 |
-| **MRR** | Reciprocal rank of first relevant doc (1/rank) | 0-1 |
-| **NDCG@k** | Normalized ranking quality with graded relevance | 0-1 |
-| **Hit Rate@k** | Did we find ANY relevant doc in top-k? | 0 or 1 |
+| Metric          | Description                                      | Range  |
+| --------------- | ------------------------------------------------ | ------ |
+| **Precision@k** | % of top-k retrieved docs that are relevant      | 0-1    |
+| **Recall@k**    | % of all relevant docs found in top-k            | 0-1    |
+| **MRR**         | Reciprocal rank of first relevant doc (1/rank)   | 0-1    |
+| **NDCG@k**      | Normalized ranking quality with graded relevance | 0-1    |
+| **Hit Rate@k**  | Did we find ANY relevant doc in top-k?           | 0 or 1 |
 
 ### Generation Quality Metrics
 
-| Metric | Description | Range |
-|--------|-------------|-------|
-| **Relevance** | Does the answer address the question? | 0-1 |
-| **Completeness** | Does the answer cover all expected information? | 0-1 |
-| **Grounding** | Are statements supported by the sources? | 0-1 |
+| Metric           | Description                                     | Range |
+| ---------------- | ----------------------------------------------- | ----- |
+| **Relevance**    | Does the answer address the question?           | 0-1   |
+| **Completeness** | Does the answer cover all expected information? | 0-1   |
+| **Grounding**    | Are statements supported by the sources?        | 0-1   |
 
 ### Hallucination Detection
 
-| Metric | Description |
-|--------|-------------|
-| **Entailed Claims** | Claims supported by source documents |
-| **Neutral Claims** | Claims neither supported nor contradicted |
-| **Contradicted Claims** | Claims that contradict source documents |
+| Metric                  | Description                                 |
+| ----------------------- | ------------------------------------------- |
+| **Entailed Claims**     | Claims supported by source documents        |
+| **Neutral Claims**      | Claims neither supported nor contradicted   |
+| **Contradicted Claims** | Claims that contradict source documents     |
 | **Hallucination Score** | (contradicted + 0.5×neutral) / total claims |
 
 ## Example Output
 
 ### Console Summary
+
 ```
 ============================================================
            RAG EVALUATION SUMMARY
@@ -184,6 +187,7 @@ Total Queries: 150
 ```
 
 ### JSON Output Structure
+
 ```json
 {
   "timestamp": "2024-01-15T10:30:00",

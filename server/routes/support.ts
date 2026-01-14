@@ -6,9 +6,15 @@ import { AiClients } from '../services/aiClients.js';
 import { AxiosInstance } from 'axios';
 
 interface SupportRoutesConfig extends Partial<AiClients> {
-  rateLimiter: any;
-  cache: any;
-  config: any;
+  rateLimiter: import('express').RequestHandler;
+  cache: import('../services/cache.js').CacheService | null;
+  config: { 
+    loggingEnabled?: boolean;
+    maxRetries: number;
+    canadaCaUrl: string;
+    requestTimeout: number;
+    retryDelay: number;
+  };
   processContent: (html: string) => string;
   httpClient?: AxiosInstance;
 }

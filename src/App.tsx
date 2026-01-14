@@ -21,7 +21,8 @@ function App() {
 
   const routeContext = useMemo<RouteContext>(
     () => ({
-      theme, toggleTheme,
+      theme,
+      toggleTheme,
     }),
     [theme, toggleTheme],
   );

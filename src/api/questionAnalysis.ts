@@ -204,21 +204,21 @@ export const addQuestion = async (questionText: string): Promise<void> => {
             });
 
             addRequest.onerror = (event) => {
-              console.error('Error adding variant:', (event.target as any).error);
-              reject((event.target as any).error);
+              console.error('Error adding variant:', (event.target as IDBRequest).error);
+              reject((event.target as IDBRequest).error);
             };
           }
         };
 
         putRequest.onerror = (event) => {
-          console.error('Error updating count:', (event.target as any).error);
-          reject((event.target as any).error);
+          console.error('Error updating count:', (event.target as IDBRequest).error);
+          reject((event.target as IDBRequest).error);
         };
       };
 
       request.onerror = (event) => {
-        console.error('Error getting canonical question:', (event.target as any).error);
-        reject((event.target as any).error);
+        console.error('Error getting canonical question:', (event.target as IDBRequest).error);
+        reject((event.target as IDBRequest).error);
       };
     } else {
       console.log('Adding new canonical question');
@@ -230,8 +230,8 @@ export const addQuestion = async (questionText: string): Promise<void> => {
       });
 
       addRequest.onerror = (event) => {
-        console.error('Error adding new question:', (event.target as any).error);
-        reject((event.target as any).error);
+        console.error('Error adding new question:', (event.target as IDBRequest).error);
+        reject((event.target as IDBRequest).error);
       };
     }
 

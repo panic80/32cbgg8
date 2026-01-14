@@ -54,63 +54,66 @@ export default function IngestionConsole({
     setLogs((prev) => [...prev, entry]);
   }, []);
 
-  const handleProgressUpdate = useCallback((data: ProgressData) => {
-    switch (data.type) {
-      case 'connected':
-        addLog('success', 'Progress tracking initialized');
-        break;
+  const handleProgressUpdate = useCallback(
+    (data: ProgressData) => {
+      switch (data.type) {
+        case 'connected':
+          addLog('success', 'Progress tracking initialized');
+          break;
 
-      case 'step_start':
-        setCurrentStep(data.stepId || null);
-        addLog('info', `[${data.stepId}] ${data.message || 'Started'}`);
-        break;
+        case 'step_start':
+          setCurrentStep(data.stepId || null);
+          addLog('info', `[${data.stepId}] ${data.message || 'Started'}`);
+          break;
 
-      case 'step_progress':
-        if (data.details) {
-          const { current, total, rate } = data.details;
-          let progressMsg = `[${data.stepId}] Progress: ${data.progress?.toFixed(0)}%`;
-          if (current && total) {
-            progressMsg += ` (${current}/${total})`;
+        case 'step_progress':
+          if (data.details) {
+            const { current, total, rate } = data.details;
+            let progressMsg = `[${data.stepId}] Progress: ${data.progress?.toFixed(0)}%`;
+            if (current && total) {
+              progressMsg += ` (${current}/${total})`;
+            }
+            if (rate) {
+              progressMsg += ` - ${rate.toFixed(1)}/s`;
+            }
+            addLog('progress', progressMsg);
+          } else {
+            addLog('progress', `[${data.stepId}] ${data.message}`);
           }
-          if (rate) {
-            progressMsg += ` - ${rate.toFixed(1)}/s`;
-          }
-          addLog('progress', progressMsg);
-        } else {
-          addLog('progress', `[${data.stepId}] ${data.message}`);
-        }
-        break;
+          break;
 
-      case 'step_complete':
-        addLog('success', `[${data.stepId}] ${data.message || 'Completed'}`);
-        setCurrentStep(null);
-        break;
+        case 'step_complete':
+          addLog('success', `[${data.stepId}] ${data.message || 'Completed'}`);
+          setCurrentStep(null);
+          break;
 
-      case 'step_error':
-        addLog('error', `[${data.stepId}] Error: ${data.message}`);
-        setCurrentStep(null);
-        break;
+        case 'step_error':
+          addLog('error', `[${data.stepId}] Error: ${data.message}`);
+          setCurrentStep(null);
+          break;
 
-      case 'overall_progress':
-        // Don't log overall progress to avoid clutter
-        break;
+        case 'overall_progress':
+          // Don't log overall progress to avoid clutter
+          break;
 
-      case 'complete':
-        addLog('success', '✓ Ingestion completed successfully!');
-        if (onComplete) onComplete(true);
-        eventSourceRef.current?.close();
-        break;
+        case 'complete':
+          addLog('success', '✓ Ingestion completed successfully!');
+          if (onComplete) onComplete(true);
+          eventSourceRef.current?.close();
+          break;
 
-      case 'error':
-        addLog('error', `✗ Ingestion failed: ${data.message}`);
-        if (onComplete) onComplete(false);
-        eventSourceRef.current?.close();
-        break;
+        case 'error':
+          addLog('error', `✗ Ingestion failed: ${data.message}`);
+          if (onComplete) onComplete(false);
+          eventSourceRef.current?.close();
+          break;
 
-      default:
-        addLog('info', `[${data.type}] ${JSON.stringify(data)}`);
-    }
-  }, [addLog, onComplete]);
+        default:
+          addLog('info', `[${data.type}] ${JSON.stringify(data)}`);
+      }
+    },
+    [addLog, onComplete],
+  );
 
   useEffect(() => {
     // Initial log

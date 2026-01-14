@@ -83,7 +83,9 @@ export const createHelmetConfig = (): HelmetOptions => ({
  * @param {Function} options.logger - Logger function for warnings
  * @returns {CorsOptions} CORS options
  */
-export const createCorsConfig = ({ logger }: { logger?: { warn: (msg: string) => void } } = {}): CorsOptions => {
+export const createCorsConfig = ({
+  logger,
+}: { logger?: { warn: (msg: string) => void } } = {}): CorsOptions => {
   const allowedOrigins = isDevelopment
     ? [
         'http://localhost:3000',
@@ -162,19 +164,20 @@ export const buildSseCorsHeaders = (originHeader?: string): Record<string, strin
  * Creates additional security headers middleware (Permissions Policy, COOP, etc.)
  * @returns {Function} Express middleware
  */
-export const createSecurityHeadersMiddleware = () => (req: Request, res: Response, next: NextFunction) => {
-  // Permissions Policy (formerly Feature Policy)
-  res.setHeader(
-    'Permissions-Policy',
-    'accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()',
-  );
+export const createSecurityHeadersMiddleware =
+  () => (req: Request, res: Response, next: NextFunction) => {
+    // Permissions Policy (formerly Feature Policy)
+    res.setHeader(
+      'Permissions-Policy',
+      'accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()',
+    );
 
-  // Additional CORS headers for better security
-  if (isProduction) {
-    res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
-    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
-    res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
-  }
+    // Additional CORS headers for better security
+    if (isProduction) {
+      res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+      res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+      res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+    }
 
-  next();
-};
+    next();
+  };

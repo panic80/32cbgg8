@@ -24,7 +24,7 @@ interface ModelConfig {
   smartModel: { provider: string; model: string };
   operationModels: Record<string, string>;
   updatedAt?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 // Default model configuration
@@ -79,14 +79,19 @@ const writeModelConfig = (config: ModelConfig): ModelConfig => {
 };
 
 interface ModelConfigRoutesConfig {
-  rateLimiter: any;
-  requireAdminAuth: any;
+  rateLimiter: import('express').RequestHandler;
+  requireAdminAuth: import('express').RequestHandler;
 }
 
-export function createModelConfigRoutes({ rateLimiter, requireAdminAuth }: ModelConfigRoutesConfig) {
+export function createModelConfigRoutes({
+  rateLimiter,
+  requireAdminAuth,
+}: ModelConfigRoutesConfig) {
   const router = express.Router();
   const adminMiddleware =
-    typeof requireAdminAuth === 'function' ? requireAdminAuth : (req: Request, res: Response, next: NextFunction) => next();
+    typeof requireAdminAuth === 'function'
+      ? requireAdminAuth
+      : (req: Request, res: Response, next: NextFunction) => next();
 
   logger.info('Registering model config routes');
 
@@ -108,104 +113,114 @@ export function createModelConfigRoutes({ rateLimiter, requireAdminAuth }: Model
   });
 
   // Update model configuration (requires admin auth)
-  router.post('/api/admin/model-config', adminMiddleware, rateLimiter, (req: Request, res: Response) => {
-    logger.debug('Handling POST /api/admin/model-config');
-    try {
-      const { fastModel, smartModel, operationModels } = req.body;
+  router.post(
+    '/api/admin/model-config',
+    adminMiddleware,
+    rateLimiter,
+    (req: Request, res: Response) => {
+      logger.debug('Handling POST /api/admin/model-config');
+      try {
+        const { fastModel, smartModel, operationModels } = req.body;
 
-      // Validate required fields
-      if (!fastModel || !fastModel.provider || !fastModel.model) {
-        return respondWithError(res, {
-          status: 400,
-          error: 'ValidationError',
-          message: 'fastModel with provider and model is required',
-          logger,
-        });
-      }
+        // Validate required fields
+        if (!fastModel || !fastModel.provider || !fastModel.model) {
+          return respondWithError(res, {
+            status: 400,
+            error: 'ValidationError',
+            message: 'fastModel with provider and model is required',
+            logger,
+          });
+        }
 
-      if (!smartModel || !smartModel.provider || !smartModel.model) {
-        return respondWithError(res, {
-          status: 400,
-          error: 'ValidationError',
-          message: 'smartModel with provider and model is required',
-          logger,
-        });
-      }
+        if (!smartModel || !smartModel.provider || !smartModel.model) {
+          return respondWithError(res, {
+            status: 400,
+            error: 'ValidationError',
+            message: 'smartModel with provider and model is required',
+            logger,
+          });
+        }
 
-      // Validate providers
-      const validProviders = ['openai', 'google', 'anthropic', 'openrouter'];
-      if (!validProviders.includes(fastModel.provider)) {
-        return respondWithError(res, {
-          status: 400,
-          error: 'ValidationError',
-          message: `Invalid fast model provider: ${fastModel.provider}`,
-          logger,
-        });
-      }
-      if (!validProviders.includes(smartModel.provider)) {
-        return respondWithError(res, {
-          status: 400,
-          error: 'ValidationError',
-          message: `Invalid smart model provider: ${smartModel.provider}`,
-          logger,
-        });
-      }
+        // Validate providers
+        const validProviders = ['openai', 'google', 'anthropic', 'openrouter'];
+        if (!validProviders.includes(fastModel.provider)) {
+          return respondWithError(res, {
+            status: 400,
+            error: 'ValidationError',
+            message: `Invalid fast model provider: ${fastModel.provider}`,
+            logger,
+          });
+        }
+        if (!validProviders.includes(smartModel.provider)) {
+          return respondWithError(res, {
+            status: 400,
+            error: 'ValidationError',
+            message: `Invalid smart model provider: ${smartModel.provider}`,
+            logger,
+          });
+        }
 
-      // Validate operation models
-      const validDesignations = ['fast', 'smart'];
-      if (operationModels) {
-        for (const [op, designation] of Object.entries(operationModels) as [string, string][]) {
-          if (!validDesignations.includes(designation)) {
-            return respondWithError(res, {
-              status: 400,
-              error: 'ValidationError',
-              message: `Invalid designation for ${op}: ${designation}`,
-              logger,
-            });
+        // Validate operation models
+        const validDesignations = ['fast', 'smart'];
+        if (operationModels) {
+          for (const [op, designation] of Object.entries(operationModels) as [string, string][]) {
+            if (!validDesignations.includes(designation)) {
+              return respondWithError(res, {
+                status: 400,
+                error: 'ValidationError',
+                message: `Invalid designation for ${op}: ${designation}`,
+                logger,
+              });
+            }
           }
         }
+
+        const config = writeModelConfig({
+          fastModel,
+          smartModel,
+          operationModels: operationModels || DEFAULT_CONFIG.operationModels,
+        });
+
+        logger.info('Model configuration updated', {
+          fastModel: `${fastModel.provider}/${fastModel.model}`,
+          smartModel: `${smartModel.provider}/${smartModel.model}`,
+        });
+
+        return res.json({ success: true, config });
+      } catch (error) {
+        return respondWithError(res, {
+          status: 500,
+          error: 'ModelConfigWriteError',
+          message: 'Failed to save model configuration',
+          logger,
+          cause: error,
+        });
       }
-
-      const config = writeModelConfig({
-        fastModel,
-        smartModel,
-        operationModels: operationModels || DEFAULT_CONFIG.operationModels,
-      });
-
-      logger.info('Model configuration updated', {
-        fastModel: `${fastModel.provider}/${fastModel.model}`,
-        smartModel: `${smartModel.provider}/${smartModel.model}`,
-      });
-
-      return res.json({ success: true, config });
-    } catch (error) {
-      return respondWithError(res, {
-        status: 500,
-        error: 'ModelConfigWriteError',
-        message: 'Failed to save model configuration',
-        logger,
-        cause: error,
-      });
-    }
-  });
+    },
+  );
 
   // Reset to default configuration
-  router.delete('/api/admin/model-config', adminMiddleware, rateLimiter, (req: Request, res: Response) => {
-    logger.debug('Handling DELETE /api/admin/model-config');
-    try {
-      const config = writeModelConfig(DEFAULT_CONFIG);
-      logger.info('Model configuration reset to defaults');
-      return res.json({ success: true, config });
-    } catch (error) {
-      return respondWithError(res, {
-        status: 500,
-        error: 'ModelConfigResetError',
-        message: 'Failed to reset model configuration',
-        logger,
-        cause: error,
-      });
-    }
-  });
+  router.delete(
+    '/api/admin/model-config',
+    adminMiddleware,
+    rateLimiter,
+    (req: Request, res: Response) => {
+      logger.debug('Handling DELETE /api/admin/model-config');
+      try {
+        const config = writeModelConfig(DEFAULT_CONFIG);
+        logger.info('Model configuration reset to defaults');
+        return res.json({ success: true, config });
+      } catch (error) {
+        return respondWithError(res, {
+          status: 500,
+          error: 'ModelConfigResetError',
+          message: 'Failed to reset model configuration',
+          logger,
+          cause: error,
+        });
+      }
+    },
+  );
 
   return router;
 }
