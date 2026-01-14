@@ -3,9 +3,22 @@ import type { SetStateAction } from 'react';
 import { apiClient, ApiError } from '@/api/client';
 import { StorageKeys, getModelDisplayName, HISTORY_WINDOW_BY_MODEL } from '@/constants';
 import { getLocalStorageItem } from '@/utils/storage';
-import type { Message, Source, FollowUpQuestion } from '@/types/chat';
+import type { Message, Source, FollowUpQuestion } from '@/types';
 import { formatPlainTextToMarkdown } from '../utils/formatting';
 import { mapFollowUpQuestions } from '../utils/followUps';
+import { toSources, formatSourcesMarkdown, formatInlineReferenceLine } from '../utils/sourceFormatting';
+import {
+  handleRetrievalStart,
+  handleRetrievalComplete,
+  handleSourcesEvent,
+  handleTokenEvent as handleTokenEventHelper,
+  handleMetadataEvent,
+  createUserMessage,
+  createPendingMessage,
+  buildStreamingChatRequest,
+  type EventHandlerContext,
+  type TokenEventContext,
+} from './streamingChatHelpers';
 
 interface UseStreamingChatOptions {
   conversationId: string | null;
@@ -297,14 +310,7 @@ export const useStreamingChat = ({
     async (messageText: string) => {
       if (!messageText || isLoading || maintenanceMode) return;
 
-      const userMessage: Message = {
-        id: Date.now().toString(),
-        content: messageText,
-        sender: 'user',
-        timestamp: Date.now(),
-        modelMode,
-        shortAnswerMode,
-      };
+      const userMessage = createUserMessage(messageText, modelMode, shortAnswerMode);
 
       dispatch({ type: 'ADD_MESSAGE', message: userMessage });
       const currentInput = messageText;
@@ -389,16 +395,7 @@ export const useStreamingChat = ({
 
         let buffer = '';
 
-        pendingMessageRef.current = {
-          id: messageId,
-          content: '',
-          sender: 'assistant',
-          timestamp: Date.now(),
-          sources: undefined,
-          followUpQuestions: undefined,
-          modelMode,
-          shortAnswerMode,
-        };
+        pendingMessageRef.current = createPendingMessage(messageId, modelMode, shortAnswerMode);
         dispatch({ type: 'SET_PENDING', message: { ...pendingMessageRef.current } });
 
         while (true) {
@@ -419,90 +416,82 @@ export const useStreamingChat = ({
               const event = JSON.parse(data) as StreamingEvent;
               switch (event.type) {
                 case 'retrieval_start':
-                  dispatch({
-                    type: 'SET_RETRIEVAL_STATUS',
-                    status: 'Searching trusted sources...',
+                  handleRetrievalStart({ 
+                    dispatch, 
+                    pendingMessageRef, 
+                    flushPendingMessage, 
+                    setConversationId, 
+                    conversationId, 
+                    messageId 
                   });
                   break;
                 case 'retrieval_complete':
-                  dispatch({ type: 'SET_RETRIEVAL_STATUS', status: 'Preparing answer...' });
+                  handleRetrievalComplete({ 
+                    dispatch, 
+                    pendingMessageRef, 
+                    flushPendingMessage, 
+                    setConversationId, 
+                    conversationId, 
+                    messageId 
+                  });
                   break;
                 case 'sources':
                   if (event.sources) {
                     sources = toSources(event.sources);
-                    if (pendingMessageRef.current) {
-                      pendingMessageRef.current.sources = sources.length > 0 ? sources : undefined;
-                      flushPendingMessage();
-                    } else if (sources.length > 0) {
-                      dispatch({
-                        type: 'SET_MESSAGES',
-                        updater: (prev) => {
-                          if (prev.length === 0) return prev;
-                          const updated = [...prev];
-                          const lastIndex = updated.length - 1;
-                          updated[lastIndex] = { ...updated[lastIndex], sources };
-                          return updated;
-                        },
-                      });
-                    }
+                    handleSourcesEvent(
+                      { 
+                        dispatch, 
+                        pendingMessageRef, 
+                        flushPendingMessage, 
+                        setConversationId, 
+                        conversationId, 
+                        messageId 
+                      },
+                      sources,
+                      toSources
+                    );
                   }
                   break;
                 case 'token':
                   if (event.content) {
-                    dispatch({ type: 'SET_RETRIEVAL_STATUS', status: 'Generating answer...' });
-                    streamingContent += event.content;
-                    const now = Date.now();
-                    if (!streamHasMarkdownSyntax) {
-                      const hintChars = /[`*_#<\n]/;
-                      if (
-                        hintChars.test(event.content) ||
-                        now - lastMarkdownCheckAt >= markdownCheckIntervalMs * 2
-                      ) {
-                        streamHasMarkdownSyntax = markdownPattern.test(streamingContent);
-                        lastMarkdownCheckAt = now;
-                      }
-                    }
-                    if (pendingMessageRef.current) {
-                      if (streamHasMarkdownSyntax) {
-                        pendingMessageRef.current.content = streamingContent;
-                        pendingMessageRef.current.isFormatted = true;
-                      } else if (now - lastPlainFormatAt >= plainFormatIntervalMs) {
-                        const formattedContent = formatPlainTextToMarkdown(streamingContent);
-                        pendingMessageRef.current.content =
-                          formattedContent || streamingContent.trim();
-                        pendingMessageRef.current.isFormatted = true;
-                        lastPlainFormatAt = now;
-                      } else {
-                        pendingMessageRef.current.content = streamingContent;
-                        pendingMessageRef.current.isFormatted = false;
-                      }
-                      flushPendingMessage();
-                    }
+                    const tokenResult = handleTokenEventHelper(
+                      {
+                        dispatch,
+                        pendingMessageRef,
+                        flushPendingMessage,
+                        setConversationId,
+                        conversationId,
+                        messageId,
+                        streamingContent,
+                        streamHasMarkdownSyntax,
+                        lastMarkdownCheckAt,
+                        lastPlainFormatAt,
+                        markdownCheckIntervalMs,
+                        plainFormatIntervalMs,
+                        markdownPattern,
+                        formatPlainTextToMarkdown,
+                      },
+                      event.content
+                    );
+                    streamingContent = tokenResult.streamingContent;
+                    streamHasMarkdownSyntax = tokenResult.streamHasMarkdownSyntax;
+                    lastMarkdownCheckAt = tokenResult.lastMarkdownCheckAt;
+                    lastPlainFormatAt = tokenResult.lastPlainFormatAt;
                   }
                   break;
                 case 'metadata':
-                  if (event.conversation_id && !conversationId) {
-                    setConversationId(event.conversation_id);
-                  }
-                  if (event.follow_up_questions && Array.isArray(event.follow_up_questions)) {
-                    followUpQuestions = mapFollowUpQuestions(messageId, event.follow_up_questions);
-                    if (pendingMessageRef.current) {
-                      pendingMessageRef.current.followUpQuestions =
-                        followUpQuestions.length > 0 ? followUpQuestions : undefined;
-                      flushPendingMessage();
-                    } else if (followUpQuestions.length > 0) {
-                      dispatch({
-                        type: 'SET_MESSAGES',
-                        updater: (prev) => {
-                          if (prev.length === 0) return prev;
-                          const updated = [...prev];
-                          const lastIndex = updated.length - 1;
-                          updated[lastIndex] = { ...updated[lastIndex], followUpQuestions };
-                          return updated;
-                        },
-                      });
-                    }
-                  }
+                  followUpQuestions = handleMetadataEvent(
+                    {
+                      dispatch,
+                      pendingMessageRef,
+                      flushPendingMessage,
+                      setConversationId,
+                      conversationId,
+                      messageId,
+                    },
+                    event,
+                    mapFollowUpQuestions
+                  );
                   if (event.delta) {
                     deltaPayload = event.delta as import('@/types/policy').DeltaResponse;
                     if (pendingMessageRef.current) {
