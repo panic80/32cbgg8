@@ -51,26 +51,16 @@ const createChatRoutes = ({
 
   const validateGemini = validateRequest(geminiGenerationSchema);
 
-  router.use('/api/chat', async (req: Request, res: Response, next: NextFunction) => {
-    if (req.method === 'POST') {
-      logger.info('Legacy /api/chat endpoint called, redirecting to /api/gemini/generateContent');
-      if (req.body) {
-        req.body = decodeUrlParams(req.body);
-      }
-      if (req.body.query && !req.body.prompt) {
-        req.body.prompt = req.body.query;
-      }
-      // Assuming validateGemini is an async middleware or returns a promise, but it's defined as synchronous in previous step.
-      // However, it calls `next()` which is standard express.
-      // The issue is `controller.handleGeminiGenerateContent` expects `(req, res)`
-      // and `validateRequest` returns a middleware `(req, res, next)`.
-      // We need to manually chain them here or rewrite how `use` works.
-      // Simpler approach: call middleware logic then controller.
-
-      // Let's use the middleware as intended by Express
-      return validateGemini(req, res, () => controller.handleGeminiGenerateContent(req, res));
+  router.post('/api/chat', rateLimiter, async (req: Request, res: Response, next: NextFunction) => {
+    logger.info('Legacy /api/chat endpoint called, redirecting to /api/gemini/generateContent');
+    if (req.body) {
+      req.body = decodeUrlParams(req.body);
     }
-    return next();
+    if (req.body.query && !req.body.prompt) {
+      req.body.prompt = req.body.query;
+    }
+    // Let's use the middleware as intended by Express
+    return validateGemini(req, res, () => controller.handleGeminiGenerateContent(req, res));
   });
 
   router.post(

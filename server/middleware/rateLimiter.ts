@@ -40,6 +40,28 @@ export const createRateLimiter = ({
   const rateLimitBuckets = config.rateLimitEnabled ? new Map<string, Bucket>() : null;
   const apiRequestCounts = config.rateLimitEnabled ? new Map<string, number>() : null;
 
+  // Cleanup interval to prevent memory leaks
+  if (config.rateLimitEnabled) {
+    setInterval(() => {
+      const now = Date.now();
+      
+      // Cleanup expired buckets
+      if (rateLimitBuckets) {
+        for (const [key, bucket] of rateLimitBuckets.entries()) {
+          if (bucket.expiresAt <= now) {
+            rateLimitBuckets.delete(key);
+          }
+        }
+      }
+
+      // Cap apiRequestCounts size to prevent unbounded growth
+      if (apiRequestCounts && apiRequestCounts.size > 10000) {
+        logger.info('Clearing apiRequestCounts map (size limit exceeded)');
+        apiRequestCounts.clear();
+      }
+    }, 60000).unref(); // Run every minute, don't hold process open
+  }
+
   const rateLimiter = async (req: Request, res: Response, next: NextFunction) => {
     if (!config.rateLimitEnabled) {
       return next();
