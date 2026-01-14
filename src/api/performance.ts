@@ -9,18 +9,7 @@ import type {
   GatewayMeta,
 } from '@/types/performance';
 
-const toNumber = (value: unknown, fallback = 0): number => {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return value;
-  }
-  if (typeof value === 'string') {
-    const parsed = Number.parseFloat(value);
-    if (!Number.isNaN(parsed) && Number.isFinite(parsed)) {
-      return parsed;
-    }
-  }
-  return fallback;
-};
+import { toNumber } from '@/utils/validation';
 
 const mapSamples = (raw: unknown): MetricSample[] => {
   if (!Array.isArray(raw)) {

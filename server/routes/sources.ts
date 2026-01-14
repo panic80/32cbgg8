@@ -1,8 +1,8 @@
 import express, { Request, Response, NextFunction } from 'express';
 import axios from 'axios';
 import { getLogger } from '../services/logger.js';
-import { respondWithError } from '../utils/http.js';
 import { RAG_SERVICE_URL } from '../config/constants.js';
+import { getRagService, postRagService } from '../utils/ragServiceHelpers.js';
 
 interface SourcesRoutesConfig {
   rateLimiter: import('express').RequestHandler;
@@ -30,34 +30,18 @@ export function createSourcesRoutes({
     adminMiddleware,
     rateLimiter,
     async (req: Request, res: Response) => {
-      try {
-        const ragServiceUrl = RAG_SERVICE_URL;
-        const ragResponse = await axios.get(`${ragServiceUrl}/api/v1/sources`, {
+      await getRagService(
+        `${RAG_SERVICE_URL}/api/v1/sources`,
+        {
           params: req.query,
           timeout: 10000,
           headers: { ...buildRagAuthHeaders() },
-        });
-
-        res.json(ragResponse.data);
-      } catch (error: unknown) {
-        const err = error as Error & { response?: { status: number; data?: { message?: string } } };
-        if (err.response) {
-          return respondWithError(res, {
-            status: err.response.status,
-            error: 'SourcesUpstreamError',
-            message: err.response.data?.message || 'Failed to list sources.',
-            logger,
-            cause: err,
-          });
-        }
-        return respondWithError(res, {
-          status: 500,
-          error: 'SourcesListFailed',
-          message: 'Failed to list sources.',
-          logger,
-          cause: err,
-        });
-      }
+        },
+        res,
+        logger,
+        'SourcesList',
+        'Failed to list sources.',
+      );
     },
   );
 
@@ -67,33 +51,17 @@ export function createSourcesRoutes({
     adminMiddleware,
     rateLimiter,
     async (req: Request, res: Response) => {
-      try {
-        const ragServiceUrl = RAG_SERVICE_URL;
-        const ragResponse = await axios.get(`${ragServiceUrl}/api/v1/sources/stats`, {
+      await getRagService(
+        `${RAG_SERVICE_URL}/api/v1/sources/stats`,
+        {
           timeout: 10000,
           headers: { ...buildRagAuthHeaders() },
-        });
-
-        res.json(ragResponse.data);
-      } catch (error: unknown) {
-        const err = error as Error & { response?: { status: number; data?: { message?: string } } };
-        if (err.response) {
-          return respondWithError(res, {
-            status: err.response.status,
-            error: 'SourcesStatsUpstreamError',
-            message: err.response.data?.message || 'Failed to get source statistics.',
-            logger,
-            cause: err,
-          });
-        }
-        return respondWithError(res, {
-          status: 500,
-          error: 'SourcesStatsFailed',
-          message: 'Failed to get source statistics.',
-          logger,
-          cause: err,
-        });
-      }
+        },
+        res,
+        logger,
+        'SourcesStats',
+        'Failed to get source statistics.',
+      );
     },
   );
 
@@ -124,37 +92,21 @@ export function createSourcesRoutes({
     adminMiddleware,
     rateLimiter,
     async (req: Request, res: Response) => {
-      try {
-        logger.info('Database purge requested');
-        const ragServiceUrl = RAG_SERVICE_URL;
-        const ragResponse = await axios.post(
-          `${ragServiceUrl}/api/v1/database/purge`,
-          {},
-          {
-            timeout: 30000,
-            headers: { 'Content-Type': 'application/json', ...buildRagAuthHeaders() },
-          },
-        );
-        logger.info('Database purge completed', { result: ragResponse.data });
-        res.json(ragResponse.data);
-      } catch (error: unknown) {
-        const err = error as Error & { response?: { status: number; data?: { message?: string } } };
-        if (err.response) {
-          return respondWithError(res, {
-            status: err.response.status,
-            error: 'DatabasePurgeUpstreamError',
-            message: err.response.data?.message || 'Failed to purge database.',
-            logger,
-            cause: err,
-          });
-        }
-        return respondWithError(res, {
-          status: 500,
-          error: 'DatabasePurgeFailed',
-          message: 'Failed to purge database.',
-          logger,
-          cause: err,
-        });
+      logger.info('Database purge requested');
+      const result = await postRagService(
+        `${RAG_SERVICE_URL}/api/v1/database/purge`,
+        {},
+        {
+          timeout: 30000,
+          headers: { 'Content-Type': 'application/json', ...buildRagAuthHeaders() },
+        },
+        res,
+        logger,
+        'DatabasePurge',
+        'Failed to purge database.',
+      );
+      if (result) {
+        logger.info('Database purge completed', { result });
       }
     },
   );
@@ -165,37 +117,21 @@ export function createSourcesRoutes({
     adminMiddleware,
     rateLimiter,
     async (req: Request, res: Response) => {
-      try {
-        logger.info('BM25 index build requested');
-        const ragServiceUrl = RAG_SERVICE_URL;
-        const ragResponse = await axios.post(
-          `${ragServiceUrl}/api/v1/admin/bm25/rebuild`,
-          {},
-          {
-            timeout: 30000,
-            headers: { 'Content-Type': 'application/json', ...buildRagAuthHeaders() },
-          },
-        );
-        logger.info('BM25 index build initiated', { result: ragResponse.data });
-        res.json(ragResponse.data);
-      } catch (error: unknown) {
-        const err = error as Error & { response?: { status: number; data?: { message?: string } } };
-        if (err.response) {
-          return respondWithError(res, {
-            status: err.response.status,
-            error: 'BM25BuildUpstreamError',
-            message: err.response.data?.message || 'Failed to build BM25 index.',
-            logger,
-            cause: err,
-          });
-        }
-        return respondWithError(res, {
-          status: 500,
-          error: 'BM25BuildFailed',
-          message: 'Failed to build BM25 index.',
-          logger,
-          cause: err,
-        });
+      logger.info('BM25 index build requested');
+      const result = await postRagService(
+        `${RAG_SERVICE_URL}/api/v1/admin/bm25/rebuild`,
+        {},
+        {
+          timeout: 30000,
+          headers: { 'Content-Type': 'application/json', ...buildRagAuthHeaders() },
+        },
+        res,
+        logger,
+        'BM25Build',
+        'Failed to build BM25 index.',
+      );
+      if (result) {
+        logger.info('BM25 index build initiated', { result });
       }
     },
   );

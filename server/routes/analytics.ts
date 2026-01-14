@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { validateRequest } from '../middleware/validate.js';
 import { visitEventSchema } from './schemas/analyticsSchemas.js';
+import { requireLogging } from '../middleware/requireLogging.js';
 
 interface AnalyticsRoutesConfig {
   rateLimiter: import('express').RequestHandler;
@@ -11,13 +12,7 @@ const createAnalyticsRoutes = ({ rateLimiter, chatLogger }: AnalyticsRoutesConfi
   const router = Router();
   const validateVisit = validateRequest(visitEventSchema);
 
-  router.post('/api/analytics/visit', rateLimiter, validateVisit, (req: Request, res: Response) => {
-    if (process.env.ENABLE_LOGGING !== 'true') {
-      return res.status(503).json({
-        error: 'LoggingDisabled',
-        message: 'Analytics logging is disabled. Visit events will not be recorded.',
-      });
-    }
+  router.post('/api/analytics/visit', rateLimiter, requireLogging, validateVisit, (req: Request, res: Response) => {
 
     const { path, referrer, sessionId, locale, title, viewport, metadata } = req.body;
 

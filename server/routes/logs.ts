@@ -1,44 +1,19 @@
 import { Router, Request, Response } from 'express';
 import chatLogger from '../services/logger.js';
+import { parseNumber, sanitizeString } from '../utils/validation.js';
+import { requireLogging } from '../middleware/requireLogging.js';
 
 interface LogsRoutesConfig {
   rateLimiter: import('express').RequestHandler;
   requireAdminAuth: import('express').RequestHandler;
 }
 
-const parseNumber = (
-  value: unknown,
-  {
-    fallback,
-    min = 0,
-    max = Number.MAX_SAFE_INTEGER,
-  }: { fallback: number; min?: number; max?: number },
-): number => {
-  const parsed = typeof value === 'string' ? Number.parseInt(value, 10) : Number(value);
-  if (Number.isNaN(parsed) || !Number.isFinite(parsed)) {
-    return fallback;
-  }
-  return Math.min(Math.max(parsed, min), max);
-};
-
-const sanitizeString = (value: unknown): string | undefined => {
-  if (typeof value !== 'string') return undefined;
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : undefined;
-};
-
 const createLogsRoutes = ({ rateLimiter, requireAdminAuth }: LogsRoutesConfig) => {
   const router = Router();
 
   const adminMiddleware = requireAdminAuth ? [requireAdminAuth, rateLimiter] : [rateLimiter];
 
-  router.get('/api/admin/chat-logs', ...adminMiddleware, (req: Request, res: Response) => {
-    if (process.env.ENABLE_LOGGING !== 'true') {
-      return res.status(503).json({
-        error: 'LoggingDisabled',
-        message: 'Analytics logging is disabled. Enable ENABLE_LOGGING to access chat logs.',
-      });
-    }
+  router.get('/api/admin/chat-logs', ...adminMiddleware, requireLogging, (req: Request, res: Response) => {
 
     const pageSize = parseNumber(req.query.limit, { fallback: 50, min: 1, max: 200 });
     const pageOffset = parseNumber(req.query.offset, { fallback: 0, min: 0 });
@@ -117,13 +92,7 @@ const createLogsRoutes = ({ rateLimiter, requireAdminAuth }: LogsRoutesConfig) =
     });
   });
 
-  router.post('/api/analytics/visit', rateLimiter, (req: Request, res: Response) => {
-    if (process.env.ENABLE_LOGGING !== 'true') {
-      return res.status(503).json({
-        error: 'LoggingDisabled',
-        message: 'Analytics logging is disabled. Visit events will not be recorded.',
-      });
-    }
+  router.post('/api/analytics/visit', rateLimiter, requireLogging, (req: Request, res: Response) => {
 
     const {
       path: visitPath,

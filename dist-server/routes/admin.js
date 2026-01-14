@@ -2,7 +2,8 @@ import { Router } from 'express';
 import { getLogger } from '../services/logger.js';
 import { respondWithError } from '../utils/http.js';
 import { RAG_SERVICE_URL } from '../config/constants.js';
-const toStringOrUndefined = (value) => typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
+import { toStringOrUndefined } from '../utils/validation.js';
+import { requireLogging } from '../middleware/requireLogging.js';
 const logger = getLogger('routes:admin');
 const createAdminRoutes = ({ rateLimiter, performanceHandler, chatLogger }) => {
     const router = Router();
@@ -123,17 +124,8 @@ const createAdminRoutes = ({ rateLimiter, performanceHandler, chatLogger }) => {
         }
     });
     logger.info('Registering admin analytics visits route');
-    router.get('/analytics/visits', rateLimiter, (req, res) => {
+    router.get('/analytics/visits', rateLimiter, requireLogging, (req, res) => {
         logger.debug('Handling GET /api/admin/analytics/visits');
-        if (process.env.ENABLE_LOGGING !== 'true') {
-            return respondWithError(res, {
-                status: 503,
-                error: 'LoggingDisabled',
-                message: 'Analytics logging is disabled. Enable ENABLE_LOGGING to access visit analytics.',
-                logger,
-                level: 'warn',
-            });
-        }
         const filters = {
             startAt: toStringOrUndefined(req.query.startAt),
             endAt: toStringOrUndefined(req.query.endAt),

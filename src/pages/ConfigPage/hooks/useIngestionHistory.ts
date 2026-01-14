@@ -1,36 +1,19 @@
-import { useState, useEffect, useCallback } from 'react';
 import { StorageKeys } from '@/constants/storage';
-import { getLocalStorageJSON, removeLocalStorageItem, setLocalStorageJSON } from '@/utils/storage';
 import type { IngestionHistoryEntry } from '../types';
+import { useStorageList } from '@/hooks/useStorageList';
 
 const MAX_HISTORY_ENTRIES = 10;
 
 export const useIngestionHistory = () => {
-  const [ingestionHistory, setIngestionHistory] = useState<IngestionHistoryEntry[]>([]);
-
-  useEffect(() => {
-    const saved = getLocalStorageJSON<unknown>(StorageKeys.ingestionHistory, []);
-    if (Array.isArray(saved)) {
-      setIngestionHistory(saved as IngestionHistoryEntry[]);
-    }
-  }, []);
-
-  const recordHistoryEntry = useCallback((entry: IngestionHistoryEntry) => {
-    setIngestionHistory((previous) => {
-      const next = [entry, ...previous].slice(0, MAX_HISTORY_ENTRIES);
-      setLocalStorageJSON(StorageKeys.ingestionHistory, next);
-      return next;
-    });
-  }, []);
-
-  const clearIngestionHistory = useCallback(() => {
-    setIngestionHistory([]);
-    removeLocalStorageItem(StorageKeys.ingestionHistory);
-  }, []);
+  const { items: ingestionHistory, append, clear } = useStorageList<IngestionHistoryEntry>(
+    StorageKeys.ingestionHistory,
+    MAX_HISTORY_ENTRIES,
+    { initialValue: [] },
+  );
 
   return {
     ingestionHistory,
-    recordHistoryEntry,
-    clearIngestionHistory,
+    recordHistoryEntry: append,
+    clearIngestionHistory: clear,
   };
 };
