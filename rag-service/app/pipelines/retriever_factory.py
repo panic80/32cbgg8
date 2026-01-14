@@ -25,6 +25,7 @@ from app.components.bm25_retriever import TravelBM25Retriever
 from app.components.cooccurrence_retriever import TravelCooccurrenceRetriever
 from app.components.authority_reranker import AuthorityReranker, AuthorityRerankingRetriever
 from app.core.logging import get_logger
+from app.core.config import settings
 
 # Import unified retrieval components
 from app.unified_retrieval.unified_retriever import UnifiedRetriever, UnifiedRetrieverBuilder
@@ -160,6 +161,12 @@ class HybridRetrieverFactory:
             )
         
         elif retriever_type == "bm25":
+            if not settings.enable_bm25:
+                logger.info("BM25 disabled by configuration; using vector retriever")
+                return self.vectorstore.as_retriever(
+                    search_type="similarity",
+                    search_kwargs={"k": k}
+                )
             try:
                 return TravelBM25Retriever(k=k)
             except Exception as e:
@@ -228,13 +235,15 @@ class HybridRetrieverFactory:
         weights.append(config.ensemble_weights.get("vector", 0.5))
         
         # BM25 retriever
-        if config.use_bm25:
+        if config.use_bm25 and settings.enable_bm25:
             try:
                 bm25_retriever = TravelBM25Retriever(k=config.k)
                 retrievers.append(bm25_retriever)
                 weights.append(config.ensemble_weights.get("bm25", 0.5))
             except Exception as e:
                 logger.warning(f"Failed to create BM25 retriever: {e}")
+        elif config.use_bm25 and not settings.enable_bm25:
+            logger.info("BM25 disabled by configuration; skipping BM25 retriever")
         
         # Normalize weights
         total_weight = sum(weights)
@@ -348,11 +357,13 @@ class HybridRetrieverFactory:
         )
         
         # BM25 retriever
-        if config.use_bm25:
+        if config.use_bm25 and settings.enable_bm25:
             try:
                 retrievers["bm25"] = TravelBM25Retriever(k=config.k)
             except Exception as e:
                 logger.warning(f"Failed to create BM25 retriever: {e}")
+        elif config.use_bm25 and not settings.enable_bm25:
+            logger.info("BM25 disabled by configuration; skipping BM25 retriever")
         
         # Smart chunk retriever (parent document retriever)
         if config.use_smart_chunking:

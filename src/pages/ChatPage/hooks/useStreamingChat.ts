@@ -324,8 +324,12 @@ export const useStreamingChat = ({
       let streamingContent = '';
       let sources: Source[] = [];
       let followUpQuestions: FollowUpQuestion[] = [];
-      let streamHasMarkdownSyntax = false;
       let deltaPayload: import('@/types/policy').DeltaResponse | undefined;
+      let streamHasMarkdownSyntax = false;
+      let lastMarkdownCheckAt = 0;
+      let lastPlainFormatAt = 0;
+      const markdownCheckIntervalMs = 120;
+      const plainFormatIntervalMs = 160;
 
       try {
         const isTripPlannerMessage = messageText.startsWith('📋 **Trip Plan Request**');
@@ -448,15 +452,31 @@ export const useStreamingChat = ({
                   if (event.content) {
                     dispatch({ type: 'SET_RETRIEVAL_STATUS', status: 'Generating answer...' });
                     streamingContent += event.content;
-                    const hasMarkdownSyntax = markdownPattern.test(streamingContent);
-                    streamHasMarkdownSyntax = streamHasMarkdownSyntax || hasMarkdownSyntax;
+                    const now = Date.now();
+                    if (!streamHasMarkdownSyntax) {
+                      const hintChars = /[`*_#<\n]/;
+                      if (
+                        hintChars.test(event.content) ||
+                        now - lastMarkdownCheckAt >= markdownCheckIntervalMs * 2
+                      ) {
+                        streamHasMarkdownSyntax = markdownPattern.test(streamingContent);
+                        lastMarkdownCheckAt = now;
+                      }
+                    }
                     if (pendingMessageRef.current) {
-                      const formattedContent = hasMarkdownSyntax
-                        ? streamingContent
-                        : formatPlainTextToMarkdown(streamingContent);
-                      const displayContent = formattedContent || streamingContent.trim();
-                      pendingMessageRef.current.content = displayContent;
-                      pendingMessageRef.current.isFormatted = true;
+                      if (streamHasMarkdownSyntax) {
+                        pendingMessageRef.current.content = streamingContent;
+                        pendingMessageRef.current.isFormatted = true;
+                      } else if (now - lastPlainFormatAt >= plainFormatIntervalMs) {
+                        const formattedContent = formatPlainTextToMarkdown(streamingContent);
+                        pendingMessageRef.current.content =
+                          formattedContent || streamingContent.trim();
+                        pendingMessageRef.current.isFormatted = true;
+                        lastPlainFormatAt = now;
+                      } else {
+                        pendingMessageRef.current.content = streamingContent;
+                        pendingMessageRef.current.isFormatted = false;
+                      }
                       flushPendingMessage();
                     }
                   }

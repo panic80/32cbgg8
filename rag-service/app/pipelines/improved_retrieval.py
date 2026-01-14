@@ -6,12 +6,11 @@ especially queries looking for specific values in documents.
 """
 
 import asyncio
+import os
 from typing import List, Dict, Any, Optional, Tuple
-import logging
 from langchain_core.documents import Document
 from langchain_core.retrievers import BaseRetriever
 from langchain_core.language_models import BaseLLM
-from langchain_community.retrievers import BM25Retriever as LangChainBM25Retriever
 
 from app.components.multi_query_retriever import MultiQueryRetriever
 from app.components.ensemble_retriever import ContentBoostedEnsembleRetriever
@@ -22,10 +21,22 @@ from app.components.table_query_rewriter import TableQueryRewriter
 from app.components.class_a_retriever import ClassARetriever
 from app.components.class_a_query_enhancer import ClassAQueryEnhancer
 from app.components.restriction_aware_retriever import RestrictionAwareRetriever
+from app.components.bm25_retriever import TravelBM25Retriever
+from app.core.config import settings
 from app.core.vectorstore import VectorStoreManager
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
+
+
+def _resolve_bm25_index_path() -> str:
+    """Resolve the default BM25 index path used by the retriever."""
+    if os.path.exists("/app/data"):
+        base_data_dir = "/app/data"
+    else:
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        base_data_dir = os.path.join(project_root, "data")
+    return os.path.join(base_data_dir, "bm25", "bm25_retriever.pkl")
 
 
 class ImprovedRetrievalPipeline:
@@ -211,29 +222,47 @@ class ImprovedRetrievalPipeline:
     
     async def _ensure_bm25_initialized(self):
         """Ensure BM25 retriever is initialized (lazy loading)."""
-        if not self._bm25_initialized:
-            try:
-                # Get all documents from vector store for BM25
-                all_docs = await self._get_all_documents()
-                if all_docs:
-                    self._bm25_retriever = LangChainBM25Retriever.from_documents(
-                        all_docs,
-                        k=25
-                    )
-                    self.retrievers["bm25"] = self._bm25_retriever
-                    logger.info(f"Created BM25 retriever with {len(all_docs)} documents")
-                    
-                    # Now create the ensemble retriever
-                    self.retrievers["ensemble"] = self._create_ensemble_retriever()
-                    
-                    # Create retriever chain
-                    self._create_retriever_chain()
-                
-                self._bm25_initialized = True
-                
-            except Exception as e:
-                logger.error(f"Failed to initialize BM25 retriever: {e}")
-                self._bm25_initialized = True  # Prevent retry on every request
+        if self._bm25_initialized:
+            return
+
+        try:
+            if not settings.enable_bm25:
+                logger.info("BM25 disabled by configuration; skipping initialization")
+            else:
+                bm25_retriever = None
+                index_path = _resolve_bm25_index_path()
+                index_exists = os.path.exists(index_path)
+
+                if index_exists:
+                    try:
+                        bm25_retriever = TravelBM25Retriever(k=25, index_path=index_path)
+                        self._bm25_retriever = bm25_retriever
+                        self.retrievers["bm25"] = bm25_retriever
+                        logger.info("Loaded BM25 retriever from disk index")
+                    except Exception as e:
+                        logger.warning(f"Failed to load BM25 index from disk: {e}")
+
+                if bm25_retriever is None:
+                    if settings.bm25_require_index:
+                        logger.warning(
+                            "BM25 index missing and request-time build disabled; skipping BM25"
+                        )
+                    else:
+                        all_docs = await self._get_all_documents()
+                        if all_docs:
+                            bm25_retriever = TravelBM25Retriever(documents=all_docs, k=25)
+                            self._bm25_retriever = bm25_retriever
+                            self.retrievers["bm25"] = bm25_retriever
+                            logger.info(f"Created BM25 retriever with {len(all_docs)} documents")
+                        else:
+                            logger.warning("No documents available for BM25; skipping")
+
+            self.retrievers["ensemble"] = self._create_ensemble_retriever()
+            self._create_retriever_chain()
+        except Exception as e:
+            logger.error(f"Failed to initialize BM25 retriever: {e}")
+        finally:
+            self._bm25_initialized = True  # Prevent retry on every request
     
     def _create_retriever_chain(self):
         """Create the full retriever chain with all components."""

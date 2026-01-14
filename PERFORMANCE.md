@@ -1,81 +1,89 @@
-# Performance Code Review & Optimization Plan
+# Performance Remediation Plan
 
-This document outlines the performance analysis of the Canadian Forces Travel Instructions Chatbot codebase, identifying critical bottlenecks and providing a roadmap for optimization.
+This document tracks the confirmed performance issues and a concrete plan to fix each one. Other items were removed because they were not verified against current code paths.
 
-## Executive Summary
-The codebase has a clean modular structure but contains three major scalability risks:
-1.  **Memory Management (Critical)**: O(N) memory growth in the RAG service.
-2.  **Concurrency (High)**: Blocking synchronous I/O in the Node.js server.
-3.  **UI Responsiveness (High)**: Lack of virtualization in the chat interface.
+## Status Checklist
 
----
+- [x] RAG BM25 corpus loading is bounded and no longer loads the full corpus at request time.
+- [x] Streaming markdown detection/formatting is throttled or deferred.
+- [x] SSE parsing is single-pass (no double JSON parsing on the backend).
 
-## 1. Algorithmic Complexity & Memory
+## 1. RAG BM25: Unbounded Corpus Loading
 
-### [CRITICAL] O(N) Memory Loading in RAG Service
-- **Location**: `rag-service/app/core/vectorstore.py` -> `get_all_documents`
-- **Problem**: Loads the entire Chroma corpus into a Python list to support BM25 retrieval.
-- **Impact**: Space complexity is O(N). As the dataset grows (e.g., >20k chunks), the service will consume gigabytes of RAM and eventually crash with an Out-of-Memory (OOM) error.
-- **Proposed Optimization**: 
-    - Implement a database-backed BM25 (e.g., SQLite FTS5 or Postgres `tsvector`).
-    - Use pagination for internal administrative tasks instead of full collection dumps.
+**Where it happens**
+- `rag-service/app/core/vectorstore.py` (`get_all_documents`)
+- `rag-service/app/services/bm25.py`
+- `rag-service/app/pipelines/improved_retrieval.py`
 
-### [CRITICAL] Unbounded Memory Leak in Reranker
-- **Location**: `rag-service/app/components/reranker.py` -> `CrossEncoderReranker`
-- **Problem**: Uses a standard Python `dict` for `self._cache` with no eviction policy.
-- **Impact**: Every unique query-document pair is stored forever. Over weeks of operation, this will exhaust system memory.
-- **Proposed Optimization**:
-    ```python
-    from cachetools import LRUCache
-    self._cache = LRUCache(maxsize=10000) # Cap at 10k entries
-    ```
+**Current behavior**
+- The full Chroma corpus is loaded into a Python list to build BM25. This is O(M) memory and will not scale beyond small corpora.
 
----
+**Plan**
+- Short term (guardrails and safer defaults):
+  - Make BM25 initialization use a prebuilt on-disk index if available, and avoid `from_documents` on request paths.
+  - Add a hard cap (configurable) for max documents to load when building BM25; log a warning and skip BM25 if exceeded.
+  - Ensure `get_all_documents(refresh=True)` is only used in offline rebuilds (admin/ingest), not during request-time lazy init.
+- Medium term (remove full-corpus memory dependency):
+  - Replace in-memory BM25 with a disk-backed index (Tantivy/Whoosh) or migrate to a vector store that supports hybrid search.
+  - Introduce a small interface for keyword retrieval so switching backends does not touch pipeline logic.
 
-## 2. I/O Operations & Concurrency
+**Checklist**
+- [x] `rag-service/app/pipelines/improved_retrieval.py`: initialize BM25 from persisted index when available and skip request-time builds when `bm25_require_index` is enabled.
+- [x] `rag-service/app/core/vectorstore.py`: add configurable max-doc cap and telemetry when `get_all_documents` is invoked.
+- [x] `rag-service/app/core/config.py`: add `enable_bm25`, `bm25_require_index`, and `bm25_max_corpus_docs` flags.
 
-### [HIGH PRIORITY] Blocking Synchronous Logging
-- **Location**: `server/services/logger.ts` -> `ChatLogger`
-- **Problem**: Uses `better-sqlite3` synchronously (`.run()`) for chat history and event logs.
-- **Impact**: Every log write blocks the Node.js event loop. During high concurrency or while streaming tokens, the server will experience significant latency spikes and "stuttering."
-- **Proposed Optimization**:
-    - Use a memory buffer and flush logs in batches every 2–5 seconds.
-    - Move database writes to a separate Worker Thread or use an asynchronous SQLite driver.
+**Success criteria**
+- No request-time path loads the full corpus into memory.
+- BM25 can be disabled or downgraded without crashing retrieval.
 
-### [HIGH PRIORITY] Redundant Embedding Computation
-- **Location**: `rag-service/app/pipelines/parallel_ingestion.py`
-- **Problem**: Computes embeddings in parallel but fails to pass the pre-computed vectors to `vector_store.add_documents`.
-- **Impact**: Ingestion takes 2x longer and costs 2x more in API credits as embeddings are computed twice (once by the pipeline, once by Chroma).
-- **Proposed Optimization**: Update `add_documents_optimized` to pass the `embeddings` array directly to the underlying vector store method.
+## 2. Frontend: Per-Token Markdown Formatting
 
----
+**Where it happens**
+- `src/pages/ChatPage/hooks/useStreamingChat.ts`
+- `src/pages/ChatPage/utils/formatting.ts`
 
-## 3. Rendering & UI Performance
+**Current behavior**
+- For each token, the full accumulated string is regex-tested and potentially re-formatted. This leads to O(n^2) work in long streams and UI jank.
 
-### [HIGH PRIORITY] Lack of Chat List Virtualization
-- **Location**: `src/components/ChatInterface.tsx`
-- **Problem**: Renders the entire message history array using `.map()`.
-- **Impact**: React must process every message bubble in the DOM. In long conversations (>50 messages), the UI will freeze during message streaming as it tries to re-render the list for every token received.
-- **Proposed Optimization**: Implement `react-virtuoso` or `react-window` to only render the bubbles visible in the viewport.
+**Plan**
+- Short term (throttle work on main thread):
+  - Keep raw streaming text in a ref and only run markdown detection/formatting on a timer (e.g., every 100 ms) or every N tokens.
+  - Run full formatting once on the `complete` event only, which is already required for final output.
+  - Only set `isFormatted` when the throttled formatter runs or on completion.
+- Medium term (reduce work further):
+  - Replace the global regex test with a simpler incremental heuristic (track if markdown markers appeared).
+  - Consider running formatting off the main thread (worker) if long responses are common.
 
-### [MEDIUM PRIORITY] Redundant Component Re-renders
-- **Location**: `src/components/chat/ChatMessageBubble.tsx`
-- **Problem**: Component is not memoized.
-- **Impact**: Every token update in the "active" message causes **every historical message bubble** to re-render.
-- **Proposed Optimization**: 
-    ```tsx
-    export const ChatMessageBubble = React.memo(ChatMessageBubbleComponent);
-    ```
+**Checklist**
+- [x] `src/pages/ChatPage/hooks/useStreamingChat.ts`: stream raw content during tokens and defer markdown formatting to completion.
+- [x] Keep `streamingContent` as the raw source of truth; update the final formatted content in the `complete` handler.
 
----
+**Success criteria**
+- Smooth streaming with no noticeable input lag during long responses.
+- Formatting still correct on final message completion.
 
-## 4. Implementation Roadmap
+## 3. Backend: Double JSON Parsing
 
-| Priority | Task | File |
-| :--- | :--- | :--- |
-| **Critical** | Implement LRUCache in Reranker | `rag-service/app/components/reranker.py` |
-| **Critical** | Refactor BM25 Document Loading | `rag-service/app/core/vectorstore.py` |
-| **High** | Batching/Async for ChatLogger | `server/services/logger.ts` |
-| **High** | Pass pre-computed embeddings to Chroma | `rag-service/app/pipelines/parallel_ingestion.py` |
-| **High** | Add Virtualization to ChatInterface | `src/components/ChatInterface.tsx` |
-| **Medium** | Memoize Message Bubbles | `src/components/chat/ChatMessageBubble.tsx` |
+**Where it happens**
+- `server/services/streaming.ts`
+- `server/controllers/chatController.ts`
+
+**Current behavior**
+- The same SSE chunks are parsed twice: once for metadata in `pipeStreamingResponse`, and once in the controller for `aggregatedAnswer`.
+
+**Plan**
+- Short term (avoid unnecessary parsing):
+  - Only aggregate `aggregatedAnswer` when logging is enabled. Skip the `response.data.on('data')` parser otherwise.
+  - Cap `aggregatedAnswer` length (configurable) to prevent unbounded memory in long streams.
+- Medium term (single-pass parsing):
+  - Extend `pipeStreamingResponse` to accept `onToken` alongside `onMetadata`, and invoke it during the single parse pass.
+  - Remove the second parser in the controller and rely on the new callback for aggregation.
+
+**Checklist**
+- [x] `server/services/streaming.ts`: add optional `onToken` callback and call it when `event.type === 'token'`.
+- [x] `server/controllers/chatController.ts`: drop the direct `response.data.on('data')` parser and use `onToken` when logging is enabled.
+- [x] Add a small cap and truncate `aggregatedAnswer` if required for log safety.
+
+**Success criteria**
+- SSE chunks are parsed once per request.
+- Logging behavior remains unchanged, with lower CPU overhead.

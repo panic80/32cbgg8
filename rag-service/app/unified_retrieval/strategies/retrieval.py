@@ -8,6 +8,7 @@ from langchain_core.embeddings import Embeddings
 
 from app.unified_retrieval.strategies.base import BaseStrategy, RetrievalContext, StrategyType
 from app.components.bm25_retriever import TravelBM25Retriever as BM25RetrieverComponent
+from app.core.config import settings
 from app.core.dependencies import get_vectorstore, get_embeddings
 from app.core.logging import get_logger
 
@@ -185,24 +186,37 @@ class BM25RetrievalStrategy(BaseStrategy):
     async def _get_retriever(self) -> BM25RetrieverComponent:
         """Get or initialize BM25 retriever."""
         if not self._retriever:
-            if not self.documents:
-                # Load documents from vector store
+            if not settings.enable_bm25:
+                raise RuntimeError("BM25 disabled by configuration")
+
+            if not self.documents and not settings.bm25_require_index:
+                # Load documents from vector store (expensive for large corpora)
                 vectorstore = await get_vectorstore()
-                # Get all documents (this might be expensive for large corpora)
                 self.documents = await vectorstore.asimilarity_search("", k=10000)
-            
-            self._retriever = BM25RetrieverComponent(
-                documents=self.documents,
-                k=self.config.get("default_k", 10),
-                k1=self.k1,
-                b=self.b,
-                epsilon=self.epsilon
-            )
+
+            if not self.documents and settings.bm25_require_index:
+                self._retriever = BM25RetrieverComponent(
+                    k=self.config.get("default_k", 10),
+                    k1=self.k1,
+                    b=self.b,
+                    epsilon=self.epsilon
+                )
+            else:
+                self._retriever = BM25RetrieverComponent(
+                    documents=self.documents,
+                    k=self.config.get("default_k", 10),
+                    k1=self.k1,
+                    b=self.b,
+                    epsilon=self.epsilon
+                )
         
         return self._retriever
     
     async def execute(self, context: RetrievalContext) -> RetrievalContext:
         """Execute the BM25 retrieval."""
+        if not settings.enable_bm25:
+            logger.info("BM25 disabled by configuration; skipping BM25 retrieval")
+            return context
         # Get queries to search
         queries = context.metadata.get("generated_queries", [context.get_query()])
         k = context.top_k

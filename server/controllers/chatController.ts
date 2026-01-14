@@ -347,7 +347,11 @@ export const createChatController = ({
       );
 
       const streamingCorsHeaders = buildSseCorsHeaders?.(req.headers.origin) || {};
+      const shouldLogStream = Boolean(config?.loggingEnabled);
+      const maxAggregatedAnswerChars =
+        getEnvNumber?.('STREAM_LOG_ANSWER_MAX_CHARS', 20000) ?? 20000;
       let aggregatedAnswer = '';
+      let hasReachedAnswerLimit = false;
       let remoteConversationId = conversationId || null;
       let aggregatedSources: unknown[] = [];
       let aggregatedFollowUps: unknown[] = [];
@@ -371,20 +375,40 @@ export const createChatController = ({
         heartbeatIntervalMs: 15000,
         idleTimeoutMs: DEFAULT_RAG_STREAM_TIMEOUT_MS,
         traceId: req.headers['x-request-id'] as string,
-        onMetadata: (meta: unknown) => {
-          const event = meta as { conversation_id?: string; sources?: unknown[]; follow_up_questions?: unknown[] };
-          if (event.conversation_id) {
-            remoteConversationId = event.conversation_id;
-          }
-          if (Array.isArray(event.sources)) {
-            aggregatedSources = event.sources;
-          }
-          if (Array.isArray(event.follow_up_questions)) {
-            aggregatedFollowUps = event.follow_up_questions;
-          }
-        },
+        onMetadata: shouldLogStream
+          ? (meta: unknown) => {
+              const event = meta as {
+                conversation_id?: string;
+                sources?: unknown[];
+                follow_up_questions?: unknown[];
+              };
+              if (event.conversation_id) {
+                remoteConversationId = event.conversation_id;
+              }
+              if (Array.isArray(event.sources)) {
+                aggregatedSources = event.sources;
+              }
+              if (Array.isArray(event.follow_up_questions)) {
+                aggregatedFollowUps = event.follow_up_questions;
+              }
+            }
+          : undefined,
+        onToken: shouldLogStream
+          ? (token: string) => {
+              if (hasReachedAnswerLimit) return;
+              const remaining = maxAggregatedAnswerChars - aggregatedAnswer.length;
+              if (remaining <= 0) {
+                hasReachedAnswerLimit = true;
+                return;
+              }
+              aggregatedAnswer += token.length > remaining ? token.slice(0, remaining) : token;
+              if (aggregatedAnswer.length >= maxAggregatedAnswerChars) {
+                hasReachedAnswerLimit = true;
+              }
+            }
+          : undefined,
         onComplete: () => {
-          if (config?.loggingEnabled) {
+          if (shouldLogStream) {
             chatLogger.logChat?.(req, {
               timestamp: new Date().toISOString(),
               question: message.trim(),
@@ -404,29 +428,6 @@ export const createChatController = ({
             });
           }
         },
-      });
-
-      response.data.on('data', (chunk: Buffer) => {
-        const fragment = chunk.toString();
-        const lines = fragment.split('\n');
-
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-          const data = line.slice(6).trim();
-          if (!data || data === '[DONE]') continue;
-
-          try {
-            const event = JSON.parse(data);
-            if (event.type === 'token' && typeof event.content === 'string') {
-              aggregatedAnswer += event.content;
-            }
-          } catch (error) {
-            chatLogger?.error?.('Error parsing SSE event', {
-              error,
-              sample: data.substring(0, 100),
-            });
-          }
-        }
       });
 
       req.on('close', () => {

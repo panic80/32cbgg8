@@ -74,18 +74,28 @@ class RetrievalExecutor:
             logger.info(f"Using per-request enable_reranker: {enable_reranker}")
 
         if should_use_hybrid(chat_request):
-            logger.info("Hybrid search enabled - configuring BM25 + Vector retrievers")
-            retriever_configs = {
-                "vector_similarity": {
-                    "type": "vector",
-                    "search_type": "similarity",
-                    "k": retrieval_k,
-                },
-                "bm25": {
-                    "type": "bm25",
-                    "k": retrieval_k,
-                },
-            }
+            if settings.enable_bm25:
+                logger.info("Hybrid search enabled - configuring BM25 + Vector retrievers")
+                retriever_configs = {
+                    "vector_similarity": {
+                        "type": "vector",
+                        "search_type": "similarity",
+                        "k": retrieval_k,
+                    },
+                    "bm25": {
+                        "type": "bm25",
+                        "k": retrieval_k,
+                    },
+                }
+            else:
+                logger.info("Hybrid search requested but BM25 disabled; using vector only")
+                retriever_configs = {
+                    "vector_similarity": {
+                        "type": "vector",
+                        "search_type": "similarity",
+                        "k": retrieval_k,
+                    },
+                }
             # Multi-query retriever disabled for performance (saves ~6s)
             # Analysis showed 0.1 RRF weight with high overlap, not worth 6s latency
             # if self.llm_wrapper:

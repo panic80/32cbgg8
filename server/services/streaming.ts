@@ -8,6 +8,7 @@ interface PipeOptions {
   corsHeaders?: Record<string, string>;
   logger?: import('./logger.js').Logger | ((level: string, data: unknown) => void);
   onMetadata?: (meta: unknown) => void;
+  onToken?: (token: string) => void;
   onComplete?: () => void;
   heartbeatIntervalMs?: number;
   idleTimeoutMs?: number;
@@ -38,6 +39,7 @@ export const pipeStreamingResponse = ({
   corsHeaders = {},
   logger,
   onMetadata,
+  onToken,
   onComplete,
   heartbeatIntervalMs = 15000,
   idleTimeoutMs,
@@ -71,6 +73,7 @@ export const pipeStreamingResponse = ({
     corsApplied: Object.keys(corsHeaders).length > 0,
   });
 
+  const shouldParse = typeof onMetadata === 'function' || typeof onToken === 'function';
   let buffer = '';
   let heartbeatTimer: NodeJS.Timeout | null = null;
   let idleTimer: NodeJS.Timeout | null = null;
@@ -122,6 +125,10 @@ export const pipeStreamingResponse = ({
 
     const fragment = chunk.toString();
     passThrough.write(fragment);
+    if (!shouldParse) {
+      return;
+    }
+
     buffer += fragment;
 
     const lines = buffer.split('\n');
@@ -136,6 +143,9 @@ export const pipeStreamingResponse = ({
         const event = JSON.parse(data);
         if (event.type === 'metadata' && typeof onMetadata === 'function') {
           onMetadata(event);
+        }
+        if (event.type === 'token' && typeof event.content === 'string' && typeof onToken === 'function') {
+          onToken(event.content);
         }
       } catch (error) {
         emit('warn', 'stream.metadataParseError', {

@@ -67,7 +67,21 @@ class VectorStoreManager:
 
             if hasattr(self.vector_store, "_collection") and self.vector_store._collection is not None:
                 # Chroma collection access
-                results = self.vector_store._collection.get(include=["documents", "metadatas"]) or {}
+                max_docs = getattr(settings, "bm25_max_corpus_docs", 0)
+                get_kwargs = {"include": ["documents", "metadatas"]}
+                if isinstance(max_docs, int) and max_docs > 0:
+                    get_kwargs["limit"] = max_docs
+                try:
+                    results = self.vector_store._collection.get(**get_kwargs) or {}
+                except TypeError as e:
+                    if "limit" in get_kwargs:
+                        logger.warning(
+                            "Vector store get() does not support limit; falling back to full fetch"
+                        )
+                        get_kwargs.pop("limit", None)
+                        results = self.vector_store._collection.get(**get_kwargs) or {}
+                    else:
+                        raise e
                 documents = results.get("documents") or []
                 metadatas = results.get("metadatas") or []
 
@@ -77,6 +91,19 @@ class VectorStoreManager:
                     langchain_docs.append(LangchainDocument(page_content=content or "", metadata=metadata or {}))
 
                 self._all_documents_cache = langchain_docs
+                if isinstance(max_docs, int) and max_docs > 0 and len(langchain_docs) >= max_docs:
+                    total_docs = None
+                    if hasattr(self.vector_store._collection, "count"):
+                        try:
+                            total_docs = self.vector_store._collection.count()
+                        except Exception:
+                            total_docs = None
+                    if total_docs and total_docs > max_docs:
+                        logger.warning(
+                            f"BM25 corpus capped at {max_docs} of {total_docs} documents"
+                        )
+                    else:
+                        logger.warning(f"BM25 corpus capped at {max_docs} documents")
                 logger.info(f"Loaded {len(langchain_docs)} documents for BM25 corpus cache")
                 return langchain_docs
 

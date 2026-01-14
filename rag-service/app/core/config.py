@@ -157,6 +157,9 @@ class Settings(BaseSettings):
     memory_medium_threshold_mb: int = 1000  # Medium memory threshold in MB
     max_checkpoint_content_size: int = 2000  # Max chars per chunk in checkpoint
     bm25_deferred_mode: bool = True  # Rebuild BM25 after batch complete
+    enable_bm25: bool = True  # Master switch for BM25 retrieval
+    bm25_require_index: bool = True  # Skip request-time build if no persisted index
+    bm25_max_corpus_docs: int = 10000  # Cap corpus size for in-memory BM25 (0 = no cap)
 
     # Progress Callback Configuration
     progress_callback_timeout: float = 2.0  # Timeout for progress callbacks in seconds
