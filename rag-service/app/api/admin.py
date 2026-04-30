@@ -850,9 +850,6 @@ async def warmup_retrieval(
                 "vector_similarity": {"type": "vector", "search_type": "similarity", "k": 10},
                 "bm25": {"type": "bm25", "k": 10},
             }
-            # Multi-query disabled for performance (saves ~6s, only 0.1 RRF weight)
-            # if llm is not None:
-            #     retriever_configs["multi_query"] = {"type": "multi_query", "base_retriever": "vector_similarity", "llm": llm}
 
         # Create pipeline
         pipeline = await asyncio.to_thread(
