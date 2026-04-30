@@ -22,7 +22,6 @@ from app.pipelines.ingestion import IngestionPipeline
 from app.pipelines.parallel_retrieval import create_parallel_pipeline
 from app.api.chat import get_llm
 from app.models.query import Provider
-# from app.services.evaluation import RAGEvaluator, EvaluationDataset  # TODO: Missing module
 from app.services.query_logger import get_query_logger
 from app.models.query_history import (
     QueryHistoryEntry, QueryHistoryFilter, QueryStatistics, 
@@ -599,82 +598,6 @@ async def export_metrics(
     except Exception as e:
         logger.error(f"Failed to export metrics: {e}")
         raise HTTPException(status_code=500, detail="Failed to export metrics")
-
-
-# @router.post("/evaluation/run")
-# async def run_evaluation(
-#     dataset_name: str,
-#     background_tasks: BackgroundTasks,
-#     _: bool = Depends(verify_admin_bearer_token),
-#     document_store: DocumentStore = Depends(get_document_store),
-#     cache_service: CacheService = Depends(get_cache_service)
-# ) -> Dict[str, Any]:
-#     """Run evaluation on a dataset."""
-#     try:
-#         async def evaluation_task():
-#             try:
-#                 # Create evaluator
-#                 evaluator = RAGEvaluator(
-#                     document_store=document_store,
-#                     cache_service=cache_service
-#                 )
-#                 
-#                 # Load dataset
-#                 if dataset_name == "travel_rates":
-#                     dataset = evaluator.travel_rates_dataset
-#                 elif dataset_name == "policy":
-#                     dataset = evaluator.policy_dataset
-#                 elif dataset_name == "complex":
-#                     dataset = evaluator.complex_dataset
-#                 else:
-#                     # Try to load from file
-#                     dataset = EvaluationDataset.load(f"./datasets/{dataset_name}.json")
-#                 
-#                 # Create retrieval function
-#                 from app.pipelines.improved_retrieval import ImprovedRetrievalPipeline
-#                 from app.main import vector_store
-#                 
-#                 pipeline = ImprovedRetrievalPipeline(
-#                     document_store=document_store,
-#                     vector_store=vector_store,
-#                     cache_service=cache_service
-#                 )
-#                 
-#                 # Run evaluation
-#                 results = await evaluator.evaluate_dataset(
-#                     dataset,
-#                     pipeline.retrieve
-#                 )
-#                 
-#                 # Generate report
-#                 report = evaluator.generate_report(results)
-#                 
-#                 # Save report
-#                 import json
-#                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-#                 report_path = f"./evaluation_reports/{dataset_name}_{timestamp}.json"
-#                 os.makedirs("./evaluation_reports", exist_ok=True)
-#                 
-#                 with open(report_path, "w") as f:
-#                     json.dump(report, f, indent=2)
-#                 
-#                 logger.info(f"Evaluation completed for dataset {dataset_name}")
-#                 
-#             except Exception as e:
-#                 logger.error(f"Evaluation failed: {e}")
-#         
-#         # Schedule evaluation task
-#         background_tasks.add_task(evaluation_task)
-#         
-#         return {
-#             "status": "started",
-#             "dataset": dataset_name,
-#             "message": "Evaluation started in background"
-#         }
-#         
-#     except Exception as e:
-#         logger.error(f"Failed to start evaluation: {e}")
-#         raise HTTPException(status_code=500, detail="Failed to start evaluation")
 
 
 @router.get("/logs/tail")
