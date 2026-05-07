@@ -6,6 +6,7 @@ expensive retrieval operations. Uses composite keys that include all relevant
 parameters to ensure cache correctness.
 """
 
+import os
 import json
 import hashlib
 from typing import Optional, List, Dict, Any, Tuple
@@ -371,16 +372,33 @@ class RetrievalL2Cache:
             max_docs=max_docs
         )
     
-    def _get_index_version(self) -> str:
+    def _get_real_index_version(self) -> str:
         """
         Get current index version for cache invalidation.
         
-        In production, this would query the vector database for its version.
-        For now, return a placeholder version.
+        Uses the modification time of the vector store directory/file
+        as a proxy for index version.
         """
-        # TODO: Implement actual index version retrieval
-        # This could be from ChromaDB metadata, a version file, etc.
+        try:
+            if settings.vector_store_type == "chroma":
+                db_path = settings.chroma_persist_directory
+                # Check for chroma.sqlite3 specifically as it updates on writes
+                sqlite_path = os.path.join(db_path, "chroma.sqlite3")
+
+                if os.path.exists(sqlite_path):
+                    mtime = os.path.getmtime(sqlite_path)
+                    return f"v_{int(mtime)}"
+                elif os.path.exists(db_path):
+                    mtime = os.path.getmtime(db_path)
+                    return f"v_{int(mtime)}"
+        except Exception as e:
+            logger.warning(f"Failed to get index version: {e}")
+
         return "v1.0.0"
+
+    def _get_index_version(self) -> str:
+        """Compatibility wrapper for initialization."""
+        return self._get_real_index_version()
     
     def _update_avg_time(self, operation: str, time_ms: float) -> None:
         """Update average time statistics."""
