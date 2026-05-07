@@ -122,6 +122,11 @@ def langchain_retry(
             
         @wraps(func)
         def sync_wrapper(*args, **kwargs) -> T:
+            """
+            Synchronous wrapper. This intentionally uses `time.sleep` instead of `await asyncio.sleep`
+            because it wraps non-coroutine functions. Replacing `time.sleep` with `await` here would
+            result in a SyntaxError: 'await' outside async function.
+            """
             last_exception = None
             
             for attempt in range(max_attempts):
@@ -141,6 +146,7 @@ def langchain_retry(
                             f"Attempt {attempt + 1}/{max_attempts} failed: {e}. "
                             f"Retrying in {wait_time:.2f}s..."
                         )
+                        # Blocking sleep is correct for synchronous execution
                         time.sleep(wait_time)
                     else:
                         logger.error(f"All {max_attempts} attempts failed: {e}")
