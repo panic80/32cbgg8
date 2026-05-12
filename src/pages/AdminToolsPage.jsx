@@ -318,9 +318,8 @@ export default function AdminToolsPage() {
             <h3 className="text-base sm:text-lg font-semibold mb-2">Key Features</h3>
             <ul className="list-disc list-inside mb-3 sm:mb-4 text-sm sm:text-base space-y-1">
               <li>
-                <strong className="text-[var(--primary)]">Policy Assistant</strong> – AI-powered
-                chatbot providing instant guidance on CFTDTI policies, travel claims, and
-                administrative procedures
+                <strong className="text-[var(--primary)]">32 CBG DOA List</strong> – Direct access
+                to the current delegation of authority reference
               </li>
               <li>
                 <strong className="text-[var(--primary)]">SCIP Portal</strong> – Direct access to

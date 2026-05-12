@@ -38,6 +38,7 @@ const createComingSoonElement = (message: string) => (
 
 const loadLandingPage = () => import('@/pages/LandingPage');
 const loadAdminToolsPage = () => import('@/pages/AdminToolsPage');
+const loadOpiPage = () => import('@/pages/OPIPage');
 const loadPrivacyPage = () => import('@/pages/PrivacyPage');
 const loadFaqPage = () => import('@/pages/FAQPage');
 const loadResourcesPage = () => import('@/pages/ResourcesPage');
@@ -48,6 +49,9 @@ const loadPerformanceDashboard = () => import('@/pages/PerformanceDashboard');
 const createDisabledFeatureElement = (featureName: string) =>
   createComingSoonElement(`${featureName} is currently disabled.`);
 
+const createRetiredToolElement = () =>
+  createComingSoonElement('This tool is no longer available.');
+
 export const appRoutes: AppRouteDefinition[] = [
   {
     kind: 'lazy',
@@ -56,9 +60,22 @@ export const appRoutes: AppRouteDefinition[] = [
     loader: loadLandingPage,
   },
   {
-    kind: 'element',
+    kind: 'lazy',
+    path: '/cron',
+    component: lazy(loadLandingPage),
+    loader: loadLandingPage,
+  },
+  {
+    kind: 'lazy',
+    path: '/test',
+    component: lazy(loadLandingPage),
+    loader: loadLandingPage,
+  },
+  {
+    kind: 'lazy',
     path: '/opi',
-    element: createDisabledFeatureElement('OPI Contacts'),
+    component: lazy(loadOpiPage),
+    loader: loadOpiPage,
   },
   {
     kind: 'element',
@@ -74,12 +91,12 @@ export const appRoutes: AppRouteDefinition[] = [
   {
     kind: 'element',
     path: '/chat',
-    element: createDisabledFeatureElement('Policy Assistant'),
+    element: createRetiredToolElement(),
   },
   {
     kind: 'element',
     path: '/chat/config',
-    element: createDisabledFeatureElement('Policy Assistant'),
+    element: createRetiredToolElement(),
   },
   {
     kind: 'lazy',

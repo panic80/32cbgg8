@@ -1,6 +1,6 @@
-import { FormEvent, UIEvent, useCallback, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { ChevronDown, Send } from 'lucide-react';
+import { UIEvent, useCallback, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ChevronDown } from 'lucide-react';
 import LogoImage from '@/components/LogoImage';
 import '@/styles/landing-test.css';
 import '@/styles/sticky-footer.css';
@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { FeatureCard } from '@/components/ui/feature-card';
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
 import { cn } from '@/lib/utils';
-import { footerLinks, landingFeatures, quickAskPrompts } from './landingConfig';
+import { footerLinks, landingFeatures } from './landingConfig';
 
 type ScrollHandler = (
   event: UIEvent<HTMLDivElement>,
@@ -24,9 +24,7 @@ const handleScrollableContent: ScrollHandler = (event, setIndicator) => {
 };
 
 const LandingPage = () => {
-  const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
-  const [query, setQuery] = useState<string>('');
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [showSCIPConfirmation, setShowSCIPConfirmation] = useState(false);
@@ -38,22 +36,6 @@ const LandingPage = () => {
     text: SITE_CONFIG.SCIP_PORTAL_URL,
     copyMessage: 'SCIP link copied to clipboard',
   });
-
-  const handleAskSubmit = useCallback(
-    (event: FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      const trimmed = query.trim();
-      navigate(trimmed.length === 0 ? '/chat' : `/chat?q=${encodeURIComponent(trimmed)}`);
-    },
-    [navigate, query],
-  );
-
-  const quickAsk = useCallback(
-    (prompt: string) => {
-      navigate(`/chat?q=${encodeURIComponent(prompt)}`);
-    },
-    [navigate],
-  );
 
   const handleSCIPClick = useCallback(() => {
     setShowSCIPConfirmation(true);
@@ -125,38 +107,6 @@ const LandingPage = () => {
           <h1 className="lpt-minimal-title">32 CBG G8 Administration Hub</h1>
           <p className="lpt-minimal-subtitle">Comprehensive Gateway to Financial Resources</p>
 
-          <form onSubmit={handleAskSubmit} className="lpt-minimal-search">
-            <div className="lpt-minimal-search-wrapper">
-              <div className="lpt-minimal-search-box">
-                <input
-                  type="text"
-                  className="lpt-minimal-search-input"
-                  placeholder="Ask a policy question..."
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  aria-label="Ask a policy question"
-                />
-                <button type="submit" className="lpt-minimal-search-btn">
-                  <span>Ask</span>
-                  <Send className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </form>
-
-          <div className="lpt-minimal-chips">
-            {quickAskPrompts.map((prompt) => (
-              <button
-                key={prompt.query}
-                type="button"
-                className="lpt-minimal-chip"
-                onClick={() => quickAsk(prompt.query)}
-              >
-                {prompt.label}
-              </button>
-            ))}
-          </div>
-
           <div className="lpt-minimal-cards">
             {landingFeatures.map((feature) => {
               const commonProps = {
@@ -186,13 +136,33 @@ const LandingPage = () => {
               }
 
               if (feature.kind === 'link' && feature.to) {
+                const isExternalLink = /^https?:///.test(feature.to);
+
+                if (isExternalLink) {
+                  return (
+                    <a
+                      key={feature.id}
+                      href={feature.to}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="lpt-minimal-card"
+                      title={feature.linkTitle ?? feature.description}
+                      aria-label={feature.title + ' – ' + feature.description}
+                      itemType={feature.itemType}
+                      itemID={feature.itemID}
+                    >
+                      <FeatureCard variant="minimal" {...commonProps} />
+                    </a>
+                  );
+                }
+
                 return (
                   <Link
                     key={feature.id}
                     to={feature.to}
                     className="lpt-minimal-card"
                     title={feature.description}
-                    aria-label={`${feature.title} – ${feature.description}`}
+                    aria-label={feature.title + ' – ' + feature.description}
                   >
                     <FeatureCard variant="minimal" {...commonProps} />
                   </Link>
@@ -371,8 +341,8 @@ const LandingPage = () => {
               <h3 className="text-base sm:text-lg font-semibold mb-2">Key Features</h3>
               <ul className="list-disc list-inside mb-3 sm:mb-4 text-sm sm:text-base space-y-1">
                 <li>
-                  <strong className="text-[var(--primary)]">Policy Assistant</strong> – AI-powered
-                  chatbot providing instant guidance
+                  <strong className="text-[var(--primary)]">32 CBG DOA List</strong> – Current
+                  delegation of authority reference in SharePoint
                 </li>
                 <li>
                   <strong className="text-[var(--primary)]">SCIP Portal</strong> – Direct access to

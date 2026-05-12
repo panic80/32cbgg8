@@ -1,14 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { landingFeatures, quickAskPrompts } from '../landingConfig';
+import { landingFeatures } from '../landingConfig';
 
 describe('landingConfig', () => {
-  it('exposes quick ask prompts with labels and queries', () => {
-    expect(quickAskPrompts.length).toBeGreaterThanOrEqual(4);
-    quickAskPrompts.forEach((prompt) => {
-      expect(prompt.label).toBeTypeOf('string');
-      expect(prompt.query).toBeTypeOf('string');
-      expect(prompt.query.length).toBeGreaterThan(10);
-    });
+  it('does not expose chatbot quick ask prompts', async () => {
+    const config = await import('../landingConfig');
+
+    expect('quickAskPrompts' in config).toBe(false);
   });
 
   it('includes a SCIP portal feature flagged as action', () => {
@@ -18,11 +15,17 @@ describe('landingConfig', () => {
     expect(feature?.to).toBeUndefined();
   });
 
-  it('marks unavailable resources as disabled with badge', () => {
+  it('keeps resources visible as an under-review link', () => {
     const resources = landingFeatures.find((item) => item.id === 'resources');
     expect(resources).toBeDefined();
-    expect(resources?.kind).toBe('disabled');
+    expect(resources?.kind).toBe('link');
+    expect(resources?.to).toBe('/resources');
     expect(resources?.badge).toBe('Under Review');
+  });
+
+  it('does not expose policy assistant as a feature', () => {
+    expect(landingFeatures.some((item) => item.id === 'policyAssistant')).toBe(false);
+    expect(landingFeatures.some((item) => item.title === 'Policy Assistant')).toBe(false);
   });
 
   it('includes at least one navigable feature link', () => {

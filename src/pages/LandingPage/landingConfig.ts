@@ -1,12 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
-import { CircleHelp, FileText, Users, Zap, Info, Mail, ShieldCheck } from 'lucide-react';
+import { FileText, Users, Zap, Info, Mail, ShieldCheck } from 'lucide-react';
 
 export type LandingFeatureKind = 'link' | 'action' | 'disabled';
-
-export interface QuickAskPrompt {
-  label: string;
-  query: string;
-}
 
 export interface LandingFeature {
   id: string;
@@ -17,6 +12,9 @@ export interface LandingFeature {
   to?: string;
   badge?: string;
   disabledTooltip?: string;
+  linkTitle?: string;
+  itemType?: string;
+  itemID?: string;
 }
 
 export interface LandingFooterLink {
@@ -25,35 +23,18 @@ export interface LandingFooterLink {
   icon: LucideIcon;
 }
 
-export const quickAskPrompts: QuickAskPrompt[] = [
-  {
-    label: 'Mileage rates',
-    query: 'What are the current mileage rates under CFTDTI?',
-  },
-  {
-    label: 'Per diem rates',
-    query: 'What are the meal per diem rates?',
-  },
-  {
-    label: 'Travel advance',
-    query: 'How do I request a travel advance?',
-  },
-  {
-    label: 'Receipt requirements',
-    query: 'What receipts do I need for claims?',
-  },
-];
-
 export const landingFeatures: LandingFeature[] = [
   {
-    id: 'policyAssistant',
-    title: 'Policy Assistant',
-    description:
-      'Interactive, RAG powered AI chat to answer travel, benefits, and finance policy questions.',
-    icon: CircleHelp,
-    kind: 'disabled',
-    badge: 'Disabled',
-    disabledTooltip: "We're working hard to bring this back online.",
+    id: 'doaList',
+    title: '32 CBG DOA List',
+    description: 'Access the current 32 CBG Delegation of Authority list in SharePoint.',
+    icon: FileText,
+    kind: 'link',
+    to: 'https://018gc.sharepoint.com/sites/ORG-03658-000-000/Lists/DOA_Filtered_cleaned/AllItems.aspx?CID=9de1ffbd%2D848e%2D456e%2Da1e8%2D1ba6046c7c2a',
+    linkTitle:
+      'https://018gc.sharepoint.com/sites/org-03658-000-000/lists/doa_filtered_cleaned/allitems.aspx?cid=9de1ffbd%2d848e%2d456e%2da1e8%2d1ba6046c7c2a',
+    itemType: 'http://schema.skype.com/HyperLink/Files',
+    itemID: '93040afd-2ef9-4634-bb08-a0c664de7e80',
   },
   {
     id: 'scipPortal',
@@ -69,9 +50,8 @@ export const landingFeatures: LandingFeature[] = [
     description:
       "Find FSC & FMC contact information for your unit's financial services and management.",
     icon: Users,
-    kind: 'disabled',
-    badge: 'Disabled',
-    disabledTooltip: "We're working hard to bring this back online.",
+    kind: 'link',
+    to: '/opi',
   },
   {
     id: 'resources',
