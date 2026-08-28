@@ -12,6 +12,9 @@
   --npp-danger: var(--error, #8b0000);
   --npp-focus-inner: #ffffff;
   --npp-focus-outer: #0a3622;
+  --npp-watermark: #ffffff;
+  --npp-watermark-opacity: 0.07;
+  position: relative;
   min-height: 100vh;
   overflow-x: clip;
   color: var(--npp-ink);
@@ -35,9 +38,37 @@
   --npp-gold-soft: #806d31;
   --npp-focus-inner: #041a10;
   --npp-focus-outer: #f4d96b;
+  --npp-watermark: #f4d96b;
+  --npp-watermark-opacity: 0.075;
   background-image:
     linear-gradient(rgba(212, 175, 55, 0.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(212, 175, 55, 0.03) 1px, transparent 1px);
+}
+
+.npp-draft-watermark {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 50;
+  width: max-content;
+  color: var(--npp-watermark);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(7rem, 15vw, 16rem);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  opacity: var(--npp-watermark-opacity);
+  mix-blend-mode: difference;
+  pointer-events: none;
+  user-select: none;
+  transform: translate(-50%, -50%) rotate(-28deg);
+  transform-origin: center;
+}
+
+[data-theme='dark'] .npp-draft-watermark {
+  mix-blend-mode: screen;
 }
 
 .npp-page :where(a, button) {
@@ -1162,6 +1193,11 @@ ol.npp-guidance-list {
 }
 
 @media screen and (max-width: 680px) {
+  .npp-draft-watermark {
+    font-size: clamp(4.5rem, 19.5vw, 7rem);
+    letter-spacing: 0.04em;
+  }
+
   .npp-reference-strip li {
     display: flex;
     min-width: 0;
@@ -1221,6 +1257,27 @@ ol.npp-guidance-list {
     background: transparent !important;
     box-shadow: none !important;
     text-shadow: none !important;
+  }
+
+  .npp-draft-watermark {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    z-index: 999;
+    display: block !important;
+    width: max-content !important;
+    color: #000000 !important;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 90pt;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: 0.06em;
+    opacity: 0.06;
+    mix-blend-mode: normal !important;
+    pointer-events: none;
+    transform: translate(-50%, -50%) rotate(-28deg);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   .npp-screen-only,

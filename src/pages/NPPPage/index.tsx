@@ -74,6 +74,8 @@ const pageUi = {
     checked: 'Checked',
     openSource: 'Open source',
     englishOnly: 'English source only',
+    draftWatermark: 'DRAFT',
+    draftStatus: 'Draft document',
     contactLabel: 'Report a broken link through the public 32 CBG G8 contact',
     backToTop: 'Back to top',
   },
@@ -119,6 +121,8 @@ const pageUi = {
     checked: 'Vérifiée',
     openSource: 'Ouvrir la source',
     englishOnly: 'Source en anglais seulement',
+    draftWatermark: 'ÉBAUCHE',
+    draftStatus: 'Document à l’état d’ébauche',
     contactLabel: 'Signaler un lien brisé au moyen du contact public du G8 du 32 GBC',
     backToTop: 'Retour en haut',
   },
@@ -515,6 +519,10 @@ const NPPPage = () => {
 
   return (
     <div className="npp-page" id="npp-top">
+      <div className="npp-draft-watermark" aria-hidden="true">
+        {ui.draftWatermark}
+      </div>
+
       <a className="npp-skip-link" href="#npp-main">
         {ui.skip}
       </a>
@@ -552,6 +560,7 @@ const NPPPage = () => {
           <div className="npp-hero-copy">
             <p className="npp-unit-line">{ui.unit}</p>
             <p className="npp-publication-line">{ui.publication}</p>
+            <p className="sr-only">{ui.draftStatus}</p>
             <h1>{nppGuideContent.title[locale]}</h1>
             <p className="npp-hero-description">{nppGuideContent.description[locale]}</p>
           </div>

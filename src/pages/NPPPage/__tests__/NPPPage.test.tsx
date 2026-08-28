@@ -32,6 +32,8 @@ const localeCases = [
   {
     locale: 'en' as const,
     title: 'NPP / NPF Guide',
+    draftWatermark: 'DRAFT',
+    draftStatus: 'Draft document',
     skipLabel: 'Skip to guide',
     contentsLabel: 'Guide contents',
     jumpLinksLabel: 'Guide jump links',
@@ -90,6 +92,8 @@ const localeCases = [
   {
     locale: 'fr' as const,
     title: 'Guide des BNP / FNP',
+    draftWatermark: 'ÉBAUCHE',
+    draftStatus: 'Document à l’état d’ébauche',
     skipLabel: 'Aller au guide',
     contentsLabel: 'Sommaire du guide',
     jumpLinksLabel: 'Liens rapides du guide',
@@ -375,6 +379,21 @@ describe('NPPPage visual semantics', () => {
 });
 
 describe.each(localeCases)('NPPPage ($locale)', (copy) => {
+  it('renders one localized decorative draft watermark', () => {
+    const { container } = renderGuide(copy.locale);
+    const watermarks = container.querySelectorAll('.npp-draft-watermark');
+    const watermark = watermarks.item(0);
+
+    expect(watermarks).toHaveLength(1);
+    expect(watermark).toHaveTextContent(copy.draftWatermark);
+    expect(watermark).toHaveAttribute('aria-hidden', 'true');
+    expect(watermark).not.toHaveAttribute('tabindex');
+
+    const accessibleStatus = screen.getByText(copy.draftStatus);
+    expect(accessibleStatus).toHaveClass('sr-only');
+    expect(accessibleStatus).not.toHaveAttribute('aria-hidden');
+  });
+
   it('renders one semantic, continuously readable field guide', () => {
     const { container } = renderGuide(copy.locale);
 
