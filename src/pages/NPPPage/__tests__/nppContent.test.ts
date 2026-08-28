@@ -190,22 +190,28 @@ describe('nppGuideContent', () => {
   it('registers the current official sources needed for Unit Fund budgeting and alienation', () => {
     const sources = new Map(nppGuideContent.sources.map((source) => [source.id, source]));
     const requiredSources = {
-      'cfmws-budgeting-faq':
-        'https://cfmws.ca/about-us/policies-and-publications/frequently-asked-questions/budgeting',
-      'psp-policy-manual-reserve-unit-funds':
-        'https://cfmws.ca/CFMWS/media/images/documents/8.0%20About%20Us/Resources%20for%20Messes/English/PSP-Policy-Manual-EN-7-Nov-2022.pdf',
-      'alienation-request-sop':
-        'https://cfmws.ca/CFMWS/media/images/documents/8.0%20About%20Us/8.4%20Policies%20and%20Publications/8.4.5/Policies/Alienation-Request-Form-SOP-with-maps-_e-Final.pdf',
-      'alienation-request-form':
-        'https://cfmws.ca/CFMWS/media/images/documents/8.0%20About%20Us/8.4%20Policies%20and%20Publications/8.4.5/Policies/ALIENATION-OF-NPP-REQUEST-FORM-(Template-English).pdf',
-      'alienation-faq':
-        'https://cfmws.ca/about-us/policies-and-publications/frequently-asked-questions/alienation-of-non-public-property-(npp)',
+      'cfmws-budgeting-faq': {
+        en: 'https://cfmws.ca/about-us/policies-and-publications/frequently-asked-questions/budgeting',
+        fr: 'https://sbmfc.ca/a-propos/politiques-et-publications/foire-aux-questions/budgetisation',
+      },
+      'psp-policy-manual-reserve-unit-funds': {
+        en: 'https://cfmws.ca/CFMWS/media/images/documents/8.0%20About%20Us/Resources%20for%20Messes/English/PSP-Policy-Manual-EN-7-Nov-2022.pdf',
+      },
+      'alienation-request-sop': {
+        en: 'https://cfmws.ca/CFMWS/media/images/documents/8.0%20About%20Us/8.4%20Policies%20and%20Publications/8.4.5/Policies/Alienation-Request-Form-SOP-with-maps-_e-Final.pdf',
+      },
+      'alienation-request-form': {
+        en: 'https://cfmws.ca/CFMWS/media/images/documents/8.0%20About%20Us/8.4%20Policies%20and%20Publications/8.4.5/Policies/ALIENATION-OF-NPP-REQUEST-FORM-(Template-English).pdf',
+      },
+      'alienation-faq': {
+        en: 'https://cfmws.ca/about-us/policies-and-publications/frequently-asked-questions/alienation-of-non-public-property-(npp)',
+        fr: 'https://sbmfc.ca/a-propos/politiques-et-publications/foire-aux-questions/alienation-of-non-public-property-(npp)',
+      },
     };
 
-    Object.entries(requiredSources).forEach(([id, url]) => {
+    Object.entries(requiredSources).forEach(([id, urls]) => {
       const source = sources.get(id);
-      expect(source?.urls.en).toBe(url);
-      expect(source?.urls.fr).toBeUndefined();
+      expect(source?.urls).toEqual(urls);
       expect(source?.checkedOn).toBe('2026-08-28');
       expectLocalized(source?.title as { en: string; fr: string });
       expectLocalized(source?.publisher as { en: string; fr: string });

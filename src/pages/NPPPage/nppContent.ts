@@ -797,6 +797,7 @@ export const nppGuideContent: NppGuideContent = {
       },
       urls: {
         en: 'https://cfmws.ca/about-us/policies-and-publications/frequently-asked-questions/budgeting',
+        fr: 'https://sbmfc.ca/a-propos/politiques-et-publications/foire-aux-questions/budgetisation',
       },
       checkedOn,
     },
@@ -857,6 +858,7 @@ export const nppGuideContent: NppGuideContent = {
       },
       urls: {
         en: 'https://cfmws.ca/about-us/policies-and-publications/frequently-asked-questions/alienation-of-non-public-property-(npp)',
+        fr: 'https://sbmfc.ca/a-propos/politiques-et-publications/foire-aux-questions/alienation-of-non-public-property-(npp)',
       },
       checkedOn,
     },
