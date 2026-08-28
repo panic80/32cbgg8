@@ -336,7 +336,7 @@ const LandingPage = () => {
       </footer>
 
       <Dialog open={showPrivacyModal} onOpenChange={setShowPrivacyModal}>
-        <DialogContent className="max-w-[32rem] max-h-[90vh]">
+        <DialogContent closeLabel={copy.privacy.close} className="max-w-[32rem] max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>{copy.privacy.title}</DialogTitle>
             <DialogDescription>{copy.privacy.description}</DialogDescription>
@@ -372,7 +372,7 @@ const LandingPage = () => {
               <div className="pt-2">
                 <button
                   onClick={() => setShowPrivacyModal(false)}
-                  className="w-full px-4 py-2 sm:py-3 text-center text-sm sm:text-base text-[var(--text)] bg-[var(--card)] hover:bg-[var(--primary)] hover:text-white rounded-lg transition-colors duration-300"
+                  className="min-h-11 w-full px-4 py-2 sm:py-3 text-center text-sm sm:text-base text-[var(--text)] bg-[var(--card)] hover:bg-[var(--primary)] hover:text-white rounded-lg transition-colors duration-300"
                 >
                   {copy.privacy.close}
                 </button>
@@ -388,7 +388,7 @@ const LandingPage = () => {
       </Dialog>
 
       <Dialog open={showAboutModal} onOpenChange={setShowAboutModal}>
-        <DialogContent className="max-w-lg max-h-[90vh]">
+        <DialogContent closeLabel={copy.about.close} className="max-w-lg max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>{copy.about.title}</DialogTitle>
             <DialogDescription>{copy.about.description}</DialogDescription>
@@ -425,7 +425,7 @@ const LandingPage = () => {
               <div className="pt-4">
                 <button
                   onClick={() => setShowAboutModal(false)}
-                  className="w-full px-4 py-2 sm:py-3 text-center text-sm sm:text-base text-[var(--text)] bg-[var(--card)] hover:bg-[var(--primary)] hover:text-white rounded-lg transition-colors duration-300"
+                  className="min-h-11 w-full px-4 py-2 sm:py-3 text-center text-sm sm:text-base text-[var(--text)] bg-[var(--card)] hover:bg-[var(--primary)] hover:text-white rounded-lg transition-colors duration-300"
                 >
                   {copy.about.close}
                 </button>
@@ -441,7 +441,11 @@ const LandingPage = () => {
       </Dialog>
 
       <Dialog open={showSCIPConfirmation} onOpenChange={handleSCIPDialogOpenChange}>
-        <DialogContent className="w-[92vw] sm:max-w-lg md:max-w-xl lg:max-w-2xl break-words">
+        <DialogContent
+          closeLabel={copy.about.close}
+          showClose={!isNavigatingToSCIP}
+          className="w-[92vw] sm:max-w-lg md:max-w-xl lg:max-w-2xl break-words"
+        >
           <DialogHeader>
             <DialogTitle>{copy.scipConfirmation.title}</DialogTitle>
             <DialogDescription className="sr-only">
@@ -467,7 +471,7 @@ const LandingPage = () => {
                   onClick={copySCIPLink}
                   disabled={isLinkCopied}
                   className={cn(
-                    'px-3 py-2 text-xs sm:text-sm rounded-lg transition-all duration-300 flex items-center gap-2 whitespace-nowrap shrink-0 mt-2 sm:mt-0 justify-center',
+                    'min-h-11 px-3 py-2 text-xs sm:text-sm rounded-lg transition-all duration-300 flex items-center gap-2 whitespace-nowrap shrink-0 mt-2 sm:mt-0 justify-center',
                     isLinkCopied
                       ? 'bg-green-600/20 text-green-600 cursor-not-allowed'
                       : 'bg-[var(--primary)] text-white hover:bg-[var(--primary-hover)]',
@@ -481,7 +485,7 @@ const LandingPage = () => {
               <button
                 onClick={() => setShowSCIPConfirmation(false)}
                 disabled={isNavigatingToSCIP}
-                className="px-4 py-2 text-sm sm:text-base text-[var(--text)] bg-[var(--background-secondary)] hover:bg-[var(--background)] rounded-lg transition-colors duration-300"
+                className="min-h-11 px-4 py-2 text-sm sm:text-base text-[var(--text)] bg-[var(--background-secondary)] hover:bg-[var(--background)] rounded-lg transition-colors duration-300"
               >
                 {copy.scipConfirmation.cancel}
               </button>
@@ -490,7 +494,7 @@ const LandingPage = () => {
                 onClick={confirmSCIPNavigation}
                 disabled={isNavigatingToSCIP}
                 className={cn(
-                  'px-4 py-2 text-sm sm:text-base rounded-lg transition-colors duration-300',
+                  'min-h-11 px-4 py-2 text-sm sm:text-base rounded-lg transition-colors duration-300',
                   isNavigatingToSCIP
                     ? 'bg-[var(--primary)]/60 text-white cursor-not-allowed'
                     : 'text-white bg-[var(--primary)] hover:bg-[var(--primary-hover)]',

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -134,7 +134,12 @@ describe('LandingPage', () => {
     expect(aboutDialog).toHaveTextContent('À propos de cette page');
     expect(aboutDialog).toHaveTextContent('Portail administratif G8 du 32 GBC');
     expect(aboutDialog).toHaveTextContent('Fonctions principales');
-    fireEvent.click(screen.getByRole('button', { name: 'Fermer' }));
+    const aboutCloseButtons = within(aboutDialog).getAllByRole('button', { name: 'Fermer' });
+    const aboutIconClose = aboutCloseButtons.find((button) => button.querySelector('svg'));
+    const aboutTextClose = aboutCloseButtons.find((button) => !button.querySelector('svg'));
+    expect(aboutIconClose).toHaveClass('h-11', 'w-11');
+    expect(aboutTextClose).toHaveClass('min-h-11');
+    fireEvent.click(aboutIconClose!);
 
     fireEvent.click(screen.getByRole('button', { name: 'Confidentialité' }));
     const privacyDialog = screen.getByRole('dialog');
@@ -143,7 +148,12 @@ describe('LandingPage', () => {
       'Cette page est un portail vers des liens et des ressources administratifs',
     );
     expect(privacyDialog).toHaveTextContent('statistiques de visite de base');
-    fireEvent.click(screen.getByRole('button', { name: 'Fermer' }));
+    const privacyCloseButtons = within(privacyDialog).getAllByRole('button', { name: 'Fermer' });
+    const privacyIconClose = privacyCloseButtons.find((button) => button.querySelector('svg'));
+    const privacyTextClose = privacyCloseButtons.find((button) => !button.querySelector('svg'));
+    expect(privacyIconClose).toHaveClass('h-11', 'w-11');
+    expect(privacyTextClose).toHaveClass('min-h-11');
+    fireEvent.click(privacyIconClose!);
 
     fireEvent.click(screen.getByRole('button', { name: /Portail SCIP/i }));
     const scipDialog = screen.getByRole('dialog');
@@ -152,6 +162,10 @@ describe('LandingPage', () => {
     expect(scipDialog).toHaveTextContent('Cette page s’ouvrira dans un nouvel onglet');
     expect(screen.getByRole('button', { name: 'Annuler' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Continuer' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Fermer' })).toHaveClass('h-11', 'w-11');
+    expect(screen.getByRole('button', { name: 'Copier le lien' })).toHaveClass('min-h-11');
+    expect(screen.getByRole('button', { name: 'Annuler' })).toHaveClass('min-h-11');
+    expect(screen.getByRole('button', { name: 'Continuer' })).toHaveClass('min-h-11');
     expect(landingCopy.fr.navigationStatus.opening).toBe('Ouverture…');
 
     fireEvent.click(screen.getByRole('button', { name: 'Copier le lien' }));
@@ -183,16 +197,39 @@ describe('LandingPage', () => {
       fireEvent.click(screen.getByRole('button', { name: /Portail SCIP/i }));
       fireEvent.click(screen.getByRole('button', { name: 'Continuer' }));
 
-      expect(screen.getByRole('button', { name: 'Ouverture…' })).toBeDisabled();
+      const openingButton = screen.getByRole('button', { name: 'Ouverture…' });
+      expect(openingButton).toBeDisabled();
+      expect(openingButton).toHaveClass('min-h-11');
       expect(screen.getByRole('button', { name: 'Annuler' })).toBeDisabled();
+      expect(screen.queryByRole('button', { name: 'Fermer' })).not.toBeInTheDocument();
       expect(assign).not.toHaveBeenCalled();
 
+      fireEvent.click(openingButton);
       fireEvent.keyDown(document, { key: 'Escape' });
       fireEvent.pointerDown(document.body);
       expect(screen.getByRole('dialog')).toBeVisible();
 
       vi.runOnlyPendingTimers();
       expect(assign).toHaveBeenCalledTimes(1);
+    } finally {
+      assign.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+
+  it('clears a pending SCIP navigation when the landing page unmounts', () => {
+    vi.useFakeTimers();
+    const assign = vi.spyOn(window.location, 'assign').mockImplementation(() => undefined);
+
+    try {
+      const { unmount } = renderLandingPage();
+      fireEvent.click(screen.getByRole('button', { name: /SCIP Portal/i }));
+      fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+      unmount();
+      vi.runOnlyPendingTimers();
+
+      expect(assign).not.toHaveBeenCalled();
     } finally {
       assign.mockRestore();
       vi.useRealTimers();
