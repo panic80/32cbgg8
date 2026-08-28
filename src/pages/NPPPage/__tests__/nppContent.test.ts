@@ -79,9 +79,11 @@ describe('nppGuideContent', () => {
   it('publishes verified French URLs for bilingual official sources', () => {
     const sources = new Map(nppGuideContent.sources.map((source) => [source.id, source]));
 
-    expect(sources.get('cds-npp-delegation')?.urls.fr).toBe(
-      'https://cfmws.ca/CFMWS/media/images/documents/8.0%20About%20Us/8.4%20Policies%20and%20Publications/8.4.5/Policies/DelegationofAuthorities_e.pdf',
-    );
+    const currentBilingualDelegationUrl =
+      'https://cfmws.ca/CFMWS/media/images/documents/8.0%20About%20Us/8.4%20Policies%20and%20Publications/8.4.5/Policies/DelegationofAuthorities_e-18Jun26.pdf';
+
+    expect(sources.get('cds-npp-delegation')?.urls.en).toBe(currentBilingualDelegationUrl);
+    expect(sources.get('cds-npp-delegation')?.urls.fr).toBe(currentBilingualDelegationUrl);
     expect(sources.get('npp-contracting-policy')?.urls.fr).toBe(
       'https://sbmfc.ca/a-propos/politiques-et-publications/approvisionnement-et-passation-de-marches/politique-de-passation-de-marches-des-biens-non-publics',
     );
