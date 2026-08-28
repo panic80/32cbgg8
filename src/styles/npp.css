@@ -1184,6 +1184,23 @@
   }
 }
 
+@media screen and (max-width: 680px) {
+  .npp-reference-strip li {
+    display: flex;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .npp-reference-strip a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    max-width: 100%;
+    padding-block: 0.5rem;
+    overflow-wrap: anywhere;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .npp-page *,
   .npp-page *::before,
