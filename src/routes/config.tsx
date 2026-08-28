@@ -37,6 +37,7 @@ const createComingSoonElement = (message: string) => (
 );
 
 const loadLandingPage = () => import('@/pages/LandingPage');
+const loadNppPage = () => import('@/pages/NPPPage');
 const loadAdminToolsPage = () => import('@/pages/AdminToolsPage');
 const loadPrivacyPage = () => import('@/pages/PrivacyPage');
 const loadFaqPage = () => import('@/pages/FAQPage');
@@ -48,8 +49,7 @@ const loadPerformanceDashboard = () => import('@/pages/PerformanceDashboard');
 const createDisabledFeatureElement = (featureName: string) =>
   createComingSoonElement(`${featureName} is currently disabled.`);
 
-const createRetiredToolElement = () =>
-  createComingSoonElement('This tool is no longer available.');
+const createRetiredToolElement = () => createComingSoonElement('This tool is no longer available.');
 
 export const appRoutes: AppRouteDefinition[] = [
   {
@@ -119,6 +119,12 @@ export const appRoutes: AppRouteDefinition[] = [
     path: '/landing-test',
     component: lazy(loadLandingPage),
     loader: loadLandingPage,
+  },
+  {
+    kind: 'lazy',
+    path: '/npp',
+    component: lazy(loadNppPage),
+    loader: loadNppPage,
   },
   {
     kind: 'lazy',

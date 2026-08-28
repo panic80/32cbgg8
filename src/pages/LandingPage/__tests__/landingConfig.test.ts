@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { landingFeatures } from '../landingConfig';
+import { getLandingFeatures, landingFeatures } from '../landingConfig';
 
 describe('landingConfig', () => {
   it('does not expose chatbot quick ask prompts', async () => {
@@ -31,5 +31,26 @@ describe('landingConfig', () => {
     linkFeatures.forEach((feature) => {
       expect(feature.to).toBeDefined();
     });
+  });
+
+  it('provides ordered bilingual feature entries with an internal NPF guide link', () => {
+    const englishFeatures = getLandingFeatures('en');
+
+    expect(englishFeatures.map((item) => item.id)).toEqual(['doaList', 'scipPortal', 'npf']);
+
+    const npf = englishFeatures.find((item) => item.id === 'npf');
+    expect(npf).toMatchObject({
+      title: 'NPF',
+      kind: 'link',
+      to: '/npp?lang=en',
+    });
+    expect(npf?.badge).toBeUndefined();
+    expect(npf?.disabledTooltip).toBeUndefined();
+    expect(npf?.icon).toBeDefined();
+
+    const frenchNpf = getLandingFeatures('fr').find((item) => item.id === 'npf');
+    expect(frenchNpf?.description).toBe(
+      'Consultez le Guide des BNP / FNP pour obtenir des conseils clairs sur les dépenses, les subventions, les fournisseurs et les remboursements.',
+    );
   });
 });

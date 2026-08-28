@@ -15,8 +15,11 @@ import {
 } from '@/components/ui/dialog';
 import { FeatureCard } from '@/components/ui/feature-card';
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
+import { LocaleToggle } from '@/components/LocaleToggle';
+import { useLocale } from '@/i18n/LocaleContext';
+import { landingCopy } from '@/i18n/landingCopy';
 import { cn } from '@/lib/utils';
-import { footerLinks, landingFeatures } from './landingConfig';
+import { footerLinks, getLandingFeatures } from './landingConfig';
 
 type ScrollHandler = (
   event: UIEvent<HTMLDivElement>,
@@ -31,6 +34,9 @@ const handleScrollableContent: ScrollHandler = (event, setIndicator) => {
 
 const LandingPage = () => {
   const { theme, toggleTheme } = useTheme();
+  const { locale } = useLocale();
+  const copy = landingCopy[locale];
+  const landingFeatures = getLandingFeatures(locale);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [showSCIPConfirmation, setShowSCIPConfirmation] = useState(false);
@@ -40,7 +46,7 @@ const LandingPage = () => {
 
   const { isCopied: isLinkCopied, handleCopy: copySCIPLink } = useCopyToClipboard({
     text: SITE_CONFIG.SCIP_PORTAL_URL,
-    copyMessage: 'SCIP link copied to clipboard',
+    copyMessage: copy.copyLinkStatus.copied,
   });
 
   const handleSCIPClick = useCallback(() => {
@@ -66,10 +72,14 @@ const LandingPage = () => {
     <div className="lpt-minimal-root">
       <div className="lpt-minimal-bg" aria-hidden="true" />
 
+      <div className="lpt-minimal-language">
+        <LocaleToggle />
+      </div>
+
       <button
         onClick={toggleTheme}
         className="lpt-minimal-theme"
-        aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+        aria-label={theme === 'light' ? copy.theme.switchToDark : copy.theme.switchToLight}
       >
         {theme === 'light' ? (
           <svg
@@ -110,8 +120,8 @@ const LandingPage = () => {
             <LogoImage size="xl" />
           </div>
 
-          <h1 className="lpt-minimal-title">32 CBG G8 Administration Hub</h1>
-          <p className="lpt-minimal-subtitle">Comprehensive Gateway to Financial Resources</p>
+          <h1 className="lpt-minimal-title">{copy.heading}</h1>
+          <p className="lpt-minimal-subtitle">{copy.subtitle}</p>
 
           <div className="lpt-minimal-cards">
             {landingFeatures.map((feature) => {
@@ -142,7 +152,7 @@ const LandingPage = () => {
               }
 
               if (feature.kind === 'link' && feature.to) {
-                const isExternalLink = /^https?:///.test(feature.to);
+                const isExternalLink = /^https?:\/\//.test(feature.to);
 
                 if (isExternalLink) {
                   return (
@@ -233,14 +243,8 @@ const LandingPage = () => {
               }
 
               return (
-                <div
-                  key={feature.id}
-                  className="lpt-minimal-card"
-                >
-                  <FeatureCard
-                    variant="minimal"
-                    {...commonProps}
-                  />
+                <div key={feature.id} className="lpt-minimal-card">
+                  <FeatureCard variant="minimal" {...commonProps} />
                 </div>
               );
             })}
@@ -259,7 +263,7 @@ const LandingPage = () => {
                   className="lpt-minimal-footer-link"
                 >
                   <link.icon className="w-3.5 h-3.5" aria-hidden="true" />
-                  <span>{link.label}</span>
+                  <span>{copy.footer[link.id]}</span>
                 </a>
               );
             }
@@ -272,7 +276,7 @@ const LandingPage = () => {
                 className="lpt-minimal-footer-link"
               >
                 <link.icon className="w-3.5 h-3.5" aria-hidden="true" />
-                <span>{link.label}</span>
+                <span>{copy.footer[link.id]}</span>
               </button>
             );
           })}
@@ -287,54 +291,43 @@ const LandingPage = () => {
       <Dialog open={showPrivacyModal} onOpenChange={setShowPrivacyModal}>
         <DialogContent className="max-w-[32rem] max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle>Privacy Policy</DialogTitle>
-            <DialogDescription>
-              How this landing page handles visit analytics and external links.
-            </DialogDescription>
+            <DialogTitle>{copy.privacy.title}</DialogTitle>
+            <DialogDescription>{copy.privacy.description}</DialogDescription>
           </DialogHeader>
           <div className="relative">
             <div
               className="space-y-4 sm:space-y-6 overflow-y-auto max-h-[60vh] pr-2"
               onScroll={(event) => handleScrollableContent(event, setShowPrivacyScrollIndicator)}
             >
-              <h3 className="text-base sm:text-lg font-semibold">General Privacy Notice</h3>
-              <p className="text-sm sm:text-base text-[var(--text)] leading-relaxed">
-                This landing page is a navigation hub for administrative links and resources. The
-                landing page does not ask you to sign in, does not accept free-text submissions, and
-                does not provide AI-generated responses.
-              </p>
-              <h3 className="text-base sm:text-lg font-semibold mt-4 sm:mt-6">
-                Information Processed by This Page
+              <h3 className="text-base sm:text-lg font-semibold">
+                {copy.privacy.generalNoticeTitle}
               </h3>
               <p className="text-sm sm:text-base text-[var(--text)] leading-relaxed">
-                When you visit the site, the browser may send basic visit analytics used to
-                understand page traffic and troubleshoot availability.
+                {copy.privacy.generalNotice}
+              </p>
+              <h3 className="text-base sm:text-lg font-semibold mt-4 sm:mt-6">
+                {copy.privacy.informationTitle}
+              </h3>
+              <p className="text-sm sm:text-base text-[var(--text)] leading-relaxed">
+                {copy.privacy.information}
               </p>
               <ul className="list-disc pl-5 space-y-2 text-sm sm:text-base text-[var(--text)] opacity-80">
-                <li>
-                  Those analytics can include the page path, referrer, page title, browser language,
-                  viewport size, a locally generated session ID, and browser user-agent.
-                </li>
-                <li>
-                  The landing page does not collect names, service numbers, claim details, financial
-                  information, or message content.
-                </li>
-                <li>The landing page does not send your activity to any AI model.</li>
+                {copy.privacy.informationBullets.map((bullet) => (
+                  <li key={bullet}>{bullet}</li>
+                ))}
               </ul>
               <h3 className="text-base sm:text-lg font-semibold mt-4 sm:mt-6">
-                Links to External Services
+                {copy.privacy.externalLinksTitle}
               </h3>
               <p className="text-sm sm:text-base text-[var(--text)] leading-relaxed">
-                Some buttons open external resources such as SharePoint or SCIP. Those services are
-                separate from this landing page and may have their own access controls, logs, and
-                privacy practices.
+                {copy.privacy.externalLinks}
               </p>
               <div className="pt-2">
                 <button
                   onClick={() => setShowPrivacyModal(false)}
                   className="w-full px-4 py-2 sm:py-3 text-center text-sm sm:text-base text-[var(--text)] bg-[var(--card)] hover:bg-[var(--primary)] hover:text-white rounded-lg transition-colors duration-300"
                 >
-                  Close
+                  {copy.privacy.close}
                 </button>
               </div>
             </div>
@@ -350,10 +343,8 @@ const LandingPage = () => {
       <Dialog open={showAboutModal} onOpenChange={setShowAboutModal}>
         <DialogContent className="max-w-lg max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle>About This Page</DialogTitle>
-            <DialogDescription>
-              What the 32 CBG G8 Administration Hub links to and what it does not provide.
-            </DialogDescription>
+            <DialogTitle>{copy.about.title}</DialogTitle>
+            <DialogDescription>{copy.about.description}</DialogDescription>
           </DialogHeader>
           <div className="relative">
             <div
@@ -361,47 +352,35 @@ const LandingPage = () => {
               onScroll={(event) => handleScrollableContent(event, setShowAboutScrollIndicator)}
             >
               <h3 className="text-base sm:text-lg font-semibold mb-2 text-[var(--primary)]">
-                32 CBG G8 Admin Hub
+                {copy.about.hubTitle}
               </h3>
-              <p className="mb-3 sm:mb-4 text-sm sm:text-base">
-                A navigation hub for 32 CBG G8 administrative resources, including delegation of
-                authority references, SCIP access, contact and resource links, and supporting
-                administrative material.
-              </p>
-              <h3 className="text-base sm:text-lg font-semibold mb-2">Key Features</h3>
+              <p className="mb-3 sm:mb-4 text-sm sm:text-base">{copy.about.introduction}</p>
+              <h3 className="text-base sm:text-lg font-semibold mb-2">
+                {copy.about.keyFeaturesTitle}
+              </h3>
               <ul className="list-disc list-inside mb-3 sm:mb-4 text-sm sm:text-base space-y-1">
-                <li>
-                  <strong className="text-[var(--primary)]">32 CBG DOA List</strong> – Current
-                  delegation of authority reference in SharePoint
-                </li>
-                <li>
-                  <strong className="text-[var(--primary)]">SCIP Portal</strong> – Direct access to
-                  claims submission platform
-                </li>
-                <li>
-                  <strong className="text-[var(--primary)]">OPI Contacts</strong> - FSC and FMC
-                  directory, currently disabled
-                </li>
-                <li>
-                  <strong className="text-[var(--primary)]">Resources</strong> – Consolidated SOPs,
-                  guides, and templates for day-to-day administration
-                </li>
+                {copy.about.keyFeatures.map((feature) => (
+                  <li key={feature.title}>
+                    <strong className="text-[var(--primary)]">{feature.title}</strong> –{' '}
+                    {feature.description}
+                  </li>
+                ))}
               </ul>
-              <h3 className="text-base sm:text-lg font-semibold mb-2">Disclaimer</h3>
+              <h3 className="text-base sm:text-lg font-semibold mb-2">
+                {copy.about.disclaimerTitle}
+              </h3>
               <p className="mb-3 sm:mb-4 text-sm sm:text-base text-[var(--text-secondary)]">
-                This page is an unofficial resource hub. It does not provide AI-generated advice and
-                is not affiliated with DND, CAF, or any government department. Always verify
-                critical information through official channels.
+                {copy.about.disclaimer}
               </p>
               <p className="text-xs sm:text-sm text-[var(--text-secondary)] mt-4 pt-4 border-t border-[var(--border)]">
-                Maintained by the 32 CBG G8 Team
+                {copy.about.maintainedBy}
               </p>
               <div className="pt-4">
                 <button
                   onClick={() => setShowAboutModal(false)}
                   className="w-full px-4 py-2 sm:py-3 text-center text-sm sm:text-base text-[var(--text)] bg-[var(--card)] hover:bg-[var(--primary)] hover:text-white rounded-lg transition-colors duration-300"
                 >
-                  Close
+                  {copy.about.close}
                 </button>
               </div>
             </div>
@@ -417,20 +396,19 @@ const LandingPage = () => {
       <Dialog open={showSCIPConfirmation} onOpenChange={setShowSCIPConfirmation}>
         <DialogContent className="w-[92vw] sm:max-w-lg md:max-w-xl lg:max-w-2xl break-words">
           <DialogHeader>
-            <DialogTitle>SCIP Portal</DialogTitle>
+            <DialogTitle>{copy.scipConfirmation.title}</DialogTitle>
+            <DialogDescription className="sr-only">
+              {copy.scipConfirmation.externalServiceNote}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-sm sm:text-base break-words">
-              You are about to navigate to the SCIP Portal, which is an external Microsoft PowerApps
-              platform. Have your D365 login (@ecn.forces.gc.ca) ready.
-            </p>
+            <p className="text-sm sm:text-base break-words">{copy.scipConfirmation.introduction}</p>
             <p className="text-sm sm:text-base text-[var(--text-secondary)] break-words">
-              This will open in a new tab. Do you want to continue?
+              {copy.scipConfirmation.externalServiceNote}
             </p>
             <div className="mb-2 p-3 bg-[var(--background-secondary)] rounded-lg border border-[var(--border)] w-full">
               <p className="text-xs sm:text-sm text-[var(--text-secondary)] mb-3">
-                If the portal does not open, please copy the URL below and paste it directly into
-                your browser:
+                {copy.scipConfirmation.copyPrompt}
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto] gap-2 items-center">
                 <div className="min-w-0 w-full p-2 bg-[var(--background)] rounded text-xs font-mono text-[var(--text-secondary)] overflow-hidden">
@@ -448,7 +426,7 @@ const LandingPage = () => {
                       : 'bg-[var(--primary)] text-white hover:bg-[var(--primary-hover)]',
                   )}
                 >
-                  {isLinkCopied ? 'Link Copied' : 'Copy Link'}
+                  {isLinkCopied ? copy.copyLinkStatus.copied : copy.copyLinkStatus.copy}
                 </button>
               </div>
             </div>
@@ -457,7 +435,7 @@ const LandingPage = () => {
                 onClick={() => setShowSCIPConfirmation(false)}
                 className="px-4 py-2 text-sm sm:text-base text-[var(--text)] bg-[var(--background-secondary)] hover:bg-[var(--background)] rounded-lg transition-colors duration-300"
               >
-                Cancel
+                {copy.scipConfirmation.cancel}
               </button>
               <button
                 type="button"
@@ -470,7 +448,9 @@ const LandingPage = () => {
                     : 'text-white bg-[var(--primary)] hover:bg-[var(--primary-hover)]',
                 )}
               >
-                {isNavigatingToSCIP ? 'Opening…' : 'Continue'}
+                {isNavigatingToSCIP
+                  ? copy.navigationStatus.opening
+                  : copy.navigationStatus.continue}
               </button>
             </div>
           </div>

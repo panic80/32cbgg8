@@ -45,4 +45,17 @@ describe('appRoutes configuration', () => {
       expect(staticRoute.element).toBeTruthy();
     }
   });
+
+  it('registers NPP as a lazy route without an NPF alias', () => {
+    const nppRoute = appRoutes.find((route) => route.path === '/npp');
+
+    expect(nppRoute).toBeDefined();
+    expect(isLazyRoute(nppRoute!)).toBe(true);
+    expect(appRoutes.some((route) => route.path === '/npf')).toBe(false);
+
+    if (isLazyRoute(nppRoute!)) {
+      expect(nppRoute.component).toBeDefined();
+      expect(nppRoute.loader).toBeDefined();
+    }
+  });
 });

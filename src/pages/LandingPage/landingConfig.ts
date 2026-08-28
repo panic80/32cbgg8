@@ -1,5 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
-import { FileText, Info, Mail, ShieldCheck } from 'lucide-react';
+import { FileText, Info, Landmark, Mail, ShieldCheck } from 'lucide-react';
+import type { Locale } from '@/i18n/types';
+import { landingCopy } from '@/i18n/landingCopy';
 
 export type LandingFeatureKind = 'link' | 'action' | 'maintenance' | 'disabled';
 
@@ -23,28 +25,41 @@ export interface LandingFooterLink {
   icon: LucideIcon;
 }
 
-export const landingFeatures: LandingFeature[] = [
-  {
-    id: 'doaList',
-    title: '32 CBG DOA List',
-    description: 'Access the current 32 CBG Delegation of Authority list in SharePoint.',
-    icon: FileText,
-    kind: 'link',
-    to: 'https://018gc.sharepoint.com/sites/ORG-03658-000-000/Lists/DOA_Filtered_cleaned/AllItems.aspx?CID=9de1ffbd%2D848e%2D456e%2Da1e8%2D1ba6046c7c2a',
-    linkTitle:
-      'https://018gc.sharepoint.com/sites/org-03658-000-000/lists/doa_filtered_cleaned/allitems.aspx?cid=9de1ffbd%2d848e%2d456e%2da1e8%2d1ba6046c7c2a',
-    itemType: 'http://schema.skype.com/HyperLink/Files',
-    itemID: '93040afd-2ef9-4634-bb08-a0c664de7e80',
-  },
-  {
-    id: 'scipPortal',
-    title: 'SCIP Portal',
-    description:
-      'Streamlined Claims Interface Platform for efficient digital submission and processing of administrative claims.',
-    icon: FileText,
-    kind: 'action',
-  },
-];
+export const getLandingFeatures = (locale: Locale): LandingFeature[] => {
+  const copy = landingCopy[locale];
+
+  return [
+    {
+      id: 'doaList',
+      title: copy.features.doaList.title,
+      description: copy.features.doaList.description,
+      icon: FileText,
+      kind: 'link',
+      to: 'https://018gc.sharepoint.com/sites/ORG-03658-000-000/Lists/DOA_Filtered_cleaned/AllItems.aspx?CID=9de1ffbd%2D848e%2D456e%2Da1e8%2D1ba6046c7c2a',
+      linkTitle:
+        'https://018gc.sharepoint.com/sites/org-03658-000-000/lists/doa_filtered_cleaned/allitems.aspx?cid=9de1ffbd%2d848e%2d456e%2da1e8%2d1ba6046c7c2a',
+      itemType: 'http://schema.skype.com/HyperLink/Files',
+      itemID: '93040afd-2ef9-4634-bb08-a0c664de7e80',
+    },
+    {
+      id: 'scipPortal',
+      title: copy.features.scipPortal.title,
+      description: copy.features.scipPortal.description,
+      icon: FileText,
+      kind: 'action',
+    },
+    {
+      id: 'npf',
+      title: copy.features.npf.title,
+      description: copy.features.npf.description,
+      icon: Landmark,
+      kind: 'link',
+      to: `/npp?lang=${locale}`,
+    },
+  ];
+};
+
+export const landingFeatures: LandingFeature[] = getLandingFeatures('en');
 
 export const footerLinks: LandingFooterLink[] = [
   {
