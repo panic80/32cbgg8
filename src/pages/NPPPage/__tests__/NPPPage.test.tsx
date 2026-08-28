@@ -189,6 +189,10 @@ const expectedSources = [
         language: 'English',
         href: 'https://cfmws.ca/CFMWS/media/images/documents/8.0%20About%20Us/8.4%20Policies%20and%20Publications/8.4.5/Policies/DelegationofAuthorities_e.pdf',
       },
+      {
+        language: 'Français',
+        href: 'https://cfmws.ca/CFMWS/media/images/documents/8.0%20About%20Us/8.4%20Policies%20and%20Publications/8.4.5/Policies/DelegationofAuthorities_e.pdf',
+      },
     ],
   },
   {
@@ -241,6 +245,10 @@ const expectedSources = [
         language: 'English',
         href: 'https://cfmws.ca/about-us/policies-and-publications/procurement-and-contracting/non-public-property-contracting-policy',
       },
+      {
+        language: 'Français',
+        href: 'https://sbmfc.ca/a-propos/politiques-et-publications/approvisionnement-et-passation-de-marches/politique-de-passation-de-marches-des-biens-non-publics',
+      },
     ],
   },
   {
@@ -253,6 +261,10 @@ const expectedSources = [
       {
         language: 'English',
         href: 'https://cfmws.ca/about-us/policies-and-publications/procurement-and-contracting/contract-for-services',
+      },
+      {
+        language: 'Français',
+        href: 'https://sbmfc.ca/a-propos/politiques-et-publications/approvisionnement-et-passation-de-marches/contrats-de-services',
       },
     ],
   },
