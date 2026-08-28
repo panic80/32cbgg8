@@ -97,30 +97,34 @@ export const nppGuideContent: NppGuideContent = {
       audience: 'all-members',
       paragraphs: [
         {
-          en: 'Before committing Unit Fund money, complete the controls below. They do not replace the current CFMWS, CDS, or supporting NPP finance direction that applies to the transaction.',
-          fr: 'Avant d’engager des fonds du Fonds de l’unité, appliquez les contrôles ci-dessous. Ils ne remplacent pas les directives actuelles des SBMFC, du CEMD ou de l’équipe de soutien des finances BNP applicables à l’opération.',
+          en: 'Before committing any NPF, complete the general controls below. They apply to every NPF transaction and do not replace the current CFMWS, CDS, or supporting NPP finance direction that applies to the transaction.',
+          fr: 'Avant d’engager des FNP, appliquez les contrôles généraux ci-dessous. Ils s’appliquent à chaque opération de FNP et ne remplacent pas les directives actuelles des SBMFC, du CEMD ou de l’équipe de soutien des finances BNP applicables à l’opération.',
+        },
+        {
+          en: 'If the funding source is Unit Fund money, also confirm the expense is within the approved annual Unit Fund capital or operating budget; the Unit Fund Committee approved the expense and recorded its decision in the unit minute book or Record of Decision; the meeting minutes are approved by the responsible CO or designate; and current delegated NPP authorities govern commitment, contract, and payment. These Unit Fund controls do not govern other NPP entities.',
+          fr: 'Si la source de financement est le Fonds de l’unité, confirmez aussi que la dépense figure dans le budget annuel approuvé de fonctionnement ou d’immobilisations du Fonds de l’unité; que le comité du Fonds de l’unité a approuvé la dépense et consigné sa décision dans le registre des procès-verbaux ou relevé de décision de l’unité; que les procès-verbaux de la réunion sont approuvés par le cmdt responsable ou son délégué; et que les pouvoirs délégués actuels en matière de BNP régissent l’engagement, le contrat et le paiement. Ces contrôles du Fonds de l’unité ne régissent pas les autres entités BNP.',
         },
       ],
       bullets: [
         {
-          en: 'Confirm the activity provides a collective authorized NPP benefit.',
-          fr: 'Confirmez que l’activité procure un avantage collectif autorisé des BNP.',
+          en: 'Confirm the activity provides a collective authorized NPP benefit to authorized beneficiaries.',
+          fr: 'Confirmez que l’activité procure un avantage collectif autorisé des BNP aux bénéficiaires autorisés.',
         },
         {
-          en: 'Confirm the expense is within the approved annual Unit Fund capital or operating budget.',
-          fr: 'Confirmez que la dépense figure dans le budget annuel approuvé de fonctionnement ou d’immobilisations du Fonds de l’unité.',
+          en: 'Confirm the correct NPP entity.',
+          fr: 'Confirmez l’entité BNP appropriée.',
         },
         {
-          en: 'Confirm the Unit Fund Committee approved the expense and recorded its decision in the unit minute book or Record of Decision.',
-          fr: 'Confirmez que le comité du Fonds de l’unité a approuvé la dépense et consigné sa décision dans le registre des procès-verbaux ou relevé de décision de l’unité.',
+          en: 'Confirm the correct budget or grant/trust.',
+          fr: 'Confirmez le budget, la subvention ou la fiducie appropriés.',
         },
         {
-          en: 'Confirm the meeting minutes are approved by the responsible CO or designate.',
-          fr: 'Confirmez que les procès-verbaux de la réunion sont approuvés par le cmdt responsable ou son délégué.',
+          en: 'Confirm available and unencumbered funds.',
+          fr: 'Confirmez les fonds disponibles et non grevés.',
         },
         {
-          en: 'Confirm current delegated NPP authorities govern commitment, contract, and payment.',
-          fr: 'Confirmez que les pouvoirs délégués actuels en matière de BNP régissent l’engagement, le contrat et le paiement.',
+          en: 'Confirm the current delegated authority.',
+          fr: 'Confirmez le pouvoir délégué actuel.',
         },
         {
           en: 'Identify hospitality, alcohol, travel, IM/IT, fixed assets, fundraising, gifts or alienation, and mixed funding for policy-specific review.',
@@ -147,30 +151,34 @@ export const nppGuideContent: NppGuideContent = {
       audience: 'operators',
       paragraphs: [
         {
-          en: 'Use the current official procurement and contracting direction for every purchase. The sequence below is a practical guide, not a delegation or approval. Complete the Unit Fund controls before moving to procurement.',
-          fr: 'Utilisez les directives officielles actuelles sur l’approvisionnement et la passation de marchés pour chaque achat. La séquence ci-dessous est un guide pratique et ne constitue ni une délégation ni une approbation. Appliquez les contrôles du Fonds de l’unité avant de passer à l’approvisionnement.',
+          en: 'Use the current official procurement and contracting direction for every purchase. The sequence below is a practical guide, not a delegation or approval. Complete the general NPF controls before moving to procurement.',
+          fr: 'Utilisez les directives officielles actuelles sur l’approvisionnement et la passation de marchés pour chaque achat. La séquence ci-dessous est un guide pratique et ne constitue ni une délégation ni une approbation. Appliquez les contrôles généraux des FNP avant de passer à l’approvisionnement.',
+        },
+        {
+          en: 'If the funding source is Unit Fund money, also confirm the expense is within the approved annual Unit Fund capital or operating budget; the Unit Fund Committee approved the expense and recorded its decision in the unit minute book or Record of Decision; the meeting minutes are approved by the responsible CO or designate; and current delegated NPP authorities govern commitment, contract, and payment. These Unit Fund controls do not govern other NPP entities.',
+          fr: 'Si la source de financement est le Fonds de l’unité, confirmez aussi que la dépense figure dans le budget annuel approuvé de fonctionnement ou d’immobilisations du Fonds de l’unité; que le comité du Fonds de l’unité a approuvé la dépense et consigné sa décision dans le registre des procès-verbaux ou relevé de décision de l’unité; que les procès-verbaux de la réunion sont approuvés par le cmdt responsable ou son délégué; et que les pouvoirs délégués actuels en matière de BNP régissent l’engagement, le contrat et le paiement. Ces contrôles du Fonds de l’unité ne régissent pas les autres entités BNP.',
         },
       ],
       bullets: [
         {
-          en: 'Confirm the activity provides a collective authorized NPP benefit.',
-          fr: 'Confirmez que l’activité procure un avantage collectif autorisé des BNP.',
+          en: 'Confirm the activity provides a collective authorized NPP benefit to authorized beneficiaries.',
+          fr: 'Confirmez que l’activité procure un avantage collectif autorisé des BNP aux bénéficiaires autorisés.',
         },
         {
-          en: 'Confirm the expense is within the approved annual Unit Fund capital or operating budget.',
-          fr: 'Confirmez que la dépense figure dans le budget annuel approuvé de fonctionnement ou d’immobilisations du Fonds de l’unité.',
+          en: 'Confirm the correct NPP entity.',
+          fr: 'Confirmez l’entité BNP appropriée.',
         },
         {
-          en: 'Confirm the Unit Fund Committee approved the expense and recorded its decision in the unit minute book or Record of Decision.',
-          fr: 'Confirmez que le comité du Fonds de l’unité a approuvé la dépense et consigné sa décision dans le registre des procès-verbaux ou relevé de décision de l’unité.',
+          en: 'Confirm the correct budget or grant/trust.',
+          fr: 'Confirmez le budget, la subvention ou la fiducie appropriés.',
         },
         {
-          en: 'Confirm the meeting minutes are approved by the responsible CO or designate.',
-          fr: 'Confirmez que les procès-verbaux de la réunion sont approuvés par le cmdt responsable ou son délégué.',
+          en: 'Confirm available and unencumbered funds.',
+          fr: 'Confirmez les fonds disponibles et non grevés.',
         },
         {
-          en: 'Confirm current delegated NPP authorities govern commitment, contract, and payment.',
-          fr: 'Confirmez que les pouvoirs délégués actuels en matière de BNP régissent l’engagement, le contrat et le paiement.',
+          en: 'Confirm the current delegated authority.',
+          fr: 'Confirmez le pouvoir délégué actuel.',
         },
         {
           en: 'Confirm the requirement and funding source.',

@@ -102,9 +102,34 @@ describe('nppGuideContent', () => {
     );
   });
 
-  it('records the required Unit Fund spending controls in both languages', () => {
+  it('preserves the general controls required for every NPF transaction in both languages', () => {
     const requiredEnglishControls = [
-      'collective authorized NPP benefit',
+      'authorized beneficiaries',
+      'correct NPP entity',
+      'budget or grant/trust',
+      'available and unencumbered funds',
+      'current delegated authority',
+    ];
+    const requiredFrenchControls = [
+      'bénéficiaires autorisés',
+      'entité BNP appropriée',
+      'budget, la subvention ou la fiducie',
+      'fonds disponibles et non grevés',
+      'pouvoir délégué actuel',
+    ];
+
+    for (const sectionId of ['before-spending', 'spending-npf']) {
+      const englishCopy = sectionCopy(sectionId, 'en');
+      const frenchCopy = sectionCopy(sectionId, 'fr');
+
+      requiredEnglishControls.forEach((control) => expect(englishCopy).toContain(control));
+      requiredFrenchControls.forEach((control) => expect(frenchCopy).toContain(control));
+    }
+  });
+
+  it('scopes Unit Fund committee and minute controls to Unit Fund money in both languages', () => {
+    const requiredEnglishControls = [
+      'If the funding source is Unit Fund money',
       'approved annual Unit Fund capital or operating budget',
       'Unit Fund Committee approved the expense',
       'unit minute book or Record of Decision',
@@ -112,7 +137,7 @@ describe('nppGuideContent', () => {
       'current delegated NPP authorities govern commitment, contract, and payment',
     ];
     const requiredFrenchControls = [
-      'avantage collectif autorisé des BNP',
+      'Si la source de financement est le Fonds de l’unité',
       'budget annuel approuvé de fonctionnement ou d’immobilisations du Fonds de l’unité',
       'comité du Fonds de l’unité a approuvé la dépense',
       'registre des procès-verbaux ou relevé de décision',
@@ -126,6 +151,10 @@ describe('nppGuideContent', () => {
 
       requiredEnglishControls.forEach((control) => expect(englishCopy).toContain(control));
       requiredFrenchControls.forEach((control) => expect(frenchCopy).toContain(control));
+      expect(englishCopy).toContain('These Unit Fund controls do not govern other NPP entities');
+      expect(frenchCopy).toContain(
+        'Ces contrôles du Fonds de l’unité ne régissent pas les autres entités BNP',
+      );
     }
   });
 
