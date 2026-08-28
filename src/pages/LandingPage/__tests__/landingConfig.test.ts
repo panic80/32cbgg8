@@ -1,14 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { landingFeatures, quickAskPrompts } from '../landingConfig';
+import { getLandingFeatures, landingFeatures } from '../landingConfig';
 
 describe('landingConfig', () => {
-  it('exposes quick ask prompts with labels and queries', () => {
-    expect(quickAskPrompts.length).toBeGreaterThanOrEqual(4);
-    quickAskPrompts.forEach((prompt) => {
-      expect(prompt.label).toBeTypeOf('string');
-      expect(prompt.query).toBeTypeOf('string');
-      expect(prompt.query.length).toBeGreaterThan(10);
-    });
+  it('does not expose chatbot quick ask prompts', async () => {
+    const config = await import('../landingConfig');
+
+    expect('quickAskPrompts' in config).toBe(false);
   });
 
   it('includes a SCIP portal feature flagged as action', () => {
@@ -18,18 +15,42 @@ describe('landingConfig', () => {
     expect(feature?.to).toBeUndefined();
   });
 
-  it('marks resources as link with review badge', () => {
-    const resources = landingFeatures.find((item) => item.id === 'resources');
-    expect(resources).toBeDefined();
-    expect(resources?.kind).toBe('link');
-    expect(resources?.badge).toBe('Under Review');
+  it('does not display the temporarily removed OPI Contacts or Resources cards', () => {
+    expect(landingFeatures.some((item) => item.id === 'opiContacts')).toBe(false);
+    expect(landingFeatures.some((item) => item.id === 'resources')).toBe(false);
+  });
+
+  it('does not expose policy assistant as a feature', () => {
+    expect(landingFeatures.some((item) => item.id === 'policyAssistant')).toBe(false);
+    expect(landingFeatures.some((item) => item.title === 'Policy Assistant')).toBe(false);
   });
 
   it('includes at least one navigable feature link', () => {
     const linkFeatures = landingFeatures.filter((item) => item.kind === 'link');
-    expect(linkFeatures.length).toBeGreaterThanOrEqual(2);
+    expect(linkFeatures.length).toBeGreaterThanOrEqual(1);
     linkFeatures.forEach((feature) => {
       expect(feature.to).toBeDefined();
     });
+  });
+
+  it('provides ordered bilingual feature entries with an internal NPF guide link', () => {
+    const englishFeatures = getLandingFeatures('en');
+
+    expect(englishFeatures.map((item) => item.id)).toEqual(['doaList', 'scipPortal', 'npf']);
+
+    const npf = englishFeatures.find((item) => item.id === 'npf');
+    expect(npf).toMatchObject({
+      title: 'NPF',
+      kind: 'link',
+      to: '/npp?lang=en',
+    });
+    expect(npf?.badge).toBeUndefined();
+    expect(npf?.disabledTooltip).toBeUndefined();
+    expect(npf?.icon).toBeDefined();
+
+    const frenchNpf = getLandingFeatures('fr').find((item) => item.id === 'npf');
+    expect(frenchNpf?.description).toBe(
+      'Consultez le Guide des BNP / FNP pour obtenir des conseils clairs sur les dépenses, les subventions, les fournisseurs et les remboursements.',
+    );
   });
 });

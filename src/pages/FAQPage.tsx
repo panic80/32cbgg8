@@ -60,7 +60,7 @@ const FAQPage = () => {
               Can't find what you're looking for?
             </p>
             <a
-              href="/chat"
+              href="mailto:g8@sent.com?subject=G8%20Administration%20Hub%20Support"
               className="inline-flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary-hover text-primary-foreground rounded-lg font-medium transition-all hover:scale-105 hover:shadow-lg"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -71,7 +71,7 @@ const FAQPage = () => {
                   d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
                 />
               </svg>
-              Ask our Chat Assistant
+              Contact G8 Support
             </a>
           </div>
         </div>

@@ -84,7 +84,12 @@ export const createCorsConfig = ({ logger, } = {}) => {
             'http://localhost:5173',
             process.env.FRONTEND_URL,
         ].filter(Boolean)
-        : ['https://32cbgg8.com', 'https://www.32cbgg8.com', process.env.FRONTEND_URL].filter(Boolean);
+        : [
+            'https://32cbgg8.com',
+            'https://www.32cbgg8.com',
+            'https://dashboard.32cbgg8.com',
+            process.env.FRONTEND_URL,
+        ].filter(Boolean);
     return {
         origin: function (origin, callback) {
             // Allow requests with no origin (like mobile apps or curl)
@@ -122,7 +127,12 @@ export const getAllowedOrigins = () => {
             'http://localhost:5173',
             process.env.FRONTEND_URL,
         ].filter(Boolean)
-        : ['https://32cbgg8.com', 'https://www.32cbgg8.com', process.env.FRONTEND_URL].filter(Boolean);
+        : [
+            'https://32cbgg8.com',
+            'https://www.32cbgg8.com',
+            'https://dashboard.32cbgg8.com',
+            process.env.FRONTEND_URL,
+        ].filter(Boolean);
     return new Set(origins);
 };
 /**

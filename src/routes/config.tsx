@@ -37,6 +37,7 @@ const createComingSoonElement = (message: string) => (
 );
 
 const loadLandingPage = () => import('@/pages/LandingPage');
+const loadNppPage = () => import('@/pages/NPPPage');
 const loadAdminToolsPage = () => import('@/pages/AdminToolsPage');
 const loadPrivacyPage = () => import('@/pages/PrivacyPage');
 const loadFaqPage = () => import('@/pages/FAQPage');
@@ -57,6 +58,12 @@ export const appRoutes: AppRouteDefinition[] = [
     path: '/',
     component: lazy(loadLandingPage),
     loader: loadLandingPage,
+  },
+  {
+    kind: 'lazy',
+    path: '/npp',
+    component: lazy(loadNppPage),
+    loader: loadNppPage,
   },
   {
     kind: 'lazy',

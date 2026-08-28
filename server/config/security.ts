@@ -93,7 +93,12 @@ export const createCorsConfig = ({
         'http://localhost:5173',
         process.env.FRONTEND_URL,
       ].filter(Boolean)
-    : ['https://32cbgg8.com', 'https://www.32cbgg8.com', process.env.FRONTEND_URL].filter(Boolean);
+    : [
+        'https://32cbgg8.com',
+        'https://www.32cbgg8.com',
+        'https://dashboard.32cbgg8.com',
+        process.env.FRONTEND_URL,
+      ].filter(Boolean);
 
   return {
     origin: function (origin, callback) {
@@ -132,7 +137,12 @@ export const getAllowedOrigins = (): Set<string> => {
         'http://localhost:5173',
         process.env.FRONTEND_URL,
       ].filter(Boolean)
-    : ['https://32cbgg8.com', 'https://www.32cbgg8.com', process.env.FRONTEND_URL].filter(Boolean);
+    : [
+        'https://32cbgg8.com',
+        'https://www.32cbgg8.com',
+        'https://dashboard.32cbgg8.com',
+        process.env.FRONTEND_URL,
+      ].filter(Boolean);
 
   return new Set(origins as string[]);
 };

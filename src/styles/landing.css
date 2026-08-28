@@ -172,14 +172,26 @@ html {
   background: radial-gradient(circle at 50% 0%, var(--primary) 0%, transparent 50%);
 }
 
+/* Language Toggle */
+.lpt-minimal-language {
+  position: fixed;
+  top: var(--landing-spacing-lg);
+  left: var(--landing-spacing-lg);
+  z-index: 50;
+  border: 1px solid var(--border);
+  border-radius: var(--landing-spacing-sm);
+  background: var(--card);
+  box-shadow: var(--landing-shadow-sm);
+}
+
 /* Theme Toggle */
 .lpt-minimal-theme {
   position: fixed;
   top: var(--landing-spacing-lg);
   right: var(--landing-spacing-lg);
   z-index: 50;
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 2.75rem;
+  height: 2.75rem;
   border-radius: 50%;
   background: var(--card);
   border: 1px solid var(--border);
@@ -207,6 +219,8 @@ html {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  width: 100%;
+  min-width: 0;
   padding: var(--landing-spacing-2xl) var(--landing-spacing-lg);
   max-width: 100vw;
 }
@@ -363,7 +377,7 @@ html {
 /* Minimal Cards Grid */
 .lpt-minimal-cards {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr;
   gap: var(--landing-spacing-lg);
   width: 100%;
   max-width: var(--landing-card-max-width);
@@ -386,6 +400,8 @@ html {
   cursor: pointer;
   position: relative;
   overflow: hidden;
+  min-width: 0;
+  height: 100%;
 }
 
 .lpt-minimal-card::before {
@@ -496,6 +512,8 @@ html {
 .lpt-minimal-footer {
   position: relative;
   z-index: 1;
+  width: 100%;
+  min-width: 0;
   padding: var(--landing-spacing-xl) var(--landing-spacing-lg);
   text-align: center;
   border-top: 1px solid var(--border);
@@ -517,6 +535,10 @@ html {
   transition: all var(--landing-transition-normal);
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0.625rem 0.75rem;
   gap: 0.375rem;
   opacity: 0.7;
 }
@@ -531,20 +553,21 @@ html {
   color: var(--text-secondary);
   opacity: 0.5;
   line-height: 1.6;
+  overflow-wrap: anywhere;
 }
 
 /* Responsive Adjustments */
-@media (max-width: 640px) {
+@media (max-width: 639px) {
   .lpt-minimal-content {
-    padding: var(--landing-spacing-xl) var(--landing-spacing-md);
+    padding: var(--landing-spacing-lg) var(--landing-spacing-md);
   }
 
   .lpt-minimal-logo {
-    margin-bottom: var(--landing-spacing-xl);
+    margin-bottom: var(--landing-spacing-lg);
   }
 
   .lpt-minimal-subtitle {
-    margin-bottom: var(--landing-spacing-xl);
+    margin-bottom: var(--landing-spacing-lg);
   }
 
   .lpt-minimal-search-box {
@@ -565,11 +588,12 @@ html {
   }
 
   .lpt-minimal-cards {
-    gap: var(--landing-spacing-md);
+    gap: 0.75rem;
+    margin-bottom: var(--landing-spacing-xl);
   }
 
   .lpt-minimal-card {
-    padding: var(--landing-border-radius-lg) 0.75rem;
+    padding: var(--landing-spacing-md) 0.75rem;
   }
 
   .lpt-minimal-card-icon {
@@ -583,20 +607,27 @@ html {
   }
 
   .lpt-minimal-footer-links {
-    gap: var(--landing-spacing-md);
+    gap: var(--landing-spacing-xs) var(--landing-spacing-sm);
+    margin-bottom: var(--landing-spacing-sm);
+  }
+
+  .lpt-minimal-footer {
+    padding: 1.25rem var(--landing-spacing-md);
   }
 }
 
 /* Accessibility */
-.lpt-minimal-card:focus,
-.lpt-minimal-search-btn:focus,
-.lpt-minimal-chip:focus,
-.lpt-minimal-theme:focus {
+.lpt-minimal-card:focus-visible,
+.lpt-minimal-search-btn:focus-visible,
+.lpt-minimal-chip:focus-visible,
+.lpt-minimal-theme:focus-visible,
+.lpt-minimal-footer-link:focus-visible,
+.lpt-minimal-language button:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
 
-.lpt-minimal-search-input:focus {
+.lpt-minimal-search-input:focus-visible {
   outline: none;
 }
 
@@ -604,4 +635,43 @@ html {
 .lpt-minimal-loading {
   opacity: 0.6;
   pointer-events: none;
+}
+
+@media (min-width: 640px) {
+  .lpt-minimal-cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: stretch;
+    grid-auto-rows: 1fr;
+  }
+}
+
+@media (min-width: 640px) and (max-height: 900px) {
+  .lpt-minimal-content {
+    padding-block: var(--landing-spacing-lg);
+  }
+
+  .lpt-minimal-logo {
+    margin-bottom: 1.25rem;
+  }
+
+  .lpt-minimal-subtitle {
+    margin-bottom: var(--landing-spacing-lg);
+  }
+
+  .lpt-minimal-cards {
+    gap: var(--landing-spacing-md);
+    margin-bottom: var(--landing-spacing-lg);
+  }
+
+  .lpt-minimal-card {
+    padding-block: var(--landing-spacing-md);
+  }
+
+  .lpt-minimal-footer {
+    padding-block: var(--landing-spacing-md);
+  }
+
+  .lpt-minimal-footer-links {
+    margin-bottom: var(--landing-spacing-sm);
+  }
 }

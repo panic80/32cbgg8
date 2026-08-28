@@ -4,11 +4,13 @@ import { toast } from 'sonner';
 type UseCopyToClipboardProps = {
   text: string;
   copyMessage?: string;
+  copyErrorMessage?: string;
 };
 
 export function useCopyToClipboard({
   text,
   copyMessage = 'Copied to clipboard!',
+  copyErrorMessage = 'Failed to copy to clipboard.',
 }: UseCopyToClipboardProps) {
   const [isCopied, setIsCopied] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -28,9 +30,9 @@ export function useCopyToClipboard({
         }, 2000);
       })
       .catch(() => {
-        toast.error('Failed to copy to clipboard.');
+        toast.error(copyErrorMessage);
       });
-  }, [text, copyMessage]);
+  }, [text, copyMessage, copyErrorMessage]);
 
   return { isCopied, handleCopy };
 }

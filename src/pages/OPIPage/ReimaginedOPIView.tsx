@@ -1,258 +1,230 @@
-import React, { useState, useMemo, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import type { ChangeEvent, Dispatch, SetStateAction } from 'react';
+import { useMemo, useState } from 'react';
 import {
-  Search,
-  Mail,
-  Building2,
-  Crown,
-  ChevronRight,
-  Grid3x3,
-  LayoutList,
-  UserCircle2,
   Briefcase,
-  MapPin,
-  Filter,
-  X,
+  Building2,
   CheckCircle2,
+  ChevronRight,
+  Mail,
+  Search,
+  UserCheck,
+  Users,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 
-// Modern contact card with split design
-const ModernContactCard = ({ contact, type, onClick, index }) => {
-  const [isHovered, setIsHovered] = useState(false);
+type ContactType = 'FSC' | 'FMC';
+type ViewId = 'all' | 'fsc' | 'fmc';
 
-  const getBgGradient = () => {
-    // Vibrant teal/cyan for FSC, Gold for FMC
-    if (type === 'FSC') return 'from-teal-500/15 to-cyan-500/15';
-    if (type === 'FMC') return 'from-amber-500/15 to-yellow-500/15';
-    return 'from-primary/5 to-primary/10';
-  };
+interface Contact {
+  name: string;
+  role: string;
+  email?: string;
+  units?: string[];
+  isLeadership?: boolean;
+}
 
-  const getIconBg = () => {
-    // Vibrant teal for FSC, Gold/amber for FMC
-    if (type === 'FSC') return 'bg-gradient-to-br from-teal-600 to-cyan-600';
-    if (type === 'FMC') return 'bg-gradient-to-br from-amber-500 to-yellow-600';
-    return 'bg-[var(--primary)]';
-  };
+interface UnitContact {
+  fsc: string;
+  fscEmail?: string;
+  fmc: string;
+  fmcEmail?: string;
+}
 
-  const getBorderHover = () => {
-    // Distinct hover colors with glow
-    if (type === 'FSC') return 'hover:border-teal-500/60 hover:shadow-teal-500/20';
-    if (type === 'FMC') return 'hover:border-amber-500/60 hover:shadow-amber-500/20';
-    return 'hover:border-primary/50';
-  };
+interface ReimaginedOPIViewProps {
+  unitContacts?: Record<string, UnitContact>;
+  fscContacts?: Contact[];
+  fmcContacts?: Contact[];
+  contactView?: string;
+  selectedUnit?: string;
+  searchTerm?: string;
+  setSelectedUnit?: Dispatch<SetStateAction<string>>;
+  setSearchTerm?: Dispatch<SetStateAction<string>>;
+  setContactView?: Dispatch<SetStateAction<string>>;
+}
 
-  const getAccentColor = () => {
-    // For text highlights on hover
-    if (type === 'FSC') return 'group-hover:text-teal-600';
-    if (type === 'FMC') return 'group-hover:text-amber-600';
-    return 'group-hover:text-primary';
-  };
+interface ContactStyle {
+  label: ContactType;
+  dot: string;
+  border: string;
+  bg: string;
+  text: string;
+  emphasis: string;
+}
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05 }}
-      onHoverStart={() => setIsHovered(true)}
-      onHoverEnd={() => setIsHovered(false)}
-      onClick={onClick}
-      className="h-full"
-    >
-      <Card
-        className={cn(
-          'group relative overflow-hidden border border-[var(--border)] cursor-pointer',
-          'transition-all duration-300 hover:shadow-xl hover:scale-[1.02]',
-          'bg-gradient-to-br h-full backdrop-blur-sm',
-          'glass',
-          getBgGradient(),
-          getBorderHover(),
-        )}
-      >
-        <CardContent className="p-0 h-full flex flex-col">
-          {/* Top section with colored accent bar (Teal=FSC, Gold=FMC) */}
-          <div className={cn('h-1 w-full', getIconBg())} />
+const VIEW_OPTIONS: ReadonlyArray<{ id: ViewId; label: string }> = [
+  { id: 'all', label: 'All' },
+  { id: 'fsc', label: 'FSC' },
+  { id: 'fmc', label: 'FMC' },
+];
 
-          <div className="p-4 flex flex-col flex-1">
-            {/* Header with small type badge and leadership indicator */}
-            <div className="flex items-start justify-between mb-3">
-              <div
-                className={cn('px-2 py-0.5 rounded-md text-xs font-bold text-white', getIconBg())}
-              >
-                {type || 'N/A'}
-              </div>
-              {contact.isLeadership && (
-                <Crown className="w-4 h-4 text-[var(--primary)]" title="Leadership" />
-              )}
-            </div>
-
-            {/* Contact name - BIGGER */}
-            <h3
-              className={cn(
-                'text-2xl font-bold text-foreground mb-1 transition-colors leading-tight',
-                getAccentColor(),
-              )}
-            >
-              {contact.name}
-            </h3>
-
-            {/* Role - smaller */}
-            <p className="text-xs text-muted-foreground mb-3">{contact.role}</p>
-
-            {/* Units - show all with emphasis */}
-            {contact.units && contact.units.length > 0 && (
-              <div className="mb-3">
-                <div className="flex flex-wrap gap-1.5">
-                  {contact.units.map((unit, idx) => (
-                    <Badge
-                      key={idx}
-                      className={cn(
-                        'text-xs font-semibold px-2 py-1 shadow-sm',
-                        type === 'FSC'
-                          ? 'bg-teal-100 text-teal-800 border-teal-300 dark:bg-teal-900/30 dark:text-teal-200 dark:border-teal-700'
-                          : type === 'FMC'
-                            ? 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/30 dark:text-amber-200 dark:border-amber-700'
-                            : 'bg-primary/10 text-primary border-primary/30',
-                      )}
-                    >
-                      {unit}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Email - compact at bottom */}
-            <motion.div
-              animate={{ x: isHovered ? 3 : 0 }}
-              className={cn(
-                'flex items-center gap-1.5 text-xs font-medium mt-auto pt-2 border-t border-[var(--border)] transition-colors',
-                type === 'FSC'
-                  ? 'text-teal-600 hover:text-teal-700'
-                  : type === 'FMC'
-                    ? 'text-amber-600 hover:text-amber-700'
-                    : 'text-primary hover:text-primary/80',
-              )}
-            >
-              <Mail className="w-3.5 h-3.5" />
-              <span className="truncate text-[11px]">{contact.email}</span>
-              <ChevronRight className="w-3 h-3 ml-auto flex-shrink-0" />
-            </motion.div>
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
-  );
+const CONTACT_TYPE_STYLE: Record<ContactType, ContactStyle> = {
+  FSC: {
+    label: 'FSC',
+    dot: 'bg-cyan-400',
+    border: 'border-l-cyan-400',
+    bg: 'bg-cyan-400/18',
+    text: 'text-cyan-500 dark:text-cyan-300',
+    emphasis: 'text-cyan-400',
+  },
+  FMC: {
+    label: 'FMC',
+    dot: 'bg-lime-400',
+    border: 'border-l-lime-400',
+    bg: 'bg-lime-400/18',
+    text: 'text-lime-500 dark:text-lime-300',
+    emphasis: 'text-lime-400',
+  },
 };
 
-// Compact list view for contacts
-const CompactContactRow = ({ contact, index }) => {
-  const isFSC = contact.role && contact.role.includes('FSC');
-  const isFMC = contact.role && contact.role.includes('FMC');
+const POSITIONAL_INBOXES: ReadonlyArray<{
+  type: ContactType;
+  label: string;
+  detail: string;
+  email: string;
+}> = [
+  {
+    type: 'FSC',
+    label: '32 CBG HQ Financial Services',
+    detail: 'QG 32 GBC Services financiers',
+    email: 'DND.GTA.B32.FinancialServices-Servicesfinanciers.MDN@forces.gc.ca',
+  },
+  {
+    type: 'FMC',
+    label: '32 CBG HQ Financial Management',
+    detail: 'QG 32 GBC Gest Fin',
+    email: 'DND.GTA.B32.FinMgt-GestFin.MDN@forces.gc.ca',
+  },
+];
 
-  const getBorderColor = () => {
-    if (isFSC) return 'border-l-teal-600 hover:border-l-teal-500';
-    if (isFMC) return 'border-l-amber-500 hover:border-l-amber-400';
-    return 'border-l-primary hover:border-l-primary/80';
-  };
+function getContactType(contact: Contact): ContactType {
+  if (contact.role?.includes('FSC')) return 'FSC';
+  if (contact.role?.includes('FMC')) return 'FMC';
+  return 'FSC';
+}
 
-  const getTextColor = () => {
-    if (isFSC) return 'text-teal-600';
-    if (isFMC) return 'text-amber-600';
-    return 'text-primary';
-  };
+function getInitials(name = ''): string {
+  if (name === 'N/A') return 'NA';
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(-2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase();
+}
+
+function EmailLink({ email, compact = false }: { email?: string; compact?: boolean }) {
+  if (!email) {
+    return <span className="text-sm text-muted-foreground">No direct email listed</span>;
+  }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: index * 0.02 }}
+    <a
+      href={`mailto:${email}`}
       className={cn(
-        'group p-3 rounded-r-lg border-l-4 border-y border-r border-[var(--border)]',
-        'hover:shadow-md glass hover:scale-[1.005] transition-all duration-200',
-        getBorderColor(),
+        'inline-flex min-w-0 items-center gap-2 rounded-md text-sm font-medium text-primary underline-offset-4 hover:underline focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background',
+        compact ? 'max-w-full' : 'max-w-[20rem]',
       )}
     >
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          {/* Compact type badge */}
-          <div className={cn('px-2 py-0.5 rounded text-[10px] font-bold', getTextColor())}>
-            {isFSC ? 'FSC' : isFMC ? 'FMC' : 'N/A'}
-          </div>
+      <Mail className="h-4 w-4 shrink-0" aria-hidden="true" />
+      <span className="truncate">{email}</span>
+    </a>
+  );
+}
 
-          {/* Info */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h4 className="font-bold text-lg text-foreground truncate">{contact.name}</h4>
-              {contact.isLeadership && (
-                <Crown className="w-3.5 h-3.5 text-[var(--primary)] flex-shrink-0" />
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground mb-2">{contact.role}</p>
-            {contact.units && contact.units.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-1.5">
-                {contact.units.map((unit, idx) => (
-                  <Badge
-                    key={idx}
-                    className={cn(
-                      'text-xs font-semibold px-2 py-0.5 shadow-sm',
-                      isFSC
-                        ? 'bg-teal-100 text-teal-800 border-teal-300 dark:bg-teal-900/30 dark:text-teal-200 dark:border-teal-700'
-                        : isFMC
-                          ? 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/30 dark:text-amber-200 dark:border-amber-700'
-                          : 'bg-primary/10 text-primary border-primary/30',
-                    )}
-                  >
-                    {unit}
-                  </Badge>
-                ))}
-              </div>
+function ContactPanel({
+  title,
+  contact,
+  type,
+}: {
+  title: string;
+  contact: Contact;
+  type: ContactType;
+}) {
+  const style = CONTACT_TYPE_STYLE[type];
+
+  return (
+    <article
+      className={cn(
+        'rounded-lg border border-border bg-card p-4 shadow-sm',
+        'border-l-4',
+        style.border,
+      )}
+    >
+      <div className="mb-4 flex items-start justify-between gap-4">
+        <div>
+          <p className={cn('text-xs font-bold uppercase tracking-wide', style.emphasis)}>{title}</p>
+          <h3 className="mt-1 text-xl font-semibold leading-tight text-foreground">
+            {contact.name}
+          </h3>
+        </div>
+        <span
+          className={cn(
+            'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold',
+            style.bg,
+            style.emphasis,
+          )}
+        >
+          {getInitials(contact.name)}
+        </span>
+      </div>
+
+      <p className="mb-3 text-sm text-muted-foreground">{contact.role}</p>
+      <EmailLink email={contact.email} />
+    </article>
+  );
+}
+
+function ContactRow({ contact }: { contact: Contact }) {
+  const type = getContactType(contact);
+  const style = CONTACT_TYPE_STYLE[type];
+
+  return (
+    <li className="border-b border-border last:border-b-0">
+      <div className="grid gap-3 px-4 py-4 sm:grid-cols-[minmax(0,1fr)_minmax(11rem,16rem)_minmax(0,1.25fr)] sm:items-center sm:px-5">
+        <div className="min-w-0">
+          <div className="grid grid-cols-[0.625rem_minmax(0,1fr)_auto] items-start gap-x-2">
+            <span
+              className={cn('mt-[0.45rem] h-2.5 w-2.5 rounded-full', style.dot)}
+              aria-hidden="true"
+            />
+            <h3 className="truncate text-base font-semibold leading-6 text-foreground">
+              {contact.name}
+            </h3>
+            {contact.isLeadership && (
+              <span className="mt-0.5 rounded-full border border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                Lead
+              </span>
             )}
           </div>
+          <p className="mt-1 text-sm text-muted-foreground">{contact.role}</p>
         </div>
 
-        {/* Email */}
-        <a
-          href={`mailto:${contact.email}`}
-          className={cn(
-            'hidden lg:flex items-center gap-1.5 text-xs font-medium group-hover:translate-x-1 transition-transform',
-            getTextColor(),
+        <div className="flex flex-wrap gap-1.5">
+          {contact.units?.length ? (
+            contact.units.map((unit) => (
+              <span
+                key={`${contact.email}-${unit}`}
+                className="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground"
+              >
+                {unit}
+              </span>
+            ))
+          ) : (
+            <span className="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
+              Leadership
+            </span>
           )}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <Mail className="w-3.5 h-3.5" />
-          <span className="max-w-[200px] truncate">{contact.email}</span>
-          <ChevronRight className="w-3 h-3" />
-        </a>
+        </div>
 
-        {/* Mobile email button */}
-        <a
-          href={`mailto:${contact.email}`}
-          className={cn(
-            'lg:hidden p-1.5 rounded-lg hover:bg-primary/10 transition-colors',
-            getTextColor(),
-          )}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <Mail className="w-4 h-4" />
-        </a>
+        <div className="min-w-0 sm:justify-self-end">
+          <EmailLink email={contact.email} compact />
+        </div>
       </div>
-    </motion.div>
+    </li>
   );
-};
+}
 
-// Main reimagined view component
 export default function ReimaginedOPIView({
   unitContacts = {},
   fscContacts = [],
@@ -263,279 +235,210 @@ export default function ReimaginedOPIView({
   setSelectedUnit = () => {},
   setSearchTerm = () => {},
   setContactView = () => {},
-}) {
-  const [localView, setLocalView] = useState(initialView);
-  const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
-  const [viewStyle, setViewStyle] = useState('card'); // 'card' is default
-  const [filterType, setFilterType] = useState('all'); // 'all', 'leadership', 'sections'
-
-  // Combine all contacts
-  const allContacts = useMemo(() => [...fscContacts, ...fmcContacts], [fscContacts, fmcContacts]);
-
-  // Filter units
-  const allUnits = useMemo(() => Object.keys(unitContacts).sort(), [unitContacts]);
-  const filteredUnits = useMemo(() => {
-    const term = localSearchTerm.toLowerCase();
-    return allUnits.filter((unit) => unit.toLowerCase().includes(term));
-  }, [allUnits, localSearchTerm]);
-
-  // Get contacts based on view and filter
-  const getDisplayContacts = useCallback(() => {
-    let contacts = [];
-
-    switch (localView) {
-      case 'fsc':
-        contacts = fscContacts;
-        break;
-      case 'fmc':
-        contacts = fmcContacts;
-        break;
-      case 'all':
-      default:
-        contacts = allContacts;
-        break;
-    }
-
-    // Apply filters
-    if (filterType === 'leadership') {
-      contacts = contacts.filter((c) => c.isLeadership);
-    } else if (filterType === 'sections') {
-      contacts = contacts.filter((c) => !c.isLeadership);
-    }
-
-    return contacts;
-  }, [localView, fscContacts, fmcContacts, allContacts, filterType]);
-
-  const displayContacts = useMemo(() => getDisplayContacts(), [getDisplayContacts]);
-
-  const handleContactClick = useCallback((email) => {
-    window.location.href = `mailto:${email}`;
-  }, []);
-
-  // Quick stats
-  const stats = useMemo(
-    () => ({
-      total: allContacts.length,
-      fsc: fscContacts.length,
-      fmc: fmcContacts.length,
-      units: allUnits.length,
-      leadership: allContacts.filter((c) => c.isLeadership).length,
-    }),
-    [allContacts, fscContacts, fmcContacts, allUnits],
+}: ReimaginedOPIViewProps) {
+  const [activeView, setActiveView] = useState<ViewId>(
+    VIEW_OPTIONS.some((option) => option.id === initialView) ? (initialView as ViewId) : 'all',
   );
 
+  const allUnits = useMemo(() => Object.keys(unitContacts).sort(), [unitContacts]);
+  const allContacts = useMemo(() => [...fscContacts, ...fmcContacts], [fscContacts, fmcContacts]);
+
+  const filteredUnits = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return allUnits;
+    return allUnits.filter((unit) => unit.toLowerCase().includes(term));
+  }, [allUnits, searchTerm]);
+
+  const selectedContact = selectedUnit ? unitContacts[selectedUnit] : null;
+
+  const rosterContacts = useMemo(() => {
+    if (activeView === 'fsc') return fscContacts;
+    if (activeView === 'fmc') return fmcContacts;
+    return allContacts;
+  }, [activeView, allContacts, fmcContacts, fscContacts]);
+
+  const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const nextTerm = event.target.value;
+    setSearchTerm(nextTerm);
+
+    if (
+      nextTerm.trim() &&
+      selectedUnit &&
+      !selectedUnit.toLowerCase().includes(nextTerm.trim().toLowerCase())
+    ) {
+      setSelectedUnit('');
+    }
+  };
+
+  const handleViewChange = (view: ViewId) => {
+    setActiveView(view);
+    setContactView(view);
+  };
+
   return (
-    <div className="space-y-6">
-      {/* Unified Navigation Bar */}
-      <div className="flex items-center justify-between gap-4 glass p-2 rounded-lg border border-[var(--border)]">
-        {/* Main navigation tabs */}
-        <div className="flex flex-wrap gap-1 flex-1">
-          <Button
-            variant={localView === 'all' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setLocalView('all')}
-            className="text-xs"
-          >
-            All Contacts
-          </Button>
-          <Button
-            variant={localView === 'fsc' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setLocalView('fsc')}
-            className="text-xs"
-          >
-            <span className="w-2 h-2 rounded-full bg-gradient-to-br from-teal-600 to-cyan-600 mr-1.5" />
-            FSC
-          </Button>
-          <Button
-            variant={localView === 'fmc' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setLocalView('fmc')}
-            className="text-xs"
-          >
-            <span className="w-2 h-2 rounded-full bg-gradient-to-br from-amber-500 to-yellow-600 mr-1.5" />
-            FMC
-          </Button>
-          <Button
-            variant={localView === 'search' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setLocalView('search')}
-            className="text-xs"
-          >
-            <Search className="w-3 h-3 mr-1" />
-            By Unit
-          </Button>
-        </div>
+    <main className="mx-auto w-full max-w-6xl">
+      <section className="mb-8 grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(20rem,0.95fr)] lg:items-start">
+        <div className="space-y-5">
+          <div>
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-border bg-muted/60 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <Building2 className="h-3.5 w-3.5" aria-hidden="true" />
+              32 CBG Contact Directory
+            </div>
+            <h1 className="max-w-3xl text-3xl font-bold tracking-normal text-foreground sm:text-4xl">
+              Find the right financial contact without sorting through every section.
+            </h1>
+          </div>
 
-        {/* View style toggle */}
-        <div className="flex gap-1 border-l border-[var(--border)] pl-2">
-          <Button
-            variant={viewStyle === 'card' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setViewStyle('card')}
-            className="w-8 h-8 p-0"
-            title="Card View"
-          >
-            <Grid3x3 className="w-3.5 h-3.5" />
-          </Button>
-          <Button
-            variant={viewStyle === 'list' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setViewStyle('list')}
-            className="w-8 h-8 p-0"
-            title="List View"
-          >
-            <LayoutList className="w-3.5 h-3.5" />
-          </Button>
-        </div>
-      </div>
-
-      {/* Search Unit View */}
-      {localView === 'search' && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-4"
-        >
-          <Card className="glass border border-[var(--border)] shadow-md">
-            <CardContent className="p-6 space-y-4">
+          <div className="grid gap-3 rounded-xl border border-border bg-card p-4 shadow-sm sm:grid-cols-[minmax(0,1fr)_minmax(12rem,16rem)]">
+            <label className="min-w-0">
+              <span className="mb-2 block text-sm font-medium text-foreground">Unit search</span>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <Input
-                  type="text"
-                  value={localSearchTerm}
-                  onChange={(e) => setLocalSearchTerm(e.target.value)}
-                  placeholder="Search for a unit..."
-                  className="pl-10 h-12 text-base"
+                <Search
+                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                  aria-hidden="true"
                 />
-                {localSearchTerm && (
-                  <button
-                    onClick={() => setLocalSearchTerm('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                )}
-              </div>
-
-              <Select value={selectedUnit} onValueChange={setSelectedUnit}>
-                <SelectTrigger className="h-12 text-base">
-                  <SelectValue placeholder="Select a unit from the list" />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredUnits.map((unit) => (
-                    <SelectItem key={unit} value={unit} className="text-base">
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4" />
-                        {unit}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {filteredUnits.length === 0 && localSearchTerm && (
-                <p className="text-center text-sm text-muted-foreground py-4">
-                  No units found matching "{localSearchTerm}"
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Selected unit results */}
-          {selectedUnit && unitContacts[selectedUnit] && (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-              <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
-                <CheckCircle2 className="w-4 h-4 text-green-500" />
-                Showing contacts for <strong className="text-foreground">{selectedUnit}</strong>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2 auto-rows-fr">
-                <ModernContactCard
-                  contact={{
-                    name: unitContacts[selectedUnit].fsc,
-                    role: 'Financial Services Cell (FSC)',
-                    email: unitContacts[selectedUnit].fscEmail,
-                    units: [selectedUnit],
-                  }}
-                  type="FSC"
-                  onClick={() => handleContactClick(unitContacts[selectedUnit].fscEmail)}
-                  index={0}
-                />
-                <ModernContactCard
-                  contact={{
-                    name: unitContacts[selectedUnit].fmc,
-                    role: 'Financial Management Cell (FMC)',
-                    email: unitContacts[selectedUnit].fmcEmail,
-                    units: [selectedUnit],
-                  }}
-                  type="FMC"
-                  onClick={() => handleContactClick(unitContacts[selectedUnit].fmcEmail)}
-                  index={1}
+                <input
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+                  className="h-11 w-full rounded-lg border border-input bg-background pl-9 pr-3 text-base text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  placeholder="Search unit"
+                  type="search"
                 />
               </div>
-            </motion.div>
-          )}
-        </motion.div>
-      )}
+            </label>
 
-      {/* Contacts display (all, fsc, fmc views) */}
-      {localView !== 'search' && (
-        <div className="space-y-6">
-          {/* Contacts grid/list */}
-          <AnimatePresence mode="wait">
-            {viewStyle === 'card' ? (
-              <motion.div
-                key="card-view"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 auto-rows-fr"
+            <label>
+              <span className="mb-2 block text-sm font-medium text-foreground">Select unit</span>
+              <select
+                value={selectedUnit}
+                onChange={(event) => setSelectedUnit(event.target.value)}
+                className="h-11 w-full rounded-lg border border-input bg-background px-3 text-base text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
               >
-                {displayContacts.map((contact, index) => {
-                  const isFSC = contact.role && contact.role.includes('FSC');
-                  const isFMC = contact.role && contact.role.includes('FMC');
-                  const type = isFSC ? 'FSC' : isFMC ? 'FMC' : null;
-
-                  return (
-                    <ModernContactCard
-                      key={index}
-                      contact={contact}
-                      type={type}
-                      onClick={() => handleContactClick(contact.email)}
-                      index={index}
-                    />
-                  );
-                })}
-              </motion.div>
-            ) : (
-              <motion.div
-                key="list-view"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="space-y-2"
-              >
-                {displayContacts.map((contact, index) => (
-                  <CompactContactRow key={index} contact={contact} index={index} />
+                <option value="">Choose a unit</option>
+                {filteredUnits.map((unit) => (
+                  <option key={unit} value={unit}>
+                    {unit}
+                  </option>
                 ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
+              </select>
+            </label>
+          </div>
 
-          {/* Empty state */}
-          {displayContacts.length === 0 && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center py-12"
-            >
-              <UserCircle2 className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-              <p className="text-lg text-muted-foreground">No contacts found</p>
-            </motion.div>
+          {searchTerm && filteredUnits.length === 0 && (
+            <p className="rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
+              No unit matches "{searchTerm}".
+            </p>
           )}
         </div>
-      )}
-    </div>
+
+        <aside className="rounded-xl border border-border bg-muted/35 p-4">
+          {selectedContact ? (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <CheckCircle2 className="h-4 w-4 text-emerald-500" aria-hidden="true" />
+                Contacts for <span className="text-foreground">{selectedUnit}</span>
+              </div>
+              <div className="grid gap-4">
+                <ContactPanel
+                  title="Financial Services Cell"
+                  type="FSC"
+                  contact={{
+                    name: selectedContact.fsc,
+                    role: 'Financial Services Cell (FSC)',
+                    email: selectedContact.fscEmail,
+                  }}
+                />
+                <ContactPanel
+                  title="Financial Management Cell"
+                  type="FMC"
+                  contact={{
+                    name: selectedContact.fmc,
+                    role: 'Financial Management Cell (FMC)',
+                    email: selectedContact.fmcEmail,
+                  }}
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="flex min-h-[17rem] flex-col justify-center rounded-lg border border-dashed border-border bg-background/60 p-6 text-center">
+              <Users className="mx-auto mb-4 h-10 w-10 text-muted-foreground" aria-hidden="true" />
+              <h2 className="text-xl font-semibold text-foreground">Start with a unit</h2>
+              <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
+                The matched FSC and FMC contacts appear here as soon as a unit is selected.
+              </p>
+            </div>
+          )}
+        </aside>
+      </section>
+
+      <section className="rounded-xl border border-border bg-card shadow-sm">
+        <div className="flex flex-col gap-4 border-b border-border px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+          <div>
+            <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              <Briefcase className="h-4 w-4" aria-hidden="true" />
+              Contact roster
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {rosterContacts.length} contacts shown across {allUnits.length} units
+            </p>
+          </div>
+
+          <div className="inline-flex rounded-lg border border-border bg-muted p-1">
+            {VIEW_OPTIONS.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => handleViewChange(option.id)}
+                className={cn(
+                  'inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background',
+                  activeView === option.id
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {option.id === 'fsc' && (
+                  <span className="h-2 w-2 rounded-full bg-cyan-400" aria-hidden="true" />
+                )}
+                {option.id === 'fmc' && (
+                  <span className="h-2 w-2 rounded-full bg-lime-400" aria-hidden="true" />
+                )}
+                {option.id === 'all' && <UserCheck className="h-4 w-4" aria-hidden="true" />}
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <ul>
+          {rosterContacts.map((contact) => (
+            <ContactRow key={`${contact.email}-${contact.role}`} contact={contact} />
+          ))}
+        </ul>
+
+        <div className="grid gap-3 border-t border-border px-4 py-4 text-sm sm:px-5 lg:grid-cols-2">
+          {POSITIONAL_INBOXES.map((inbox) => {
+            const style = CONTACT_TYPE_STYLE[inbox.type];
+
+            return (
+              <a
+                key={inbox.email}
+                href={`mailto:${inbox.email}`}
+                className="group grid min-w-0 gap-2 rounded-lg border border-border bg-muted/35 p-3 transition hover:border-primary/50 hover:bg-muted/60 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
+              >
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className={cn('h-2.5 w-2.5 rounded-full', style.dot)} aria-hidden="true" />
+                  <span className={cn('font-semibold', style.emphasis)}>{inbox.label}</span>
+                </span>
+                <span className="text-xs text-muted-foreground">{inbox.detail}</span>
+                <span className="inline-flex min-w-0 items-center gap-2 font-medium text-primary underline-offset-4 group-hover:underline">
+                  <span className="truncate">{inbox.email}</span>
+                  <ChevronRight className="h-4 w-4 shrink-0" aria-hidden="true" />
+                </span>
+              </a>
+            );
+          })}
+        </div>
+      </section>
+    </main>
   );
 }

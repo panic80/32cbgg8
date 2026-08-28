@@ -153,7 +153,10 @@ export default function PrivacyPage() {
               variant="outline"
               size="lg"
               className="min-w-[150px]"
-              onClick={() => (window.location.href = '/chat')}
+              onClick={() =>
+                (window.location.href =
+                  'mailto:g8@sent.com?subject=G8%20Administration%20Hub%20Support')
+              }
             >
               Contact Support
             </AnimatedButton>
