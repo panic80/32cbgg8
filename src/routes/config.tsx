@@ -38,7 +38,6 @@ const createComingSoonElement = (message: string) => (
 
 const loadLandingPage = () => import('@/pages/LandingPage');
 const loadAdminToolsPage = () => import('@/pages/AdminToolsPage');
-const loadOpiPage = () => import('@/pages/OPIPage');
 const loadPrivacyPage = () => import('@/pages/PrivacyPage');
 const loadFaqPage = () => import('@/pages/FAQPage');
 const loadResourcesPage = () => import('@/pages/ResourcesPage');
@@ -72,10 +71,9 @@ export const appRoutes: AppRouteDefinition[] = [
     loader: loadLandingPage,
   },
   {
-    kind: 'lazy',
+    kind: 'element',
     path: '/opi',
-    component: lazy(loadOpiPage),
-    loader: loadOpiPage,
+    element: createDisabledFeatureElement('OPI Contacts'),
   },
   {
     kind: 'element',

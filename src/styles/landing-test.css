@@ -326,6 +326,54 @@
   opacity: 0.9;
 }
 
+/* Maintenance State */
+.lpt-minimal-card-maintenance {
+  cursor: default;
+  overflow: visible;
+}
+
+.lpt-minimal-card-maintenance:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: var(--border);
+}
+
+.lpt-minimal-card-maintenance:hover::before {
+  opacity: 0;
+}
+
+.lpt-minimal-card-maintenance:hover .lpt-minimal-card-icon {
+  transform: none;
+}
+
+.lpt-minimal-card-maintenance::after {
+  content: attr(data-maintenance-tooltip);
+  position: absolute;
+  bottom: calc(100% + 0.5rem);
+  left: 50%;
+  transform: translate(-50%, 6px);
+  background: rgba(15, 23, 42, 0.95);
+  color: #f9fafb;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  width: max(12rem, 70%);
+  max-width: 16rem;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  z-index: 20;
+}
+
+.lpt-minimal-card-maintenance:hover::after,
+.lpt-minimal-card-maintenance:focus-visible::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
 /* Disabled State */
 .lpt-minimal-card-disabled {
   opacity: 0.4;

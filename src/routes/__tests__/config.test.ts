@@ -17,6 +17,17 @@ describe('appRoutes configuration', () => {
     }
   });
 
+  it('keeps the OPI route disabled as a static unavailable page', () => {
+    const opiRoute = appRoutes.find((route) => route.path === '/opi');
+
+    expect(opiRoute).toBeDefined();
+    expect(isLazyRoute(opiRoute!)).toBe(false);
+
+    if (!isLazyRoute(opiRoute!)) {
+      expect(opiRoute.element).toBeTruthy();
+    }
+  });
+
   it('does not attach prefetch metadata to static routes', () => {
     const nonLazyRoutesWithPrefetch = appRoutes.filter(
       (route) => !isLazyRoute(route) && 'prefetch' in route,

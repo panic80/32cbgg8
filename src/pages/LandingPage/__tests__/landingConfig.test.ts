@@ -15,12 +15,9 @@ describe('landingConfig', () => {
     expect(feature?.to).toBeUndefined();
   });
 
-  it('keeps resources visible as an under-review link', () => {
-    const resources = landingFeatures.find((item) => item.id === 'resources');
-    expect(resources).toBeDefined();
-    expect(resources?.kind).toBe('link');
-    expect(resources?.to).toBe('/resources');
-    expect(resources?.badge).toBe('Under Review');
+  it('does not display the temporarily removed OPI Contacts or Resources cards', () => {
+    expect(landingFeatures.some((item) => item.id === 'opiContacts')).toBe(false);
+    expect(landingFeatures.some((item) => item.id === 'resources')).toBe(false);
   });
 
   it('does not expose policy assistant as a feature', () => {
@@ -30,7 +27,7 @@ describe('landingConfig', () => {
 
   it('includes at least one navigable feature link', () => {
     const linkFeatures = landingFeatures.filter((item) => item.kind === 'link');
-    expect(linkFeatures.length).toBeGreaterThanOrEqual(2);
+    expect(linkFeatures.length).toBeGreaterThanOrEqual(1);
     linkFeatures.forEach((feature) => {
       expect(feature.to).toBeDefined();
     });

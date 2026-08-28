@@ -6,7 +6,13 @@ import '@/styles/landing-test.css';
 import '@/styles/sticky-footer.css';
 import { SITE_CONFIG, getCopyrightText, getLastUpdatedText } from '@/constants/siteConfig';
 import { useTheme } from '@/context/ThemeContext';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { FeatureCard } from '@/components/ui/feature-card';
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
 import { cn } from '@/lib/utils';
@@ -184,6 +190,23 @@ const LandingPage = () => {
                 );
               }
 
+              if (feature.kind === 'maintenance') {
+                const maintenanceMessage =
+                  feature.disabledTooltip ?? `${feature.title} is currently under maintenance.`;
+
+                return (
+                  <div
+                    key={feature.id}
+                    className={cn('lpt-minimal-card', 'lpt-minimal-card-maintenance')}
+                    title={maintenanceMessage}
+                    aria-label={`${feature.title} – ${feature.description}. ${maintenanceMessage}`}
+                    data-maintenance-tooltip={maintenanceMessage}
+                  >
+                    <FeatureCard variant="minimal" {...commonProps} badge={feature.badge} />
+                  </div>
+                );
+              }
+
               if (feature.kind === 'disabled') {
                 const disabledMessage =
                   feature.disabledTooltip ??
@@ -265,6 +288,9 @@ const LandingPage = () => {
         <DialogContent className="max-w-[32rem] max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>Privacy Policy</DialogTitle>
+            <DialogDescription>
+              How this landing page handles visit analytics and external links.
+            </DialogDescription>
           </DialogHeader>
           <div className="relative">
             <div
@@ -273,34 +299,35 @@ const LandingPage = () => {
             >
               <h3 className="text-base sm:text-lg font-semibold">General Privacy Notice</h3>
               <p className="text-sm sm:text-base text-[var(--text)] leading-relaxed">
-                We prioritize the protection of your personal information and are committed to
-                maintaining your trust.
+                This landing page is a navigation hub for administrative links and resources. The
+                landing page does not ask you to sign in, does not accept free-text submissions, and
+                does not provide AI-generated responses.
               </p>
               <h3 className="text-base sm:text-lg font-semibold mt-4 sm:mt-6">
-                Data Collection &amp; Usage
-              </h3>
-              <ul className="list-disc pl-5 space-y-2 text-sm sm:text-base text-[var(--text)] opacity-80">
-                <li>We collect only essential information needed for the service</li>
-                <li>Your data is encrypted and stored securely</li>
-                <li>We do not sell or share your personal information</li>
-                <li>You have control over your data and can request its deletion</li>
-              </ul>
-              <h3 className="text-base sm:text-lg font-semibold mt-4 sm:mt-6">
-                AI Processing (OpenAI)
+                Information Processed by This Page
               </h3>
               <p className="text-sm sm:text-base text-[var(--text)] leading-relaxed">
-                This application uses OpenAI&apos;s GPT models. When you interact with our AI
-                features:
+                When you visit the site, the browser may send basic visit analytics used to
+                understand page traffic and troubleshoot availability.
               </p>
               <ul className="list-disc pl-5 space-y-2 text-sm sm:text-base text-[var(--text)] opacity-80">
-                <li>Your conversations may be processed to improve responses</li>
-                <li>No personally identifiable information is retained by the AI</li>
-                <li>Conversations are not used to train the core AI model</li>
-                <li>You can opt out of AI features at any time</li>
+                <li>
+                  Those analytics can include the page path, referrer, page title, browser language,
+                  viewport size, a locally generated session ID, and browser user-agent.
+                </li>
+                <li>
+                  The landing page does not collect names, service numbers, claim details, financial
+                  information, or message content.
+                </li>
+                <li>The landing page does not send your activity to any AI model.</li>
               </ul>
-              <p className="text-xs sm:text-sm text-[var(--text-secondary)] mt-4 sm:mt-6">
-                For more details about OpenAI&apos;s data handling, please visit OpenAI&apos;s
-                privacy policy.
+              <h3 className="text-base sm:text-lg font-semibold mt-4 sm:mt-6">
+                Links to External Services
+              </h3>
+              <p className="text-sm sm:text-base text-[var(--text)] leading-relaxed">
+                Some buttons open external resources such as SharePoint or SCIP. Those services are
+                separate from this landing page and may have their own access controls, logs, and
+                privacy practices.
               </p>
               <div className="pt-2">
                 <button
@@ -324,6 +351,9 @@ const LandingPage = () => {
         <DialogContent className="max-w-lg max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>About This Page</DialogTitle>
+            <DialogDescription>
+              What the 32 CBG G8 Administration Hub links to and what it does not provide.
+            </DialogDescription>
           </DialogHeader>
           <div className="relative">
             <div
@@ -334,9 +364,9 @@ const LandingPage = () => {
                 32 CBG G8 Admin Hub
               </h3>
               <p className="mb-3 sm:mb-4 text-sm sm:text-base">
-                A comprehensive digital platform designed to streamline administrative processes for
-                Canadian Armed Forces personnel, with a focus on travel claims, policy guidance, and
-                financial services.
+                A navigation hub for 32 CBG G8 administrative resources, including delegation of
+                authority references, SCIP access, contact and resource links, and supporting
+                administrative material.
               </p>
               <h3 className="text-base sm:text-lg font-semibold mb-2">Key Features</h3>
               <ul className="list-disc list-inside mb-3 sm:mb-4 text-sm sm:text-base space-y-1">
@@ -349,8 +379,8 @@ const LandingPage = () => {
                   claims submission platform
                 </li>
                 <li>
-                  <strong className="text-[var(--primary)]">OPI Contacts</strong> – Comprehensive
-                  directory of FSC and FMC personnel
+                  <strong className="text-[var(--primary)]">OPI Contacts</strong> - FSC and FMC
+                  directory, currently disabled
                 </li>
                 <li>
                   <strong className="text-[var(--primary)]">Resources</strong> – Consolidated SOPs,
@@ -359,9 +389,9 @@ const LandingPage = () => {
               </ul>
               <h3 className="text-base sm:text-lg font-semibold mb-2">Disclaimer</h3>
               <p className="mb-3 sm:mb-4 text-sm sm:text-base text-[var(--text-secondary)]">
-                This is an unofficial site not affiliated with DND, CAF, or any government
-                department. Information provided is for reference only. Always verify critical
-                information through official channels.
+                This page is an unofficial resource hub. It does not provide AI-generated advice and
+                is not affiliated with DND, CAF, or any government department. Always verify
+                critical information through official channels.
               </p>
               <p className="text-xs sm:text-sm text-[var(--text-secondary)] mt-4 pt-4 border-t border-[var(--border)]">
                 Maintained by the 32 CBG G8 Team

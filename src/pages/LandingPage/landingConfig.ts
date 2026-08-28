@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
-import { FileText, Users, Zap, Info, Mail, ShieldCheck } from 'lucide-react';
+import { FileText, Info, Mail, ShieldCheck } from 'lucide-react';
 
-export type LandingFeatureKind = 'link' | 'action' | 'disabled';
+export type LandingFeatureKind = 'link' | 'action' | 'maintenance' | 'disabled';
 
 export interface LandingFeature {
   id: string;
@@ -43,25 +43,6 @@ export const landingFeatures: LandingFeature[] = [
       'Streamlined Claims Interface Platform for efficient digital submission and processing of administrative claims.',
     icon: FileText,
     kind: 'action',
-  },
-  {
-    id: 'opiContacts',
-    title: 'OPI Contacts',
-    description:
-      "Find FSC & FMC contact information for your unit's financial services and management.",
-    icon: Users,
-    kind: 'link',
-    to: '/opi',
-  },
-  {
-    id: 'resources',
-    title: 'Resources',
-    description:
-      'Access SOPs, how-to guides, FAQs, templates, and comprehensive administrative documentation.',
-    icon: Zap,
-    kind: 'link',
-    to: '/resources',
-    badge: 'Under Review',
   },
 ];
 

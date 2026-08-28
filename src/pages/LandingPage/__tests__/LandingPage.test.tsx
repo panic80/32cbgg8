@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import LandingPage from '..';
@@ -37,5 +37,29 @@ describe('LandingPage', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /SCIP Portal/i })).toBeInTheDocument();
     expect(screen.queryByText(/Policy Assistant/i)).not.toBeInTheDocument();
+  });
+
+  it('shows factual privacy copy without OpenAI or broad personal data claims', () => {
+    renderLandingPage();
+
+    fireEvent.click(screen.getByRole('button', { name: /Privacy/i }));
+
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveTextContent(/This landing page is a navigation hub/i);
+    expect(dialog).toHaveTextContent(/basic visit analytics/i);
+    expect(dialog).toHaveTextContent(/does not send your activity to any AI model/i);
+    expect(dialog).not.toHaveTextContent(/OpenAI|GPT models|AI Processing/i);
+    expect(dialog).not.toHaveTextContent(/personal information|encrypted and stored securely|request its deletion/i);
+  });
+
+  it('describes the about modal as a link hub without AI service claims', () => {
+    renderLandingPage();
+
+    fireEvent.click(screen.getByRole('button', { name: /About/i }));
+
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveTextContent(/navigation hub for 32 CBG G8 administrative resources/i);
+    expect(dialog).toHaveTextContent(/does not provide AI-generated advice/i);
+    expect(dialog).not.toHaveTextContent(/policy guidance/i);
   });
 });
