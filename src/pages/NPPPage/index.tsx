@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useLayoutEffect, type ReactNode } from 'react';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -17,7 +17,7 @@ import {
   Users,
   WalletCards,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { LocaleToggle } from '@/components/LocaleToggle';
 import { SITE_CONFIG } from '@/constants/siteConfig';
 import { useTheme } from '@/context/ThemeContext';
@@ -467,7 +467,17 @@ const ChecklistSection = ({
 const NPPPage = () => {
   const { locale } = useLocale();
   const { theme, toggleTheme } = useTheme();
+  const { hash } = useLocation();
   const ui = pageUi[locale];
+
+  useLayoutEffect(() => {
+    if (hash) return;
+
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+
+    const appRoot = document.getElementById('root');
+    if (appRoot) appRoot.scrollTop = 0;
+  }, [hash]);
 
   return (
     <div className="npp-page" id="npp-top">

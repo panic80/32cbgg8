@@ -1,10 +1,11 @@
 import { render, screen, within } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { ThemeProvider } from '@/context/ThemeContext';
 import NPPPage from '..';
 
 const localeState = vi.hoisted(() => ({ current: 'en' as 'en' | 'fr' }));
+let scrollToSpy: ReturnType<typeof vi.spyOn>;
 
 vi.mock('@/i18n/LocaleContext', () => ({
   useLocale: () => ({
@@ -15,12 +16,12 @@ vi.mock('@/i18n/LocaleContext', () => ({
   }),
 }));
 
-const renderGuide = (locale: 'en' | 'fr') => {
+const renderGuide = (locale: 'en' | 'fr', hash = '') => {
   localeState.current = locale;
 
   return render(
     <ThemeProvider>
-      <MemoryRouter initialEntries={[`/npp?lang=${locale}`]}>
+      <MemoryRouter initialEntries={[`/npp?lang=${locale}${hash}`]}>
         <NPPPage />
       </MemoryRouter>
     </ThemeProvider>,
@@ -283,9 +284,41 @@ const expectedSources = [
   },
 ] as const;
 
+beforeEach(() => {
+  scrollToSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
+});
+
 afterEach(() => {
+  document.getElementById('root')?.remove();
   localeState.current = 'en';
   window.localStorage.clear();
+  scrollToSpy.mockRestore();
+});
+
+describe('NPPPage scroll position', () => {
+  it('resets the window and application root scroll when mounted without a hash', () => {
+    const appRoot = document.createElement('div');
+    appRoot.id = 'root';
+    appRoot.scrollTop = 320;
+    document.body.appendChild(appRoot);
+
+    renderGuide('en');
+
+    expect(scrollToSpy).toHaveBeenCalledWith({ top: 0, left: 0, behavior: 'auto' });
+    expect(appRoot.scrollTop).toBe(0);
+  });
+
+  it('preserves scroll state when mounted with a section hash', () => {
+    const appRoot = document.createElement('div');
+    appRoot.id = 'root';
+    appRoot.scrollTop = 320;
+    document.body.appendChild(appRoot);
+
+    renderGuide('en', '#before-spending');
+
+    expect(scrollToSpy).not.toHaveBeenCalled();
+    expect(appRoot.scrollTop).toBe(320);
+  });
 });
 
 describe.each(localeCases)('NPPPage ($locale)', (copy) => {
