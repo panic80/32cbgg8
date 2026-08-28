@@ -190,41 +190,11 @@
 }
 
 .npp-publication-mark {
-  display: grid;
-  width: 8.5rem;
-  aspect-ratio: 1;
-  place-content: center;
-  color: var(--npp-gold);
-  border: 1px solid rgba(212, 175, 55, 0.75);
-  box-shadow:
-    inset 0 0 0 6px var(--npp-green),
-    inset 0 0 0 7px rgba(212, 175, 55, 0.3);
-  font-family: Georgia, 'Times New Roman', serif;
-  text-align: center;
-  transform: rotate(-1.5deg);
-}
-
-.npp-publication-mark span {
   display: block;
-  line-height: 0.9;
-}
-
-.npp-publication-mark span:first-child {
-  font-size: 3.1rem;
-  font-weight: 700;
-}
-
-.npp-publication-mark span:not(:first-child) {
-  margin-top: 0.33rem;
-  font-family:
-    ui-sans-serif,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    sans-serif;
-  font-size: 0.72rem;
-  font-weight: 900;
-  letter-spacing: 0.28em;
+  width: 8.5rem;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
 }
 
 .npp-unit-line,
@@ -503,37 +473,30 @@
   margin-top: 1rem;
 }
 
-.npp-task-list {
+.npp-guidance-list {
   display: grid;
   gap: 0;
   margin-top: 1.45rem;
+  padding-left: 1.5rem;
   border-top: 1px solid var(--npp-rule);
-  list-style: none;
 }
 
-.npp-task-list li {
-  display: grid;
-  grid-template-columns: 1.65rem minmax(0, 1fr);
-  gap: 0.75rem;
-  align-items: start;
-  padding: 0.84rem 0;
+ul.npp-guidance-list {
+  list-style-type: disc;
+}
+
+ol.npp-guidance-list {
+  list-style-type: decimal;
+}
+
+.npp-guidance-list li {
+  padding: 0.84rem 0.2rem;
   border-bottom: 1px solid var(--npp-rule);
 }
 
-.npp-task-list li > span:first-child {
-  display: grid;
-  width: 1.3rem;
-  height: 1.3rem;
-  margin-top: 0.14rem;
-  place-items: center;
+.npp-guidance-list li::marker {
   color: var(--npp-gold);
-  background: var(--npp-green);
-}
-
-.npp-task-list svg {
-  width: 0.82rem;
-  height: 0.82rem;
-  stroke-width: 3;
+  font-weight: 850;
 }
 
 .npp-warning {
@@ -607,7 +570,44 @@
 .npp-grant-grid {
   display: grid;
   gap: 1.25rem;
+  margin-top: 1.25rem;
+}
+
+.npp-grant-selector {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  gap: 0.45rem;
   margin-top: 2rem;
+}
+
+.npp-grant-selector label {
+  color: var(--npp-muted-ink);
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.npp-grant-selector select {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.75rem;
+  padding: 0.55rem 2.5rem 0.55rem 0.75rem;
+  color: var(--npp-ink);
+  background: var(--npp-paper);
+  border: 1px solid var(--npp-rule);
+  border-radius: 0.2rem;
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.npp-grant-selector select:focus-visible {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  box-shadow:
+    0 0 0 2px var(--npp-focus-inner),
+    0 0 0 5px var(--npp-focus-outer);
 }
 
 .npp-grant-card {
@@ -949,12 +949,6 @@
   float: right;
 }
 
-@media (min-width: 1280px) {
-  .npp-grant-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
 @media (max-width: 1079px) {
   .npp-guide-layout {
     display: block;
@@ -1035,10 +1029,6 @@
     width: 6.5rem;
   }
 
-  .npp-publication-mark span:first-child {
-    font-size: 2.4rem;
-  }
-
   .npp-issue-data {
     grid-column: 1 / -1;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1084,20 +1074,7 @@
 
   .npp-publication-mark {
     width: 4.4rem;
-    height: 4.4rem;
     margin-bottom: 1.5rem;
-    box-shadow:
-      inset 0 0 0 4px var(--npp-green),
-      inset 0 0 0 5px rgba(212, 175, 55, 0.3);
-  }
-
-  .npp-publication-mark span:first-child {
-    font-size: 1.8rem;
-  }
-
-  .npp-publication-mark span:not(:first-child) {
-    margin-top: 0.15rem;
-    font-size: 0.52rem;
   }
 
   .npp-hero-copy h1 {
@@ -1361,14 +1338,10 @@
     font-size: 10pt;
   }
 
-  .npp-task-list,
-  .npp-task-list li,
+  .npp-guidance-list,
+  .npp-guidance-list li,
   .npp-reference-strip {
     border-color: #777777;
-  }
-
-  .npp-task-list li > span:first-child {
-    border: 0.75pt solid #000000;
   }
 
   .npp-warning {
@@ -1385,6 +1358,10 @@
     margin-top: 4mm;
     border: 1pt solid #000000;
     break-inside: avoid-page;
+  }
+
+  .npp-grant-card[hidden] {
+    display: block !important;
   }
 
   .npp-grant-field {

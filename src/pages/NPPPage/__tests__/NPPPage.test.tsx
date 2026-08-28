@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { ThemeProvider } from '@/context/ThemeContext';
@@ -39,11 +39,13 @@ const localeCases = [
     disclaimer:
       'This page is a plain-language aid, not financial authority or approval. Current legislation, CDS delegations, CFMWS policy, grant-specific instructions, and local NPP Accounting direction prevail.',
     openSource: 'Open source',
+    grantSelectorLabel: 'Choose a funding record',
     audienceLabels: ['All members', 'NPP operators'],
     sectionHeadings: [
       ['npp-and-npf', 'What NPP and NPF are—and are not'],
       ['before-spending', 'Before spending'],
       ['spending-npf', 'How to spend NPF'],
+      ['alienation-of-funds', 'Alienation of NPP: a separate approval path'],
       ['grants', 'Grant explorer'],
       ['existing-vendor', 'Pay an existing vendor'],
       ['create-vendor', 'Create a vendor'],
@@ -53,8 +55,9 @@ const localeCases = [
     ],
     contentChecks: [
       ['npp-and-npf', 'Non-Public Funds (NPF) are only the money component of NPP'],
-      ['before-spending', 'Obtain approval before committing funds'],
+      ['before-spending', 'Confirm the activity provides a collective authorized NPP benefit'],
       ['spending-npf', 'Execute any required contract before work starts'],
+      ['alienation-of-funds', 'Alienation is not routine purchasing'],
       ['existing-vendor', 'internal NPP-to-NPP payment'],
       ['create-vendor', 'This site does not collect supplier or payment information'],
       [
@@ -94,11 +97,13 @@ const localeCases = [
     disclaimer:
       'Cette page est un outil en langage clair; elle ne constitue ni une autorité financière ni une approbation. Les lois en vigueur, les délégations du CEMD, les politiques des SBMFC, les directives propres aux subventions et les directives comptables locales des BNP ont préséance.',
     openSource: 'Ouvrir la source',
+    grantSelectorLabel: 'Choisir un dossier de financement',
     audienceLabels: ['Tous les membres', 'Opérateurs BNP'],
     sectionHeadings: [
       ['npp-and-npf', 'Ce que sont les BNP et les FNP — et ce qu’ils ne sont pas'],
       ['before-spending', 'Avant de dépenser'],
       ['spending-npf', 'Comment dépenser les FNP'],
+      ['alienation-of-funds', 'Aliénation des BNP : une voie d’approbation distincte'],
       ['grants', 'Répertoire des subventions'],
       ['existing-vendor', 'Payer un fournisseur existant'],
       ['create-vendor', 'Créer un fournisseur'],
@@ -108,8 +113,9 @@ const localeCases = [
     ],
     contentChecks: [
       ['npp-and-npf', 'Les fonds non publics (FNP) ne sont que la composante monétaire des BNP'],
-      ['before-spending', 'Obtenez l’approbation avant d’engager des fonds'],
+      ['before-spending', 'Confirmez que l’activité procure un avantage collectif autorisé'],
       ['spending-npf', 'Signez tout contrat requis avant le début des travaux'],
+      ['alienation-of-funds', 'L’aliénation n’est pas un achat courant'],
       ['existing-vendor', 'paiement interne entre entités BNP'],
       [
         'create-vendor',
@@ -321,6 +327,53 @@ describe('NPPPage scroll position', () => {
   });
 });
 
+describe('NPPPage visual semantics', () => {
+  it('uses the canonical decorative 32 CBG badge with intrinsic dimensions', () => {
+    const { container } = renderGuide('en');
+    const badge = container.querySelector('img.npp-publication-mark');
+
+    expect(badge).toBeInTheDocument();
+    expect(badge).toHaveAttribute('alt', '');
+    expect(badge).toHaveAttribute('width', '865');
+    expect(badge).toHaveAttribute('height', '1006');
+    expect(badge?.getAttribute('src')).toMatch(/logo.*\.png$/);
+  });
+
+  it('renders guidance as ordinary or ordered lists without checkbox-like decoration', () => {
+    const { container } = renderGuide('en');
+
+    expect(container.querySelector('#npp-and-npf ul.npp-guidance-list')).toBeInTheDocument();
+
+    for (const sectionId of ['spending-npf', 'alienation-of-funds', 'existing-vendor']) {
+      expect(container.querySelector(`#${sectionId} ol.npp-guidance-list`)).toBeInTheDocument();
+    }
+
+    const guidanceLists = container.querySelectorAll('.npp-guidance-list');
+    expect(guidanceLists.length).toBeGreaterThan(0);
+
+    for (const list of guidanceLists) {
+      expect(list.querySelector('svg')).not.toBeInTheDocument();
+      expect(within(list as HTMLElement).queryByRole('checkbox')).not.toBeInTheDocument();
+      expect(within(list as HTMLElement).queryByRole('button')).not.toBeInTheDocument();
+    }
+
+    const alienationIcon = container.querySelector('#alienation-of-funds .npp-section-icon svg');
+    expect(alienationIcon).toBeInTheDocument();
+    expect(alienationIcon).not.toHaveClass('lucide-check');
+  });
+
+  it('confines all fifteen checkbox controls to the reimbursement checklist', () => {
+    const { container } = renderGuide('en');
+    const checkboxes = screen.getAllByRole('checkbox');
+    const checklist = container.querySelector('#reimbursement-checklist');
+
+    expect(checkboxes).toHaveLength(15);
+    for (const checkbox of checkboxes) {
+      expect(checklist).toContainElement(checkbox);
+    }
+  });
+});
+
 describe.each(localeCases)('NPPPage ($locale)', (copy) => {
   it('renders one semantic, continuously readable field guide', () => {
     const { container } = renderGuide(copy.locale);
@@ -379,14 +432,31 @@ describe.each(localeCases)('NPPPage ($locale)', (copy) => {
       expect(container.querySelector(`#${id}`)).toHaveTextContent(text);
     }
 
-    const grantSection = container.querySelector('section#grants');
-    for (const grantName of copy.grantNames) {
-      expect(
-        within(grantSection as HTMLElement).getByRole('heading', { name: grantName }),
-      ).toBeVisible();
-    }
-
     expect(screen.getByText(copy.progress)).toHaveAttribute('aria-live', 'polite');
+  });
+
+  it('offers every grant through one localized native selector and shows one record at a time', () => {
+    const { container } = renderGuide(copy.locale);
+    const grantSection = container.querySelector('section#grants') as HTMLElement;
+    const selector = within(grantSection).getByRole('combobox', {
+      name: copy.grantSelectorLabel,
+    });
+    const options = within(selector).getAllByRole('option');
+    const grantCards = grantSection.querySelectorAll('article.npp-grant-card');
+
+    expect(options.map((option) => option.textContent)).toEqual(copy.grantNames);
+    expect(selector).toHaveValue('unit-internal-npp');
+    expect(grantCards).toHaveLength(9);
+    expect(grantSection.querySelector('#grant-unit-internal-npp')).not.toHaveAttribute('hidden');
+    expect(grantSection.querySelector('#grant-band-grant')).toHaveAttribute('hidden');
+    expect(within(grantSection).getByRole('heading', { name: copy.grantNames[0] })).toBeVisible();
+
+    fireEvent.change(selector, { target: { value: 'band-grant' } });
+
+    expect(selector).toHaveValue('band-grant');
+    expect(grantSection.querySelector('#grant-unit-internal-npp')).toHaveAttribute('hidden');
+    expect(grantSection.querySelector('#grant-band-grant')).not.toHaveAttribute('hidden');
+    expect(within(grantSection).getByRole('heading', { name: copy.grantNames[5] })).toBeVisible();
   });
 
   it('renders hardened official links with explicit language availability', () => {

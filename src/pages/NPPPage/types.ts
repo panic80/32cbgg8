@@ -15,6 +15,7 @@ export interface OfficialSource {
 
 export type GuideAudience = 'all-members' | 'operators';
 export type FundingSource = 'npp' | 'public-administered-through-npp';
+export type GuideSectionListPresentation = 'bullets' | 'steps';
 
 export interface GuideSection {
   id: string;
@@ -22,6 +23,7 @@ export interface GuideSection {
   audience: GuideAudience;
   paragraphs: LocalizedText[];
   bullets: LocalizedText[];
+  listPresentation?: GuideSectionListPresentation;
   warnings: LocalizedText[];
   sourceIds: string[];
 }

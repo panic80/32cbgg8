@@ -82,6 +82,7 @@ export const nppGuideContent: NppGuideContent = {
           fr: 'Confirmez si le besoin relève des BNP, des fonds publics ou d’un financement mixte avant d’agir.',
         },
       ],
+      listPresentation: 'bullets',
       warnings: [
         {
           en: 'NPF is not a discretionary slush fund, personal benefit, gift fund, or automatic substitute for a public responsibility.',
@@ -96,27 +97,49 @@ export const nppGuideContent: NppGuideContent = {
       audience: 'all-members',
       paragraphs: [
         {
-          en: 'Classify the requirement and establish the authorized beneficiaries, NPP entity, budget, grant or trust, available funds, and current delegated authority before committing funds.',
-          fr: 'Avant d’engager des fonds, classez le besoin et établissez les bénéficiaires autorisés, l’entité BNP, le budget, la subvention ou la fiducie, les fonds disponibles et le pouvoir délégué en vigueur.',
+          en: 'Before committing Unit Fund money, complete the controls below. They do not replace the current CFMWS, CDS, or supporting NPP finance direction that applies to the transaction.',
+          fr: 'Avant d’engager des fonds du Fonds de l’unité, appliquez les contrôles ci-dessous. Ils ne remplacent pas les directives actuelles des SBMFC, du CEMD ou de l’équipe de soutien des finances BNP applicables à l’opération.',
         },
       ],
       bullets: [
         {
-          en: 'Obtain approval before committing funds.',
-          fr: 'Obtenez l’approbation avant d’engager des fonds.',
+          en: 'Confirm the activity provides a collective authorized NPP benefit.',
+          fr: 'Confirmez que l’activité procure un avantage collectif autorisé des BNP.',
+        },
+        {
+          en: 'Confirm the expense is within the approved annual Unit Fund capital or operating budget.',
+          fr: 'Confirmez que la dépense figure dans le budget annuel approuvé de fonctionnement ou d’immobilisations du Fonds de l’unité.',
+        },
+        {
+          en: 'Confirm the Unit Fund Committee approved the expense and recorded its decision in the unit minute book or Record of Decision.',
+          fr: 'Confirmez que le comité du Fonds de l’unité a approuvé la dépense et consigné sa décision dans le registre des procès-verbaux ou relevé de décision de l’unité.',
+        },
+        {
+          en: 'Confirm the meeting minutes are approved by the responsible CO or designate.',
+          fr: 'Confirmez que les procès-verbaux de la réunion sont approuvés par le cmdt responsable ou son délégué.',
+        },
+        {
+          en: 'Confirm current delegated NPP authorities govern commitment, contract, and payment.',
+          fr: 'Confirmez que les pouvoirs délégués actuels en matière de BNP régissent l’engagement, le contrat et le paiement.',
         },
         {
           en: 'Identify hospitality, alcohol, travel, IM/IT, fixed assets, fundraising, gifts or alienation, and mixed funding for policy-specific review.',
           fr: 'Soumettez l’accueil, l’alcool, les déplacements, la GI/TI, les immobilisations, les collectes de fonds, les cadeaux ou l’aliénation et le financement mixte à l’examen requis par la politique pertinente.',
         },
       ],
+      listPresentation: 'bullets',
       warnings: [
         {
           en: 'Do not self-approve, split transactions, create a personal benefit, bypass a conflict of interest, or make an unauthorized commitment.',
           fr: 'N’approuvez pas vos propres dépenses, ne fractionnez pas les opérations, ne créez pas d’avantage personnel, ne contournez pas un conflit d’intérêts et ne prenez pas d’engagement non autorisé.',
         },
       ],
-      sourceIds: ['cds-npp-delegation', 'npp-contracting-policy'],
+      sourceIds: [
+        'cfmws-budgeting-faq',
+        'psp-policy-manual-reserve-unit-funds',
+        'cds-npp-delegation',
+        'npp-contracting-policy',
+      ],
     },
     {
       id: 'spending-npf',
@@ -124,11 +147,31 @@ export const nppGuideContent: NppGuideContent = {
       audience: 'operators',
       paragraphs: [
         {
-          en: 'Use the current official procurement and contracting direction for every purchase. The sequence below is a practical guide, not a delegation or approval.',
-          fr: 'Utilisez les directives officielles actuelles sur l’approvisionnement et la passation de marchés pour chaque achat. La séquence ci-dessous est un guide pratique et ne constitue ni une délégation ni une approbation.',
+          en: 'Use the current official procurement and contracting direction for every purchase. The sequence below is a practical guide, not a delegation or approval. Complete the Unit Fund controls before moving to procurement.',
+          fr: 'Utilisez les directives officielles actuelles sur l’approvisionnement et la passation de marchés pour chaque achat. La séquence ci-dessous est un guide pratique et ne constitue ni une délégation ni une approbation. Appliquez les contrôles du Fonds de l’unité avant de passer à l’approvisionnement.',
         },
       ],
       bullets: [
+        {
+          en: 'Confirm the activity provides a collective authorized NPP benefit.',
+          fr: 'Confirmez que l’activité procure un avantage collectif autorisé des BNP.',
+        },
+        {
+          en: 'Confirm the expense is within the approved annual Unit Fund capital or operating budget.',
+          fr: 'Confirmez que la dépense figure dans le budget annuel approuvé de fonctionnement ou d’immobilisations du Fonds de l’unité.',
+        },
+        {
+          en: 'Confirm the Unit Fund Committee approved the expense and recorded its decision in the unit minute book or Record of Decision.',
+          fr: 'Confirmez que le comité du Fonds de l’unité a approuvé la dépense et consigné sa décision dans le registre des procès-verbaux ou relevé de décision de l’unité.',
+        },
+        {
+          en: 'Confirm the meeting minutes are approved by the responsible CO or designate.',
+          fr: 'Confirmez que les procès-verbaux de la réunion sont approuvés par le cmdt responsable ou son délégué.',
+        },
+        {
+          en: 'Confirm current delegated NPP authorities govern commitment, contract, and payment.',
+          fr: 'Confirmez que les pouvoirs délégués actuels en matière de BNP régissent l’engagement, le contrat et le paiement.',
+        },
         {
           en: 'Confirm the requirement and funding source.',
           fr: 'Confirmez le besoin et la source de financement.',
@@ -156,6 +199,7 @@ export const nppGuideContent: NppGuideContent = {
           fr: 'Obtenez une approbation de paiement indépendante et soumettez le dossier complet par la voie comptable approuvée des BNP.',
         },
       ],
+      listPresentation: 'steps',
       warnings: [
         {
           en: 'Current rules and delegated authorities prevail; use the live official source rather than a remembered threshold.',
@@ -163,10 +207,58 @@ export const nppGuideContent: NppGuideContent = {
         },
       ],
       sourceIds: [
+        'cfmws-budgeting-faq',
+        'psp-policy-manual-reserve-unit-funds',
+        'cds-npp-delegation',
         'npp-contracting-policy',
         'contract-for-services',
         'afn105-accounts-payable',
         'afn105-credit-cards',
+      ],
+    },
+    {
+      id: 'alienation-of-funds',
+      heading: {
+        en: 'Alienation of NPP: a separate approval path',
+        fr: 'Aliénation des BNP : une voie d’approbation distincte',
+      },
+      audience: 'operators',
+      paragraphs: [
+        {
+          en: 'Alienation is not routine purchasing. It is a transfer of ownership or value from NPP to another party so the property is no longer NPP.',
+          fr: 'L’aliénation n’est pas un achat courant. Il s’agit du transfert de propriété ou de valeur de BNP à une autre partie, de sorte que le bien n’est plus un BNP.',
+        },
+      ],
+      bullets: [
+        {
+          en: 'Pause when a proposal involves a below-market sale, gift or donation, personal or restricted-group benefit, public responsibility, or subsidy or value to a non-NPP beneficiary.',
+          fr: 'Faites une pause lorsqu’une proposition comporte une vente sous la juste valeur marchande, un don, un avantage personnel ou à un groupe restreint, une responsabilité publique, ou une subvention ou valeur à un bénéficiaire non admissible aux BNP.',
+        },
+        {
+          en: 'Do not use the normal purchasing approval: stop and seek NPP finance/PSP advice before committing.',
+          fr: 'N’utilisez pas le processus d’approbation des achats ordinaires : arrêtez le processus et demandez conseil à l’équipe des finances BNP/PSP avant tout engagement.',
+        },
+        {
+          en: 'Use the current Alienation of NPP Request Form to document the proposed purpose, cost, and supporting facts. The publicly posted Reserve SOP describes a route through the Entity Manager, Reserve PSP Advisor, Senior Manager, Reserves Accounting Services, Unit CO, CFO, and MD NPP.',
+          fr: 'Utilisez le formulaire actuel de demande d’aliénation des BNP pour consigner l’objet proposé, le coût et les faits justificatifs. La SOP publique de la Réserve décrit un cheminement passant par le gestionnaire de l’entité, le conseiller PSP Réserve, le gestionnaire supérieur des Services comptables de la Réserve, le cmdt de l’unité, le CSF et le DG BNP.',
+        },
+        {
+          en: 'The publicly posted SOP is marked Draft v2.0; confirm the public routing with the supporting NPP team before submitting.',
+          fr: 'La SOP publiée est marquée ébauche v2.0; confirmez le cheminement public auprès de l’équipe de soutien des BNP avant de présenter une demande.',
+        },
+      ],
+      listPresentation: 'steps',
+      warnings: [
+        {
+          en: 'A committee decision, budget line, or ordinary payment process does not replace the separate authority required for an alienation request.',
+          fr: 'Une décision de comité, une ligne budgétaire ou le processus de paiement ordinaire ne remplace pas le pouvoir distinct requis pour une demande d’aliénation.',
+        },
+      ],
+      sourceIds: [
+        'cds-npp-delegation',
+        'alienation-request-sop',
+        'alienation-request-form',
+        'alienation-faq',
       ],
     },
     {
@@ -180,6 +272,7 @@ export const nppGuideContent: NppGuideContent = {
         },
       ],
       bullets: [localDocumentation, currentGrantInstructions],
+      listPresentation: 'bullets',
       warnings: [
         {
           en: 'Do not assume eligibility, a deadline, a trust-account treatment, or an unspent-balance rule from a prior grant cycle.',
@@ -220,6 +313,7 @@ export const nppGuideContent: NppGuideContent = {
           fr: 'Pour un paiement interne entre entités BNP, confirmez si un transfert est requis plutôt qu’un paiement fournisseur ordinaire.',
         },
       ],
+      listPresentation: 'steps',
       warnings: [
         {
           en: 'Do not send invoice or supplier information through an unapproved channel.',
@@ -252,6 +346,7 @@ export const nppGuideContent: NppGuideContent = {
           fr: 'Les documents remplis relatifs au fournisseur et au TEF peuvent contenir des renseignements financiers ou fiscaux protégés et doivent être transmis par la voie sécurisée approuvée.',
         },
       ],
+      listPresentation: 'bullets',
       warnings: [
         {
           en: 'Do not enter tax identifiers, banking details, or supplier records on this public guide.',
@@ -284,6 +379,7 @@ export const nppGuideContent: NppGuideContent = {
           fr: 'Pour un remboursement, limitez la réclamation à un achat auprès d’un tiers préautorisé, identifiez l’objet BNP et la source de financement, conservez les pièces justificatives et la preuve d’acceptation, et obtenez une approbation indépendante.',
         },
       ],
+      listPresentation: 'bullets',
       warnings: [
         {
           en: 'Do not use a reimbursement path to pay for services personally provided by an individual.',
@@ -307,6 +403,7 @@ export const nppGuideContent: NppGuideContent = {
         },
       ],
       bullets: [localDocumentation],
+      listPresentation: 'bullets',
       warnings: [
         {
           en: 'Checklist state is not retained when the page is refreshed or closed.',
@@ -335,6 +432,7 @@ export const nppGuideContent: NppGuideContent = {
           fr: 'Certaines sources sont offertes seulement en anglais; leur disponibilité linguistique est indiquée avec exactitude dans la liste des sources.',
         },
       ],
+      listPresentation: 'bullets',
       warnings: [
         {
           en: 'When sources conflict or a value is uncertain, obtain current confirmation rather than relying on this guide.',
@@ -684,6 +782,81 @@ export const nppGuideContent: NppGuideContent = {
       urls: {
         en: 'https://cfmws.ca/CFMWS/media/images/documents/8.0%20About%20Us/8.4%20Policies%20and%20Publications/8.4.5/Policies/DelegationofAuthorities_e-18Jun26.pdf',
         fr: 'https://cfmws.ca/CFMWS/media/images/documents/8.0%20About%20Us/8.4%20Policies%20and%20Publications/8.4.5/Policies/DelegationofAuthorities_e-18Jun26.pdf',
+      },
+      checkedOn,
+    },
+    {
+      id: 'cfmws-budgeting-faq',
+      title: {
+        en: 'CFMWS Budgeting FAQ',
+        fr: 'FAQ des SBMFC sur la budgétisation',
+      },
+      publisher: {
+        en: 'Canadian Forces Morale and Welfare Services',
+        fr: 'Services de bien-être et moral des Forces canadiennes',
+      },
+      urls: {
+        en: 'https://cfmws.ca/about-us/policies-and-publications/frequently-asked-questions/budgeting',
+      },
+      checkedOn,
+    },
+    {
+      id: 'psp-policy-manual-reserve-unit-funds',
+      title: {
+        en: 'PSP Policy Manual, Chapter 10-3: Unit Funds – Reserve Force',
+        fr: 'Manuel des politiques des PSP, chapitre 10-3 : Fonds des unités – Force de réserve',
+      },
+      publisher: {
+        en: 'Canadian Forces Morale and Welfare Services',
+        fr: 'Services de bien-être et moral des Forces canadiennes',
+      },
+      urls: {
+        en: 'https://cfmws.ca/CFMWS/media/images/documents/8.0%20About%20Us/Resources%20for%20Messes/English/PSP-Policy-Manual-EN-7-Nov-2022.pdf',
+      },
+      checkedOn,
+    },
+    {
+      id: 'alienation-request-sop',
+      title: {
+        en: 'Alienation of NPP Request Form SOP (publicly posted Draft v2.0)',
+        fr: 'SOP du formulaire de demande d’aliénation des BNP (ébauche v2.0 publiée)',
+      },
+      publisher: {
+        en: 'Canadian Forces Morale and Welfare Services',
+        fr: 'Services de bien-être et moral des Forces canadiennes',
+      },
+      urls: {
+        en: 'https://cfmws.ca/CFMWS/media/images/documents/8.0%20About%20Us/8.4%20Policies%20and%20Publications/8.4.5/Policies/Alienation-Request-Form-SOP-with-maps-_e-Final.pdf',
+      },
+      checkedOn,
+    },
+    {
+      id: 'alienation-request-form',
+      title: {
+        en: 'Alienation of NPP Request Form',
+        fr: 'Formulaire de demande d’aliénation des BNP',
+      },
+      publisher: {
+        en: 'Canadian Forces Morale and Welfare Services',
+        fr: 'Services de bien-être et moral des Forces canadiennes',
+      },
+      urls: {
+        en: 'https://cfmws.ca/CFMWS/media/images/documents/8.0%20About%20Us/8.4%20Policies%20and%20Publications/8.4.5/Policies/ALIENATION-OF-NPP-REQUEST-FORM-(Template-English).pdf',
+      },
+      checkedOn,
+    },
+    {
+      id: 'alienation-faq',
+      title: {
+        en: 'Alienation of Non-Public Property (NPP) FAQ',
+        fr: 'FAQ sur l’aliénation des biens non publics (BNP)',
+      },
+      publisher: {
+        en: 'Canadian Forces Morale and Welfare Services',
+        fr: 'Services de bien-être et moral des Forces canadiennes',
+      },
+      urls: {
+        en: 'https://cfmws.ca/about-us/policies-and-publications/frequently-asked-questions/alienation-of-non-public-property-(npp)',
       },
       checkedOn,
     },

@@ -1,23 +1,27 @@
-import { useLayoutEffect, type ReactNode } from 'react';
+import { useLayoutEffect, useState, type ReactNode } from 'react';
 import {
   AlertTriangle,
   ArrowLeft,
+  ArrowRightLeft,
   ArrowUp,
+  BriefcaseBusiness,
   BookOpen,
-  Check,
+  CircleDollarSign,
+  ClipboardList,
   ExternalLink,
-  FileCheck2,
   FileText,
+  Info,
   Landmark,
   Mail,
   Moon,
+  ReceiptText,
   Scale,
-  ShieldCheck,
   Sun,
   Users,
   WalletCards,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+import brigadeBadge from '@/assets/logo.png';
 import { LocaleToggle } from '@/components/LocaleToggle';
 import { SITE_CONFIG } from '@/constants/siteConfig';
 import { useTheme } from '@/context/ThemeContext';
@@ -51,6 +55,7 @@ const pageUi = {
     caution: 'Stop and confirm',
     sourceReferences: 'Official references for this field note',
     grantRecord: 'Funding record',
+    grantSelectorLabel: 'Choose a funding record',
     fundingSource: 'Funding source',
     nppFunding: 'NPP funding',
     publicFunding: 'Public grant administered through NPP',
@@ -95,6 +100,7 @@ const pageUi = {
     caution: 'Arrêtez-vous et confirmez',
     sourceReferences: 'Références officielles pour cette fiche',
     grantRecord: 'Dossier de financement',
+    grantSelectorLabel: 'Choisir un dossier de financement',
     fundingSource: 'Source de financement',
     nppFunding: 'Financement BNP',
     publicFunding: 'Subvention publique administrée par les BNP',
@@ -120,13 +126,14 @@ const pageUi = {
 
 const sectionIcons = {
   'npp-and-npf': Scale,
-  'before-spending': ShieldCheck,
+  'before-spending': CircleDollarSign,
   'spending-npf': WalletCards,
+  'alienation-of-funds': ArrowRightLeft,
   grants: Landmark,
-  'existing-vendor': FileCheck2,
+  'existing-vendor': ReceiptText,
   'create-vendor': FileText,
   'pay-individual': Users,
-  'reimbursement-checklist': Check,
+  'reimbursement-checklist': ClipboardList,
   'sources-help': BookOpen,
 } as const;
 
@@ -151,7 +158,7 @@ const AudienceBadge = ({ audience, locale }: { audience: GuideAudience; locale: 
 
   return (
     <span className={`npp-audience-badge ${isOperator ? 'is-operator' : 'is-member'}`}>
-      {isOperator ? <ShieldCheck aria-hidden="true" /> : <Users aria-hidden="true" />}
+      {isOperator ? <BriefcaseBusiness aria-hidden="true" /> : <Users aria-hidden="true" />}
       {isOperator ? ui.operators : ui.allMembers}
     </span>
   );
@@ -206,6 +213,7 @@ const SourceReferences = ({ sourceIds, locale }: { sourceIds: string[]; locale: 
 
 const GuidanceBody = ({ section, locale }: { section: GuideSection; locale: Locale }) => {
   const ui = pageUi[locale];
+  const GuidanceList = section.listPresentation === 'steps' ? 'ol' : 'ul';
 
   return (
     <>
@@ -216,16 +224,11 @@ const GuidanceBody = ({ section, locale }: { section: GuideSection; locale: Loca
       ))}
 
       {section.bullets.length > 0 ? (
-        <ul className="npp-task-list">
+        <GuidanceList className="npp-guidance-list">
           {section.bullets.map((bullet) => (
-            <li key={bullet.en}>
-              <span aria-hidden="true">
-                <Check />
-              </span>
-              <span>{bullet[locale]}</span>
-            </li>
+            <li key={bullet.en}>{bullet[locale]}</li>
           ))}
-        </ul>
+        </GuidanceList>
       ) : null}
 
       {section.warnings.map((warning) => (
@@ -252,20 +255,27 @@ const GrantCard = ({
   grant,
   locale,
   index,
+  isHidden,
 }: {
   grant: GrantGuide;
   locale: Locale;
   index: number;
+  isHidden: boolean;
 }) => {
   const ui = pageUi[locale];
 
   return (
-    <article className="npp-grant-card" id={`grant-${grant.id}`}>
+    <article
+      className="npp-grant-card"
+      id={`grant-${grant.id}`}
+      aria-labelledby={`grant-${grant.id}-heading`}
+      hidden={isHidden}
+    >
       <header>
         <p>
           {ui.grantRecord} {String(index + 1).padStart(2, '0')}
         </p>
-        <h3>{grant.name[locale]}</h3>
+        <h3 id={`grant-${grant.id}-heading`}>{grant.name[locale]}</h3>
       </header>
       <dl>
         <GrantField label={ui.fundingSource}>
@@ -296,6 +306,41 @@ const GrantCard = ({
         </time>
       </p>
     </article>
+  );
+};
+
+const GrantExplorer = ({ locale }: { locale: Locale }) => {
+  const ui = pageUi[locale];
+  const [selectedGrantId, setSelectedGrantId] = useState(() => nppGuideContent.grants[0]?.id ?? '');
+
+  return (
+    <>
+      <div className="npp-grant-selector npp-screen-only">
+        <label htmlFor="npp-grant-selector">{ui.grantSelectorLabel}</label>
+        <select
+          id="npp-grant-selector"
+          value={selectedGrantId}
+          onChange={(event) => setSelectedGrantId(event.target.value)}
+        >
+          {nppGuideContent.grants.map((grant) => (
+            <option key={grant.id} value={grant.id}>
+              {grant.name[locale]}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="npp-grant-grid">
+        {nppGuideContent.grants.map((grant, grantIndex) => (
+          <GrantCard
+            key={grant.id}
+            grant={grant}
+            locale={locale}
+            index={grantIndex}
+            isHidden={grant.id !== selectedGrantId}
+          />
+        ))}
+      </div>
+    </>
   );
 };
 
@@ -395,13 +440,7 @@ const StandardSection = ({
       </div>
       <div className="npp-section-body">
         <GuidanceBody section={section} locale={locale} />
-        {section.id === 'grants' ? (
-          <div className="npp-grant-grid">
-            {nppGuideContent.grants.map((grant, grantIndex) => (
-              <GrantCard key={grant.id} grant={grant} locale={locale} index={grantIndex} />
-            ))}
-          </div>
-        ) : null}
+        {section.id === 'grants' ? <GrantExplorer locale={locale} /> : null}
         <SourceReferences sourceIds={section.sourceIds} locale={locale} />
         {section.id === 'sources-help' ? <OfficialSources locale={locale} /> : null}
       </div>
@@ -424,7 +463,7 @@ const ChecklistSection = ({
     <div id={section.id} className="npp-guide-section npp-checklist-shell">
       <div className="npp-section-heading npp-checklist-marker">
         <div className="npp-section-icon" aria-hidden="true">
-          <Check />
+          <ClipboardList />
         </div>
         <p>
           {ui.fieldNote} {String(index + 1).padStart(2, '0')}
@@ -436,14 +475,9 @@ const ChecklistSection = ({
         {section.bullets.length > 0 || section.warnings.length > 0 ? (
           <div className="npp-checklist-notes">
             {section.bullets.length > 0 ? (
-              <ul className="npp-task-list">
+              <ul className="npp-guidance-list">
                 {section.bullets.map((bullet) => (
-                  <li key={bullet.en}>
-                    <span aria-hidden="true">
-                      <Check />
-                    </span>
-                    <span>{bullet[locale]}</span>
-                  </li>
+                  <li key={bullet.en}>{bullet[locale]}</li>
                 ))}
               </ul>
             ) : null}
@@ -508,11 +542,13 @@ const NPPPage = () => {
         </div>
 
         <div className="npp-masthead-grid">
-          <div className="npp-publication-mark" aria-hidden="true">
-            <span>32</span>
-            <span>CBG</span>
-            <span>G8</span>
-          </div>
+          <img
+            className="npp-publication-mark"
+            src={brigadeBadge}
+            alt=""
+            width="865"
+            height="1006"
+          />
           <div className="npp-hero-copy">
             <p className="npp-unit-line">{ui.unit}</p>
             <p className="npp-publication-line">{ui.publication}</p>
@@ -537,7 +573,7 @@ const NPPPage = () => {
         </div>
 
         <div className="npp-scope-strip">
-          <ShieldCheck aria-hidden="true" />
+          <Info aria-hidden="true" />
           <strong>{ui.scope}</strong>
           <span>{nppGuideContent.disclaimer[locale]}</span>
         </div>
