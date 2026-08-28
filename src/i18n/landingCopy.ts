@@ -170,7 +170,7 @@ export const landingCopy: Record<Locale, LandingCopy> = {
           'Plateforme simplifiée d’interface des réclamations pour présenter et traiter efficacement les réclamations administratives en ligne.',
       },
       npf: {
-        title: 'FNP',
+        title: 'NPF',
         description:
           'Consultez le Guide des BNP / FNP pour obtenir des conseils clairs sur les dépenses, les subventions, les fournisseurs et les remboursements.',
       },
@@ -201,7 +201,7 @@ export const landingCopy: Record<Locale, LandingCopy> = {
           description: 'Accès direct à la plateforme de présentation des réclamations',
         },
         {
-          title: 'FNP',
+          title: 'NPF',
           description: 'Guide public sur l’administration des BNP et des FNP',
         },
       ],

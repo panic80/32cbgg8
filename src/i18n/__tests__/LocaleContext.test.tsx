@@ -91,5 +91,23 @@ describe('locale foundation', () => {
 
     expect(landingCopy.en.features.scipPortal.title).toBe('SCIP Portal');
     expect(landingCopy.en.features.npf.title).toBe('NPF');
+    expect(landingCopy.fr.features.npf.title).toBe('NPF');
+    expect(landingCopy.fr.about.keyFeatures.find((feature) => feature.description.includes('BNP'))?.title).toBe(
+      'NPF',
+    );
+  });
+
+  it('localizes the toggle group and live announcement in French', () => {
+    window.history.replaceState({}, '', '/?lang=fr');
+
+    render(
+      <LocaleProvider>
+        <LocaleToggle />
+      </LocaleProvider>,
+    );
+
+    expect(screen.getByRole('group', { name: 'Langue' })).toBeInTheDocument();
+    expect(screen.getByText('Français sélectionné')).toBeInTheDocument();
+    expect(screen.queryByText('Français selected')).not.toBeInTheDocument();
   });
 });
