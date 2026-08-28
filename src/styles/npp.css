@@ -1307,6 +1307,10 @@
     break-inside: auto;
   }
 
+  .npp-guide-section#sources-help {
+    border-bottom: 0;
+  }
+
   .npp-section-heading,
   .npp-checklist-marker {
     display: grid;
