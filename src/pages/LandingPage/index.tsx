@@ -4,7 +4,7 @@ import { ChevronDown } from 'lucide-react';
 import LogoImage from '@/components/LogoImage';
 import '@/styles/landing-test.css';
 import '@/styles/sticky-footer.css';
-import { SITE_CONFIG, getCopyrightText, getLastUpdatedText } from '@/constants/siteConfig';
+import { SITE_CONFIG } from '@/constants/siteConfig';
 import { useTheme } from '@/context/ThemeContext';
 import {
   Dialog,
@@ -32,6 +32,23 @@ const handleScrollableContent: ScrollHandler = (event, setIndicator) => {
   setIndicator(!isAtBottom);
 };
 
+const formatFooterCopy = (template: string, values: Record<string, string>) =>
+  Object.entries(values).reduce(
+    (formatted, [key, value]) => formatted.replace(`{${key}}`, value),
+    template,
+  );
+
+const formatLastUpdatedDate = (locale: 'en' | 'fr') => {
+  if (locale === 'en') return SITE_CONFIG.LAST_UPDATED;
+
+  return new Intl.DateTimeFormat('fr-CA', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(SITE_CONFIG.LAST_UPDATED));
+};
+
 const LandingPage = () => {
   const { theme, toggleTheme } = useTheme();
   const { locale } = useLocale();
@@ -47,6 +64,7 @@ const LandingPage = () => {
   const { isCopied: isLinkCopied, handleCopy: copySCIPLink } = useCopyToClipboard({
     text: SITE_CONFIG.SCIP_PORTAL_URL,
     copyMessage: copy.copyLinkStatus.copied,
+    copyErrorMessage: copy.copyLinkStatus.failed,
   });
 
   const handleSCIPClick = useCallback(() => {
@@ -259,7 +277,7 @@ const LandingPage = () => {
               return (
                 <a
                   key={link.id}
-                  href={`mailto:${SITE_CONFIG.CONTACT_EMAIL}?subject=Contacting%20from%20G8%20homepage`}
+                  href={`mailto:${SITE_CONFIG.CONTACT_EMAIL}?subject=${encodeURIComponent(copy.footer.contactSubject)}`}
                   className="lpt-minimal-footer-link"
                 >
                   <link.icon className="w-3.5 h-3.5" aria-hidden="true" />
@@ -283,8 +301,16 @@ const LandingPage = () => {
         </div>
 
         <div className="lpt-minimal-footer-meta">
-          <p>{getCopyrightText()}</p>
-          <p style={{ marginTop: '0.25rem' }}>{getLastUpdatedText()}</p>
+          <p>
+            {formatFooterCopy(copy.footer.copyright, {
+              year: String(SITE_CONFIG.COPYRIGHT_YEAR),
+            })}
+          </p>
+          <p style={{ marginTop: '0.25rem' }}>
+            {formatFooterCopy(copy.footer.lastUpdated, {
+              date: formatLastUpdatedDate(locale),
+            })}
+          </p>
         </div>
       </footer>
 

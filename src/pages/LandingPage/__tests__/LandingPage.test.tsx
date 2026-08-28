@@ -1,9 +1,20 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
+import { toast } from 'sonner';
 import LandingPage from '..';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { LocaleProvider } from '@/i18n/LocaleContext';
+import { landingCopy } from '@/i18n/landingCopy';
+
+vi.mock('sonner', () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
+const clipboardWriteText = vi.fn();
 
 const renderLandingPage = (initialEntry = '/?lang=en') =>
   render(
@@ -20,6 +31,14 @@ beforeEach(() => {
   window.history.replaceState({}, '', '/?lang=en');
   document.documentElement.lang = 'en';
   window.localStorage.clear();
+  clipboardWriteText.mockReset();
+  clipboardWriteText.mockResolvedValue(undefined);
+  Object.defineProperty(navigator, 'clipboard', {
+    configurable: true,
+    value: { writeText: clipboardWriteText },
+  });
+  vi.mocked(toast.success).mockClear();
+  vi.mocked(toast.error).mockClear();
 });
 
 describe('LandingPage', () => {
@@ -81,7 +100,7 @@ describe('LandingPage', () => {
     expect(dialog).not.toHaveTextContent(/policy guidance/i);
   });
 
-  it('localizes landing, About, Privacy, footer, theme, and SCIP copy after switching to French', () => {
+  it('localizes landing, About, Privacy, footer, theme, and SCIP copy after switching to French', async () => {
     renderLandingPage();
 
     fireEvent.click(screen.getByRole('button', { name: 'Français' }));
@@ -94,6 +113,21 @@ describe('LandingPage', () => {
     expect(screen.getByRole('link', { name: 'Contact' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Confidentialité' })).toBeVisible();
     expect(screen.getByRole('button', { name: /Passer au mode (sombre|clair)/ })).toBeVisible();
+    expect(
+      screen.getByRole('link', {
+        name: /NPF – Consultez le Guide des BNP \/ FNP/i,
+      }),
+    ).toHaveAttribute('href', '/npp?lang=fr');
+
+    const footer = screen.getByRole('contentinfo');
+    expect(footer).toHaveTextContent(
+      `© ${new Date().getFullYear()} Portail administratif G8. Tous droits réservés. Non affilié au MDN ni aux FAC.`,
+    );
+    expect(footer).toHaveTextContent('Dernière mise à jour : 1 octobre 2025');
+    expect(screen.getByRole('link', { name: 'Contact' })).toHaveAttribute(
+      'href',
+      'mailto:g8@sent.com?subject=Contact%20depuis%20la%20page%20d%E2%80%99accueil%20du%20G8',
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'À propos' }));
     const aboutDialog = screen.getByRole('dialog');
@@ -118,5 +152,24 @@ describe('LandingPage', () => {
     expect(scipDialog).toHaveTextContent('Cette page s’ouvrira dans un nouvel onglet');
     expect(screen.getByRole('button', { name: 'Annuler' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Continuer' })).toBeVisible();
+    expect(landingCopy.fr.navigationStatus.opening).toBe('Ouverture…');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copier le lien' }));
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Lien copié' })).toBeDisabled();
+    });
+    expect(toast.success).toHaveBeenCalledWith('Lien copié');
+    await waitFor(
+      () => expect(screen.getByRole('button', { name: 'Copier le lien' })).toBeEnabled(),
+      { timeout: 3000 },
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Annuler' }));
+    fireEvent.click(screen.getByRole('button', { name: /Portail SCIP/i }));
+    clipboardWriteText.mockRejectedValueOnce(new Error('clipboard unavailable'));
+    fireEvent.click(screen.getByRole('button', { name: 'Copier le lien' }));
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('Échec de la copie du lien.');
+    });
   });
 });

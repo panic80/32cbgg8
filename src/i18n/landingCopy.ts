@@ -17,6 +17,9 @@ export interface LandingCopy {
     about: string;
     contact: string;
     privacy: string;
+    copyright: string;
+    lastUpdated: string;
+    contactSubject: string;
   };
   theme: {
     switchToDark: string;
@@ -56,6 +59,7 @@ export interface LandingCopy {
   copyLinkStatus: {
     copy: string;
     copied: string;
+    failed: string;
   };
   navigationStatus: {
     continue: string;
@@ -87,6 +91,10 @@ export const landingCopy: Record<Locale, LandingCopy> = {
       about: 'About',
       contact: 'Contact',
       privacy: 'Privacy',
+      copyright:
+        '© {year} G8 Administration Hub. All rights reserved. Not affiliated with DND or CAF.',
+      lastUpdated: 'Last updated: {date}',
+      contactSubject: 'Contacting from G8 homepage',
     },
     theme: {
       switchToDark: 'Switch to dark mode',
@@ -150,6 +158,7 @@ export const landingCopy: Record<Locale, LandingCopy> = {
     copyLinkStatus: {
       copy: 'Copy Link',
       copied: 'Link Copied',
+      failed: 'Failed to copy to clipboard.',
     },
     navigationStatus: {
       continue: 'Continue',
@@ -179,6 +188,10 @@ export const landingCopy: Record<Locale, LandingCopy> = {
       about: 'À propos',
       contact: 'Contact',
       privacy: 'Confidentialité',
+      copyright:
+        '© {year} Portail administratif G8. Tous droits réservés. Non affilié au MDN ni aux FAC.',
+      lastUpdated: 'Dernière mise à jour : {date}',
+      contactSubject: 'Contact depuis la page d’accueil du G8',
     },
     theme: {
       switchToDark: 'Passer au mode sombre',
@@ -213,7 +226,8 @@ export const landingCopy: Record<Locale, LandingCopy> = {
     },
     privacy: {
       title: 'Politique de confidentialité',
-      description: 'La façon dont cette page traite les statistiques de visite et les liens externes.',
+      description:
+        'La façon dont cette page traite les statistiques de visite et les liens externes.',
       generalNoticeTitle: 'Avis général de confidentialité',
       generalNotice:
         'Cette page est un portail vers des liens et des ressources administratifs. Elle ne demande pas de connexion, n’accepte pas de texte libre et ne fournit pas de réponses générées par l’IA.',
@@ -242,6 +256,7 @@ export const landingCopy: Record<Locale, LandingCopy> = {
     copyLinkStatus: {
       copy: 'Copier le lien',
       copied: 'Lien copié',
+      failed: 'Échec de la copie du lien.',
     },
     navigationStatus: {
       continue: 'Continuer',
