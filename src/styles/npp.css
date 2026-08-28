@@ -1202,9 +1202,16 @@
 
   html,
   body,
+  #root,
   .npp-page {
     color: #000000 !important;
     background: #ffffff !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
   }
 
   .npp-page {
