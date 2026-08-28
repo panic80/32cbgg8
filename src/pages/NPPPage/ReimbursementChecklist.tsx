@@ -85,10 +85,20 @@ export const ReimbursementChecklist = () => {
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="outline" onClick={() => setCompleted(new Set())}>
+        <Button
+          type="button"
+          variant="outline"
+          className="min-h-11"
+          onClick={() => setCompleted(new Set())}
+        >
           {ui.reset}
         </Button>
-        <Button type="button" variant="outline" onClick={() => window.print()}>
+        <Button
+          type="button"
+          variant="outline"
+          className="min-h-11"
+          onClick={() => window.print()}
+        >
           {ui.print}
         </Button>
       </div>

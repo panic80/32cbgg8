@@ -28,6 +28,8 @@ describe('ReimbursementChecklist', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /reset/i }));
     expect(screen.getByText('0 of 15 complete')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /reset/i })).toHaveClass('min-h-11');
+    expect(screen.getByRole('button', { name: /print/i })).toHaveClass('min-h-11');
     expect(screen.getByRole('checkbox', { name: /approval before purchasing/i })).toHaveAttribute(
       'aria-checked',
       'false',
