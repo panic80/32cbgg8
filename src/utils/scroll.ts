@@ -52,30 +52,30 @@ export function forceScrollToTop(): void {
   }
 }
 
-export function forceScrollToTopDeferred(): () => void {
+export function forceScrollToTopDeferred(scrollAction: () => void = forceScrollToTop): () => void {
   let raf1 = 0;
   let raf2 = 0;
   let raf3 = 0;
 
   // Immediate attempt
-  const t1 = setTimeout(forceScrollToTop, 0);
-  raf1 = typeof window !== 'undefined' ? window.requestAnimationFrame(forceScrollToTop) : 0;
+  const t1 = setTimeout(scrollAction, 0);
+  raf1 = typeof window !== 'undefined' ? window.requestAnimationFrame(scrollAction) : 0;
 
   // Second pass after layout
-  const t2 = setTimeout(forceScrollToTop, 50);
+  const t2 = setTimeout(scrollAction, 50);
   raf2 =
     typeof window !== 'undefined'
       ? window.requestAnimationFrame(() => {
-          setTimeout(forceScrollToTop, 10);
+          setTimeout(scrollAction, 10);
         })
       : 0;
 
   // Third pass for content-heavy pages
-  const t3 = setTimeout(forceScrollToTop, 200);
+  const t3 = setTimeout(scrollAction, 200);
   raf3 =
     typeof window !== 'undefined'
       ? window.requestAnimationFrame(() => {
-          setTimeout(forceScrollToTop, 100);
+          setTimeout(scrollAction, 100);
         })
       : 0;
 
