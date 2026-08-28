@@ -10,6 +10,8 @@
   --npp-gold-soft: #e2d9c0;
   --npp-rule: var(--border, #e2d9c0);
   --npp-danger: var(--error, #8b0000);
+  --npp-focus-inner: #ffffff;
+  --npp-focus-outer: #0a3622;
   min-height: 100vh;
   overflow-x: clip;
   color: var(--npp-ink);
@@ -31,6 +33,8 @@
   --npp-green: #082d1b;
   --npp-green-deep: #041a10;
   --npp-gold-soft: #806d31;
+  --npp-focus-inner: #041a10;
+  --npp-focus-outer: #f4d96b;
   background-image:
     linear-gradient(rgba(212, 175, 55, 0.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(212, 175, 55, 0.03) 1px, transparent 1px);
@@ -41,8 +45,11 @@
 }
 
 .npp-page :where(a, button):focus-visible {
-  outline: 3px solid var(--npp-gold);
-  outline-offset: 3px;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  box-shadow:
+    0 0 0 2px var(--npp-focus-inner),
+    0 0 0 5px var(--npp-focus-outer);
 }
 
 .npp-skip-link {
@@ -100,15 +107,29 @@
 }
 
 .npp-return-control {
+  display: inline-flex;
   min-height: 2.75rem;
-  color: #ffffff !important;
-  font-size: 0.84rem !important;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.2rem;
+  color: #ffffff;
+  font-size: 0.84rem;
   font-weight: 700;
   letter-spacing: 0.015em;
+  text-decoration: none;
+  transition:
+    color 150ms ease,
+    transform 150ms ease;
 }
 
 .npp-return-control:hover {
-  color: var(--npp-gold) !important;
+  color: var(--npp-gold);
+  transform: translateX(-0.2rem);
+}
+
+.npp-return-control svg {
+  width: 1rem;
+  height: 1rem;
 }
 
 .npp-page-controls {

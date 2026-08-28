@@ -1,6 +1,6 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { MemoryRouter, useLocation } from 'react-router-dom';
+import { MemoryRouter } from 'react-router-dom';
 import { ThemeProvider } from '@/context/ThemeContext';
 import NPPPage from '..';
 
@@ -15,12 +15,6 @@ vi.mock('@/i18n/LocaleContext', () => ({
   }),
 }));
 
-const LocationProbe = () => {
-  const location = useLocation();
-
-  return <output data-testid="location">{`${location.pathname}${location.search}`}</output>;
-};
-
 const renderGuide = (locale: 'en' | 'fr') => {
   localeState.current = locale;
 
@@ -28,7 +22,6 @@ const renderGuide = (locale: 'en' | 'fr') => {
     <ThemeProvider>
       <MemoryRouter initialEntries={[`/npp?lang=${locale}`]}>
         <NPPPage />
-        <LocationProbe />
       </MemoryRouter>
     </ThemeProvider>,
   );
@@ -42,6 +35,9 @@ const localeCases = [
     contentsLabel: 'Guide contents',
     jumpLinksLabel: 'Guide jump links',
     returnLabel: 'Return to landing',
+    disclaimer:
+      'This page is a plain-language aid, not financial authority or approval. Current legislation, CDS delegations, CFMWS policy, grant-specific instructions, and local NPP Accounting direction prevail.',
+    openSource: 'Open source',
     audienceLabels: ['All members', 'NPP operators'],
     sectionHeadings: [
       ['npp-and-npf', 'What NPP and NPF are—and are not'],
@@ -94,6 +90,9 @@ const localeCases = [
     contentsLabel: 'Sommaire du guide',
     jumpLinksLabel: 'Liens rapides du guide',
     returnLabel: 'Retour à l’accueil',
+    disclaimer:
+      'Cette page est un outil en langage clair; elle ne constitue ni une autorité financière ni une approbation. Les lois en vigueur, les délégations du CEMD, les politiques des SBMFC, les directives propres aux subventions et les directives comptables locales des BNP ont préséance.',
+    openSource: 'Ouvrir la source',
     audienceLabels: ['Tous les membres', 'Opérateurs BNP'],
     sectionHeadings: [
       ['npp-and-npf', 'Ce que sont les BNP et les FNP — et ce qu’ils ne sont pas'],
@@ -144,6 +143,134 @@ const localeCases = [
   },
 ];
 
+const expectedSources = [
+  {
+    id: 'national-defence-act',
+    title: {
+      en: 'National Defence Act, sections 38–41',
+      fr: 'Loi sur la défense nationale, articles 38 à 41',
+    },
+    links: [
+      {
+        language: 'English',
+        href: 'https://laws-lois.justice.gc.ca/eng/acts/N-5/page-4.html',
+      },
+      {
+        language: 'Français',
+        href: 'https://laws-lois.justice.gc.ca/fra/lois/n-5/page-4.html',
+      },
+    ],
+  },
+  {
+    id: 'daod-9003-1',
+    title: {
+      en: 'DAOD 9003-1, Non-Public Property',
+      fr: 'DOAD 9003-1, Biens non publics',
+    },
+    links: [
+      {
+        language: 'English',
+        href: 'https://www.canada.ca/en/department-national-defence/corporate/policies-standards/defence-administrative-orders-directives/9000-series/9003/9003-1-non-public-property.html',
+      },
+      {
+        language: 'Français',
+        href: 'https://www.canada.ca/fr/ministere-defense-nationale/organisation/politiques-normes/directives-ordonnances-administratives-defense/serie-9000/9003/9003-1-biens-non-publics.html',
+      },
+    ],
+  },
+  {
+    id: 'cds-npp-delegation',
+    title: {
+      en: 'CDS Delegation of Authorities for Financial Administration of NPP',
+      fr: 'Délégation des pouvoirs du CEMD pour l’administration financière des BNP',
+    },
+    links: [
+      {
+        language: 'English',
+        href: 'https://cfmws.ca/CFMWS/media/images/documents/8.0%20About%20Us/8.4%20Policies%20and%20Publications/8.4.5/Policies/DelegationofAuthorities_e.pdf',
+      },
+    ],
+  },
+  {
+    id: 'afn105-grants',
+    title: {
+      en: 'A-FN-105 Chapter 10, Grants',
+      fr: 'A-FN-105, chapitre 10, Subventions',
+    },
+    links: [
+      {
+        language: 'English',
+        href: 'https://cfmws.ca/CFMWS/media/images/documents/8.0%20About%20Us/8.4%20Policies%20and%20Publications/8.4.5/Policies/AF-N-105/Chap10_e.pdf',
+      },
+    ],
+  },
+  {
+    id: 'afn105-accounts-payable',
+    title: {
+      en: 'A-FN-105 Chapter 19, Accounts Payable',
+      fr: 'A-FN-105, chapitre 19, Comptes créditeurs',
+    },
+    links: [
+      {
+        language: 'English',
+        href: 'https://cfmws.ca/CFMWS/media/images/documents/8.0%20About%20Us/8.4%20Policies%20and%20Publications/8.4.5/Policies/AF-N-105/Chap19_e.pdf',
+      },
+    ],
+  },
+  {
+    id: 'afn105-non-employer-payments',
+    title: {
+      en: 'A-FN-105 Chapter 32, Non-employer Payments',
+      fr: 'A-FN-105, chapitre 32, Paiements à des non-employés',
+    },
+    links: [
+      {
+        language: 'English',
+        href: 'https://cfmws.ca/CFMWS/media/images/documents/8.0%20About%20Us/8.4%20Policies%20and%20Publications/8.4.5/Policies/AF-N-105/chap32_e.pdf',
+      },
+    ],
+  },
+  {
+    id: 'npp-contracting-policy',
+    title: {
+      en: 'Current Non-Public Property Contracting Policy',
+      fr: 'Politique actuelle de passation des marchés des biens non publics',
+    },
+    links: [
+      {
+        language: 'English',
+        href: 'https://cfmws.ca/about-us/policies-and-publications/procurement-and-contracting/non-public-property-contracting-policy',
+      },
+    ],
+  },
+  {
+    id: 'contract-for-services',
+    title: {
+      en: 'Current Contract for Services operational page',
+      fr: 'Page opérationnelle actuelle sur le contrat de services',
+    },
+    links: [
+      {
+        language: 'English',
+        href: 'https://cfmws.ca/about-us/policies-and-publications/procurement-and-contracting/contract-for-services',
+      },
+    ],
+  },
+  {
+    id: 'afn105-credit-cards',
+    title: {
+      en: 'A-FN-105 Chapter 12, Credit Cards',
+      fr: 'A-FN-105, chapitre 12, Cartes de crédit',
+    },
+    links: [
+      {
+        language: 'English',
+        href: 'https://cfmws.ca/CFMWS/media/images/documents/8.0%20About%20Us/8.4%20Policies%20and%20Publications/8.4.5/Policies/AF-N-105/Chap12_e.pdf',
+      },
+    ],
+  },
+] as const;
+
 afterEach(() => {
   localeState.current = 'en';
   window.localStorage.clear();
@@ -158,14 +285,27 @@ describe.each(localeCases)('NPPPage ($locale)', (copy) => {
     expect(container.querySelector('header')).toBeInTheDocument();
     expect(container.querySelector('main#npp-main')).toBeInTheDocument();
     expect(container.querySelector('footer')).toBeInTheDocument();
+    expect(screen.getByText(copy.disclaimer)).toBeVisible();
     expect(screen.getByRole('link', { name: copy.skipLabel })).toHaveAttribute('href', '#npp-main');
 
     for (const [id, heading] of copy.sectionHeadings) {
-      const section = container.querySelector(`section#${id}`);
+      const section = container.querySelector(
+        id === 'reimbursement-checklist' ? `div#${id}` : `section#${id}`,
+      );
 
       expect(section).toBeInTheDocument();
       expect(within(section as HTMLElement).getByRole('heading', { name: heading })).toBeVisible();
     }
+  });
+
+  it('exposes one contents landmark and only one labelled checklist region', () => {
+    const { container } = renderGuide(copy.locale);
+
+    expect(screen.getAllByRole('complementary')).toHaveLength(1);
+
+    const checklistAnchor = container.querySelector('#reimbursement-checklist');
+    expect(checklistAnchor?.tagName).toBe('DIV');
+    expect(within(checklistAnchor as HTMLElement).getAllByRole('region')).toHaveLength(1);
   });
 
   it('provides desktop contents and mobile jump links for every guide anchor', () => {
@@ -191,7 +331,7 @@ describe.each(localeCases)('NPPPage ($locale)', (copy) => {
     }
 
     for (const [id, text] of copy.contentChecks) {
-      expect(container.querySelector(`section#${id}`)).toHaveTextContent(text);
+      expect(container.querySelector(`#${id}`)).toHaveTextContent(text);
     }
 
     const grantSection = container.querySelector('section#grants');
@@ -212,15 +352,27 @@ describe.each(localeCases)('NPPPage ($locale)', (copy) => {
       within(sourceFooter as HTMLElement).getByRole('heading', { name: copy.sourceHeading }),
     ).toBeVisible();
 
-    const externalLinks = within(sourceFooter as HTMLElement)
-      .getAllByRole('link')
-      .filter((link) => link.getAttribute('href')?.startsWith('http'));
+    for (const expectedSource of expectedSources) {
+      const sourceEntry = container.querySelector(`#source-${expectedSource.id}`);
 
-    expect(externalLinks.length).toBeGreaterThan(0);
-    for (const link of externalLinks) {
-      expect(link).toHaveAttribute('target', '_blank');
-      expect(link).toHaveAttribute('rel', 'noopener noreferrer');
-      expect(link).toHaveAccessibleName(/English|Français/);
+      expect(sourceEntry).toBeInTheDocument();
+      expect(
+        within(sourceEntry as HTMLElement).getByRole('heading', {
+          name: expectedSource.title[copy.locale],
+        }),
+      ).toBeVisible();
+
+      const sourceLinks = within(sourceEntry as HTMLElement).getAllByRole('link');
+      expect(sourceLinks).toHaveLength(expectedSource.links.length);
+
+      for (const expectedLink of expectedSource.links) {
+        const link = within(sourceEntry as HTMLElement).getByRole('link', {
+          name: `${copy.openSource} — ${expectedLink.language}`,
+        });
+        expect(link).toHaveAttribute('href', expectedLink.href);
+        expect(link).toHaveAttribute('target', '_blank');
+        expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+      }
     }
   });
 
@@ -243,8 +395,10 @@ describe.each(localeCases)('NPPPage ($locale)', (copy) => {
   it('preserves the selected locale when returning to the landing page', () => {
     renderGuide(copy.locale);
 
-    fireEvent.click(screen.getByRole('button', { name: new RegExp(copy.returnLabel, 'i') }));
+    const returnLink = screen.getByRole('link', { name: copy.returnLabel });
 
-    expect(screen.getByTestId('location')).toHaveTextContent(`/?lang=${copy.locale}`);
+    expect(returnLink).toHaveAttribute('href', `/?lang=${copy.locale}`);
+    returnLink.focus();
+    expect(returnLink).toHaveFocus();
   });
 });

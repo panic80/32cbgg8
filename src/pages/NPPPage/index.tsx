@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import {
   AlertTriangle,
+  ArrowLeft,
   ArrowUp,
   BookOpen,
   Check,
@@ -16,8 +17,8 @@ import {
   Users,
   WalletCards,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { LocaleToggle } from '@/components/LocaleToggle';
-import { EnhancedBackButton } from '@/components/ui/enhanced-back-button';
 import { SITE_CONFIG } from '@/constants/siteConfig';
 import { useTheme } from '@/context/ThemeContext';
 import { useLocale } from '@/i18n/LocaleContext';
@@ -183,7 +184,7 @@ const SourceReferences = ({ sourceIds, locale }: { sourceIds: string[]; locale: 
   const ui = pageUi[locale];
 
   return (
-    <aside className="npp-reference-strip" aria-label={ui.sourceReferences}>
+    <div className="npp-reference-strip">
       <BookOpen aria-hidden="true" />
       <div>
         <p>{ui.sourceReferences}</p>
@@ -199,7 +200,7 @@ const SourceReferences = ({ sourceIds, locale }: { sourceIds: string[]; locale: 
           })}
         </ul>
       </div>
-    </aside>
+    </div>
   );
 };
 
@@ -228,13 +229,13 @@ const GuidanceBody = ({ section, locale }: { section: GuideSection; locale: Loca
       ) : null}
 
       {section.warnings.map((warning) => (
-        <aside className="npp-warning" key={warning.en} aria-label={ui.caution}>
+        <div className="npp-warning" key={warning.en}>
           <AlertTriangle aria-hidden="true" />
           <div>
             <strong>{ui.caution}</strong>
             <p>{warning[locale]}</p>
           </div>
-        </aside>
+        </div>
       ))}
     </>
   );
@@ -420,11 +421,7 @@ const ChecklistSection = ({
   const ui = pageUi[locale];
 
   return (
-    <section
-      id={section.id}
-      className="npp-guide-section npp-checklist-shell"
-      aria-labelledby="reimbursement-checklist-heading"
-    >
+    <div id={section.id} className="npp-guide-section npp-checklist-shell">
       <div className="npp-section-heading npp-checklist-marker">
         <div className="npp-section-icon" aria-hidden="true">
           <Check />
@@ -451,19 +448,19 @@ const ChecklistSection = ({
               </ul>
             ) : null}
             {section.warnings.map((warning) => (
-              <aside className="npp-warning" key={warning.en} aria-label={ui.caution}>
+              <div className="npp-warning" key={warning.en}>
                 <AlertTriangle aria-hidden="true" />
                 <div>
                   <strong>{ui.caution}</strong>
                   <p>{warning[locale]}</p>
                 </div>
-              </aside>
+              </div>
             ))}
           </div>
         ) : null}
         <SourceReferences sourceIds={section.sourceIds} locale={locale} />
       </div>
-    </section>
+    </div>
   );
 };
 
@@ -480,13 +477,10 @@ const NPPPage = () => {
 
       <header className="npp-masthead">
         <div className="npp-command-bar npp-screen-only">
-          <EnhancedBackButton
-            to={`/?lang=${locale}`}
-            label={ui.returnToLanding}
-            variant="minimal"
-            size="sm"
-            className="npp-return-control"
-          />
+          <Link to={`/?lang=${locale}`} className="npp-return-control">
+            <ArrowLeft aria-hidden="true" />
+            <span>{ui.returnToLanding}</span>
+          </Link>
           <div
             className="npp-page-controls"
             aria-label={locale === 'fr' ? 'Commandes de page' : 'Page controls'}
