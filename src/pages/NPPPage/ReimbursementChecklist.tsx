@@ -48,7 +48,9 @@ export const ReimbursementChecklist = () => {
       <div>
         <h2 id="reimbursement-checklist-heading" className="text-xl font-semibold">
           {checklistSection?.heading[locale] ??
-            (locale === 'fr' ? 'Liste de contrôle pour le remboursement' : 'Reimbursement checklist')}
+            (locale === 'fr'
+              ? 'Liste de contrôle pour le remboursement'
+              : 'Reimbursement checklist')}
         </h2>
         {checklistSection?.paragraphs[0] && (
           <p className="mt-2 text-sm text-muted-foreground">
@@ -93,12 +95,7 @@ export const ReimbursementChecklist = () => {
         >
           {ui.reset}
         </Button>
-        <Button
-          type="button"
-          variant="outline"
-          className="min-h-11"
-          onClick={() => window.print()}
-        >
+        <Button type="button" variant="outline" className="min-h-11" onClick={() => window.print()}>
           {ui.print}
         </Button>
       </div>

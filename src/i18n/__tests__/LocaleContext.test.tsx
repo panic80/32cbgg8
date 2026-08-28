@@ -42,8 +42,14 @@ describe('locale foundation', () => {
 
     expect(window.location.search).toBe('?lang=fr');
     expect(document.documentElement.lang).toBe('fr');
-    expect(screen.getByRole('button', { name: 'Français' })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: 'English' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: 'Français' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getByRole('button', { name: 'English' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
     expect(screen.getByRole('status', { name: 'current locale' })).toHaveTextContent('fr');
   });
 
@@ -92,9 +98,10 @@ describe('locale foundation', () => {
     expect(landingCopy.en.features.scipPortal.title).toBe('SCIP Portal');
     expect(landingCopy.en.features.npf.title).toBe('NPF');
     expect(landingCopy.fr.features.npf.title).toBe('NPF');
-    expect(landingCopy.fr.about.keyFeatures.find((feature) => feature.description.includes('BNP'))?.title).toBe(
-      'NPF',
-    );
+    expect(
+      landingCopy.fr.about.keyFeatures.find((feature) => feature.description.includes('BNP'))
+        ?.title,
+    ).toBe('NPF');
   });
 
   it('localizes the toggle group and live announcement in French', () => {
