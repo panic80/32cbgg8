@@ -11,6 +11,26 @@ const LocaleProbe = () => {
   return <output aria-label="current locale">{locale}</output>;
 };
 
+const expectNonEmptyLocalizedStrings = (value: unknown, path: string): void => {
+  if (typeof value === 'string') {
+    expect(value.trim(), path).not.toBe('');
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => {
+      expectNonEmptyLocalizedStrings(item, `${path}[${index}]`);
+    });
+    return;
+  }
+
+  if (value !== null && typeof value === 'object') {
+    Object.entries(value).forEach(([key, nestedValue]) => {
+      expectNonEmptyLocalizedStrings(nestedValue, `${path}.${key}`);
+    });
+  }
+};
+
 describe('locale foundation', () => {
   beforeEach(() => {
     window.history.replaceState({}, '', '/');
@@ -78,6 +98,7 @@ describe('locale foundation', () => {
     for (const locale of ['en', 'fr'] as const) {
       const copy = landingCopy[locale];
 
+      expectNonEmptyLocalizedStrings(copy, `${locale} landing copy`);
       expect(copy.heading).not.toBe('');
       expect(copy.subtitle).not.toBe('');
       expect(copy.footer.about).not.toBe('');
@@ -90,7 +111,7 @@ describe('locale foundation', () => {
       expect(copy.features.npf.description).not.toBe('');
       expect(copy.about.close).not.toBe('');
       expect(copy.privacy.close).not.toBe('');
-      expect(copy.scipConfirmation.continue).not.toBe('');
+      expect(copy.navigationStatus.continue).not.toBe('');
       expect(copy.copyLinkStatus.copied).not.toBe('');
       expect(copy.navigationStatus.opening).not.toBe('');
     }

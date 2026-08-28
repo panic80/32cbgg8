@@ -91,6 +91,14 @@ const LandingPage = () => {
     }, SCIP_NAVIGATION_DELAY_MS);
   }, [isNavigatingToSCIP]);
 
+  const handleSCIPDialogOpenChange = useCallback(
+    (open: boolean) => {
+      if (!open && isNavigatingToSCIP) return;
+      setShowSCIPConfirmation(open);
+    },
+    [isNavigatingToSCIP],
+  );
+
   const handleFooterLink = useCallback((id: (typeof footerLinks)[number]['id']) => {
     if (id === 'about') {
       setShowAboutModal(true);
@@ -432,7 +440,7 @@ const LandingPage = () => {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showSCIPConfirmation} onOpenChange={setShowSCIPConfirmation}>
+      <Dialog open={showSCIPConfirmation} onOpenChange={handleSCIPDialogOpenChange}>
         <DialogContent className="w-[92vw] sm:max-w-lg md:max-w-xl lg:max-w-2xl break-words">
           <DialogHeader>
             <DialogTitle>{copy.scipConfirmation.title}</DialogTitle>
@@ -472,6 +480,7 @@ const LandingPage = () => {
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setShowSCIPConfirmation(false)}
+                disabled={isNavigatingToSCIP}
                 className="px-4 py-2 text-sm sm:text-base text-[var(--text)] bg-[var(--background-secondary)] hover:bg-[var(--background)] rounded-lg transition-colors duration-300"
               >
                 {copy.scipConfirmation.cancel}

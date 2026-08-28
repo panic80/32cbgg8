@@ -184,7 +184,12 @@ describe('LandingPage', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Continuer' }));
 
       expect(screen.getByRole('button', { name: 'Ouverture…' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Annuler' })).toBeDisabled();
       expect(assign).not.toHaveBeenCalled();
+
+      fireEvent.keyDown(document, { key: 'Escape' });
+      fireEvent.pointerDown(document.body);
+      expect(screen.getByRole('dialog')).toBeVisible();
 
       vi.runOnlyPendingTimers();
       expect(assign).toHaveBeenCalledTimes(1);
