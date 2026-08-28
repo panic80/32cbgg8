@@ -1,4 +1,4 @@
-import { UIEvent, useCallback, useState } from 'react';
+import { UIEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
 import LogoImage from '@/components/LogoImage';
@@ -32,6 +32,8 @@ const handleScrollableContent: ScrollHandler = (event, setIndicator) => {
   setIndicator(!isAtBottom);
 };
 
+const SCIP_NAVIGATION_DELAY_MS = 150;
+
 const formatFooterCopy = (template: string, values: Record<string, string>) =>
   Object.entries(values).reduce(
     (formatted, [key, value]) => formatted.replace(`{${key}}`, value),
@@ -60,6 +62,15 @@ const LandingPage = () => {
   const [isNavigatingToSCIP, setIsNavigatingToSCIP] = useState(false);
   const [showPrivacyScrollIndicator, setShowPrivacyScrollIndicator] = useState(true);
   const [showAboutScrollIndicator, setShowAboutScrollIndicator] = useState(true);
+  const scipNavigationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (scipNavigationTimerRef.current !== null) {
+        clearTimeout(scipNavigationTimerRef.current);
+      }
+    };
+  }, []);
 
   const { isCopied: isLinkCopied, handleCopy: copySCIPLink } = useCopyToClipboard({
     text: SITE_CONFIG.SCIP_PORTAL_URL,
@@ -72,10 +83,12 @@ const LandingPage = () => {
   }, []);
 
   const confirmSCIPNavigation = useCallback(() => {
-    if (isNavigatingToSCIP) return;
+    if (isNavigatingToSCIP || scipNavigationTimerRef.current !== null) return;
     setIsNavigatingToSCIP(true);
-    setShowSCIPConfirmation(false);
-    window.location.assign(SITE_CONFIG.SCIP_PORTAL_URL);
+    scipNavigationTimerRef.current = setTimeout(() => {
+      scipNavigationTimerRef.current = null;
+      window.location.assign(SITE_CONFIG.SCIP_PORTAL_URL);
+    }, SCIP_NAVIGATION_DELAY_MS);
   }, [isNavigatingToSCIP]);
 
   const handleFooterLink = useCallback((id: (typeof footerLinks)[number]['id']) => {

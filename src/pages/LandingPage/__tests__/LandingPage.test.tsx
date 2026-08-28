@@ -172,4 +172,25 @@ describe('LandingPage', () => {
       expect(toast.error).toHaveBeenCalledWith('Échec de la copie du lien.');
     });
   });
+
+  it('shows a disabled French opening state before navigating to SCIP', () => {
+    vi.useFakeTimers();
+    const assign = vi.spyOn(window.location, 'assign').mockImplementation(() => undefined);
+
+    try {
+      renderLandingPage();
+      fireEvent.click(screen.getByRole('button', { name: 'Français' }));
+      fireEvent.click(screen.getByRole('button', { name: /Portail SCIP/i }));
+      fireEvent.click(screen.getByRole('button', { name: 'Continuer' }));
+
+      expect(screen.getByRole('button', { name: 'Ouverture…' })).toBeDisabled();
+      expect(assign).not.toHaveBeenCalled();
+
+      vi.runOnlyPendingTimers();
+      expect(assign).toHaveBeenCalledTimes(1);
+    } finally {
+      assign.mockRestore();
+      vi.useRealTimers();
+    }
+  });
 });
