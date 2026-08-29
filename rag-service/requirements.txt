@@ -20,14 +20,14 @@ langgraph>=1.0.4,<2.0
 langgraph-checkpoint-redis>=0.1.2  # Official Redis checkpointer
 
 # Vector store and embeddings
-chromadb>=1.0.20  # Required by langchain-chroma 1.0.0
+chromadb>=1.5.9  # Required by langchain-chroma 1.0.0
 openai>=1.12.0
 # Note: google-generativeai removed - langchain-google-genai provides Google AI integration
 rank-bm25>=0.2.2
 
 # Document processing
 beautifulsoup4>=4.12.0
-pypdf>=4.0.0
+pypdf>=6.15.0
 markdownify>=0.11.0
 python-docx>=1.1.0
 openpyxl>=3.1.0
@@ -42,7 +42,7 @@ pydantic-settings>=2.1.0
 redis>=5.0.0
 
 # Async support
-aiohttp>=3.9.0
+aiohttp>=3.14.3
 httpx>=0.26.0
 aiosqlite>=0.19.0
 
@@ -52,7 +52,7 @@ tenacity>=8.2.0
 scikit-learn>=1.3.0
 numpy>=1.26.0,<2.0
 sentence-transformers>=2.6.0
-nltk>=3.8.0
+nltk>=3.10.0
 
 # Evaluation framework dependencies
 transformers>=4.35.0  # For NLI hallucination detection (DeBERTa)
