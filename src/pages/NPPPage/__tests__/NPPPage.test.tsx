@@ -41,7 +41,18 @@ const localeCases = [
     disclaimer:
       'This page is a plain-language aid, not financial authority or approval. Current legislation, CDS delegations, CFMWS policy, grant-specific instructions, and local NPP Accounting direction prevail.',
     openSource: 'Open source',
-    grantSelectorLabel: 'Choose a funding record',
+    grantSelectorLabel: 'Select a grant or funding record',
+    grantHelperPattern: /one option.{0,100}(amount|formula).{0,100}requirements/i,
+    grantStatus: (index: number, total: number) => `Showing record ${index} of ${total}`,
+    requirementsHeading: 'Requirements at a glance',
+    alienationExamplesIntro: 'Key examples—not exhaustive',
+    alienationExamples: [
+      'Gifts or donations to outside individuals or organizations.',
+      'Selling NPP below fair market value.',
+      'Using NPF for a government/public responsibility.',
+      'Providing a personal benefit to an individual or restricted group.',
+      'Transferring NPP to the Crown without appropriate value in return.',
+    ],
     audienceLabels: ['All members', 'NPP operators'],
     sectionHeadings: [
       ['npp-and-npf', 'What NPP and NPF are—and are not'],
@@ -84,7 +95,7 @@ const localeCases = [
       'Band Grant',
       'Band Uniform Grant',
       'Kilted Order Grant',
-      'Other applicable ceremonial grant',
+      'Alternate voluntary ceremonial sub-unit grants — Regular Force context (not a 32 CBG entitlement)',
     ],
     progress: '0 of 15 complete',
     sourceHeading: 'Official sources',
@@ -101,7 +112,18 @@ const localeCases = [
     disclaimer:
       'Cette page est un outil en langage clair; elle ne constitue ni une autorité financière ni une approbation. Les lois en vigueur, les délégations du CEMD, les politiques des SBMFC, les directives propres aux subventions et les directives comptables locales des BNP ont préséance.',
     openSource: 'Ouvrir la source',
-    grantSelectorLabel: 'Choisir un dossier de financement',
+    grantSelectorLabel: 'Sélectionner une subvention ou un dossier de financement',
+    grantHelperPattern: /une option.{0,100}(montant|formule).{0,100}(exigences|conditions)/i,
+    grantStatus: (index: number, total: number) => `Dossier ${index} sur ${total} affiché`,
+    requirementsHeading: 'Exigences en bref',
+    alienationExamplesIntro: 'Exemples clés — liste non exhaustive',
+    alienationExamples: [
+      'Dons ou donations à des personnes ou organisations externes.',
+      'Vendre des BNP sous la juste valeur marchande.',
+      'Utiliser les FNP pour une responsabilité gouvernementale ou publique.',
+      'Accorder un avantage personnel à une personne ou à un groupe restreint.',
+      'Transférer des BNP à l’État sans valeur appropriée en retour.',
+    ],
     audienceLabels: ['Tous les membres', 'Opérateurs BNP'],
     sectionHeadings: [
       ['npp-and-npf', 'Ce que sont les BNP et les FNP — et ce qu’ils ne sont pas'],
@@ -147,7 +169,7 @@ const localeCases = [
       'Subvention aux musiques',
       'Subvention pour les uniformes de musique',
       'Subvention pour la tenue écossaise',
-      'Autre subvention cérémonielle applicable',
+      'Subventions aux sous-unités de cérémonie bénévoles de remplacement — contexte de la Force régulière (ne constitue pas un droit du 32 GBC)',
     ],
     progress: '0 sur 15 terminées',
     sourceHeading: 'Sources officielles',
@@ -454,6 +476,16 @@ describe.each(localeCases)('NPPPage ($locale)', (copy) => {
     expect(screen.getByText(copy.progress)).toHaveAttribute('aria-live', 'polite');
   });
 
+  it('renders all five alienation examples as a distinct non-exhaustive list', () => {
+    const { container } = renderGuide(copy.locale);
+    const alienation = container.querySelector('#alienation-of-funds');
+
+    expect(alienation).toHaveTextContent(copy.alienationExamplesIntro);
+    for (const example of copy.alienationExamples) {
+      expect(alienation).toHaveTextContent(example);
+    }
+  });
+
   it('offers every grant through one localized native selector and shows one record at a time', () => {
     const { container } = renderGuide(copy.locale);
     const grantSection = container.querySelector('section#grants') as HTMLElement;
@@ -476,6 +508,62 @@ describe.each(localeCases)('NPPPage ($locale)', (copy) => {
     expect(grantSection.querySelector('#grant-unit-internal-npp')).toHaveAttribute('hidden');
     expect(grantSection.querySelector('#grant-band-grant')).not.toHaveAttribute('hidden');
     expect(within(grantSection).getByRole('heading', { name: copy.grantNames[5] })).toBeVisible();
+  });
+
+  it('connects the grant selector to an accessible status and visible card with entitlement requirements', () => {
+    const { container } = renderGuide(copy.locale);
+    const grantSection = container.querySelector('section#grants') as HTMLElement;
+    const selector = within(grantSection).getByRole('combobox', {
+      name: copy.grantSelectorLabel,
+    });
+    const selectorPanel = selector.closest('.npp-grant-selector');
+    const helper = within(grantSection).getByText(copy.grantHelperPattern);
+    const status = within(grantSection).getByText(copy.grantStatus(1, 9));
+    const visibleCards = () =>
+      Array.from(grantSection.querySelectorAll('article.npp-grant-card')).filter(
+        (card) => !card.hasAttribute('hidden'),
+      );
+
+    expect(grantSection).toHaveTextContent(copy.grantHelperPattern);
+    expect(selectorPanel).toBeInTheDocument();
+    expect(selectorPanel?.querySelector('svg[aria-hidden="true"]')).toBeInTheDocument();
+    expect(status).toHaveAttribute('role', 'status');
+    expect(status).toHaveAttribute('aria-live', 'polite');
+    expect(helper).toHaveAttribute('id');
+    expect(status).toHaveAttribute('id');
+    expect(selector.getAttribute('aria-describedby')?.split(/\s+/)).toEqual(
+      expect.arrayContaining([helper.getAttribute('id'), status.getAttribute('id')]),
+    );
+    expect(selector).toHaveAttribute('aria-controls', 'grant-unit-internal-npp');
+    expect(visibleCards()).toHaveLength(1);
+
+    fireEvent.change(selector, { target: { value: 'reserve-pfmg' } });
+
+    expect(selector).toHaveValue('reserve-pfmg');
+    expect(selector).toHaveAttribute('aria-controls', 'grant-reserve-pfmg');
+    expect(status).toHaveTextContent(copy.grantStatus(3, 9));
+    expect(visibleCards()).toHaveLength(1);
+
+    const pfmgCard = container.querySelector('#grant-reserve-pfmg') as HTMLElement;
+    expect(pfmgCard).toHaveTextContent(/\$\s?5[.,]40/);
+    expect(pfmgCard).toHaveTextContent(/\$\s?2[.,]80/);
+    const requirementsHeading = within(pfmgCard).getByRole('heading', {
+      name: copy.requirementsHeading,
+    });
+    const requirementsList = requirementsHeading.parentElement?.querySelector('ul');
+
+    expect(requirementsList).toBeInTheDocument();
+    expect(requirementsList?.querySelectorAll('li').length).toBeGreaterThanOrEqual(3);
+    expect(requirementsList?.querySelectorAll('li').length).toBeLessThanOrEqual(5);
+
+    fireEvent.change(selector, { target: { value: 'band-grant' } });
+
+    expect(selector).toHaveValue('band-grant');
+    expect(selector).toHaveAttribute('aria-controls', 'grant-band-grant');
+    expect(status).toHaveTextContent(copy.grantStatus(6, 9));
+    expect(visibleCards()).toHaveLength(1);
+    expect(container.querySelector('#grant-band-grant')).toHaveTextContent('$43');
+    expect(container.querySelector('#grant-band-grant')).toHaveTextContent('$25');
   });
 
   it('renders hardened official links with explicit language availability', () => {

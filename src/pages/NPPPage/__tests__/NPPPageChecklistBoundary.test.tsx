@@ -141,7 +141,7 @@ describe.each(['en', 'fr'] as const)('NPPPage checklist boundary ($locale)', (lo
     const checkboxes = within(checklist).getAllByRole('checkbox');
     const first = checkboxes[0];
     const second = checkboxes[1];
-    const status = screen.getByRole('status');
+    const status = within(checklist).getByRole('status');
 
     fireEvent.click(first);
     expect(status).toHaveTextContent(locale === 'fr' ? '1 sur 15' : '1 of 15');
@@ -188,6 +188,7 @@ describe.each(['en', 'fr'] as const)('NPPPage checklist boundary ($locale)', (lo
       expect(list.querySelectorAll('svg')).toHaveLength(0);
       expect(list.querySelectorAll('button, input, [role="checkbox"]')).toHaveLength(0);
     });
-    expect(screen.getByRole('status')).toHaveTextContent(progressText[locale]);
+    const checklist = container.querySelector('#reimbursement-checklist') as HTMLElement;
+    expect(within(checklist).getByRole('status')).toHaveTextContent(progressText[locale]);
   });
 });

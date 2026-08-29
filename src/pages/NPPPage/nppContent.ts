@@ -39,6 +39,28 @@ const grantUnspentBalanceRule: LocalizedText = {
   fr: 'Suivez la règle actuelle propre à la subvention pour les soldes non dépensés. Ne réaffectez, ne transférez ni ne conservez un solde sans confirmation du bureau de soutien des BNP.',
 };
 
+const publicGrantEvidence: LocalizedText[] = [
+  {
+    en: 'Keep the approved authorization, CF 52 where the grant instruction requires it, approved paid invoices or receipts, proof of payment, and supporting eligibility and acceptance evidence.',
+    fr: 'Conservez l’autorisation approuvée, le CF 52 lorsque les directives de la subvention l’exigent, les factures payées ou reçus approuvés, la preuve de paiement et les preuves d’admissibilité et d’acceptation.',
+  },
+];
+
+const publicGrantApprovalAndSubmission: LocalizedText = {
+  en: 'At the beginning of the public fiscal year, the Unit Admin O prepares the required claim or documentation and passes it to the NPPAM. The NPPAM verifies it and forwards claims to the Public Funds Accounting Officer for processing and cheque issue; use the current grant-specific route for anything additional.',
+  fr: 'Au début de l’exercice financier public, l’Admin O de l’unité prépare la demande ou les documents requis et les transmet au gestionnaire de la comptabilité des BNP (GC BNP). Le GC BNP les vérifie et transmet les demandes à l’Officier comptable des fonds publics pour le traitement et l’émission du chèque; utilisez la voie actuelle propre à la subvention pour toute exigence additionnelle.',
+};
+
+const publicGrantAccountTreatment: LocalizedText = {
+  en: 'Maintain a separate Unit Fund trust account for each public grant; maintain separate accounts when an initial and an annual maintenance grant are both received. Charge eligible expenditures directly to that trust and do not exceed its unexpended balance; the NPPAM ensures invoices are approved.',
+  fr: 'Tenez un compte fiduciaire distinct du Fonds de l’unité pour chaque subvention publique; tenez des comptes distincts lorsqu’une subvention initiale et une subvention annuelle d’entretien sont toutes deux reçues. Imputez directement les dépenses admissibles à cette fiducie et ne dépassez pas son solde non dépensé; le GC BNP veille à l’approbation des factures.',
+};
+
+const publicGrantUnspentBalanceRule: LocalizedText = {
+  en: 'The annual grant is generally reduced by the prior year-end unexpended trust balance. After a change of status, refund any unexpended grant balance to the Receiver General for Canada through CFCF as directed.',
+  fr: 'La subvention annuelle est généralement réduite du solde non dépensé de la fiducie à la fin de l’exercice précédent. Après un changement de statut, remboursez tout solde de subvention non dépensé au receveur général du Canada par l’intermédiaire du FCFC selon les directives.',
+};
+
 export const nppGuideContent: NppGuideContent = {
   title: { en: 'NPP / NPF Guide', fr: 'Guide des BNP / FNP' },
   description: {
@@ -262,6 +284,28 @@ export const nppGuideContent: NppGuideContent = {
           fr: 'Une décision de comité, une ligne budgétaire ou le processus de paiement ordinaire ne remplace pas le pouvoir distinct requis pour une demande d’aliénation.',
         },
       ],
+      examples: [
+        {
+          en: 'Gifts or donations to outside individuals or organizations.',
+          fr: 'Dons ou donations à des personnes ou organisations externes.',
+        },
+        {
+          en: 'Selling NPP below fair market value.',
+          fr: 'Vendre des BNP sous la juste valeur marchande.',
+        },
+        {
+          en: 'Using NPF for a government/public responsibility.',
+          fr: 'Utiliser les FNP pour une responsabilité gouvernementale ou publique.',
+        },
+        {
+          en: 'Providing a personal benefit to an individual or restricted group.',
+          fr: 'Accorder un avantage personnel à une personne ou à un groupe restreint.',
+        },
+        {
+          en: 'Transferring NPP to the Crown without appropriate value in return.',
+          fr: 'Transférer des BNP à l’État sans valeur appropriée en retour.',
+        },
+      ],
       sourceIds: [
         'cds-npp-delegation',
         'alienation-request-sop',
@@ -468,13 +512,43 @@ export const nppGuideContent: NppGuideContent = {
         en: 'An approved collective morale and welfare purpose within the authorized NPP activity.',
         fr: 'Un objet collectif approuvé de bien-être et de maintien du moral dans le cadre de l’activité BNP autorisée.',
       },
+      entitlement: {
+        status: 'current-or-local-rate-unavailable',
+        amountOrFormula: {
+          en: 'No universal public entitlement. The available amount is limited by the approved Unit Fund budget and current local allocation; local amount unavailable publicly.',
+          fr: 'Il n’existe aucun droit public universel. Le montant disponible est limité par le budget du Fonds de l’unité approuvé et l’allocation locale actuelle; le montant local n’est pas disponible publiquement.',
+        },
+        note: {
+          en: 'This public guide does not publish a 32 CBG local allocation; confirm the current local amount and authority before committing funds.',
+          fr: 'Ce guide public ne publie pas d’allocation locale du 32 GBC; confirmez le montant local et le pouvoir actuels avant d’engager des fonds.',
+        },
+      },
+      requirements: [
+        {
+          en: 'Stay within the approved Unit Fund budget for the approved capital or operating purpose.',
+          fr: 'Respectez le budget du Fonds de l’unité approuvé pour l’objet d’immobilisations ou de fonctionnement approuvé.',
+        },
+        {
+          en: 'Confirm the current local allocation and available unencumbered balance with the supporting NPP office.',
+          fr: 'Confirmez l’allocation locale actuelle et le solde disponible non grevé auprès du bureau de soutien des BNP.',
+        },
+        {
+          en: 'Obtain the applicable Unit Fund and delegated NPP approvals before commitment.',
+          fr: 'Obtenez les approbations applicables du Fonds de l’unité et les pouvoirs délégués des BNP avant l’engagement.',
+        },
+      ],
       timing: currentGrantInstructions,
       evidence: grantEvidence,
       claimOwner: grantClaimOwner,
       approvalAndSubmission: grantApprovalAndSubmission,
       accountTreatment: grantAccountTreatment,
       unspentBalanceRule: grantUnspentBalanceRule,
-      sourceIds: ['cds-npp-delegation', 'afn105-grants'],
+      sourceIds: [
+        'cfmws-budgeting-faq',
+        'psp-policy-manual-reserve-unit-funds',
+        'cds-npp-delegation',
+        'afn105-grants',
+      ],
     },
     {
       id: 'canex-sisip-dividend',
@@ -491,13 +565,38 @@ export const nppGuideContent: NppGuideContent = {
         en: 'The collective morale and welfare purpose authorized for the distribution.',
         fr: 'L’objet collectif de bien-être et de maintien du moral autorisé pour la distribution.',
       },
+      entitlement: {
+        status: 'published-formula',
+        amountOrFormula: {
+          en: 'Current Base/Wing model: 0.6% of local CANEX sales, 15% of net local concession revenue, Community Recreation like costs funded at 33%, and an Equitability Adjustment Grant using geography/size multipliers.',
+          fr: 'Modèle actuel des bases et escadres : 0,6 % des ventes locales CANEX, 15 % du revenu net des concessions locales, coûts comparables des loisirs communautaires financés à 33 %, et Subvention d’ajustement d’équité fondée sur des multiplicateurs de géographie et de taille.',
+        },
+        note: {
+          en: 'There is no universal 32 CBG amount. The current local allocation and the Equitability Adjustment Grant baseline dollar value are not publicly available.',
+          fr: 'Il n’existe pas de montant universel pour le 32 GBC. L’allocation locale actuelle et la valeur monétaire de base de la Subvention d’ajustement d’équité ne sont pas disponibles publiquement.',
+        },
+      },
+      requirements: [
+        {
+          en: 'Confirm the current local allocation rather than deriving a 32 CBG amount from the published Base/Wing model.',
+          fr: 'Confirmez l’allocation locale actuelle plutôt que de calculer un montant du 32 GBC à partir du modèle publié des bases et escadres.',
+        },
+        {
+          en: 'Apply the current Community Recreation assessment and program direction where the allocation is for community recreation.',
+          fr: 'Appliquez l’évaluation actuelle des loisirs communautaires et les directives de programme lorsque l’allocation vise les loisirs communautaires.',
+        },
+        {
+          en: 'Confirm the applicable Equitability Adjustment Grant geography/size categorization and current direction with the supporting office.',
+          fr: 'Confirmez la catégorisation applicable de géographie et de taille de la Subvention d’ajustement d’équité et les directives actuelles auprès du bureau de soutien.',
+        },
+      ],
       timing: currentGrantInstructions,
       evidence: grantEvidence,
       claimOwner: grantClaimOwner,
       approvalAndSubmission: grantApprovalAndSubmission,
       accountTreatment: grantAccountTreatment,
       unspentBalanceRule: grantUnspentBalanceRule,
-      sourceIds: ['afn105-grants', 'daod-9003-1'],
+      sourceIds: ['afn105-grants', 'afn105-grants-annex-e', 'daod-9003-1'],
     },
     {
       id: 'reserve-pfmg',
@@ -511,13 +610,46 @@ export const nppGuideContent: NppGuideContent = {
         en: 'The purpose authorized by the current Reserve PFMG instruction.',
         fr: 'L’objet autorisé par les directives actuelles relatives au PFMG de la Réserve.',
       },
+      entitlement: {
+        status: 'published-amount-or-ceiling',
+        amountOrFormula: {
+          en: 'Statutory base: initial or supplementary $5.40 per authorized officer or NCM; maintenance ceiling $2.80 per member, based on average monthly strength.',
+          fr: 'Base réglementaire : subvention initiale ou supplémentaire de $5,40 par officier ou MR autorisé; plafond d’entretien de $2,80 par membre, fondé sur l’effectif mensuel moyen.',
+        },
+        note: {
+          en: 'These statutory base figures are annually CPI-adjusted by CDS. They are not the current 2026–27 payable rate; the current rate is unavailable publicly and must come from the current DFit/Command notice.',
+          fr: 'Ces chiffres de base réglementaires sont rajustés annuellement selon l’IPC par le CEMD. Ils ne constituent pas le taux payable actuel de 2026-2027; le taux actuel est indisponible publiquement et doit provenir de l’avis actuel du DFit ou du commandement.',
+        },
+      },
+      requirements: [
+        {
+          en: 'Use the grant only for activity equipment (apparatus and consumables for authorized fitness and sports programs) and operating equipment (easily movable apparatus with a substantial life span); confirm the current local/Command public O&M direction before committing.',
+          fr: 'Utilisez la subvention uniquement pour le matériel d’activité (appareils et consommables pour les programmes autorisés de conditionnement physique et de sports) et le matériel d’exploitation (appareils facilement déplaçables ayant une durée de vie appréciable); confirmez les directives publiques locales ou du commandement sur le fonctionnement et l’entretien avant l’engagement.',
+        },
+        {
+          en: 'Do not use PFMG for rentals, fees, memberships or admissions; games-room equipment; furniture or entertainment appliances; prizes, awards, trophies or gifts; facilities, renovations or facility maintenance; or installed equipment.',
+          fr: 'N’utilisez pas le PFMG pour les locations, frais, adhésions ou droits d’entrée; le matériel de salle de jeux; le mobilier ou les appareils de divertissement; les prix, récompenses, trophées ou cadeaux; les installations, rénovations ou l’entretien des installations; ni le matériel installé.',
+        },
+        {
+          en: 'Submit the quarterly CF 52 with paid-invoice evidence and the current supporting documentation.',
+          fr: 'Présentez le CF 52 trimestriel avec la facture payée et les pièces justificatives actuelles.',
+        },
+        {
+          en: 'Carry an unclaimed amount forward only from a previous quarter in the same fiscal year; any entitlement unclaimed at fiscal year-end lapses.',
+          fr: 'Reportez un montant non réclamé uniquement d’un trimestre précédent du même exercice; tout droit non réclamé à la fin de l’exercice devient périmé.',
+        },
+        {
+          en: 'On a change-of-status, follow the current refund and settlement direction for any remaining balance.',
+          fr: 'Lors d’un changement de statut, suivez les directives actuelles de remboursement et de règlement pour tout solde restant.',
+        },
+      ],
       timing: currentGrantInstructions,
-      evidence: grantEvidence,
+      evidence: publicGrantEvidence,
       claimOwner: grantClaimOwner,
-      approvalAndSubmission: grantApprovalAndSubmission,
-      accountTreatment: grantAccountTreatment,
-      unspentBalanceRule: grantUnspentBalanceRule,
-      sourceIds: ['afn105-grants'],
+      approvalAndSubmission: publicGrantApprovalAndSubmission,
+      accountTreatment: publicGrantAccountTreatment,
+      unspentBalanceRule: publicGrantUnspentBalanceRule,
+      sourceIds: ['qro-chapter-210', 'afn105-grants-annex-g', 'psp-policy-manual-pfmg'],
     },
     {
       id: 'reserve-organizational',
@@ -534,13 +666,38 @@ export const nppGuideContent: NppGuideContent = {
         en: 'The organizational purpose authorized by the current grant instruction.',
         fr: 'L’objet organisationnel autorisé par les directives actuelles de la subvention.',
       },
+      entitlement: {
+        status: 'published-amount-or-ceiling',
+        amountOrFormula: {
+          en: 'Official ceiling table: 1–100: $344; 101–200: $689; 201–200: $1,034; 301–400: $1,379. The official table literally says 201–200; flag this apparent source typo and confirm the applicable range. No public tier above 400 is shown.',
+          fr: 'Tableau officiel des plafonds : 1–100 : $344; 101–200 : $689; 201–200 : $1,034; 301–400 : $1,379. Le tableau officiel indique littéralement 201–200; signalez cette apparente erreur de source et confirmez la tranche applicable. Aucun niveau public au-delà de 400 n’est indiqué.',
+        },
+        note: {
+          en: 'These are official reimbursement ceilings, not a standing local allocation or an authorization to correct the published range.',
+          fr: 'Il s’agit de plafonds officiels de remboursement, et non d’une allocation locale permanente ni d’une autorisation de corriger la tranche publiée.',
+        },
+      },
+      requirements: [
+        {
+          en: 'Eligibility events are limited to initial organization, authorized reorganization after at least one year dormant, or reorganization involving a location change.',
+          fr: 'Les événements d’admissibilité se limitent à l’organisation initiale, à une réorganisation autorisée après au moins un an d’inactivité, ou à une réorganisation comportant un changement de lieu.',
+        },
+        {
+          en: 'Obtain CDS approval before reimbursement and confirm the applicable table range without silently correcting it.',
+          fr: 'Obtenez l’approbation du CEMD avant le remboursement et confirmez la tranche applicable sans la corriger silencieusement.',
+        },
+        {
+          en: 'Keep the event, expenses, and current official instruction available for verification.',
+          fr: 'Conservez la preuve de l’événement, des dépenses et des directives officielles actuelles aux fins de vérification.',
+        },
+      ],
       timing: currentGrantInstructions,
-      evidence: grantEvidence,
+      evidence: publicGrantEvidence,
       claimOwner: grantClaimOwner,
-      approvalAndSubmission: grantApprovalAndSubmission,
-      accountTreatment: grantAccountTreatment,
-      unspentBalanceRule: grantUnspentBalanceRule,
-      sourceIds: ['afn105-grants'],
+      approvalAndSubmission: publicGrantApprovalAndSubmission,
+      accountTreatment: publicGrantAccountTreatment,
+      unspentBalanceRule: publicGrantUnspentBalanceRule,
+      sourceIds: ['qro-chapter-210', 'afn105-grants-annex-g'],
     },
     {
       id: 'reserve-contingency',
@@ -554,13 +711,38 @@ export const nppGuideContent: NppGuideContent = {
         en: 'The contingency purpose authorized by the current grant instruction.',
         fr: 'L’objet imprévu autorisé par les directives actuelles de la subvention.',
       },
+      entitlement: {
+        status: 'published-formula',
+        amountOrFormula: {
+          en: 'Annual formula: not exceeding $20 × preceding-fiscal-year average monthly effective strength.',
+          fr: 'Formule annuelle : ne dépassant pas $20 × l’effectif mensuel moyen réel de l’exercice précédent.',
+        },
+        note: {
+          en: 'Effective strength is CDS-defined, not ordinary headcount. The formula remains subject to CDS limits, deductions, and the prior-year unspent balance.',
+          fr: 'L’effectif réel est défini par le CEMD et ne correspond pas à un simple effectif nominal. La formule demeure assujettie aux limites, aux déductions et au solde non dépensé de l’exercice précédent.',
+        },
+      },
+      requirements: [
+        {
+          en: 'Use CDS-defined effective strength, not ordinary headcount, when confirming the preceding-fiscal-year average.',
+          fr: 'Utilisez l’effectif réel défini par le CEMD, et non un simple effectif nominal, pour confirmer la moyenne de l’exercice précédent.',
+        },
+        {
+          en: 'Apply all CDS limits and deductions, including deductions for unit liabilities or public-property damage or deficiencies where directed.',
+          fr: 'Appliquez toutes les limites et déductions du CEMD, y compris les déductions liées aux obligations de l’unité ou aux dommages ou déficits de biens publics lorsqu’elles sont ordonnées.',
+        },
+        {
+          en: 'Apply the required unspent-balance reduction before treating a calculated amount as available.',
+          fr: 'Appliquez la réduction liée au solde non dépensé avant de considérer un montant calculé comme disponible.',
+        },
+      ],
       timing: currentGrantInstructions,
-      evidence: grantEvidence,
+      evidence: publicGrantEvidence,
       claimOwner: grantClaimOwner,
-      approvalAndSubmission: grantApprovalAndSubmission,
-      accountTreatment: grantAccountTreatment,
-      unspentBalanceRule: grantUnspentBalanceRule,
-      sourceIds: ['afn105-grants'],
+      approvalAndSubmission: publicGrantApprovalAndSubmission,
+      accountTreatment: publicGrantAccountTreatment,
+      unspentBalanceRule: publicGrantUnspentBalanceRule,
+      sourceIds: ['qro-chapter-210', 'afn105-grants-annex-g'],
     },
     {
       id: 'band-grant',
@@ -574,13 +756,38 @@ export const nppGuideContent: NppGuideContent = {
         en: 'The band purpose authorized by the current grant instruction.',
         fr: 'L’objet lié à la musique autorisé par les directives actuelles de la subvention.',
       },
+      entitlement: {
+        status: 'published-amount-or-ceiling',
+        amountOrFormula: {
+          en: 'CDS-determined annual ceiling: up to $43 per authorized member for brass-reed or brass bands, and up to $25 per authorized member for pipe, piston-bugle, or fife-and-drum bands.',
+          fr: 'Plafond annuel déterminé par le CEMD : jusqu’à $43 par membre autorisé pour les harmonies ou cuivres, et jusqu’à $25 par membre autorisé pour les cornemuses, trompettes à piston ou fifres et tambours.',
+        },
+        note: {
+          en: 'The QR&O figures are maximums determined by the CDS, not an automatic local payment amount.',
+          fr: 'Les montants des ORFC sont des maximums déterminés par le CEMD et non un montant de paiement local automatique.',
+        },
+      },
+      requirements: [
+        {
+          en: 'Confirm that the organization is an authorized band and that the applicable CDS direction permits the claim.',
+          fr: 'Confirmez que l’organisation est une musique autorisée et que les directives applicables du CEMD permettent la demande.',
+        },
+        {
+          en: 'Use the grant only for public uses: music, minor instrument repair and maintenance, and other permitted miscellaneous band expenses.',
+          fr: 'Utilisez la subvention uniquement pour les usages publics : musique, réparations mineures et entretien des instruments, ainsi que les autres dépenses diverses de musique permises.',
+        },
+        {
+          en: 'Confirm the current DWAN-only CFAO 210-19 process before claiming or accounting for the grant.',
+          fr: 'Confirmez le processus actuel de la CFAO 210-19 (OAFC 210-19), accessible seulement sur le RED, avant de demander ou de comptabiliser la subvention.',
+        },
+      ],
       timing: currentGrantInstructions,
-      evidence: grantEvidence,
+      evidence: publicGrantEvidence,
       claimOwner: grantClaimOwner,
-      approvalAndSubmission: grantApprovalAndSubmission,
-      accountTreatment: grantAccountTreatment,
-      unspentBalanceRule: grantUnspentBalanceRule,
-      sourceIds: ['afn105-grants'],
+      approvalAndSubmission: publicGrantApprovalAndSubmission,
+      accountTreatment: publicGrantAccountTreatment,
+      unspentBalanceRule: publicGrantUnspentBalanceRule,
+      sourceIds: ['qro-chapter-210', 'afn105-grants-annex-g', 'caf-music-instructions'],
     },
     {
       id: 'band-uniform',
@@ -594,13 +801,38 @@ export const nppGuideContent: NppGuideContent = {
         en: 'The band-uniform purpose authorized by the current grant instruction.',
         fr: 'L’objet lié aux uniformes de musique autorisé par les directives actuelles de la subvention.',
       },
+      entitlement: {
+        status: 'published-amount-or-ceiling',
+        amountOrFormula: {
+          en: '$211 initial plus $42 annual maintenance per member on strength, capped at authorized strength.',
+          fr: 'Subvention initiale de $211 plus entretien annuel de $42 par membre à l’effectif, plafonné à l’effectif autorisé.',
+        },
+        note: {
+          en: 'The grant is not payable where ceremonial dress is otherwise provided and maintained at public expense.',
+          fr: 'La subvention n’est pas payable lorsque la tenue cérémonielle est déjà fournie et entretenue aux frais publics.',
+        },
+      },
+      requirements: [
+        {
+          en: 'Confirm that the claimant is an authorized band and that the claim is for eligible ceremonial dress.',
+          fr: 'Confirmez que le demandeur est une musique autorisée et que la demande vise une tenue cérémonielle admissible.',
+        },
+        {
+          en: 'Do not claim where ceremonial dress is already provided and maintained at public expense.',
+          fr: 'Ne présentez pas de demande lorsque la tenue cérémonielle est déjà fournie et entretenue aux frais publics.',
+        },
+        {
+          en: 'Confirm the current DWAN-only CFAO 210-18 process before requesting or accounting for the grant.',
+          fr: 'Confirmez le processus actuel de la CFAO 210-18 (OAFC 210-18), accessible seulement sur le RED, avant de demander ou de comptabiliser la subvention.',
+        },
+      ],
       timing: currentGrantInstructions,
-      evidence: grantEvidence,
+      evidence: publicGrantEvidence,
       claimOwner: grantClaimOwner,
-      approvalAndSubmission: grantApprovalAndSubmission,
-      accountTreatment: grantAccountTreatment,
-      unspentBalanceRule: grantUnspentBalanceRule,
-      sourceIds: ['afn105-grants'],
+      approvalAndSubmission: publicGrantApprovalAndSubmission,
+      accountTreatment: publicGrantAccountTreatment,
+      unspentBalanceRule: publicGrantUnspentBalanceRule,
+      sourceIds: ['qro-chapter-210', 'afn105-grants-annex-g', 'caf-music-instructions'],
     },
     {
       id: 'kilted-order',
@@ -614,19 +846,48 @@ export const nppGuideContent: NppGuideContent = {
         en: 'The kilted-order purpose authorized by the current grant instruction.',
         fr: 'L’objet lié à la tenue écossaise autorisé par les directives actuelles de la subvention.',
       },
+      entitlement: {
+        status: 'published-amount-or-ceiling',
+        amountOrFormula: {
+          en: 'Initial or supplementary purchase: 60% of prescribed-item cost, maximum $253 per eligible member; annual maintenance $40 per member on strength, capped at authorized strength.',
+          fr: 'Achat initial ou supplémentaire : 60 % du coût des articles prescrits, maximum de $253 par membre admissible; entretien annuel de $40 par membre à l’effectif, plafonné à l’effectif autorisé.',
+        },
+        note: {
+          en: 'These are QR&O ceilings for an authorized Reserve Force kilted unit, not a general dress benefit.',
+          fr: 'Il s’agit de plafonds des ORFC pour une unité de la Force de réserve autorisée à porter la tenue écossaise, et non d’un avantage général lié à la tenue.',
+        },
+      },
+      requirements: [
+        {
+          en: 'Confirm the applicant is an authorized Reserve Force kilted unit and limit the grant to the kilt, sporran, hose, and balmoral.',
+          fr: 'Confirmez que le demandeur est une unité de la Force de réserve autorisée à porter la tenue écossaise et limitez la subvention au kilt, sporran, bas et balmoral.',
+        },
+        {
+          en: 'Use the current timing and CF 52 requirements for initial, supplementary, and maintenance claims.',
+          fr: 'Utilisez le calendrier actuel et les exigences du CF 52 pour les demandes initiales, supplémentaires et d’entretien.',
+        },
+        {
+          en: 'Do not claim when the clothing is already supplied and maintained at public expense; public-provision exclusions also apply to band dress.',
+          fr: 'Ne présentez pas de demande lorsque les vêtements sont déjà fournis et entretenus aux frais publics; les exclusions liées à la fourniture publique s’appliquent aussi à la tenue de musique.',
+        },
+        {
+          en: 'On change of status, settle the account and refund any unexpended balance as directed.',
+          fr: 'Lors d’un changement de statut, réglez le compte et remboursez tout solde non dépensé selon les directives.',
+        },
+      ],
       timing: currentGrantInstructions,
-      evidence: grantEvidence,
+      evidence: publicGrantEvidence,
       claimOwner: grantClaimOwner,
-      approvalAndSubmission: grantApprovalAndSubmission,
-      accountTreatment: grantAccountTreatment,
-      unspentBalanceRule: grantUnspentBalanceRule,
-      sourceIds: ['afn105-grants'],
+      approvalAndSubmission: publicGrantApprovalAndSubmission,
+      accountTreatment: publicGrantAccountTreatment,
+      unspentBalanceRule: publicGrantUnspentBalanceRule,
+      sourceIds: ['qro-chapter-210', 'afn105-grants-annex-g', 'caf-dress-instructions'],
     },
     {
       id: 'ceremonial-other',
       name: {
-        en: 'Other applicable ceremonial grant',
-        fr: 'Autre subvention cérémonielle applicable',
+        en: 'Alternate voluntary ceremonial sub-unit grants — Regular Force context (not a 32 CBG entitlement)',
+        fr: 'Subventions aux sous-unités de cérémonie bénévoles de remplacement — contexte de la Force régulière (ne constitue pas un droit du 32 GBC)',
       },
       fundingSource: 'public-administered-through-npp',
       eligibleApplicant: {
@@ -634,16 +895,41 @@ export const nppGuideContent: NppGuideContent = {
         fr: 'Une organisation admissible confirmée dans les directives actuelles de la subvention.',
       },
       purpose: {
-        en: 'The ceremonial purpose authorized by the current grant instruction.',
-        fr: 'L’objet cérémoniel autorisé par les directives actuelles de la subvention.',
+        en: 'Regular Force alternate voluntary ceremonial sub-unit equipment and ceremonial-dress context; it is not a 32 CBG entitlement.',
+        fr: 'Contexte de l’équipement et de la tenue cérémonielle des sous-unités de cérémonie bénévoles de remplacement de la Force régulière; ne constitue pas un droit du 32 GBC.',
       },
+      entitlement: {
+        status: 'published-amount-or-ceiling',
+        amountOrFormula: {
+          en: 'Regular Force context: annual equipment ceiling $25 per member, plus $211 initial and $42 annual ceremonial-uniform maintenance per member, capped at authorized strength.',
+          fr: 'Contexte de la Force régulière : plafond annuel d’équipement de $25 par membre, plus $211 initial et $42 d’entretien annuel de l’uniforme cérémoniel par membre, plafonné à l’effectif autorisé.',
+        },
+        note: {
+          en: 'QR&O articles 210.35 and 210.354 apply to alternate voluntary ceremonial sub-units of the Regular Force, not a 32 CBG entitlement.',
+          fr: 'Les articles 210.35 et 210.354 des ORFC visent les sous-unités de cérémonie bénévoles de remplacement de la Force régulière et ne constituent pas un droit du 32 GBC.',
+        },
+      },
+      requirements: [
+        {
+          en: 'This is Regular Force context only; it is not a 32 CBG entitlement.',
+          fr: 'Il s’agit uniquement d’un contexte de la Force régulière et cela ne constitue pas un droit du 32 GBC.',
+        },
+        {
+          en: 'Confirm the sub-unit is authorized and apply the equipment and ceremonial-dress ceilings only to actual strength capped at authorized strength.',
+          fr: 'Confirmez que la sous-unité est autorisée et appliquez les plafonds d’équipement et de tenue cérémonielle uniquement à l’effectif réel, plafonné à l’effectif autorisé.',
+        },
+        {
+          en: 'Do not claim a ceremonial-uniform grant where clothing is already provided and maintained at public expense; public-provision exclusions apply.',
+          fr: 'Ne présentez pas de demande de subvention pour un uniforme cérémoniel lorsque les vêtements sont déjà fournis et entretenus aux frais publics; les exclusions liées à la fourniture publique s’appliquent.',
+        },
+      ],
       timing: currentGrantInstructions,
-      evidence: grantEvidence,
+      evidence: publicGrantEvidence,
       claimOwner: grantClaimOwner,
-      approvalAndSubmission: grantApprovalAndSubmission,
-      accountTreatment: grantAccountTreatment,
-      unspentBalanceRule: grantUnspentBalanceRule,
-      sourceIds: ['afn105-grants'],
+      approvalAndSubmission: publicGrantApprovalAndSubmission,
+      accountTreatment: publicGrantAccountTreatment,
+      unspentBalanceRule: publicGrantUnspentBalanceRule,
+      sourceIds: ['qro-chapter-210', 'afn105-grants-annex-g'],
     },
   ],
   checklist: [
@@ -825,6 +1111,21 @@ export const nppGuideContent: NppGuideContent = {
       checkedOn,
     },
     {
+      id: 'psp-policy-manual-pfmg',
+      title: {
+        en: 'PSP Policy Manual, Chapter 10-6: Grants for Provision and Maintenance of Physical Fitness Equipment',
+        fr: 'Manuel des politiques des PSP, chapitre 10-6 : Subventions pour l’acquisition et l’entretien du matériel d’éducation physique',
+      },
+      publisher: {
+        en: 'Canadian Forces Morale and Welfare Services',
+        fr: 'Services de bien-être et moral des Forces canadiennes',
+      },
+      urls: {
+        en: 'https://cfmws.ca/CFMWS/media/images/documents/8.0%20About%20Us/Resources%20for%20Messes/English/PSP-Policy-Manual-EN-7-Nov-2022.pdf',
+      },
+      checkedOn,
+    },
+    {
       id: 'alienation-request-sop',
       title: {
         en: 'Alienation of NPP Request Form SOP (publicly posted Draft v2.0)',
@@ -879,6 +1180,73 @@ export const nppGuideContent: NppGuideContent = {
       },
       urls: {
         en: 'https://cfmws.ca/CFMWS/media/images/documents/8.0%20About%20Us/8.4%20Policies%20and%20Publications/8.4.5/Policies/AF-N-105/Chap10_e.pdf',
+      },
+      checkedOn,
+    },
+    {
+      id: 'qro-chapter-210',
+      title: {
+        en: 'QR&O Volume III, Chapter 210: Miscellaneous Entitlements and Grants',
+        fr: 'ORFC volume III, chapitre 210 : Prestations et subventions diverses',
+      },
+      publisher: { en: 'National Defence', fr: 'Défense nationale' },
+      urls: {
+        en: 'https://www.canada.ca/en/department-national-defence/corporate/policies-standards/queens-regulations-orders/vol-3-financial/ch-210-miscellaneous-entitlements-grants.html',
+        fr: 'https://www.canada.ca/fr/ministere-defense-nationale/organisation/politiques-normes/ordonnances-reglements-royaux/vol-3-finances/chapitre-210-prestations-subventions-diverses.html',
+      },
+      checkedOn,
+    },
+    {
+      id: 'afn105-grants-annex-e',
+      title: {
+        en: 'A-FN-105 Chapter 10, Annex E: CANEX/SISIP Dividend Procedures',
+        fr: 'A-FN-105, chapitre 10, annexe E : Procédures relatives au dividende CANEX/SISIP',
+      },
+      publisher: {
+        en: 'Canadian Forces Morale and Welfare Services',
+        fr: 'Services de bien-être et moral des Forces canadiennes',
+      },
+      urls: {
+        en: 'https://cfmws.ca/CFMWS/media/images/documents/8.0%20About%20Us/8.4%20Policies%20and%20Publications/8.4.5/Policies/AF-N-105%20EN/Chap10E_e.pdf',
+      },
+      checkedOn,
+    },
+    {
+      id: 'afn105-grants-annex-g',
+      title: {
+        en: 'A-FN-105 Chapter 10, Annex G: Other Public Fund Grants',
+        fr: 'A-FN-105, chapitre 10, annexe G : Autres subventions de fonds publics',
+      },
+      publisher: {
+        en: 'Canadian Forces Morale and Welfare Services',
+        fr: 'Services de bien-être et moral des Forces canadiennes',
+      },
+      urls: {
+        en: 'https://cfmws.ca/CFMWS/media/images/documents/8.0%20About%20Us/8.4%20Policies%20and%20Publications/8.4.5/Policies/AF-N-105%20EN/Chap10G_e.pdf',
+      },
+      checkedOn,
+    },
+    {
+      id: 'caf-music-instructions',
+      title: {
+        en: 'Canadian Armed Forces Music Instructions, Volume 1',
+        fr: 'Instructions de musique des Forces armées canadiennes, volume 1',
+      },
+      publisher: { en: 'National Defence', fr: 'Défense nationale' },
+      urls: {
+        en: 'https://www.canada.ca/content/dam/themes/defence/caf/showcasing/music/canadian-armed-forces-music-instructions-volume-1.pdf',
+      },
+      checkedOn,
+    },
+    {
+      id: 'caf-dress-instructions',
+      title: {
+        en: 'CAF Dress Instructions, Chapter 5: Orders of Dress',
+        fr: 'Instructions sur la tenue des FAC, chapitre 5 : Ordres de tenue',
+      },
+      publisher: { en: 'National Defence', fr: 'Défense nationale' },
+      urls: {
+        en: 'https://www.canada.ca/en/services/defence/caf/military-identity-system/dress-manual/chapter-5.html',
       },
       checkedOn,
     },

@@ -16,6 +16,16 @@ export interface OfficialSource {
 export type GuideAudience = 'all-members' | 'operators';
 export type FundingSource = 'npp' | 'public-administered-through-npp';
 export type GuideSectionListPresentation = 'bullets' | 'steps';
+export type GrantEntitlementStatus =
+  | 'published-amount-or-ceiling'
+  | 'published-formula'
+  | 'current-or-local-rate-unavailable';
+
+export interface GrantEntitlement {
+  status: GrantEntitlementStatus;
+  amountOrFormula: LocalizedText;
+  note: LocalizedText;
+}
 
 export interface GuideSection {
   id: string;
@@ -26,6 +36,7 @@ export interface GuideSection {
   listPresentation?: GuideSectionListPresentation;
   warnings: LocalizedText[];
   sourceIds: string[];
+  examples?: LocalizedText[];
 }
 
 export interface GrantGuide {
@@ -41,6 +52,8 @@ export interface GrantGuide {
   accountTreatment: LocalizedText;
   unspentBalanceRule: LocalizedText;
   sourceIds: string[];
+  entitlement: GrantEntitlement;
+  requirements: LocalizedText[];
 }
 
 export interface ChecklistItem {

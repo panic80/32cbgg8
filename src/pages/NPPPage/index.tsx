@@ -6,6 +6,7 @@ import {
   ArrowUp,
   BriefcaseBusiness,
   BookOpen,
+  ChevronDown,
   CircleDollarSign,
   ClipboardList,
   ExternalLink,
@@ -29,7 +30,14 @@ import { useLocale } from '@/i18n/LocaleContext';
 import '@/styles/npp.css';
 import { nppGuideContent } from './nppContent';
 import { ReimbursementChecklist } from './ReimbursementChecklist';
-import type { GrantGuide, GuideAudience, GuideSection, Locale, OfficialSource } from './types';
+import type {
+  GrantEntitlementStatus,
+  GrantGuide,
+  GuideAudience,
+  GuideSection,
+  Locale,
+  OfficialSource,
+} from './types';
 
 const pageUi = {
   en: {
@@ -55,7 +63,12 @@ const pageUi = {
     caution: 'Stop and confirm',
     sourceReferences: 'Official references for this field note',
     grantRecord: 'Funding record',
-    grantSelectorLabel: 'Choose a funding record',
+    grantSelectorLabel: 'Select a grant or funding record',
+    grantSelectorHelper: 'Choose one option to view its amount or formula and requirements.',
+    grantStatus: (index: number, total: number) => `Showing record ${index} of ${total}`,
+    grantAmount: 'Grant amount or calculation',
+    requirementsAtGlance: 'Requirements at a glance',
+    examplesHeading: 'Key examples—not exhaustive',
     fundingSource: 'Funding source',
     nppFunding: 'NPP funding',
     publicFunding: 'Public grant administered through NPP',
@@ -102,7 +115,13 @@ const pageUi = {
     caution: 'Arrêtez-vous et confirmez',
     sourceReferences: 'Références officielles pour cette fiche',
     grantRecord: 'Dossier de financement',
-    grantSelectorLabel: 'Choisir un dossier de financement',
+    grantSelectorLabel: 'Sélectionner une subvention ou un dossier de financement',
+    grantSelectorHelper:
+      'Choisissez une option pour afficher son montant ou sa formule ainsi que ses exigences.',
+    grantStatus: (index: number, total: number) => `Dossier ${index} sur ${total} affiché`,
+    grantAmount: 'Montant ou calcul de la subvention',
+    requirementsAtGlance: 'Exigences en bref',
+    examplesHeading: 'Exemples clés — liste non exhaustive',
     fundingSource: 'Source de financement',
     nppFunding: 'Financement BNP',
     publicFunding: 'Subvention publique administrée par les BNP',
@@ -127,6 +146,19 @@ const pageUi = {
     backToTop: 'Retour en haut',
   },
 } as const;
+
+const entitlementStatusLabels: Record<Locale, Record<GrantEntitlementStatus, string>> = {
+  en: {
+    'published-amount-or-ceiling': 'Published amount or ceiling',
+    'published-formula': 'Published formula',
+    'current-or-local-rate-unavailable': 'Current or local rate unavailable',
+  },
+  fr: {
+    'published-amount-or-ceiling': 'Montant ou plafond publié',
+    'published-formula': 'Formule publiée',
+    'current-or-local-rate-unavailable': 'Taux actuel ou local non disponible',
+  },
+};
 
 const sectionIcons = {
   'npp-and-npf': Scale,
@@ -227,6 +259,17 @@ const GuidanceBody = ({ section, locale }: { section: GuideSection; locale: Loca
         </p>
       ))}
 
+      {section.examples?.length ? (
+        <div className="npp-examples-block">
+          <h3>{ui.examplesHeading}</h3>
+          <ul className="npp-examples-list">
+            {section.examples.map((example) => (
+              <li key={example.en}>{example[locale]}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
       {section.bullets.length > 0 ? (
         <GuidanceList className="npp-guidance-list">
           {section.bullets.map((bullet) => (
@@ -267,6 +310,8 @@ const GrantCard = ({
   isHidden: boolean;
 }) => {
   const ui = pageUi[locale];
+  const entitlement = grant.entitlement;
+  const requirements = grant.requirements;
 
   return (
     <article
@@ -281,6 +326,32 @@ const GrantCard = ({
         </p>
         <h3 id={`grant-${grant.id}-heading`}>{grant.name[locale]}</h3>
       </header>
+      {entitlement && requirements ? (
+        <div className="npp-grant-summary">
+          <section
+            className="npp-entitlement-summary"
+            aria-labelledby={`grant-${grant.id}-amount-heading`}
+          >
+            <p className="npp-entitlement-status">
+              {entitlementStatusLabels[locale][entitlement.status]}
+            </p>
+            <h4 id={`grant-${grant.id}-amount-heading`}>{ui.grantAmount}</h4>
+            <p className="npp-entitlement-amount">{entitlement.amountOrFormula[locale]}</p>
+            <p className="npp-entitlement-note">{entitlement.note[locale]}</p>
+          </section>
+          <section
+            className="npp-requirements-summary"
+            aria-labelledby={`grant-${grant.id}-requirements-heading`}
+          >
+            <h4 id={`grant-${grant.id}-requirements-heading`}>{ui.requirementsAtGlance}</h4>
+            <ul>
+              {requirements.map((requirement) => (
+                <li key={requirement.en}>{requirement[locale]}</li>
+              ))}
+            </ul>
+          </section>
+        </div>
+      ) : null}
       <dl>
         <GrantField label={ui.fundingSource}>
           <span className={`npp-funding-tag is-${grant.fundingSource}`}>
@@ -316,22 +387,48 @@ const GrantCard = ({
 const GrantExplorer = ({ locale }: { locale: Locale }) => {
   const ui = pageUi[locale];
   const [selectedGrantId, setSelectedGrantId] = useState(() => nppGuideContent.grants[0]?.id ?? '');
+  const selectedGrantIndex = nppGuideContent.grants.findIndex(
+    (grant) => grant.id === selectedGrantId,
+  );
+  const selectedGrant = nppGuideContent.grants[selectedGrantIndex];
+  const selectorHelperId = 'npp-grant-selector-helper';
+  const selectorStatusId = 'npp-grant-selector-status';
 
   return (
     <>
       <div className="npp-grant-selector npp-screen-only">
         <label htmlFor="npp-grant-selector">{ui.grantSelectorLabel}</label>
-        <select
-          id="npp-grant-selector"
-          value={selectedGrantId}
-          onChange={(event) => setSelectedGrantId(event.target.value)}
+        <p className="npp-grant-selector-helper" id={selectorHelperId}>
+          {ui.grantSelectorHelper}
+        </p>
+        <div className="npp-grant-select-frame">
+          <select
+            id="npp-grant-selector"
+            value={selectedGrantId}
+            aria-controls={selectedGrant ? `grant-${selectedGrant.id}` : undefined}
+            aria-describedby={`${selectorHelperId} ${selectorStatusId}`}
+            disabled={nppGuideContent.grants.length === 0}
+            onChange={(event) => setSelectedGrantId(event.target.value)}
+          >
+            {nppGuideContent.grants.map((grant) => (
+              <option key={grant.id} value={grant.id}>
+                {grant.name[locale]}
+              </option>
+            ))}
+          </select>
+          <span className="npp-grant-select-endcap" aria-hidden="true">
+            <ChevronDown aria-hidden="true" />
+          </span>
+        </div>
+        <p
+          className="npp-grant-selector-status"
+          id={selectorStatusId}
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
         >
-          {nppGuideContent.grants.map((grant) => (
-            <option key={grant.id} value={grant.id}>
-              {grant.name[locale]}
-            </option>
-          ))}
-        </select>
+          {ui.grantStatus(selectedGrantIndex + 1, nppGuideContent.grants.length)}
+        </p>
       </div>
       <div className="npp-grant-grid">
         {nppGuideContent.grants.map((grant, grantIndex) => (
