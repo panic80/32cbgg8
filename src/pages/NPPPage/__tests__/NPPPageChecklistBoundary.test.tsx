@@ -20,7 +20,7 @@ const renderGuide = (locale: 'en' | 'fr') => {
 
   return render(
     <ThemeProvider>
-      <MemoryRouter initialEntries={[`/npp?lang=${locale}`]}>
+      <MemoryRouter initialEntries={[`/npp?lang=${locale}&task=t-reimburse`]}>
         <NPPPage />
       </MemoryRouter>
     </ThemeProvider>,
