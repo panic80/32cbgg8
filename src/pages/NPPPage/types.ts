@@ -72,3 +72,17 @@ export interface NppGuideContent {
   checklist: ChecklistItem[];
   sources: OfficialSource[];
 }
+
+export type TaskBand = 'start-here' | 'spend-and-pay' | 'claim-and-reference';
+export type TaskView = 'section' | 'checklist' | 'grants' | 'sources';
+export type TaskAudienceFilter = 'all' | GuideAudience;
+
+export interface TaskDefinition {
+  id: string;
+  band: TaskBand;
+  title: LocalizedText;
+  when: LocalizedText;
+  audience: GuideAudience;
+  view: TaskView;
+  sectionId: string;
+}

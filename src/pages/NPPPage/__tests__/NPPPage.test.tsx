@@ -16,16 +16,36 @@ vi.mock('@/i18n/LocaleContext', () => ({
   }),
 }));
 
-const renderGuide = (locale: 'en' | 'fr', hash = '') => {
+const renderGuide = (locale: 'en' | 'fr', extraQuery = '') => {
   localeState.current = locale;
 
   return render(
     <ThemeProvider>
-      <MemoryRouter initialEntries={[`/npp?lang=${locale}${hash}`]}>
+      <MemoryRouter initialEntries={[`/npp?lang=${locale}${extraQuery}`]}>
         <NPPPage />
       </MemoryRouter>
     </ThemeProvider>,
   );
+};
+
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const openTaskCard = (title: string) => {
+  fireEvent.click(screen.getByRole('button', { name: new RegExp(escapeRegExp(title)) }));
+};
+
+// Maps each guide section id to the task id that opens it, for direct deep-link navigation.
+const taskIdForSection: Record<string, string> = {
+  'npp-and-npf': 't-understand',
+  'before-spending': 't-before',
+  'spending-npf': 't-spend',
+  'alienation-of-funds': 't-alienation',
+  grants: 't-grants',
+  'existing-vendor': 't-vendor',
+  'create-vendor': 't-newvendor',
+  'pay-individual': 't-person',
+  'reimbursement-checklist': 't-reimburse',
+  'sources-help': 't-sources',
 };
 
 const localeCases = [
@@ -35,8 +55,6 @@ const localeCases = [
     draftWatermark: 'DRAFT',
     draftStatus: 'Draft document',
     skipLabel: 'Skip to guide',
-    contentsLabel: 'Guide contents',
-    jumpLinksLabel: 'Guide jump links',
     returnLabel: 'Return to landing',
     disclaimer:
       'This page is a plain-language aid, not financial authority or approval. Current legislation, CDS delegations, CFMWS policy, grant-specific instructions, and local NPP Accounting direction prevail.',
@@ -54,6 +72,10 @@ const localeCases = [
       'Transferring NPP to the Crown without appropriate value in return.',
     ],
     audienceLabels: ['All members', 'NPP operators'],
+    hubHeading: 'What do you need to do?',
+    backToHub: 'All tasks',
+    searchLabel: 'Search tasks, grants, documents',
+    noResultsHeading: 'Nothing matches that search.',
     sectionHeadings: [
       ['npp-and-npf', 'What NPP and NPF are—and are not'],
       ['before-spending', 'Before spending'],
@@ -99,6 +121,10 @@ const localeCases = [
     ],
     progress: '0 of 15 complete',
     sourceHeading: 'Official sources',
+    firstTaskTitle: 'Understand NPP and NPF',
+    searchQuery: 'vendor',
+    searchMatchTitle: 'Pay an existing vendor',
+    searchMissTitle: 'Sources and help',
   },
   {
     locale: 'fr' as const,
@@ -106,8 +132,6 @@ const localeCases = [
     draftWatermark: 'ÉBAUCHE',
     draftStatus: 'Document à l’état d’ébauche',
     skipLabel: 'Aller au guide',
-    contentsLabel: 'Sommaire du guide',
-    jumpLinksLabel: 'Liens rapides du guide',
     returnLabel: 'Retour à l’accueil',
     disclaimer:
       'Cette page est un outil en langage clair; elle ne constitue ni une autorité financière ni une approbation. Les lois en vigueur, les délégations du CEMD, les politiques des SBMFC, les directives propres aux subventions et les directives comptables locales des BNP ont préséance.',
@@ -125,6 +149,10 @@ const localeCases = [
       'Transférer des BNP à l’État sans valeur appropriée en retour.',
     ],
     audienceLabels: ['Tous les membres', 'Opérateurs BNP'],
+    hubHeading: 'De quoi avez-vous besoin?',
+    backToHub: 'Toutes les tâches',
+    searchLabel: 'Rechercher des tâches, subventions, documents',
+    noResultsHeading: 'Aucun résultat pour cette recherche.',
     sectionHeadings: [
       ['npp-and-npf', 'Ce que sont les BNP et les FNP — et ce qu’ils ne sont pas'],
       ['before-spending', 'Avant de dépenser'],
@@ -173,6 +201,10 @@ const localeCases = [
     ],
     progress: '0 sur 15 terminées',
     sourceHeading: 'Sources officielles',
+    firstTaskTitle: 'Comprendre les BNP et les FNP',
+    searchQuery: 'fournisseur',
+    searchMatchTitle: 'Payer un fournisseur existant',
+    searchMissTitle: 'Sources et aide',
   },
 ];
 
@@ -340,13 +372,20 @@ describe('NPPPage scroll position', () => {
     expect(appRoot.scrollTop).toBe(0);
   });
 
-  it('preserves scroll state when mounted with a section hash', () => {
+  it('preserves scroll state when mounted with a hash', () => {
     const appRoot = document.createElement('div');
     appRoot.id = 'root';
     appRoot.scrollTop = 320;
     document.body.appendChild(appRoot);
 
-    renderGuide('en', '#before-spending');
+    localeState.current = 'en';
+    render(
+      <ThemeProvider>
+        <MemoryRouter initialEntries={['/npp?lang=en#before-spending']}>
+          <NPPPage />
+        </MemoryRouter>
+      </ThemeProvider>,
+    );
 
     expect(scrollToSpy).not.toHaveBeenCalled();
     expect(appRoot.scrollTop).toBe(320);
@@ -366,30 +405,40 @@ describe('NPPPage visual semantics', () => {
   });
 
   it('renders guidance as ordinary or ordered lists without checkbox-like decoration', () => {
-    const { container } = renderGuide('en');
+    const { container } = renderGuide('en', '&task=t-understand');
 
     expect(container.querySelector('#npp-and-npf ul.npp-guidance-list')).toBeInTheDocument();
 
-    for (const sectionId of ['spending-npf', 'alienation-of-funds', 'existing-vendor']) {
-      expect(container.querySelector(`#${sectionId} ol.npp-guidance-list`)).toBeInTheDocument();
-    }
+    const alienationIcon = container.querySelector('#alienation-of-funds .npp-section-icon svg');
+    expect(alienationIcon).toBeNull(); // not on screen until that task is opened
 
-    const guidanceLists = container.querySelectorAll('.npp-guidance-list');
-    expect(guidanceLists.length).toBeGreaterThan(0);
-
-    for (const list of guidanceLists) {
+    for (const list of container.querySelectorAll('.npp-guidance-list')) {
       expect(list.querySelector('svg')).not.toBeInTheDocument();
       expect(within(list as HTMLElement).queryByRole('checkbox')).not.toBeInTheDocument();
       expect(within(list as HTMLElement).queryByRole('button')).not.toBeInTheDocument();
     }
+  });
 
-    const alienationIcon = container.querySelector('#alienation-of-funds .npp-section-icon svg');
-    expect(alienationIcon).toBeInTheDocument();
-    expect(alienationIcon).not.toHaveClass('lucide-check');
+  it('renders stepped guidance as ordered lists for procedural sections', () => {
+    for (const [sectionId, taskId] of [
+      ['spending-npf', 't-spend'],
+      ['alienation-of-funds', 't-alienation'],
+      ['existing-vendor', 't-vendor'],
+    ]) {
+      const { container, unmount } = renderGuide('en', `&task=${taskId}`);
+
+      expect(container.querySelector(`#${sectionId} ol.npp-guidance-list`)).toBeInTheDocument();
+
+      const icon = container.querySelector(`#${sectionId} .npp-section-icon svg`);
+      expect(icon).toBeInTheDocument();
+      expect(icon).not.toHaveClass('lucide-check');
+
+      unmount();
+    }
   });
 
   it('confines all fifteen checkbox controls to the reimbursement checklist', () => {
-    const { container } = renderGuide('en');
+    const { container } = renderGuide('en', '&task=t-reimburse');
     const checkboxes = screen.getAllByRole('checkbox');
     const checklist = container.querySelector('#reimbursement-checklist');
 
@@ -397,6 +446,24 @@ describe('NPPPage visual semantics', () => {
     for (const checkbox of checkboxes) {
       expect(checklist).toContainElement(checkbox);
     }
+  });
+});
+
+describe('NPPPage task hub', () => {
+  it('does not collect or submit personal, supplier, or payment information', () => {
+    const { container } = renderGuide('en');
+
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    expect(container.querySelector('form')).not.toBeInTheDocument();
+    expect(container.querySelector('input[type="file"]')).not.toBeInTheDocument();
+    expect(container.querySelector('input[type="text"]')).not.toBeInTheDocument();
+    expect(container.querySelector('input[type="email"]')).not.toBeInTheDocument();
+    expect(container.querySelector('input[type="number"]')).not.toBeInTheDocument();
+    expect(container.querySelector('input[name*="bank" i]')).not.toBeInTheDocument();
+    expect(container.querySelector('input[name*="sin" i]')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /submit|upload|téléverser|soumettre/i }),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -416,68 +483,127 @@ describe.each(localeCases)('NPPPage ($locale)', (copy) => {
     expect(accessibleStatus).not.toHaveAttribute('aria-hidden');
   });
 
-  it('renders one semantic, continuously readable field guide', () => {
+  it('renders exactly one h1, header, main, and the localized disclaimer at all times', () => {
     const { container } = renderGuide(copy.locale);
 
     expect(container.querySelectorAll('h1')).toHaveLength(1);
     expect(screen.getByRole('heading', { level: 1, name: copy.title })).toBeInTheDocument();
     expect(container.querySelector('header')).toBeInTheDocument();
     expect(container.querySelector('main#npp-main')).toBeInTheDocument();
-    expect(container.querySelector('footer')).toBeInTheDocument();
     expect(screen.getByText(copy.disclaimer)).toBeVisible();
     expect(screen.getByRole('link', { name: copy.skipLabel })).toHaveAttribute('href', '#npp-main');
+  });
 
-    for (const [id, heading] of copy.sectionHeadings) {
-      const section = container.querySelector(
-        id === 'reimbursement-checklist' ? `div#${id}` : `section#${id}`,
-      );
+  it('opens straight to the hub, showing every task across its three bands', () => {
+    renderGuide(copy.locale);
+
+    expect(screen.getByRole('heading', { level: 2, name: copy.hubHeading })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: new RegExp(copy.firstTaskTitle) }),
+    ).toBeInTheDocument();
+  });
+
+  it.each(copy.sectionHeadings)(
+    'opens the %s task to its section heading',
+    (sectionId, heading) => {
+      const { container } = renderGuide(copy.locale, `&task=${taskIdForSection[sectionId]}`);
+      const section =
+        sectionId === 'reimbursement-checklist'
+          ? container.querySelector(`div#${sectionId}`)
+          : container.querySelector(`section#${sectionId}`);
 
       expect(section).toBeInTheDocument();
       expect(within(section as HTMLElement).getByRole('heading', { name: heading })).toBeVisible();
-    }
+      expect(screen.getByRole('button', { name: copy.backToHub })).toBeInTheDocument();
+    },
+  );
+
+  it('returns to the hub, preserving audience and search state, when back is activated', () => {
+    renderGuide(copy.locale, `&task=t-before&aud=operators&q=${copy.searchQuery}`);
+
+    fireEvent.click(screen.getByRole('button', { name: copy.backToHub }));
+
+    expect(screen.getByRole('heading', { level: 2, name: copy.hubHeading })).toBeInTheDocument();
+    expect(screen.getByRole('searchbox', { name: copy.searchLabel })).toHaveValue(copy.searchQuery);
+    expect(screen.getByRole('button', { name: copy.audienceLabels[1] })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
   });
 
-  it('exposes one contents landmark and only one labelled checklist region', () => {
-    const { container } = renderGuide(copy.locale);
-
-    expect(screen.getAllByRole('complementary')).toHaveLength(1);
-
-    const checklistAnchor = container.querySelector('#reimbursement-checklist');
-    expect(checklistAnchor?.tagName).toBe('DIV');
-    expect(within(checklistAnchor as HTMLElement).getAllByRole('region')).toHaveLength(1);
-  });
-
-  it('provides desktop contents and mobile jump links for every guide anchor', () => {
+  it('narrows the task list by audience filter', () => {
     renderGuide(copy.locale);
 
-    for (const navigationLabel of [copy.contentsLabel, copy.jumpLinksLabel]) {
-      const navigation = screen.getByRole('navigation', { name: navigationLabel });
+    expect(
+      screen.getByRole('button', { name: new RegExp(escapeRegExp(copy.searchMatchTitle)) }),
+    ).toBeInTheDocument();
 
-      for (const [id, heading] of copy.sectionHeadings) {
-        expect(within(navigation).getByRole('link', { name: heading })).toHaveAttribute(
-          'href',
-          `#${id}`,
-        );
-      }
-    }
+    fireEvent.click(screen.getByRole('button', { name: copy.audienceLabels[0] }));
+
+    expect(
+      screen.queryByRole('button', { name: new RegExp(escapeRegExp(copy.searchMatchTitle)) }),
+    ).not.toBeInTheDocument();
   });
 
-  it('shows the required member workflow, operator guidance, grants, and checklist', () => {
+  it('narrows the task list by locale-aware search, and clears back to the full list', () => {
+    renderGuide(copy.locale);
+
+    fireEvent.change(screen.getByRole('searchbox', { name: copy.searchLabel }), {
+      target: { value: copy.searchQuery },
+    });
+
+    expect(
+      screen.getByRole('button', { name: new RegExp(escapeRegExp(copy.searchMatchTitle)) }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: new RegExp(escapeRegExp(copy.searchMissTitle)) }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /clear|effacer/i }));
+
+    expect(
+      screen.getByRole('button', { name: new RegExp(escapeRegExp(copy.searchMissTitle)) }),
+    ).toBeInTheDocument();
+  });
+
+  it('shows a no-results state when nothing matches', () => {
+    renderGuide(copy.locale);
+
+    fireEvent.change(screen.getByRole('searchbox', { name: copy.searchLabel }), {
+      target: { value: 'zzz-no-such-task-zzz' },
+    });
+
+    expect(screen.getByText(copy.noResultsHeading)).toBeInTheDocument();
+  });
+
+  it('opens a task by clicking its card', () => {
     const { container } = renderGuide(copy.locale);
+
+    openTaskCard(copy.firstTaskTitle);
+
+    expect(container.querySelector('#npp-and-npf')).toBeInTheDocument();
+  });
+
+  it('shows both audience labels on the hub, from the tabs and the task tags', () => {
+    renderGuide(copy.locale);
 
     for (const audienceLabel of copy.audienceLabels) {
       expect(screen.getAllByText(audienceLabel).length).toBeGreaterThan(0);
     }
+  });
 
-    for (const [id, text] of copy.contentChecks) {
-      expect(container.querySelector(`#${id}`)).toHaveTextContent(text);
+  it.each(copy.contentChecks)('renders the expected content for %s', (sectionId, text) => {
+    const { container } = renderGuide(copy.locale, `&task=${taskIdForSection[sectionId]}`);
+
+    expect(container.querySelector(`#${sectionId}`)).toHaveTextContent(text);
+
+    if (sectionId === 'reimbursement-checklist') {
+      expect(screen.getByText(copy.progress)).toHaveAttribute('aria-live', 'polite');
     }
-
-    expect(screen.getByText(copy.progress)).toHaveAttribute('aria-live', 'polite');
   });
 
   it('renders all five alienation examples as a distinct non-exhaustive list', () => {
-    const { container } = renderGuide(copy.locale);
+    const { container } = renderGuide(copy.locale, '&task=t-alienation');
     const alienation = container.querySelector('#alienation-of-funds');
 
     expect(alienation).toHaveTextContent(copy.alienationExamplesIntro);
@@ -487,7 +613,7 @@ describe.each(localeCases)('NPPPage ($locale)', (copy) => {
   });
 
   it('offers every grant through one localized native selector and shows one record at a time', () => {
-    const { container } = renderGuide(copy.locale);
+    const { container } = renderGuide(copy.locale, '&task=t-grants');
     const grantSection = container.querySelector('section#grants') as HTMLElement;
     const selector = within(grantSection).getByRole('combobox', {
       name: copy.grantSelectorLabel,
@@ -511,7 +637,7 @@ describe.each(localeCases)('NPPPage ($locale)', (copy) => {
   });
 
   it('connects the grant selector to an accessible status and visible card with entitlement requirements', () => {
-    const { container } = renderGuide(copy.locale);
+    const { container } = renderGuide(copy.locale, '&task=t-grants');
     const grantSection = container.querySelector('section#grants') as HTMLElement;
     const selector = within(grantSection).getByRole('combobox', {
       name: copy.grantSelectorLabel,
@@ -567,7 +693,7 @@ describe.each(localeCases)('NPPPage ($locale)', (copy) => {
   });
 
   it('renders hardened official links with explicit language availability', () => {
-    const { container } = renderGuide(copy.locale);
+    const { container } = renderGuide(copy.locale, '&task=t-sources');
     const sourceFooter = container.querySelector('footer');
 
     expect(
@@ -596,22 +722,6 @@ describe.each(localeCases)('NPPPage ($locale)', (copy) => {
         expect(link).toHaveAttribute('rel', 'noopener noreferrer');
       }
     }
-  });
-
-  it('does not collect or submit personal, supplier, or payment information', () => {
-    const { container } = renderGuide(copy.locale);
-
-    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
-    expect(container.querySelector('form')).not.toBeInTheDocument();
-    expect(container.querySelector('input[type="file"]')).not.toBeInTheDocument();
-    expect(container.querySelector('input[type="text"]')).not.toBeInTheDocument();
-    expect(container.querySelector('input[type="email"]')).not.toBeInTheDocument();
-    expect(container.querySelector('input[type="number"]')).not.toBeInTheDocument();
-    expect(container.querySelector('input[name*="bank" i]')).not.toBeInTheDocument();
-    expect(container.querySelector('input[name*="sin" i]')).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /submit|upload|téléverser|soumettre/i }),
-    ).not.toBeInTheDocument();
   });
 
   it('preserves the selected locale when returning to the landing page', () => {

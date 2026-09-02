@@ -1,9 +1,16 @@
-import { useLayoutEffect, useState, type ReactNode } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from 'react';
 import {
   AlertTriangle,
   ArrowLeft,
+  ArrowRight,
   ArrowRightLeft,
-  ArrowUp,
   BriefcaseBusiness,
   BookOpen,
   ChevronDown,
@@ -17,11 +24,12 @@ import {
   Moon,
   ReceiptText,
   Scale,
+  Search,
   Sun,
   Users,
   WalletCards,
 } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import brigadeBadge from '@/assets/logo.png';
 import { LocaleToggle } from '@/components/LocaleToggle';
 import { SITE_CONFIG } from '@/constants/siteConfig';
@@ -29,6 +37,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useLocale } from '@/i18n/LocaleContext';
 import '@/styles/npp.css';
 import { nppGuideContent } from './nppContent';
+import { getNextSteps, nppTasks } from './nppTasks';
 import { ReimbursementChecklist } from './ReimbursementChecklist';
 import type {
   GrantEntitlementStatus,
@@ -37,6 +46,9 @@ import type {
   GuideSection,
   Locale,
   OfficialSource,
+  TaskAudienceFilter,
+  TaskBand,
+  TaskDefinition,
 } from './types';
 
 const pageUi = {
@@ -53,10 +65,6 @@ const pageUi = {
     audience: 'Audience',
     audienceValue: '32 CBG members and NPP operators',
     sourceStatus: 'Source status',
-    guideContents: 'Guide contents',
-    guideJumpLinks: 'Guide jump links',
-    contentsHeading: 'In this guide',
-    jumpHeading: 'Jump to a field note',
     fieldNote: 'Field note',
     allMembers: 'All members',
     operators: 'NPP operators',
@@ -90,7 +98,19 @@ const pageUi = {
     draftWatermark: 'DRAFT',
     draftStatus: 'Draft document',
     contactLabel: 'Report a broken link through the public 32 CBG G8 contact',
-    backToTop: 'Back to top',
+    hubEyebrow: 'NPP field guide · public edition',
+    hubHeading: 'What do you need to do?',
+    hubIntro:
+      'Guidance for 32 CBG members on Non-Public Property and Non-Public Funds. Pick a task — the guide opens at that step, not at page one.',
+    searchLabel: 'Search tasks, grants, documents',
+    searchClear: 'Clear',
+    audienceGroupLabel: 'Filter by audience',
+    audienceEveryone: 'Everyone',
+    taskCount: (count: number) => `${count} ${count === 1 ? 'task' : 'tasks'}`,
+    noResultsHeading: 'Nothing matches that search.',
+    noResultsBody: 'Clear the box, or widen the audience filter.',
+    backToHub: 'All tasks',
+    nextStepsHeading: 'Next, most people need',
   },
   fr: {
     skip: 'Aller au guide',
@@ -105,10 +125,6 @@ const pageUi = {
     audience: 'Public cible',
     audienceValue: 'Membres du 32 GBC et opérateurs des BNP',
     sourceStatus: 'État des sources',
-    guideContents: 'Sommaire du guide',
-    guideJumpLinks: 'Liens rapides du guide',
-    contentsHeading: 'Dans ce guide',
-    jumpHeading: 'Accéder à une fiche',
     fieldNote: 'Fiche',
     allMembers: 'Tous les membres',
     operators: 'Opérateurs BNP',
@@ -143,7 +159,19 @@ const pageUi = {
     draftWatermark: 'ÉBAUCHE',
     draftStatus: 'Document à l’état d’ébauche',
     contactLabel: 'Signaler un lien brisé au moyen du contact public du G8 du 32 GBC',
-    backToTop: 'Retour en haut',
+    hubEyebrow: 'Guide pratique des BNP · édition publique',
+    hubHeading: 'De quoi avez-vous besoin?',
+    hubIntro:
+      'Indications à l’intention des membres du 32 GBC sur les biens non publics et les fonds non publics. Choisissez une tâche — le guide s’ouvre à cette étape, pas à la première page.',
+    searchLabel: 'Rechercher des tâches, subventions, documents',
+    searchClear: 'Effacer',
+    audienceGroupLabel: 'Filtrer par public',
+    audienceEveryone: 'Tout le monde',
+    taskCount: (count: number) => `${count} ${count === 1 ? 'tâche' : 'tâches'}`,
+    noResultsHeading: 'Aucun résultat pour cette recherche.',
+    noResultsBody: 'Effacez le champ ou élargissez le filtre de public.',
+    backToHub: 'Toutes les tâches',
+    nextStepsHeading: 'Ensuite, la plupart des gens ont besoin de',
   },
 } as const;
 
@@ -175,6 +203,46 @@ const sectionIcons = {
 
 const sourceById = new Map(nppGuideContent.sources.map((source) => [source.id, source] as const));
 
+const sectionsById = new Map(
+  nppGuideContent.sections.map((section, index) => [section.id, { section, index }] as const),
+);
+
+const tasksById = new Map(nppTasks.map((task) => [task.id, task] as const));
+
+const taskBandLabels: Record<Locale, Record<TaskBand, string>> = {
+  en: {
+    'start-here': 'Start here',
+    'spend-and-pay': 'Spend and pay',
+    'claim-and-reference': 'Claim and reference',
+  },
+  fr: {
+    'start-here': 'Commencez ici',
+    'spend-and-pay': 'Dépenser et payer',
+    'claim-and-reference': 'Réclamer et consulter',
+  },
+};
+
+const taskMatchesQuery = (
+  task: TaskDefinition,
+  locale: Locale,
+  normalizedQuery: string,
+): boolean => {
+  if (!normalizedQuery) return true;
+
+  const entry = sectionsById.get(task.sectionId);
+  const haystack = [
+    task.title[locale],
+    task.when[locale],
+    entry?.section.heading[locale] ?? '',
+    ...(entry?.section.paragraphs.map((paragraph) => paragraph[locale]) ?? []),
+    ...(entry?.section.bullets.map((bullet) => bullet[locale]) ?? []),
+  ]
+    .join(' ')
+    .toLowerCase();
+
+  return haystack.includes(normalizedQuery);
+};
+
 const languageNames: Record<Locale, string> = {
   en: 'English',
   fr: 'Français',
@@ -200,28 +268,244 @@ const AudienceBadge = ({ audience, locale }: { audience: GuideAudience; locale: 
   );
 };
 
-const GuideNavigation = ({
+const AudienceTabs = ({
+  value,
+  onChange,
   locale,
-  ariaLabel,
-  className,
+}: {
+  value: TaskAudienceFilter;
+  onChange: (value: TaskAudienceFilter) => void;
+  locale: Locale;
+}) => {
+  const ui = pageUi[locale];
+  const options: { value: TaskAudienceFilter; label: string }[] = [
+    { value: 'all', label: ui.audienceEveryone },
+    { value: 'all-members', label: ui.allMembers },
+    { value: 'operators', label: ui.operators },
+  ];
+
+  return (
+    <div className="npp-audience-tabs" role="group" aria-label={ui.audienceGroupLabel}>
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          aria-pressed={value === option.value}
+          onClick={() => onChange(option.value)}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
+};
+
+const TaskSearch = ({
+  value,
+  onChange,
+  locale,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  locale: Locale;
+}) => {
+  const ui = pageUi[locale];
+  const inputId = 'npp-task-search';
+
+  return (
+    <div className="npp-task-search">
+      <Search aria-hidden="true" />
+      <label htmlFor={inputId} className="sr-only">
+        {ui.searchLabel}
+      </label>
+      <input
+        id={inputId}
+        type="search"
+        placeholder={ui.searchLabel}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      />
+      {value ? (
+        <button type="button" onClick={() => onChange('')}>
+          {ui.searchClear}
+        </button>
+      ) : null}
+    </div>
+  );
+};
+
+const TaskCard = ({
+  task,
+  locale,
+  onOpen,
+}: {
+  task: TaskDefinition;
+  locale: Locale;
+  onOpen: (task: TaskDefinition) => void;
+}) => {
+  const ui = pageUi[locale];
+
+  return (
+    <li>
+      <button type="button" className="npp-task-card" onClick={() => onOpen(task)}>
+        <span className="npp-task-card-tag">
+          {task.audience === 'operators' ? ui.operators : ui.allMembers}
+        </span>
+        <span className="npp-task-card-title">{task.title[locale]}</span>
+        <span className="npp-task-card-when">{task.when[locale]}</span>
+      </button>
+    </li>
+  );
+};
+
+const TaskBandSection = ({
+  band,
+  tasks,
+  locale,
+  onOpenTask,
+}: {
+  band: TaskBand;
+  tasks: TaskDefinition[];
+  locale: Locale;
+  onOpenTask: (task: TaskDefinition) => void;
+}) => {
+  const ui = pageUi[locale];
+
+  if (tasks.length === 0) return null;
+
+  return (
+    <div className="npp-task-band">
+      <div className="npp-task-band-heading">
+        <h3>{taskBandLabels[locale][band]}</h3>
+        <span>{ui.taskCount(tasks.length)}</span>
+      </div>
+      <ul className="npp-task-grid">
+        {tasks.map((task) => (
+          <TaskCard key={task.id} task={task} locale={locale} onOpen={onOpenTask} />
+        ))}
+      </ul>
+    </div>
+  );
+};
+
+const TASK_BAND_ORDER: TaskBand[] = ['start-here', 'spend-and-pay', 'claim-and-reference'];
+
+const TaskHub = ({
+  locale,
+  audienceFilter,
+  query,
+  onAudienceChange,
+  onQueryChange,
+  onOpenTask,
+  headingRef,
 }: {
   locale: Locale;
-  ariaLabel: string;
-  className: string;
-}) => (
-  <nav aria-label={ariaLabel} className={className}>
-    <ol>
-      {nppGuideContent.sections.map((section, index) => (
-        <li key={section.id}>
-          <a href={`#${section.id}`}>
-            <span aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
-            <span>{section.heading[locale]}</span>
-          </a>
-        </li>
-      ))}
-    </ol>
-  </nav>
-);
+  audienceFilter: TaskAudienceFilter;
+  query: string;
+  onAudienceChange: (value: TaskAudienceFilter) => void;
+  onQueryChange: (value: string) => void;
+  onOpenTask: (task: TaskDefinition) => void;
+  headingRef: RefObject<HTMLHeadingElement>;
+}) => {
+  const ui = pageUi[locale];
+  const normalizedQuery = query.trim().toLowerCase();
+  const visibleTasks = nppTasks.filter(
+    (task) =>
+      (audienceFilter === 'all' || task.audience === audienceFilter) &&
+      taskMatchesQuery(task, locale, normalizedQuery),
+  );
+  const hasResults = visibleTasks.length > 0;
+
+  return (
+    <div className="npp-task-hub">
+      <div className="npp-hub-hero">
+        <p>{ui.hubEyebrow}</p>
+        <h2 ref={headingRef} tabIndex={-1}>
+          {ui.hubHeading}
+        </h2>
+        <p className="npp-hub-intro">{ui.hubIntro}</p>
+        <div className="npp-hub-controls npp-screen-only">
+          <AudienceTabs value={audienceFilter} onChange={onAudienceChange} locale={locale} />
+          <TaskSearch value={query} onChange={onQueryChange} locale={locale} />
+        </div>
+      </div>
+
+      {hasResults ? (
+        TASK_BAND_ORDER.map((band) => (
+          <TaskBandSection
+            key={band}
+            band={band}
+            tasks={visibleTasks.filter((task) => task.band === band)}
+            locale={locale}
+            onOpenTask={onOpenTask}
+          />
+        ))
+      ) : (
+        <div className="npp-no-results">
+          <p>{ui.noResultsHeading}</p>
+          <p>{ui.noResultsBody}</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const NextSteps = ({
+  sectionId,
+  locale,
+  onOpenTask,
+}: {
+  sectionId: string;
+  locale: Locale;
+  onOpenTask: (task: TaskDefinition) => void;
+}) => {
+  const ui = pageUi[locale];
+  const nextTasks = getNextSteps(sectionId)
+    .map((id) => tasksById.get(id))
+    .filter((task): task is TaskDefinition => Boolean(task));
+
+  if (nextTasks.length === 0) return null;
+
+  return (
+    <div className="npp-next-steps npp-screen-only">
+      <p>{ui.nextStepsHeading}</p>
+      <ul>
+        {nextTasks.map((task) => (
+          <li key={task.id}>
+            <button type="button" onClick={() => onOpenTask(task)}>
+              {task.title[locale]}
+              <ArrowRight aria-hidden="true" />
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
+const TaskBackLink = ({
+  locale,
+  onBack,
+  backRef,
+}: {
+  locale: Locale;
+  onBack: () => void;
+  backRef: RefObject<HTMLButtonElement>;
+}) => {
+  const ui = pageUi[locale];
+
+  return (
+    <button
+      type="button"
+      className="npp-detail-back npp-screen-only"
+      onClick={onBack}
+      ref={backRef}
+    >
+      <ArrowLeft aria-hidden="true" />
+      {ui.backToHub}
+    </button>
+  );
+};
 
 const SourceReferences = ({ sourceIds, locale }: { sourceIds: string[]; locale: Locale }) => {
   const ui = pageUi[locale];
@@ -603,7 +887,19 @@ const NPPPage = () => {
   const { locale } = useLocale();
   const { theme, toggleTheme } = useTheme();
   const { hash } = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const ui = pageUi[locale];
+
+  const taskId = searchParams.get('task');
+  const audienceFilter: TaskAudienceFilter =
+    (searchParams.get('aud') as TaskAudienceFilter | null) ?? 'all';
+  const query = searchParams.get('q') ?? '';
+  const activeTask = taskId ? tasksById.get(taskId) : undefined;
+  const activeSectionEntry = activeTask ? sectionsById.get(activeTask.sectionId) : undefined;
+
+  const backRef = useRef<HTMLButtonElement>(null);
+  const hubHeadingRef = useRef<HTMLHeadingElement>(null);
+  const hasMountedRef = useRef(false);
 
   useLayoutEffect(() => {
     if (hash) return;
@@ -613,6 +909,42 @@ const NPPPage = () => {
     const appRoot = document.getElementById('root');
     if (appRoot) appRoot.scrollTop = 0;
   }, [hash]);
+
+  useEffect(() => {
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true;
+      return;
+    }
+
+    if (activeTask) backRef.current?.focus();
+    else hubHeadingRef.current?.focus();
+  }, [taskId, activeTask]);
+
+  const openTask = (task: TaskDefinition) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('task', task.id);
+    setSearchParams(next);
+  };
+
+  const backToHub = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('task');
+    setSearchParams(next);
+  };
+
+  const setAudienceFilter = (value: TaskAudienceFilter) => {
+    const next = new URLSearchParams(searchParams);
+    if (value === 'all') next.delete('aud');
+    else next.set('aud', value);
+    setSearchParams(next, { replace: true });
+  };
+
+  const setQuery = (value: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (value) next.set('q', value);
+    else next.delete('q');
+    setSearchParams(next, { replace: true });
+  };
 
   return (
     <div className="npp-page" id="npp-top">
@@ -687,45 +1019,42 @@ const NPPPage = () => {
 
       <main id="npp-main" tabIndex={-1}>
         <div className="npp-guide-layout">
-          <aside className="npp-contents-rail npp-screen-only">
-            <div>
-              <p>{ui.publication}</p>
-              <h2>{ui.contentsHeading}</h2>
-              <GuideNavigation
-                locale={locale}
-                ariaLabel={ui.guideContents}
-                className="npp-guide-navigation"
-              />
-            </div>
-          </aside>
-
           <div className="npp-guide-document">
-            <div className="npp-mobile-jumps npp-screen-only">
-              <p>{ui.jumpHeading}</p>
-              <GuideNavigation
+            {activeTask && activeSectionEntry ? (
+              <>
+                <TaskBackLink locale={locale} onBack={backToHub} backRef={backRef} />
+                {activeTask.view === 'checklist' ? (
+                  <ChecklistSection
+                    section={activeSectionEntry.section}
+                    locale={locale}
+                    index={activeSectionEntry.index}
+                  />
+                ) : (
+                  <StandardSection
+                    section={activeSectionEntry.section}
+                    locale={locale}
+                    index={activeSectionEntry.index}
+                  />
+                )}
+                {activeTask.view === 'section' ? (
+                  <NextSteps
+                    sectionId={activeTask.sectionId}
+                    locale={locale}
+                    onOpenTask={openTask}
+                  />
+                ) : null}
+              </>
+            ) : (
+              <TaskHub
                 locale={locale}
-                ariaLabel={ui.guideJumpLinks}
-                className="npp-jump-navigation"
+                audienceFilter={audienceFilter}
+                query={query}
+                onAudienceChange={setAudienceFilter}
+                onQueryChange={setQuery}
+                onOpenTask={openTask}
+                headingRef={hubHeadingRef}
               />
-            </div>
-
-            {nppGuideContent.sections.map((section, index) =>
-              section.id === 'reimbursement-checklist' ? (
-                <ChecklistSection
-                  key={section.id}
-                  section={section}
-                  locale={locale}
-                  index={index}
-                />
-              ) : (
-                <StandardSection key={section.id} section={section} locale={locale} index={index} />
-              ),
             )}
-
-            <a className="npp-back-to-top npp-screen-only" href="#npp-top">
-              <ArrowUp aria-hidden="true" />
-              {ui.backToTop}
-            </a>
           </div>
         </div>
       </main>
