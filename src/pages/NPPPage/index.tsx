@@ -13,21 +13,29 @@ import {
   ArrowRightLeft,
   BriefcaseBusiness,
   BookOpen,
+  Building2,
   ChevronDown,
   CircleDollarSign,
   ClipboardList,
   ExternalLink,
   FileText,
+  Gift,
+  HandCoins,
+  Handshake,
   Info,
   Landmark,
+  Library,
   Mail,
   Moon,
   ReceiptText,
   Scale,
   Search,
+  SearchCheck,
+  ShoppingCart,
   Sun,
   Users,
   WalletCards,
+  type LucideIcon,
 } from 'lucide-react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import brigadeBadge from '@/assets/logo.png';
@@ -334,6 +342,19 @@ const TaskSearch = ({
   );
 };
 
+const taskIcons: Record<string, LucideIcon> = {
+  't-understand': BookOpen,
+  't-before': SearchCheck,
+  't-spend': ShoppingCart,
+  't-vendor': Building2,
+  't-newvendor': Handshake,
+  't-person': HandCoins,
+  't-alienation': Gift,
+  't-reimburse': ReceiptText,
+  't-grants': Landmark,
+  't-sources': Library,
+};
+
 const TaskCard = ({
   task,
   locale,
@@ -344,15 +365,19 @@ const TaskCard = ({
   onOpen: (task: TaskDefinition) => void;
 }) => {
   const ui = pageUi[locale];
+  const Icon = taskIcons[task.id] ?? FileText;
 
   return (
     <li>
       <button type="button" className="npp-task-card" onClick={() => onOpen(task)}>
-        <span className="npp-task-card-tag">
-          {task.audience === 'operators' ? ui.operators : ui.allMembers}
+        <Icon className="npp-task-card-icon" aria-hidden="true" />
+        <span className="npp-task-card-body">
+          <span className="npp-task-card-title">{task.title[locale]}</span>
+          <span className="npp-task-card-when">{task.when[locale]}</span>
+          <span className="npp-task-card-tag">
+            {task.audience === 'operators' ? ui.operators : ui.allMembers}
+          </span>
         </span>
-        <span className="npp-task-card-title">{task.title[locale]}</span>
-        <span className="npp-task-card-when">{task.when[locale]}</span>
       </button>
     </li>
   );
