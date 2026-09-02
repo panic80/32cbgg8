@@ -587,6 +587,195 @@
   color: var(--npp-gold);
 }
 
+.npp-track {
+  margin-top: 1.4rem;
+  padding: 1.1rem 1.15rem 1rem;
+  background: var(--npp-paper);
+  border: 1px solid var(--npp-rule);
+  border-radius: 0.85rem;
+}
+
+.npp-track-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.npp-track-label {
+  color: var(--npp-muted-ink);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.npp-track-status {
+  color: var(--npp-ink);
+  font-size: 0.86rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.npp-track-bar {
+  height: 0.4rem;
+  margin-top: 0.6rem;
+  overflow: hidden;
+  background: var(--npp-ground);
+  border: 1px solid var(--npp-rule);
+  border-radius: 999px;
+}
+
+.npp-track-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--npp-gold);
+  border-radius: inherit;
+  transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.npp-track[data-complete='true'] .npp-track-bar > span {
+  background: var(--npp-green-mid);
+}
+
+.npp-track-list {
+  margin-top: 0.9rem;
+  padding: 0;
+  list-style: none;
+}
+
+.npp-track-list li + li {
+  border-top: 1px solid var(--npp-rule);
+}
+
+.npp-track-item {
+  display: grid;
+  grid-template-columns: auto 2.1rem minmax(0, 1fr);
+  align-items: start;
+  gap: 0.75rem;
+  min-height: 2.75rem;
+  padding: 0.7rem 0.25rem;
+  color: var(--npp-ink);
+  font-size: 0.93rem;
+  line-height: 1.5;
+  cursor: pointer;
+  border-radius: 0.4rem;
+  transition: background-color 150ms ease;
+}
+
+.npp-track-item:hover {
+  background: var(--npp-ground);
+}
+
+.npp-track-item:focus-within {
+  outline: 2px solid var(--npp-gold);
+  outline-offset: 2px;
+}
+
+.npp-track-item [role='checkbox'] {
+  width: 1.25rem;
+  height: 1.25rem;
+  min-width: 1.25rem;
+  margin-top: 0.1rem;
+  color: var(--npp-green-deep);
+  background: var(--npp-paper);
+  border: 2px solid var(--npp-green-mid);
+  border-radius: 0.25rem;
+}
+
+.npp-track-item [role='checkbox'][data-state='checked'] {
+  color: var(--npp-green-deep);
+  background: var(--npp-gold);
+  border-color: var(--npp-gold);
+}
+
+.npp-track-item [role='checkbox'] svg {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.npp-track-marker {
+  padding-top: 0.15rem;
+  color: var(--npp-gold);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 0.9rem;
+  font-style: italic;
+  line-height: 1;
+}
+
+.npp-track-list li[data-done='true'] .npp-track-text {
+  color: var(--npp-muted-ink);
+  text-decoration: line-through;
+  text-decoration-color: rgba(10, 54, 34, 0.35);
+}
+
+.npp-track-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem 1rem;
+  margin-top: 0.9rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--npp-rule);
+}
+
+.npp-track-footer p {
+  color: var(--npp-muted-ink);
+  font-size: 0.78rem;
+}
+
+.npp-track-footer button {
+  min-height: 2.5rem;
+  padding: 0 0.9rem;
+  color: var(--npp-ink);
+  font-size: 0.76rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid var(--npp-green-mid);
+  border-radius: 0.35rem;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease,
+    border-color 150ms ease;
+}
+
+.npp-track-footer button:hover:not(:disabled) {
+  color: var(--npp-green-deep);
+  background: var(--npp-gold);
+  border-color: var(--npp-gold);
+}
+
+.npp-track-footer button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+[data-theme='dark'] .npp-track {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+[data-theme='dark'] .npp-track-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme='dark'] .npp-track-item [role='checkbox'] {
+  color: var(--npp-green-deep);
+  background: transparent;
+  border-color: var(--npp-gold-soft);
+}
+
+[data-theme='dark'] .npp-track-item [role='checkbox'][data-state='checked'] {
+  background: var(--npp-gold);
+  border-color: var(--npp-gold);
+}
+
+[data-theme='dark'] .npp-track-list li[data-done='true'] .npp-track-text {
+  text-decoration-color: rgba(244, 217, 107, 0.5);
+}
+
 .npp-no-results {
   padding: 2rem;
   text-align: center;

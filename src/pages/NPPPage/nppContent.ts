@@ -115,6 +115,7 @@ export const nppGuideContent: NppGuideContent = {
     },
     {
       id: 'before-spending',
+      trackable: true,
       heading: { en: 'Before spending', fr: 'Avant de dépenser' },
       audience: 'all-members',
       paragraphs: [
@@ -169,6 +170,7 @@ export const nppGuideContent: NppGuideContent = {
     },
     {
       id: 'spending-npf',
+      trackable: true,
       heading: { en: 'How to spend NPF', fr: 'Comment dépenser les FNP' },
       audience: 'operators',
       paragraphs: [
@@ -248,6 +250,7 @@ export const nppGuideContent: NppGuideContent = {
     },
     {
       id: 'alienation-of-funds',
+      trackable: true,
       heading: {
         en: 'Alienation of NPP: a separate approval path',
         fr: 'Aliénation des BNP : une voie d’approbation distincte',
@@ -335,6 +338,7 @@ export const nppGuideContent: NppGuideContent = {
     },
     {
       id: 'existing-vendor',
+      trackable: true,
       heading: { en: 'Pay an existing vendor', fr: 'Payer un fournisseur existant' },
       audience: 'operators',
       paragraphs: [
@@ -409,6 +413,7 @@ export const nppGuideContent: NppGuideContent = {
     },
     {
       id: 'pay-individual',
+      trackable: true,
       heading: { en: 'Pay an individual', fr: 'Payer une personne' },
       audience: 'operators',
       paragraphs: [

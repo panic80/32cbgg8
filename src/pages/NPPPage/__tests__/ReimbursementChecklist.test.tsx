@@ -16,6 +16,7 @@ const renderChecklist = () =>
 describe('ReimbursementChecklist', () => {
   beforeEach(() => {
     window.history.replaceState({}, '', '/npp');
+    window.localStorage.clear();
   });
 
   it('tracks checked items in an accessible progress status and resets them', () => {
@@ -51,7 +52,7 @@ describe('ReimbursementChecklist', () => {
     }
   });
 
-  it('does not retain completion after unmounting and remounting', () => {
+  it('retains completion on this device after unmounting and remounting', () => {
     const view = renderChecklist();
 
     fireEvent.click(screen.getByRole('checkbox', { name: /approval before purchasing/i }));
@@ -60,7 +61,14 @@ describe('ReimbursementChecklist', () => {
     view.unmount();
     renderChecklist();
 
-    expect(screen.getByText('0 of 15 complete')).toBeInTheDocument();
+    expect(screen.getByText('1 of 15 complete')).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /approval before purchasing/i })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /reset/i }));
+    expect(window.localStorage.getItem('npp-progress:reimbursement-checklist')).toBeNull();
   });
 
   it('renders French labels and progress after switching locale', () => {

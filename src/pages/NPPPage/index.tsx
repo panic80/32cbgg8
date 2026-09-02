@@ -40,6 +40,7 @@ import {
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import brigadeBadge from '@/assets/logo.png';
 import { LocaleToggle } from '@/components/LocaleToggle';
+import { Checkbox } from '@/components/ui/checkbox';
 import { SITE_CONFIG } from '@/constants/siteConfig';
 import { useTheme } from '@/context/ThemeContext';
 import { useLocale } from '@/i18n/LocaleContext';
@@ -47,6 +48,7 @@ import '@/styles/npp.css';
 import { nppGuideContent } from './nppContent';
 import { getNextSteps, nppTasks } from './nppTasks';
 import { ReimbursementChecklist } from './ReimbursementChecklist';
+import { useChecklistProgress } from './useChecklistProgress';
 import type {
   GrantEntitlementStatus,
   GrantGuide,
@@ -119,6 +121,12 @@ const pageUi = {
     noResultsBody: 'Clear the box, or widen the audience filter.',
     backToHub: 'All tasks',
     nextStepsHeading: 'Next, most people need',
+    progress: (completed: number, total: number) => `${completed} of ${total} complete`,
+    progressLabel: 'Your progress',
+    progressSaved: 'Ticks are saved on this device only.',
+    progressReset: 'Reset',
+    stepLabel: (index: number) => `Step ${index}`,
+    itemLabel: (index: number) => `Item ${index}`,
   },
   fr: {
     skip: 'Aller au guide',
@@ -180,6 +188,13 @@ const pageUi = {
     noResultsBody: 'Effacez le champ ou élargissez le filtre de public.',
     backToHub: 'Toutes les tâches',
     nextStepsHeading: 'Ensuite, la plupart des gens ont besoin de',
+    progress: (completed: number, total: number) =>
+      `${completed} sur ${total} ${completed === 1 ? 'terminée' : 'terminées'}`,
+    progressLabel: 'Votre progression',
+    progressSaved: 'Les cases cochées sont enregistrées sur cet appareil seulement.',
+    progressReset: 'Réinitialiser',
+    stepLabel: (index: number) => `Étape ${index}`,
+    itemLabel: (index: number) => `Élément ${index}`,
   },
 } as const;
 
@@ -556,6 +571,66 @@ const SourceReferences = ({ sourceIds, locale }: { sourceIds: string[]; locale: 
   );
 };
 
+const GuidanceChecklist = ({ section, locale }: { section: GuideSection; locale: Locale }) => {
+  const ui = pageUi[locale];
+  const { completed, setItem, reset } = useChecklistProgress(section.id);
+  const isSteps = section.listPresentation === 'steps';
+  const total = section.bullets.length;
+  const completedCount = section.bullets.filter((_, index) => completed.has(String(index))).length;
+  const percent = total === 0 ? 0 : Math.round((completedCount / total) * 100);
+  const List = isSteps ? 'ol' : 'ul';
+
+  return (
+    <div className="npp-track" data-complete={completedCount === total ? 'true' : undefined}>
+      <div className="npp-track-header">
+        <p className="npp-track-label">{ui.progressLabel}</p>
+        <p role="status" aria-live="polite" className="npp-track-status">
+          {ui.progress(completedCount, total)}
+        </p>
+      </div>
+      <div
+        className="npp-track-bar"
+        role="progressbar"
+        aria-label={ui.progressLabel}
+        aria-valuemin={0}
+        aria-valuemax={total}
+        aria-valuenow={completedCount}
+      >
+        <span style={{ width: `${percent}%` }} />
+      </div>
+      <List className="npp-track-list">
+        {section.bullets.map((bullet, index) => {
+          const id = String(index);
+          const inputId = `${section.id}-item-${index}`;
+          const done = completed.has(id);
+          return (
+            <li key={bullet.en} data-done={done ? 'true' : undefined}>
+              <label htmlFor={inputId} className="npp-track-item">
+                <Checkbox
+                  id={inputId}
+                  checked={done}
+                  aria-label={bullet[locale]}
+                  onCheckedChange={(checked) => setItem(id, checked === true)}
+                />
+                <span className="npp-track-marker" aria-hidden="true">
+                  {isSteps ? String(index + 1).padStart(2, '0') : '—'}
+                </span>
+                <span className="npp-track-text">{bullet[locale]}</span>
+              </label>
+            </li>
+          );
+        })}
+      </List>
+      <div className="npp-track-footer">
+        <p>{ui.progressSaved}</p>
+        <button type="button" onClick={reset} disabled={completedCount === 0}>
+          {ui.progressReset}
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const GuidanceBody = ({ section, locale }: { section: GuideSection; locale: Locale }) => {
   const ui = pageUi[locale];
   const GuidanceList = section.listPresentation === 'steps' ? 'ol' : 'ul';
@@ -579,7 +654,9 @@ const GuidanceBody = ({ section, locale }: { section: GuideSection; locale: Loca
         </div>
       ) : null}
 
-      {section.bullets.length > 0 ? (
+      {section.bullets.length > 0 && section.trackable ? (
+        <GuidanceChecklist section={section} locale={locale} />
+      ) : section.bullets.length > 0 ? (
         <GuidanceList className="npp-guidance-list">
           {section.bullets.map((bullet) => (
             <li key={bullet.en}>{bullet[locale]}</li>
