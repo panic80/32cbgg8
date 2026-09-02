@@ -34,6 +34,8 @@ export interface GuideSection {
   paragraphs: LocalizedText[];
   bullets: LocalizedText[];
   listPresentation?: GuideSectionListPresentation;
+  /** Render the list as a checklist whose progress is saved on the reader's device. */
+  trackable?: boolean;
   warnings: LocalizedText[];
   sourceIds: string[];
   examples?: LocalizedText[];

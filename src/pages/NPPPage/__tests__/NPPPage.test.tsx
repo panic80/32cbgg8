@@ -419,7 +419,7 @@ describe('NPPPage visual semantics', () => {
     }
   });
 
-  it('renders stepped guidance as ordered lists for procedural sections', () => {
+  it('renders stepped guidance as ordered checklists for procedural sections', () => {
     for (const [sectionId, taskId] of [
       ['spending-npf', 't-spend'],
       ['alienation-of-funds', 't-alienation'],
@@ -427,7 +427,8 @@ describe('NPPPage visual semantics', () => {
     ]) {
       const { container, unmount } = renderGuide('en', `&task=${taskId}`);
 
-      expect(container.querySelector(`#${sectionId} ol.npp-guidance-list`)).toBeInTheDocument();
+      expect(container.querySelector(`#${sectionId} ol.npp-track-list`)).toBeInTheDocument();
+      expect(container.querySelector(`#${sectionId} [role='progressbar']`)).toBeInTheDocument();
 
       const icon = container.querySelector(`#${sectionId} .npp-section-icon svg`);
       expect(icon).toBeInTheDocument();

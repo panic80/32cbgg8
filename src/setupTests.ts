@@ -1,5 +1,10 @@
 import '@testing-library/jest-dom/vitest';
-import { vi } from 'vitest';
+import { afterEach, vi } from 'vitest';
+
+// Keep on-device progress (localStorage) from leaking between tests.
+afterEach(() => {
+  window.localStorage.clear();
+});
 
 // Basic IndexedDB mock (tests will override with their own detailed mocks)
 if (!global.indexedDB) {

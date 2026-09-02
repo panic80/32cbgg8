@@ -1,8 +1,8 @@
-import { useState } from 'react';
 import { useLocale } from '@/i18n/LocaleContext';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { nppGuideContent } from './nppContent';
+import { useChecklistProgress } from './useChecklistProgress';
 import type { ChecklistItem } from './types';
 
 const checklistSection = nppGuideContent.sections.find(
@@ -24,23 +24,13 @@ const checklistUi = {
 
 export const ReimbursementChecklist = () => {
   const { locale } = useLocale();
-  const [completed, setCompleted] = useState<Set<string>>(() => new Set());
+  const { completed, setItem, reset } = useChecklistProgress('reimbursement-checklist');
   const ui = checklistUi[locale];
   const total = nppGuideContent.checklist.length;
   const completedCount = completed.size;
 
   const handleCheckedChange = (id: ChecklistItem['id'], checked: boolean) => {
-    setCompleted((current) => {
-      const next = new Set(current);
-
-      if (checked) {
-        next.add(id);
-      } else {
-        next.delete(id);
-      }
-
-      return next;
-    });
+    setItem(id, checked);
   };
 
   return (
@@ -87,12 +77,7 @@ export const ReimbursementChecklist = () => {
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          className="min-h-11"
-          onClick={() => setCompleted(new Set())}
-        >
+        <Button type="button" variant="outline" className="min-h-11" onClick={reset}>
           {ui.reset}
         </Button>
         <Button type="button" variant="outline" className="min-h-11" onClick={() => window.print()}>
